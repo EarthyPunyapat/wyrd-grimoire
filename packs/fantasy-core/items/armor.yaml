@@ -1,0 +1,32 @@
+- id: padded-jack
+  name: Padded Jack
+  description: Layers of quilted linen; warm, cheap and better than it looks.
+  weightKg: 3
+  price: 40
+  covers: [torso, right-arm, left-arm]
+  protection: { cut: 2, pierce: 1, blunt: 2 }
+- id: leather-armor
+  name: Leather Armour
+  description: Boiled and shaped hide over the body and arms.
+  weightKg: 5
+  price: 90
+  covers: [torso, right-arm, left-arm]
+  protection: { cut: 3, pierce: 2, blunt: 1 }
+- id: mail-hauberk
+  name: Mail Hauberk
+  description: A knee-length shirt of riveted rings; heavy, noisy and very hard to cut through.
+  weightKg: 12
+  price: 600
+  covers: [torso, right-arm, left-arm]
+  protection: { cut: 6, pierce: 3, blunt: 2 }
+  penalties:
+    - { skill: stealth, value: -10 }
+- id: open-helmet
+  name: Open Helmet
+  description: An iron cap with a nasal bar.
+  weightKg: 1.5
+  price: 60
+  covers: [head]
+  protection: { cut: 5, pierce: 4, blunt: 3 }
+  penalties:
+    - { skill: perception, value: -10 }

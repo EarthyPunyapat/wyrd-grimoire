@@ -1,0 +1,65 @@
+# Tier 1 archetype talents
+- id: line-veteran
+  name: Line Veteran
+  tier: 1
+  description: You have held a shield line and walked away. You keep your footing when others break; the first time each fight you would be knocked Prone, you aren't.
+- id: hedge-lore
+  name: Hedge Lore
+  tier: 1
+  description: Charms, herbs and the small spirits of field and hedge are familiar company. +10 to Arcana checks about local magic and remedies.
+- id: light-fingers
+  name: Light Fingers
+  tier: 1
+  description: Purses, keys and small things find their way into your hands. Sleight of Hand checks to lift small items are one step easier.
+- id: road-blessed
+  name: Road-Blessed
+  tier: 1
+  description: A pilgrim's word carries weight. Once per day, a short blessing removes Frightened from an ally who can hear you.
+- id: tracker
+  name: Tracker
+  tier: 1
+  description: Bent grass and broken twigs tell you stories. Tracking with Survival takes half the usual time.
+- id: well-read
+  name: Well-Read
+  tier: 1
+  description: You have read more than is good for you. With a day among books, Lore checks to recall a fact gain a boon.
+# Tier 1 free picks
+- id: tough-as-roots
+  name: Tough as Roots
+  tier: 1
+  description: Hard winters made you hard to kill. +2 to maximum HP.
+  prerequisites:
+    attributes: { end: 6 }
+- id: quick-hands
+  name: Quick Hands
+  tier: 1
+  description: Once per turn, drawing or stowing a weapon costs no AP.
+  prerequisites:
+    attributes: { agi: 6 }
+- id: keen-ears
+  name: Keen Ears
+  tier: 1
+  description: You hear the creak on the stair before anyone else. Hearing-based Perception checks gain a boon.
+  prerequisites:
+    attributes: { awa: 6 }
+- id: silver-tongue
+  name: Silver Tongue
+  tier: 1
+  description: People want to agree with you. Once per scene, reroll a failed Persuasion check.
+  prerequisites:
+    attributes: { pre: 6 }
+    skills: { persuasion: 40 }
+- id: iron-will
+  name: Iron Will
+  tier: 1
+  description: Fear and charms slide off you. +10 to Willpower checks to resist fear or magic.
+  prerequisites:
+    attributes: { wil: 6 }
+# Tier 2
+- id: second-wind
+  name: Second Wind
+  tier: 2
+  description: Once per fight, spend 1 AP to recover HP equal to your Endurance.
+  prerequisites:
+    attributes: { end: 6 }
+    talents: [tough-as-roots]

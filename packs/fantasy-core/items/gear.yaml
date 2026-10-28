@@ -1,0 +1,15 @@
+- { id: backpack, name: Backpack, description: "A canvas pack with leather straps.", weightKg: 1, price: 20, tags: [container] }
+- { id: bedroll, name: Bedroll, description: "A blanket and a ground sheet, rolled and tied.", weightKg: 2, price: 8 }
+- { id: rations, name: Trail Rations, description: "A day's hard bread, cheese and dried meat.", weightKg: 0.5, price: 3, tags: [food] }
+- { id: waterskin, name: Waterskin, description: "Holds a day's water.", weightKg: 1, price: 5 }
+- { id: rope, name: Hemp Rope, description: "Fifteen paces of good rope.", weightKg: 3, price: 10 }
+- { id: torch, name: Torch, description: "Pitch-soaked rags on a stick; burns for about an hour.", weightKg: 0.5, price: 1, tags: [light] }
+- { id: lantern, name: Horn Lantern, description: "A candle behind horn panes; steady light that survives a breeze.", weightKg: 1, price: 40, tags: [light] }
+- { id: flint-and-steel, name: Flint and Steel, description: "For lighting fires, with patience.", weightKg: 0.1, price: 4 }
+- { id: bandages, name: Bandages, description: "Clean linen strips for binding wounds.", weightKg: 0.2, price: 4, tags: [medical] }
+- { id: healers-kit, name: "Healer's Kit", description: "Needles, gut thread, salves and a sharp little knife.", weightKg: 1, price: 60, tags: [medical, tools] }
+- { id: lockpicks, name: Lockpicks, description: "A roll of picks and tension wires. Owning them is a crime in most towns.", weightKg: 0.1, price: 120, tags: [tools, illicit] }
+- { id: quill-and-ink, name: Quill and Ink, description: "A goose quill, a pot of iron-gall ink and a few sheets of rag paper.", weightKg: 0.2, price: 15 }
+- { id: prayer-beads, name: Prayer Beads, description: "A worn string of wooden beads.", weightKg: 0.1, price: 6, tags: [holy] }
+- { id: arrows, name: Arrows, description: "A quiver of twenty arrows.", weightKg: 1, price: 10, tags: [ammo] }
+- { id: crossbow-bolts, name: Crossbow Bolts, description: "A case of twenty bolts.", weightKg: 1, price: 15, tags: [ammo] }

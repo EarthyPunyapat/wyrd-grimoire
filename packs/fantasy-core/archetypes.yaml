@@ -1,0 +1,91 @@
+- id: sellsword
+  name: Sellsword
+  description: A blade for hire who has seen enough fights to know how few of them are worth the pay.
+  suggestedAttributes: { str: 7, agi: 6, end: 7, int: 4, awa: 5, wil: 5, pre: 5 }
+  skills: { melee: 70, dodge: 50, athletics: 45, intimidation: 35, perception: 30, streetwise: 25, survival: 25, medicine: 20 }
+  talent: line-veteran
+  kit:
+    - { item: arming-sword }
+    - { item: padded-jack }
+    - { item: open-helmet }
+    - { item: backpack }
+    - { item: bedroll }
+    - { item: rations, qty: 3 }
+  backstoryPrompts:
+    - Who did you last fight for, and why did you stop?
+    - What is the one job you refused?
+- id: hedge-wizard
+  name: Hedge Wizard
+  description: A self-taught worker of small magics, as likely to cure a cow as to call fire, and paid for neither.
+  suggestedAttributes: { str: 3, agi: 5, end: 5, int: 7, awa: 6, wil: 7, pre: 6 }
+  skills: { spellcasting/elemental: 70, arcana: 60, insight: 30, perception: 30, medicine: 30, survival: 30, lore/history: 30, persuasion: 20 }
+  talent: hedge-lore
+  kit:
+    - { item: dagger }
+    - { item: backpack }
+    - { item: healers-kit }
+    - { item: quill-and-ink }
+    - { item: rations, qty: 3 }
+  backstoryPrompts:
+    - Who first saw you work magic, and what did they do about it?
+    - What did your first spell cost you?
+- id: cutpurse
+  name: Cutpurse
+  description: A city rat with quick hands and quicker excuses, owed money by no one and owing it to several.
+  suggestedAttributes: { str: 4, agi: 7, end: 5, int: 5, awa: 7, wil: 4, pre: 7 }
+  skills: { sleight-of-hand: 70, stealth: 60, deception: 50, perception: 40, acrobatics: 30, streetwise: 30, melee: 20 }
+  talent: light-fingers
+  kit:
+    - { item: dagger }
+    - { item: lockpicks }
+    - { item: rope }
+    - { item: backpack }
+  backstoryPrompts:
+    - Whose purse should you never have touched?
+    - Which fence still trusts you, and why?
+- id: pilgrim
+  name: Pilgrim
+  description: A traveller on the long road to a shrine, carrying a vow, a staff and other people's troubles.
+  suggestedAttributes: { str: 5, agi: 4, end: 6, int: 5, awa: 6, wil: 7, pre: 6 }
+  skills: { faith: 70, medicine: 50, persuasion: 45, insight: 45, survival: 30, lore/religion: 30, melee: 30 }
+  talent: road-blessed
+  kit:
+    - { item: cudgel }
+    - { item: prayer-beads }
+    - { item: bandages, qty: 4 }
+    - { item: waterskin }
+    - { item: bedroll }
+    - { item: rations, qty: 5 }
+  backstoryPrompts:
+    - What vow sent you on the road?
+    - Who did you leave behind to keep it?
+- id: hunter
+  name: Hunter
+  description: A woodland stalker who feeds a village and knows exactly where the lord's forest ends, more or less.
+  suggestedAttributes: { str: 6, agi: 7, end: 6, int: 4, awa: 7, wil: 5, pre: 4 }
+  skills: { ranged: 70, survival: 60, perception: 50, stealth: 45, athletics: 30, navigation: 25, melee: 20 }
+  talent: tracker
+  kit:
+    - { item: shortbow }
+    - { item: arrows, qty: 2 }
+    - { item: hand-axe }
+    - { item: leather-armor }
+    - { item: flint-and-steel }
+    - { item: waterskin }
+  backstoryPrompts:
+    - What did you see in the deep woods that you never told anyone?
+    - Whose land do you hunt, and do they know?
+- id: scholar
+  name: Scholar
+  description: A reader of old things, sent out of the library to find a book that does not want to be found.
+  suggestedAttributes: { str: 3, agi: 4, end: 5, int: 7, awa: 7, wil: 6, pre: 7 }
+  skills: { lore/history: 70, investigation: 60, language/old-script: 40, insight: 40, medicine: 30, persuasion: 30, arcana: 30 }
+  talent: well-read
+  kit:
+    - { item: dagger }
+    - { item: quill-and-ink }
+    - { item: lantern }
+    - { item: backpack }
+  backstoryPrompts:
+    - Which book do you wish you had never opened?
+    - Who funds your search, and what do they really want?

@@ -1,0 +1,73 @@
+- id: dagger
+  name: Dagger
+  description: A long knife for eating, working and the occasional emergency.
+  weightKg: 0.5
+  price: 20
+  skill: melee
+  damage: 1d4
+  damageType: pierce
+  armorPiercing: 1
+  hands: 1
+  ranges: { engaged: 0 }
+- id: arming-sword
+  name: Arming Sword
+  description: A straight one-handed blade; expensive, reliable and a mark of status.
+  weightKg: 1.3
+  price: 150
+  skill: melee
+  damage: 1d8
+  damageType: cut
+  hands: 1
+  ranges: { engaged: 0 }
+- id: spear
+  name: Spear
+  description: An ash shaft with an iron head; the poor soldier's best friend.
+  weightKg: 2
+  price: 40
+  skill: melee
+  damage: 1d8
+  damageType: pierce
+  hands: 2
+  ranges: { engaged: 0 }
+- id: hand-axe
+  name: Hand Axe
+  description: A woodsman's axe that does not much mind what it chops.
+  weightKg: 1
+  price: 30
+  skill: melee
+  damage: 1d6
+  damageType: cut
+  hands: 1
+  ranges: { engaged: 0 }
+- id: cudgel
+  name: Cudgel
+  description: A knotted length of hardwood. Cheap, legal, effective.
+  weightKg: 1
+  price: 5
+  skill: melee
+  damage: 1d6
+  damageType: blunt
+  hands: 1
+  ranges: { engaged: 0 }
+- id: shortbow
+  name: Shortbow
+  description: A hunting bow of yew and sinew, quick to draw and easy to carry.
+  weightKg: 0.8
+  price: 60
+  skill: ranged
+  damage: 1d6
+  damageType: pierce
+  hands: 2
+  ranges: { engaged: -20, close: 0, near: 0, far: 0, distant: -20 }
+- id: light-crossbow
+  name: Light Crossbow
+  description: A stocked bow spanned with a lever; slow to load, brutal when it lands.
+  weightKg: 2.5
+  price: 200
+  skill: ranged
+  damage: 1d10
+  damageType: pierce
+  armorPiercing: 2
+  hands: 2
+  reloadAp: 2
+  ranges: { engaged: -20, close: 0, near: 0, far: 0, distant: -20 }

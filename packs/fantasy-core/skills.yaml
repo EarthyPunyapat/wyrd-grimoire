@@ -1,0 +1,17 @@
+- id: arcana
+  name: Arcana
+  group: magic
+  attributes: [int]
+  description: Knowledge of spirits, charms, sigils and the old workings, and the sense to know when to leave them alone.
+- id: spellcasting
+  name: Spellcasting
+  group: magic
+  attributes: [wil, int]
+  field: true
+  fields: [elemental, healing, illusion, warding]
+  description: Working one school of magic. Each school is a separate skill, e.g. spellcasting/healing.
+- id: faith
+  name: Faith
+  group: faith
+  attributes: [wil, pre]
+  description: Prayer, rite and the strength of conviction; calling on a power greater than yourself and being heard.

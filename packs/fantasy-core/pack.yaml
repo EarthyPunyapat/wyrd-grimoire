@@ -1,0 +1,13 @@
+id: fantasy-core
+name: "Fantasy Core"
+version: 0.1.0
+engine: ">=1.0.0 <2.0.0"
+description: "Grounded, low-to-mid magic medieval fantasy."
+tags: [fantasy, medieval, low-magic]
+kind: genre
+requires: []
+# The spellcasting plugin arrives in M7; until then the pack lists no plugins.
+plugins: []
+supports:
+  progression: [classless, useBased, hybrid]
+  bodyPlans: [humanoid]

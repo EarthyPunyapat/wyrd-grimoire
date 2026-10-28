@@ -1,0 +1,36 @@
+- id: human
+  name: Human
+  description: The most numerous folk of the river valleys and market towns; short-lived, stubborn and everywhere.
+  attributeMaxBonus: [wil]
+  languages: [common]
+  traits:
+    - name: Stubborn
+      description: Willpower may start at 8.
+- id: dwarf
+  name: Dwarf
+  description: Broad, slow-spoken hill and mine folk who measure friendship in decades and grudges in centuries.
+  attributeMaxBonus: [end]
+  languages: [common, dwarven]
+  traits:
+    - name: Stone-Bred
+      description: Endurance may start at 8.
+    - name: Dark-Wise
+      description: Dim light imposes no penalty underground.
+- id: elf
+  name: Elf
+  description: Tall, watchful forest folk who remember the land before the roads and do not quite trust them.
+  attributeMaxBonus: [awa]
+  languages: [common, elvish]
+  traits:
+    - name: Far-Sighted
+      description: Awareness may start at 8.
+- id: halfling
+  name: Halfling
+  description: Small, sociable folk of hedgerow villages, quick on their feet and quicker to put the kettle on.
+  attributeMaxBonus: [agi]
+  languages: [common]
+  traits:
+    - name: Nimble
+      description: Agility may start at 8.
+    - name: Small
+      description: Can hide behind cover a larger person couldn't.
