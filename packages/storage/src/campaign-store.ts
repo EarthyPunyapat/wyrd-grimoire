@@ -160,6 +160,15 @@ export class CampaignStore<S extends { campaign: { gameTime: number } }> {
     this.db.close();
   }
 
+  /** The compiled pack content frozen into this campaign at creation, if any. */
+  packSnapshot(): { hash: string; content: unknown } | null {
+    const r = this.db.query("SELECT hash, content FROM pack_snapshot WHERE id = 1").get() as {
+      hash: string;
+      content: string;
+    } | null;
+    return r ? { hash: r.hash, content: JSON.parse(r.content) } : null;
+  }
+
   // ── Branches ───────────────────────────────────────────────────────────────
 
   get activeBranchId(): string {

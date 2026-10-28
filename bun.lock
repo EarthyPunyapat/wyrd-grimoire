@@ -19,6 +19,7 @@
         "@wyrd/engine": "workspace:*",
         "@wyrd/packs": "workspace:*",
         "@wyrd/storage": "workspace:*",
+        "yaml": "^2.8.0",
       },
     },
     "packages/core": {
