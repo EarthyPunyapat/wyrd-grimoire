@@ -27,7 +27,7 @@ type Deps = {
   router: () => RoleRouter | null;
 };
 
-const MAX_PINS = 20;
+const MAX_PINS = defaultTuning.memory.maxPins;
 const HOW: Record<string, string> = {
   witnessed: "seen with your own eyes",
   told: "told to you",

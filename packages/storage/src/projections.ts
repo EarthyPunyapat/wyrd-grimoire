@@ -72,6 +72,7 @@ export function applyProjections(db: Database, e: EventEnvelope): void {
       break;
     case "FactPinned":
       patchFact(db, e.payload.factId, { pinned: e.payload.pinned });
+      db.run("UPDATE facts SET pinned = ? WHERE id = ?", [e.payload.pinned ? 1 : 0, e.payload.factId]);
       db.run("UPDATE memory_items SET pinned = ? WHERE id IN (?, ?)", [
         e.payload.pinned ? 1 : 0,
         `fact:${e.payload.factId}`,
@@ -191,7 +192,7 @@ type Item = {
 function index(db: Database, it: Item) {
   unindex(db, it.id);
   const vec = embed(it.text);
-  db.run(
+  const r = db.run(
     "INSERT INTO memory_items (id, namespace, text, entity_ids, game_time, seq, importance, visibility, pinned, embedding, model) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)",
     [
       it.id,
@@ -206,15 +207,18 @@ function index(db: Database, it: Item) {
       EMBEDDING_MODEL,
     ],
   );
-  db.run("INSERT INTO memory_fts (id, text) VALUES (?, ?)", [it.id, it.text]);
+  // Full-text rows share the item's rowid, so deletes are keyed lookups (not FTS scans).
+  db.run("INSERT INTO memory_fts (rowid, text) VALUES (?, ?)", [r.lastInsertRowid, it.text]);
 }
 
 function unindex(db: Database, id: string) {
-  db.run("DELETE FROM memory_items WHERE id = ?", [id]);
-  db.run("DELETE FROM memory_fts WHERE id = ?", [id]);
+  const row = db.query("SELECT rowid FROM memory_items WHERE id = ?").get(id) as { rowid: number } | null;
+  if (!row) return;
+  db.run("DELETE FROM memory_fts WHERE rowid = ?", [row.rowid]);
+  db.run("DELETE FROM memory_items WHERE rowid = ?", [row.rowid]);
 }
 
-/** Facts are indexed as sentences: "Wenna Harrow: appearance.hands cracked like old leather". */
+/** Facts are indexed as sentences: "Wenna Harrow: appearance hands cracked like old leather". */
 function indexFact(
   db: Database,
   fact: {

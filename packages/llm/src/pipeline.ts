@@ -328,8 +328,12 @@ export class TurnPipeline {
   private async prepareWorld(actions: unknown[], turnId: string): Promise<boolean> {
     if (!this.d.lazy) return false;
     const drafts: EventDraft[] = [];
+    const done = new Set<string>();
     for (const raw of actions) {
       const a = raw as { type?: string; toSiteId?: string; targetId?: string };
+      const key = a.toSiteId ?? a.targetId;
+      if (!key || done.has(key)) continue;
+      done.add(key);
       if (a.type === "travel" && a.toSiteId) {
         const site = this.d.canon.entity(a.toSiteId);
         if (site && !(site.data as { arrivalLocationId?: string }).arrivalLocationId)

@@ -123,11 +123,11 @@ Every name must be new and distinct; never reuse or closely echo any name in "ta
       ...bible.factions.flatMap((f) => [f.name, f.leader.name]),
       ...bible.npcs.map((n) => n.name),
     ];
-    const clashes = nameClashes(all, taken);
-    if (!clashes.length || attempt === 1) return bible;
+    // Second attempt: accept it; the compiler keeps ids unique even when names echo.
+    if (!nameClashes(all, taken).length || attempt === 1) return bible;
     names = [...taken, ...all];
   }
-  throw new ProviderError("invalid_output", "The world's names kept clashing.", true);
+  throw new ProviderError("invalid_output", "The world bible could not be generated.", true);
 }
 
 /** Lazy generation (spec 06 `generate_location`): the arrival place at a site, before it's narrated. */
@@ -162,7 +162,7 @@ export function elaborateEntity(
     router,
     "elaborate_entity",
     Elaboration,
-    "Flesh out this stub entity of an existing role-playing world: a richer summary and 1–5 concrete facts (appearance, manner, habits, possessions). Stay consistent with every given fact; never contradict or rename. Mark a fact secret only if the character would hide it.",
+    "Flesh out this stub entity of an existing role-playing world: a richer summary and 1–5 concrete facts (appearance, manner, habits, possessions). Stay consistent with every given fact; never contradict or rename. The summary and non-secret facts are shown to the player: keep anything hidden only in facts marked secret.",
     input,
     "elaborate@1",
   );

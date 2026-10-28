@@ -1,4 +1,4 @@
-import { type ActorId, draft, type EventDraft, type Resolution } from "@wyrd/core";
+import { type ActorId, draft, type EventDraft, type Resolution, type Rumor } from "@wyrd/core";
 import type { GameState } from "../state.ts";
 import { Working } from "../working.ts";
 import { runTicks, type WorldContext } from "./ticks.ts";
@@ -120,10 +120,15 @@ function canPerceive(state: GameState, a: string, b: string): boolean {
  * After a turn (spec 07): the PC learns who and what is around them; NPCs who perceived anything
  * notable remember it; then the world ticks for any time that passed. Returns the extra drafts.
  */
-export function afterTurn(state: GameState, resolution: Resolution, ctx: KnowledgeContext): EventDraft[] {
+export function afterTurn(
+  state: GameState,
+  resolution: Resolution,
+  ctx: KnowledgeContext,
+): { events: EventDraft[]; beats: string[] } {
   const w = new Working(state);
   const pcId = state.party.pcId;
   const t = state.campaign.gameTime;
+  const beats: string[] = [];
   if (pcId && state.scene) {
     const learned = (entityId: string, how: "witnessed" | "public") => {
       if (!w.state.knowledge.entities[entityId])
@@ -183,6 +188,30 @@ export function afterTurn(state: GameState, resolution: Resolution, ctx: Knowled
       }
     }
   }
+  // Talking to someone who carries a rumour: they pass on the hottest one the PC hasn't heard (spec 07).
+  if (pcId) {
+    for (const s of resolution.steps) {
+      const a = s.action as { type?: string; targetId?: string };
+      if (a.type !== "talk" || !a.targetId) continue;
+      const npc = a.targetId;
+      const rumour: Rumor | undefined = Object.values(w.state.rumors)
+        .filter(
+          (r) =>
+            r.holders[npc] && !r.holders[pcId] && r.originId !== pcId && !r.about.every((x) => x === pcId),
+        )
+        .sort((x, y) => y.heat - x.heat || x.id.localeCompare(y.id))[0];
+      if (!rumour) continue;
+      const content = rumour.holders[npc]!.content || rumour.content;
+      w.apply([draft("RumorHeard", { rumorId: rumour.id, holderId: pcId, content, fromId: npc }, "engine")]);
+      const subjects: string[] = rumour.about.filter((x) => x !== pcId);
+      for (const subject of subjects) {
+        if (w.state.knowledge.entities[subject]) continue;
+        const entry = { how: "rumour" as const, sourceId: npc, gameTime: t };
+        w.apply([draft("KnowledgeGained", { entityId: subject, entry }, "engine")]);
+      }
+      beats.push(`${ctx.nameOf(npc)} passes on something they heard: "${content}"`);
+    }
+  }
   w.apply(runTicks(w.state, ctx));
-  return w.events;
+  return { events: w.events, beats };
 }

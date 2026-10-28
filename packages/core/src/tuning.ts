@@ -139,6 +139,27 @@ export type Tuning = {
     /** Threat clocks: default days per segment and the told-memory importance that starts a rumour. */
     threatPaceDays: number;
     toldRumourImportance: number;
+    /** Travel (spec 06): time factor per pace, Navigation difficulty per route danger (index into the difficulty ladder), and costs. */
+    travel: {
+      pace: Record<"careful" | "normal" | "fast", number>;
+      paceShift: Record<"careful" | "normal" | "fast", number>;
+      dangerDifficulty: number[];
+      failureTimeFactor: number;
+      minRoadMinutes: number;
+    };
+  };
+  /** Memory (spec 07): pyramid cadence, retrieval scoring, pins. */
+  memory: {
+    turnsPerScene: number;
+    scenesPerChapter: number;
+    chaptersPerArc: number;
+    halfLifeDays: number;
+    rrfK: number;
+    candidates: number;
+    /** Items scored by vector per query: the full-text pool plus the most recent (bounds cost). */
+    candidatePool: number;
+    weights: { relevance: number; recency: number; importance: number; pinned: number };
+    maxPins: number;
   };
   snapshotEvery: number;
 };
@@ -343,6 +364,25 @@ export const defaultTuning: Tuning = {
     factionGoalChancePerResource: 0.02,
     threatPaceDays: 10,
     toldRumourImportance: 3,
+    travel: {
+      pace: { careful: 1.25, normal: 1, fast: 0.8 },
+      paceShift: { careful: -1, normal: 0, fast: 1 },
+      // easy, normal, hard, extreme, heroic → danger 1..5 starts at easy..extreme
+      dangerDifficulty: [0, 1, 1, 2, 3],
+      failureTimeFactor: 1.25,
+      minRoadMinutes: 60,
+    },
+  },
+  memory: {
+    turnsPerScene: 25,
+    scenesPerChapter: 8,
+    chaptersPerArc: 5,
+    halfLifeDays: 30,
+    rrfK: 60,
+    candidates: 30,
+    candidatePool: 300,
+    weights: { relevance: 0.5, recency: 0.25, importance: 0.2, pinned: 1 },
+    maxPins: 20,
   },
   snapshotEvery: 200,
 };

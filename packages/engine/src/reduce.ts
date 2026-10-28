@@ -214,11 +214,13 @@ const handlers: { [K in Exclude<EventType, "CampaignCreated">]: Handler<K> } = {
       met[e.payload.objective] = true;
       return { ...st, met };
     });
+    const at = stages[e.payload.stage]!;
     const done =
-      stages[q.stage]?.met.length === stages[q.stage]?.objectives.length &&
-      stages[q.stage]!.met.every(Boolean);
-    const stage = done && q.stage < stages.length - 1 ? q.stage + 1 : q.stage;
-    return { ...s, quests: { ...s.quests, [q.id]: { ...q, stages, stage } } };
+      e.payload.stage === q.stage && at.met.length === at.objectives.length && at.met.every(Boolean);
+    const last = q.stage >= stages.length - 1;
+    const stage = done && !last ? q.stage + 1 : q.stage;
+    const status = done && last ? "completed" : q.status;
+    return { ...s, quests: { ...s.quests, [q.id]: { ...q, stages, stage, status } } };
   },
   QuestEnded: (s, e) => {
     const q = s.quests[e.payload.questId];

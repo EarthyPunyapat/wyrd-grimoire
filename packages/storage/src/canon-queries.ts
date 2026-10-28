@@ -76,7 +76,7 @@ export class CanonQueries {
   }
 
   pinnedFacts(): Fact[] {
-    return (this.db.query("SELECT record FROM facts").all() as { record: string }[])
+    return (this.db.query("SELECT record FROM facts WHERE pinned = 1").all() as { record: string }[])
       .map((r) => JSON.parse(r.record) as Fact)
       .filter((f) => f.pinned && !f.retracted && !f.supersededBy);
   }

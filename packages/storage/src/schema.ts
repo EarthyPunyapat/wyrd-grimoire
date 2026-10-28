@@ -108,8 +108,12 @@ const MIGRATIONS: readonly string[] = [
     embedding BLOB NOT NULL,
     model TEXT NOT NULL
   );
-  CREATE INDEX memory_items_ns ON memory_items (namespace);
-  CREATE VIRTUAL TABLE memory_fts USING fts5(id UNINDEXED, text);
+  CREATE INDEX memory_items_ns ON memory_items (namespace, seq);
+  CREATE INDEX memory_items_pinned ON memory_items (pinned) WHERE pinned = 1;
+  -- Full-text rows share memory_items' rowid, so deletes are keyed lookups, not scans.
+  CREATE VIRTUAL TABLE memory_fts USING fts5(text);
+  ALTER TABLE facts ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;
+  CREATE INDEX facts_pinned ON facts (pinned) WHERE pinned = 1;
   `,
 ];
 

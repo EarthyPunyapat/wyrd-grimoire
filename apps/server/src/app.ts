@@ -545,7 +545,7 @@ export function createApp(options: Options) {
           : await elaborateEntity(models.router(), {
               world: `${world()?.name ?? ""}: ${world()?.summary ?? ""}`,
               entity,
-              facts: canon.factsAbout(entityId, { includeSecret: true }),
+              facts: canon.factsAbout(entityId),
             });
         const n = canon.factsAbout(entityId, { includeSecret: true, includeHistory: true }).length;
         return [

@@ -1,4 +1,4 @@
-import { draft, type EventDraft, type EventEnvelope } from "@wyrd/core";
+import { defaultTuning, draft, type EventDraft, type EventEnvelope } from "@wyrd/core";
 import type { RoleRouter } from "./router.ts";
 
 /** What the pyramid needs from storage (CampaignStore + CanonQueries). */
@@ -18,9 +18,11 @@ export type SummaryCanon = {
   findByName(name: string): Array<{ id: string }>;
 };
 
-const TURNS_PER_SCENE = 25;
-const SCENES_PER_CHAPTER = 8;
-const CHAPTERS_PER_ARC = 5;
+const {
+  turnsPerScene: TURNS_PER_SCENE,
+  scenesPerChapter: SCENES_PER_CHAPTER,
+  chaptersPerArc: CHAPTERS_PER_ARC,
+} = defaultTuning.memory;
 const WORDS = { scene: 150, chapter: 300, arc: 400 } as const;
 
 const plain = (s: string) =>
@@ -139,7 +141,11 @@ export async function writeSummaries(
   const allChapters = canon.summaries("chapter");
   const arcs = canon.summaries("arc");
   const afterArc = allChapters.filter((c) => c.fromSeq > (arcs.at(-1)?.toSeq ?? 0));
-  const threatMoved = events.some((e) => e.type === "ThreatAdvanced" && e.seq > (arcs.at(-1)?.toSeq ?? 0));
+  const lastArcEvent = events.findLast(
+    (e) =>
+      e.type === "SummaryWritten" && (e.payload as { summary: { level: string } }).summary.level === "arc",
+  );
+  const threatMoved = events.some((e) => e.type === "ThreatAdvanced" && e.seq > (lastArcEvent?.seq ?? 0));
   if (afterArc.length >= CHAPTERS_PER_ARC || (threatMoved && afterArc.length)) {
     const text = await summarise(
       router,

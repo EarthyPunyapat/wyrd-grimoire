@@ -215,4 +215,4 @@ export type MapView = z.infer<typeof MapView>;
 export const PinInput = z.object({ pinned: z.boolean() }).strict();
 export const RetconInput = z.object({ value: z.string().trim().min(1).max(500) }).strict();
 export const AddressInput = z.object({ address: z.string().trim().min(1).max(40) }).strict();
-export const NotesInput = z.object({ notes: z.string().max(20000) }).strict();
+export const NotesInput = z.object({ notes: z.string().max(12000) }).strict();

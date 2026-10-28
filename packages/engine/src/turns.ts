@@ -57,8 +57,9 @@ export function resolveTurn(
   if (!r.ok) return r;
   const w = new Working(state);
   w.apply(r.value.events);
-  return ok({
-    events: [...r.value.events, ...afterTurn(w.state, r.value.resolution, ctx)],
-    resolution: r.value.resolution,
-  });
+  const after = afterTurn(w.state, r.value.resolution, ctx);
+  const resolution = after.beats.length
+    ? { ...r.value.resolution, requiredBeats: [...r.value.resolution.requiredBeats, ...after.beats] }
+    : r.value.resolution;
+  return ok({ events: [...r.value.events, ...after.events], resolution });
 }

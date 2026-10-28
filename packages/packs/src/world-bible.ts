@@ -411,8 +411,12 @@ export function bibleEvents(
 
   bible.hooks.forEach((h, i) => {
     const questId = ids.make("quest", h.title);
-    const holder = (h.npc && npcIds.get(h.npc.toLowerCase())) || undefined;
     const where = site(h.site);
+    const local = bible.npcs.find((n) => site(n.site) === where);
+    const holder =
+      (h.npc && npcIds.get(h.npc.toLowerCase())) ||
+      (local && npcIds.get(local.name.toLowerCase())) ||
+      undefined;
     out.push(
       draft(
         "EntityCreated",

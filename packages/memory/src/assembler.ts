@@ -207,6 +207,21 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
   for (const word of mentionText.match(/\b[A-Z][a-z]+(?: [A-Z][a-z]+)?\b/g) ?? []) {
     for (const e of canon.findByName(word)) focusIds.add(e.id);
   }
+  // The narrator only hears about people and places the PC knows or can perceive, including anyone
+  // the engine's resolution involves this turn; a name the player merely types reveals nothing (D100).
+  const resolved = new Set<string>();
+  for (const word of (o.turn.resolution?.requiredBeats.join(" ") ?? "").match(
+    /\b[A-Z][a-z]+(?: [A-Z][a-z]+)?\b/g,
+  ) ?? [])
+    for (const e of canon.findByName(word)) resolved.add(e.id);
+  if (role === "narrator")
+    for (const id of [...focusIds])
+      if (
+        !resolved.has(id) &&
+        !state.knowledge?.entities[id] &&
+        !(scene && (id in scene.positions || id === scene.locationId))
+      )
+        focusIds.delete(id);
   const focusText = [...focusIds]
     .map((id) => canon.entity(id))
     .filter((e): e is Entity => e !== null)

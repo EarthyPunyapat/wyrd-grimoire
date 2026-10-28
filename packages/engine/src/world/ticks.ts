@@ -61,6 +61,25 @@ export function describeDate(gameTime: number, t: Tuning["world"]): string {
   return `${n}${suffix} of ${c.monthName}, year ${c.year}, ${String(c.hour).padStart(2, "0")}:${String(c.minute).padStart(2, "0")} (${c.timeOfDay})`;
 }
 
+/**
+ * Who first carries news (spec 06 world events → rumours): the faction's members, or, failing
+ * that, a few people the world places somewhere, so the news can travel and reach the PC.
+ */
+function seedHolders(state: GameState, factionId?: string): Rumor["holders"] {
+  const at = state.campaign.gameTime;
+  const members = factionId
+    ? state.edges.filter((e) => e.type === "memberOf" && e.to === factionId).map((e) => e.from)
+    : [];
+  const locals = state.edges
+    .filter((e) => e.type === "locatedIn" && e.from.startsWith("npc:"))
+    .map((e) => e.from);
+  const ids = (members.length ? members : locals).slice(0, 4);
+  return Object.fromEntries(ids.map((id) => [id, { content: "", at }]));
+}
+
+const withContent = (h: Rumor["holders"], content: string) =>
+  Object.fromEntries(Object.entries(h).map(([id, v]) => [id, { ...v, content }]));
+
 const SOCIAL = new Set(["family", "friend", "employs", "reportsTo", "knows", "memberOf"]);
 
 /** People a holder passes rumours to, with the edge strength and type (memberOf links co-members). */
@@ -184,7 +203,10 @@ function threatPace(w: Working, dayNumber: number, ctx: WorldContext) {
             secrecy: 0,
             createdAt: w.state.campaign.gameTime,
             urgent: true,
-            holders: {},
+            holders: withContent(
+              seedHolders(w.state, threat.agentFactionId),
+              `Word is spreading: ${threat.name} grows stronger.`,
+            ),
           },
         },
         "engine",
@@ -227,7 +249,10 @@ function weekly(w: Working, ctx: WorldContext) {
               secrecy: 0.1,
               createdAt: w.state.campaign.gameTime,
               urgent: false,
-              holders: {},
+              holders: withContent(
+                seedHolders(w.state, f.id),
+                `${ctx.nameOf(f.id)} has achieved its aim: ${c.name}.`,
+              ),
             },
           },
           "engine",

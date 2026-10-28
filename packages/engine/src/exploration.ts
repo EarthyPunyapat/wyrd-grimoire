@@ -61,8 +61,7 @@ const routeBetween = (state: GameState, a: string, b: string): Route | null => {
 };
 type Journey = { fromSiteId: string; toSiteId: string; minutesLeft: number };
 const journeyOf = (state: GameState) => (state.flags.journey ?? null) as Journey | null;
-const PACE = { careful: 1.25, normal: 1, fast: 0.8 } as const;
-const DANGER_DIFFICULTY: readonly Difficulty[] = ["easy", "easy", "normal", "hard", "extreme"];
+const LADDER: readonly Difficulty[] = ["easy", "normal", "hard", "extreme", "heroic"];
 
 const DEFAULT_MINUTES: Record<ExplorationAction["type"], number> = {
   check: 1,
@@ -596,21 +595,23 @@ function travel(
     terrain: "road",
     danger: 1,
   };
-  const base = resuming ? journey!.minutesLeft : route.days * 1440;
-  const shift = a.pace === "careful" ? -1 : a.pace === "fast" ? 1 : 0;
-  const di = Math.max(
-    0,
-    Math.min(
-      DANGER_DIFFICULTY.length - 1,
-      DANGER_DIFFICULTY.indexOf(DANGER_DIFFICULTY[route.danger - 1] ?? "normal") + shift,
-    ),
-  );
+  const tt = ctx.tuning.world.travel;
+  const full = route.days * 1440;
+  // Resuming covers what's left; turning back covers what was already walked.
+  const base = resuming
+    ? journey!.minutesLeft
+    : journey
+      ? Math.max(tt.minRoadMinutes, full - journey.minutesLeft)
+      : full;
+  const start =
+    tt.dangerDifficulty[Math.max(0, Math.min(tt.dangerDifficulty.length - 1, route.danger - 1))] ?? 1;
+  const di = Math.max(0, Math.min(LADDER.length - 1, start + tt.paceShift[a.pace]));
   const check = resolveCheck(
     state,
     {
       actorId,
       skill: "core:navigation",
-      difficulty: DANGER_DIFFICULTY[di]!,
+      difficulty: LADDER[di]!,
       purpose: `travel to ${ctx.nameOf(a.toSiteId)}`,
       tags: ["travel"],
     },
@@ -619,7 +620,7 @@ function travel(
   if (!check.ok) return check;
   w.apply(check.value.events);
   const degree = check.value.effective.degree;
-  const minutes = Math.round(base * PACE[a.pace] * (isSuccess(degree) ? 1 : 1.25));
+  const minutes = Math.round(base * tt.pace[a.pace] * (isSuccess(degree) ? 1 : tt.failureTimeFactor));
   const encounter =
     (!isSuccess(degree) && route.danger >= 2) || degree === "critFailure"
       ? (t.encounter?.(route.terrain, route.danger) ?? null)
@@ -668,6 +669,7 @@ function travel(
           "engine",
         ),
       ),
+      draft("SceneClosed", { sceneId: state.scene!.id, reason: "waylaid on the road" }, "engine"),
       draft(
         "SceneOpened",
         {
@@ -702,7 +704,7 @@ function travel(
           journey: {
             fromSiteId: from,
             toSiteId: journey?.toSiteId ?? a.toSiteId,
-            minutesLeft: Math.max(60, minutes - spent),
+            minutesLeft: Math.max(tt.minRoadMinutes, minutes - spent),
           },
         },
         "engine",

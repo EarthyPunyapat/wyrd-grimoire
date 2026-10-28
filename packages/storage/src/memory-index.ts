@@ -1,4 +1,5 @@
 import type { Database } from "bun:sqlite";
+import { defaultTuning } from "@wyrd/core";
 import { cosine, embed, tokens } from "./embedding.ts";
 
 export type MemoryHit = {
@@ -39,9 +40,12 @@ type Row = {
   embedding: Uint8Array;
 };
 
-const HALF_LIFE_MINUTES = 30 * 1440;
-const RRF_K = 60;
-const CANDIDATES = 30;
+const M = defaultTuning.memory;
+const HALF_LIFE_MINUTES = M.halfLifeDays * 1440;
+const RRF_K = M.rrfK;
+const CANDIDATES = M.candidates;
+const CANDIDATE_POOL = M.candidatePool;
+const W = M.weights;
 
 /**
  * Hybrid retrieval (spec 07): top 30 from FTS5 (BM25) and top 30 by cosine over the namespace's
@@ -51,30 +55,38 @@ const CANDIDATES = 30;
 export function retrieve(db: Database, o: RetrieveOptions): MemoryHit[] {
   if (!o.namespaces.length) return [];
   const ns = o.namespaces.map(() => "?").join(", ");
-  const vis = o.includeSecret ? "" : "AND visibility = 'public'";
-  const rows = db
-    .query(`SELECT * FROM memory_items WHERE namespace IN (${ns}) ${vis}`)
-    .all(...o.namespaces) as Row[];
-  if (!rows.length) return [];
-  const byId = new Map(rows.map((r) => [r.id, r]));
+  const vis = o.includeSecret ? "" : "AND m.visibility = 'public'";
+  const cols =
+    "m.id, m.namespace, m.text, m.entity_ids, m.game_time, m.seq, m.importance, m.visibility, m.pinned, m.embedding";
 
-  // Full text: OR of the query's terms, ranked by BM25.
+  // Full text, filtered to the namespaces inside the query: BM25 top candidates.
   const terms = [...new Set(tokens(o.query))]
     .filter((t) => t.length > 2)
     .map((t) => `"${t.replace(/"/g, "")}"*`);
   const fts = terms.length
-    ? (
-        db
-          .query("SELECT id FROM memory_fts WHERE memory_fts MATCH ? ORDER BY bm25(memory_fts) LIMIT 400")
-          .all(terms.join(" OR ")) as { id: string }[]
-      )
-        .map((r) => r.id)
-        .filter((id) => byId.has(id))
-        .slice(0, CANDIDATES)
+    ? (db
+        .query(
+          `SELECT ${cols} FROM memory_fts f JOIN memory_items m ON m.rowid = f.rowid
+           WHERE memory_fts MATCH ? AND m.namespace IN (${ns}) ${vis} ORDER BY bm25(memory_fts) LIMIT ${CANDIDATE_POOL}`,
+        )
+        .all(terms.join(" OR "), ...o.namespaces) as Row[])
     : [];
+  // Vectors over a bounded pool (spec 07 pre-filtered brute force): the full-text pool, the most
+  // recent items and anything pinned, so cost doesn't grow with the campaign.
+  const recent = db
+    .query(
+      `SELECT ${cols} FROM memory_items m WHERE m.namespace IN (${ns}) ${vis} ORDER BY m.seq DESC LIMIT ${CANDIDATE_POOL}`,
+    )
+    .all(...o.namespaces) as Row[];
+  const pinned = db
+    .query(`SELECT ${cols} FROM memory_items m WHERE m.pinned = 1 AND m.namespace IN (${ns}) ${vis}`)
+    .all(...o.namespaces) as Row[];
+  const byId = new Map<string, Row>();
+  for (const r of [...fts, ...recent, ...pinned]) byId.set(r.id, r);
+  if (!byId.size) return [];
 
   const q = embed(o.query);
-  const vec = rows
+  const vec = [...byId.values()]
     .map((r) => ({
       id: r.id,
       s: cosine(q, new Float32Array(r.embedding.buffer, r.embedding.byteOffset, r.embedding.byteLength / 4)),
@@ -83,13 +95,14 @@ export function retrieve(db: Database, o: RetrieveOptions): MemoryHit[] {
     .sort((a, b) => b.s - a.s)
     .slice(0, CANDIDATES)
     .map((x) => x.id);
+  const ftsIds = fts.slice(0, CANDIDATES).map((r) => r.id);
 
   const rrf = new Map<string, number>();
-  for (const list of [fts, vec])
+  for (const list of [ftsIds, vec])
     list.forEach((id, i) => {
       rrf.set(id, (rrf.get(id) ?? 0) + 1 / (RRF_K + i + 1));
     });
-  for (const r of rows) if (r.pinned && !rrf.has(r.id)) rrf.set(r.id, 0);
+  for (const r of pinned) if (!rrf.has(r.id)) rrf.set(r.id, 0);
   const max = Math.max(...rrf.values(), 1e-9);
 
   return [...rrf.entries()]
@@ -98,7 +111,11 @@ export function retrieve(db: Database, o: RetrieveOptions): MemoryHit[] {
       const r = byId.get(id)!;
       const age = Math.max(0, o.now - r.game_time);
       const recency = 0.5 ** (age / HALF_LIFE_MINUTES);
-      const score = 0.5 * (fused / max) + 0.25 * recency + 0.2 * (r.importance / 5) + (r.pinned ? 1 : 0);
+      const score =
+        W.relevance * (fused / max) +
+        W.recency * recency +
+        W.importance * (r.importance / 5) +
+        (r.pinned ? W.pinned : 0);
       return {
         id,
         namespace: r.namespace,
