@@ -8,3 +8,4 @@ export * from "./router.ts";
 export * from "./tools.ts";
 export * from "./types.ts";
 export * from "./usage.ts";
+export * from "./adapters/openai-compatible.ts";
