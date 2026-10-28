@@ -3,6 +3,7 @@ export * from "./checks.ts";
 export * from "./conditions.ts";
 export * from "./creation.ts";
 export * from "./derived.ts";
+export * from "./equipment.ts";
 export * from "./exploration.ts";
 export * from "./luck.ts";
 export * from "./reduce.ts";

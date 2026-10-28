@@ -3,7 +3,7 @@ import { Entity, Fact, NarrationPayload, SceneState, TurnCompletedPayload } from
 import { CheckResolvedPayload } from "./check.ts";
 import { ActorId, ContentId, RngStateSchema } from "./common.ts";
 import { CampaignSettings } from "./settings.ts";
-import { CharacterSheet, ConditionInstance } from "./sheet.ts";
+import { CharacterSheet, ConditionInstance, Equipment } from "./sheet.ts";
 
 /**
  * Payload schemas for every event type the engine knows. Adding an event means adding it here
@@ -41,6 +41,7 @@ export const eventPayloadSchemas = {
   }),
   ConditionApplied: z.object({ actorId: ActorId, condition: ConditionInstance }),
   ConditionRemoved: z.object({ actorId: ActorId, conditionId: ContentId, reason: z.string().optional() }),
+  EquipmentChanged: z.object({ actorId: ActorId, equipment: Equipment }),
   TimeAdvanced: z.object({ minutes: z.number().int().positive(), reason: z.string() }),
 
   // Canon (projections in storage; the engine only tracks what's present in the scene).

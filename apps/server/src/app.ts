@@ -23,6 +23,7 @@ import {
   reduce,
   skillLabel,
   skillValue,
+  startingEquipment,
   unwrap,
   validateCreation,
 } from "@wyrd/engine";
@@ -290,6 +291,7 @@ export function createApp(options: Options) {
           Object.entries(archetype.skills).map(([id, trained]) => [id, { trained }]),
         ),
         talents: [archetype.talent],
+        equipment: startingEquipment(archetype.kit, pack.items),
       },
       created.payload.settings,
       defaultTuning,

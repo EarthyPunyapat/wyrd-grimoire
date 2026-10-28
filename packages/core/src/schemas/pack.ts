@@ -148,6 +148,7 @@ export function findBodyPlan(plans: Record<string, BodyPlanDef>, id: string): Bo
 }
 
 export const KitEntry = z.object({ item: ContentRef, qty: z.number().int().positive().default(1) });
+export type KitEntry = z.infer<typeof KitEntry>;
 
 export const ArchetypeDef = z.object({
   id: LocalId,
@@ -212,3 +213,6 @@ export type CompiledPack = {
   };
   hash: string;
 };
+
+/** Every item a pack defines, by namespaced ID, in the three categories the rules distinguish. */
+export type ItemCatalog = CompiledPack["items"];

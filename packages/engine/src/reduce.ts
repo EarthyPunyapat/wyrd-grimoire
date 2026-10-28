@@ -92,6 +92,9 @@ const handlers: { [K in Exclude<EventType, "CampaignCreated">]: Handler<K> } = {
       conditions: st.conditions.filter((c) => c.id !== e.payload.conditionId),
     })),
 
+  EquipmentChanged: (s, e) =>
+    updateSheet(s, e.payload.actorId, (sheet) => ({ ...sheet, equipment: e.payload.equipment })),
+
   TimeAdvanced: (s, e) => ({
     ...s,
     campaign: { ...s.campaign, gameTime: s.campaign.gameTime + e.payload.minutes },

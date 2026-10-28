@@ -35,6 +35,7 @@ import {
   reduce,
   resolveCheck,
   spendLuckReroll,
+  startingEquipment,
   validateCreation,
 } from "@wyrd/engine";
 import {
@@ -288,6 +289,7 @@ async function main(argv: string[]): Promise<number> {
             attributes: a.suggestedAttributes,
             skills: Object.fromEntries(Object.entries(a.skills).map(([k, v]) => [k, { trained: v }])),
             talents: [a.talent],
+            equipment: startingEquipment(a.kit, pack.items),
           },
           campaignSettings,
           defaultTuning,

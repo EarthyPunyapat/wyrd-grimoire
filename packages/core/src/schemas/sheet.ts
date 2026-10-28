@@ -38,6 +38,17 @@ export type Wound = z.infer<typeof Wound>;
 
 export const PermanentInjury = z.object({ id: z.string(), location: z.string(), description: z.string() });
 
+/**
+ * What an actor holds, wears and carries. Held and worn items also appear in `carried`; the engine
+ * enforces that and the hand rules (see engine/src/equipment.ts).
+ */
+export const Equipment = z.object({
+  held: z.object({ main: ContentId.nullable(), off: ContentId.nullable() }),
+  worn: z.array(ContentId),
+  carried: z.array(z.object({ item: ContentId, qty: z.number().int().positive() })),
+});
+export type Equipment = z.infer<typeof Equipment>;
+
 export const ProgressionState = z.object({
   xpEarned: z.number().int().nonnegative().default(0),
   xpSpent: z.number().int().nonnegative().default(0),
@@ -84,6 +95,7 @@ export const CharacterSheet = z.object({
     permanentInjuries: z.array(PermanentInjury).default([]),
   }),
   progression: ProgressionState.prefault({}),
+  equipment: Equipment.prefault({ held: { main: null, off: null }, worn: [], carried: [] }),
   voiceId: z.string().optional(),
   portraitAssetId: z.string().optional(),
 });
