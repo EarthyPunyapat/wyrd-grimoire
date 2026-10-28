@@ -22,6 +22,7 @@
         "@wyrd/packs": "workspace:*",
         "@wyrd/storage": "workspace:*",
         "yaml": "^2.8.0",
+        "zod": "^4.1.0",
       },
     },
     "packages/core": {

@@ -10,6 +10,7 @@
     "@wyrd/storage": "workspace:*",
     "yaml": "^2.8.0",
     "@wyrd/llm": "workspace:*",
-    "@wyrd/memory": "workspace:*"
+    "@wyrd/memory": "workspace:*",
+    "zod": "^4.1.0"
   }
 }

@@ -50,6 +50,7 @@ import { CampaignStore, StorageError } from "@wyrd/storage";
 import { parse as parseYaml } from "yaml";
 import { CliError } from "./errors.ts";
 import { playCommand, WORLD_BIBLE_ID } from "./play.ts";
+import { buildProviders, chatGptAuth, configPath, initConfig, loadConfig, secretStore } from "./providers.ts";
 
 const HELP = `wyrd — Wyrd Grimoire dev CLI
 
@@ -86,6 +87,12 @@ Campaigns (a campaign is one SQLite file)
       Play exploration turns in the terminal. --offline uses a keyword-matching stand-in for the
       models (no keys needed); --input runs scripted turns and exits. /help inside for commands.
   hash <file.db> [--branch id] [--seq n]
+
+Models (config in WYRD_HOME/config.json, keys in WYRD_HOME/secrets/)
+  config init | config path            Write an example provider config / print where it lives.
+  secret set <name>                    Save a key from stdin: printf %s 'KEY' | bun run wyrd secret set deepseek.key
+  connect chatgpt                      "Continue with ChatGPT" (run on the PC that hosts Wyrd).
+  models <provider>                    List the models a configured provider offers.
   rebuild <file.db>                    Drop projections and snapshots, replay, print the state hash.
 
 Packs
@@ -532,6 +539,71 @@ async function main(argv: string[]): Promise<number> {
         inputs: o.input,
         ...(o.config ? { configPath: o.config } : {}),
       }).finally(() => store.close());
+    }
+
+    case "config": {
+      if (sub === "init") {
+        out(`wrote ${initConfig(o.config)}`);
+        out(
+          "Next: add keys with `wyrd secret set`, pick models with `wyrd models <provider>`, then edit the file.",
+        );
+        return 0;
+      }
+      if (sub === "path") {
+        out(configPath(o.config));
+        return 0;
+      }
+      throw new CliError("Usage: config init | config path");
+    }
+
+    case "secret": {
+      const name = rest[0];
+      if (sub !== "set" || !name)
+        throw new CliError("Usage: printf %s 'KEY' | bun run wyrd secret set <name>");
+      const value = (await Bun.stdin.text()).trim();
+      if (!value) throw new CliError("No secret on stdin");
+      secretStore().write(name, value);
+      out(`saved ${name}`);
+      return 0;
+    }
+
+    case "connect": {
+      if (sub !== "chatgpt") throw new CliError("Usage: connect chatgpt");
+      const auth = chatGptAuth();
+      out("Continue with ChatGPT: a browser window will open on this PC.");
+      out("(The sign-in must happen in a browser on the PC that runs Wyrd: the redirect goes to 127.0.0.1.)");
+      const rec = await auth.connect({
+        open: (url) => {
+          out(`If it doesn't open, visit:\n${url}`);
+          const cmd =
+            process.platform === "win32"
+              ? ["cmd", "/c", "start", "", url]
+              : process.platform === "darwin"
+                ? ["open", url]
+                : ["xdg-open", url];
+          try {
+            Bun.spawn(cmd, { stdout: "ignore", stderr: "ignore" });
+          } catch {
+            // no browser launcher; the URL is printed above
+          }
+        },
+      });
+      out(
+        rec.plan_usage
+          ? `Connected as ${rec.email ?? rec.subject}. Plan usage is on.`
+          : "Signed in, but plan usage wasn't granted, so ChatGPT can't narrate. Connect again and allow it.",
+      );
+      return 0;
+    }
+
+    case "models": {
+      const id = sub;
+      if (!id) throw new CliError("Usage: models <provider id from config.json>");
+      const providers = buildProviders(loadConfig(o.config, { allowPlaceholders: true }));
+      const p = providers[id];
+      if (!p) throw new CliError(`No provider ${id}; configured: ${Object.keys(providers).join(", ")}`);
+      for (const m of await p.listModels()) out(m.id);
+      return 0;
     }
 
     case "pack": {

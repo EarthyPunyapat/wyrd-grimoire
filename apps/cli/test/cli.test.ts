@@ -9,7 +9,12 @@ const dir = mkdtempSync(join(tmpdir(), "wyrd-cli-"));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
 function wyrd(...args: string[]) {
-  const p = Bun.spawnSync(["bun", MAIN, ...args], { cwd: ROOT, stdout: "pipe", stderr: "pipe" });
+  const p = Bun.spawnSync(["bun", MAIN, ...args], {
+    cwd: ROOT,
+    stdout: "pipe",
+    stderr: "pipe",
+    env: { ...process.env, WYRD_HOME: join(dir, "home") },
+  });
   return { code: p.exitCode, out: p.stdout.toString().trim(), err: p.stderr.toString().trim() };
 }
 const ok = (...args: string[]) => {
@@ -144,6 +149,9 @@ describe("dev CLI", () => {
     expect(out).toContain("Getting to the hayloft needs a climb");
     expect(out).toContain("1. Try to climb to the hayloft (athletics, normal)");
     expect(out).toContain("Ashford Ferry House, the yard");
-    expect(wyrd("play", db).err).toContain("aren't wired up yet"); // real providers need step G
+    // Real providers need a config: first none, then the example's placeholder model IDs are refused.
+    expect(wyrd("play", db).err).toContain("No provider config");
+    expect(ok("config", "init")).toContain("config.json");
+    expect(wyrd("play", db).err).toContain('Pick a model for "plan"');
   });
 });
