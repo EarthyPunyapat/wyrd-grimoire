@@ -49,7 +49,7 @@ export function Passage({
       )}
       {turn.clarification && onChoice && (
         <div className="clarification">
-          <h3>A moment, traveller…</h3>
+          <h3>A moment…</h3>
           <p>{turn.clarification.question}</p>
           <div>
             {turn.clarification.options.map((option, i) => (
