@@ -18,6 +18,11 @@ export const CheckRequest = z.object({
   opposedBy: z.object({ actorId: ActorId, skill: CheckTarget }).optional(),
   purpose: z.string(),
   pushed: z.boolean().optional(),
+  /**
+   * What kind of check this is, for conditions that care: "sight", "hearing", "attack", "escape",
+   * "resist", "fear", "movement", "physical". Not in the spec's CheckRequest; see decisions.md.
+   */
+  tags: z.array(z.string()).default([]),
 });
 export type CheckRequest = z.infer<typeof CheckRequest>;
 export type CheckRequestInput = z.input<typeof CheckRequest>;
@@ -58,6 +63,12 @@ export const CheckResolvedPayload = z.object({
   effective: CheckResult,
   attempt: CheckAttempt,
   inCombat: z.boolean(),
+  /** Set when the roll fails without dice (e.g. a sight check while Blinded). */
+  autoFailed: z.string().optional(),
+  /** Set on both sides of an opposed check. */
+  opposed: z
+    .object({ role: z.enum(["active", "defender"]), againstActorId: ActorId, won: z.boolean() })
+    .optional(),
   rngAfter: z.tuple([z.number(), z.number(), z.number(), z.number()]),
 });
 export type CheckResolvedPayload = z.infer<typeof CheckResolvedPayload>;
