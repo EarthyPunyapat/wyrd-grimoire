@@ -9,7 +9,7 @@ import { usePlay } from "./use-play.ts";
 export function Play({ view, onView }: { view: GameView; onView: (view: GameView) => void }) {
   const [input, setInput] = useState("");
   const [sheet, setSheet] = useState(false);
-  const [math, setMath] = useState(localStorage.getItem("wyrd-math") === "true");
+  const [math, setMath] = useState(localStorage.getItem("wyrd-math") !== "false");
   const textarea = useRef<HTMLTextAreaElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const play = usePlay(view, onView);
