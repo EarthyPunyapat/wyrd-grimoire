@@ -19,6 +19,7 @@ import { fail, ok, type Result } from "./result.ts";
 import { lookupSkill } from "./skills.ts";
 import type { GameState, RulesContext } from "./state.ts";
 import { Working } from "./working.ts";
+import { toldEvents } from "./world/knowledge.ts";
 
 /**
  * Exploration turns (spec 08): validate a parsed plan against the scene, then resolve it into
@@ -424,6 +425,7 @@ export function resolvePlan(
         const said = `${actorName} says to ${target}: "${action.utterance}"`;
         if (action.approach === "neutral") {
           step("done", `${said}.`);
+          w.apply(toldEvents(w.state, action.targetId, plan.actorId, action.utterance, "neutral", null, ctx));
           forbidden.add(
             `${target} may answer, but agrees to, gives or reveals nothing the engine hasn't resolved.`,
           );
@@ -448,6 +450,9 @@ export function resolvePlan(
           if (!out.ok) return out;
           w.apply(out.value.events);
           const won = out.value.winner === "active";
+          w.apply(
+            toldEvents(w.state, action.targetId, plan.actorId, action.utterance, action.approach, won, ctx),
+          );
           step(
             won ? "success" : "failure",
             `${said}. The attempt to ${action.approach} ${won ? "works" : "fails"}.`,
@@ -460,6 +465,17 @@ export function resolvePlan(
           );
           if (!r.ok) return r;
           const last = steps.at(-1)!;
+          w.apply(
+            toldEvents(
+              w.state,
+              action.targetId,
+              plan.actorId,
+              action.utterance,
+              action.approach,
+              isSuccess(last.outcome as never),
+              ctx,
+            ),
+          );
           last.summary = `${said}. ${last.summary} ${isSuccess(last.outcome as never) ? `${target} is swayed.` : `${target} isn't swayed.`}`;
           beats[beats.length - 1] = last.summary;
         }

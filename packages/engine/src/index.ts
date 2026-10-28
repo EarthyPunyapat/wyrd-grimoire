@@ -19,3 +19,4 @@ export * from "./state.ts";
 export * from "./turns.ts";
 export * from "./version.ts";
 export * from "./working.ts";
+export * from "./world/index.ts";

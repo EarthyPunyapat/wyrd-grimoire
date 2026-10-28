@@ -4,9 +4,18 @@ import type {
   CharacterSheet,
   CheckRequest,
   CheckResult,
+  Clock,
   CombatState,
+  Disposition,
+  Edge,
+  FactionState,
+  KnowledgeEntry,
+  NpcMemory,
+  QuestState,
   RngState,
+  Rumor,
   SceneState,
+  Threat,
   Tuning,
 } from "@wyrd/core";
 import type { SkillCatalog } from "./skills.ts";
@@ -47,10 +56,19 @@ export type GameState = {
   combat: CombatState | null;
   inventory: Record<string, never>;
   economy: Record<string, never>;
-  factions: Record<string, never>;
-  quests: Record<string, never>;
-  clocks: Record<string, never>;
-  calendar: Record<string, never>;
+  factions: Record<string, FactionState>;
+  quests: Record<string, QuestState>;
+  clocks: Record<string, Clock>;
+  /** Weather per region and the last tick processed of each kind (game minutes). */
+  calendar: { weather: Record<string, string>; lastTick: { hour: number; day: number; week: number } };
+  /** Social graph (spec 07 Edge): who knows, serves, leads and is related to whom. */
+  edges: Edge[];
+  /** NPC minds (spec 07): memories and dispositions, by NPC id. */
+  minds: Record<string, { memories: NpcMemory[]; dispositions: Record<string, Disposition> }>;
+  rumors: Record<string, Rumor>;
+  /** What the PC knows (spec 07): facts and entities, each with how they learned it. */
+  knowledge: { facts: Record<string, KnowledgeEntry>; entities: Record<string, KnowledgeEntry> };
+  threat: Threat | null;
   flags: Record<string, unknown>;
   lastChecks: Record<ActorId, LastCheck>;
 };

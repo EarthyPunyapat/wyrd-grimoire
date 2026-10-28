@@ -47,13 +47,35 @@ export class CanonQueries {
     );
   }
 
-  factsAbout(entityId: string, opts: { includeSecret?: boolean } = {}): Fact[] {
+  /** Current facts about an entity: superseded and retracted ones only with `includeHistory`. */
+  factsAbout(entityId: string, opts: { includeSecret?: boolean; includeHistory?: boolean } = {}): Fact[] {
     const rows = this.db
       .query(
         `SELECT record FROM facts WHERE entity_id = ? ${opts.includeSecret ? "" : "AND visibility = 'public'"} ORDER BY asserted_seq`,
       )
       .all(entityId) as { record: string }[];
-    return rows.map((r) => JSON.parse(r.record) as Fact);
+    const facts = rows.map((r) => JSON.parse(r.record) as Fact);
+    return opts.includeHistory ? facts : facts.filter((f) => !f.supersededBy && !f.retracted);
+  }
+
+  fact(id: string): Fact | null {
+    const r = this.db.query("SELECT record FROM facts WHERE id = ?").get(id) as { record: string } | null;
+    return r ? (JSON.parse(r.record) as Fact) : null;
+  }
+
+  pinnedFacts(): Fact[] {
+    return (this.db.query("SELECT record FROM facts").all() as { record: string }[])
+      .map((r) => JSON.parse(r.record) as Fact)
+      .filter((f) => f.pinned && !f.retracted && !f.supersededBy);
+  }
+
+  allEntities(kind?: string): Entity[] {
+    const rows = (
+      kind
+        ? this.db.query("SELECT record FROM entities WHERE kind = ? ORDER BY created_seq").all(kind)
+        : this.db.query("SELECT record FROM entities ORDER BY created_seq").all()
+    ) as { record: string }[];
+    return rows.map((r) => JSON.parse(r.record) as Entity);
   }
 
   /** The latest `limit` turns, oldest first. */

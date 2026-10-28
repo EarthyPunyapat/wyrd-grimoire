@@ -119,6 +119,27 @@ export type Tuning = {
     /** Safety stop for automated rounds. */
     maxRounds: number;
   };
+  /** World simulation (spec 06): calendar defaults, tick rates, rumour spread. Packs may override the calendar. */
+  world: {
+    monthNames: string[];
+    daysPerMonth: number;
+    seasons: string[];
+    /** Hours: dawn starts day, dusk starts night. */
+    dawn: number;
+    dusk: number;
+    weatherByClimate: Record<string, string[]>;
+    /** Long time skips run at most this many daily ticks (the most recent ones). */
+    maxDailyTicks: number;
+    rumourDailyHeatDecay: number;
+    rumourDistortChance: number;
+    /** reportsTo spreads urgent rumours (crimes, threats) this many times faster. */
+    urgentReportsToFactor: number;
+    /** Daily chance per average resource point that a faction goal clock advances. */
+    factionGoalChancePerResource: number;
+    /** Threat clocks: default days per segment and the told-memory importance that starts a rumour. */
+    threatPaceDays: number;
+    toldRumourImportance: number;
+  };
   snapshotEvery: number;
 };
 
@@ -274,6 +295,54 @@ export const defaultTuning: Tuning = {
       prey: { leftForDead: 2, rescued: 1 },
     },
     maxRounds: 30,
+  },
+  world: {
+    monthNames: [
+      "Thaw",
+      "Seedtime",
+      "Greening",
+      "Highsun",
+      "Haymonth",
+      "Harvest",
+      "Leaffall",
+      "Mistmonth",
+      "Frost",
+      "Deepwinter",
+      "Longnight",
+      "Thawing",
+    ],
+    daysPerMonth: 30,
+    seasons: [
+      "spring",
+      "spring",
+      "spring",
+      "summer",
+      "summer",
+      "summer",
+      "autumn",
+      "autumn",
+      "autumn",
+      "winter",
+      "winter",
+      "winter",
+    ],
+    dawn: 6,
+    dusk: 19,
+    weatherByClimate: {
+      temperate: ["clear", "overcast", "light rain", "steady rain", "fog", "wind"],
+      cold: ["clear and bitter", "snow", "sleet", "freezing fog", "overcast"],
+      arid: ["clear and hot", "dust haze", "hot wind", "clear"],
+      tropical: ["humid and clear", "heavy rain", "thunderstorm", "muggy overcast"],
+      marine: ["sea fog", "squalls", "grey and blustery", "clear"],
+      indoor: ["still"],
+    },
+    maxDailyTicks: 60,
+    rumourDailyHeatDecay: 0.9,
+    rumourDistortChance: 0.3,
+    urgentReportsToFactor: 3,
+    factionGoalChancePerResource: 0.02,
+    threatPaceDays: 10,
+    toldRumourImportance: 3,
   },
   snapshotEvery: 200,
 };

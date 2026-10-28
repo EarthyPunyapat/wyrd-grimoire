@@ -43,6 +43,10 @@ export const Fact = z.object({
   evidence: z.object({ eventIds: z.array(z.string()).default([]), quote: z.string().optional() }).optional(),
   visibility: z.enum(["public", "secret"]).default("public"),
   importance: z.number().int().min(1).max(5).default(2),
+  /** Projection-only: set by FactSuperseded / FactRetracted / FactPinned (spec 07). */
+  supersededBy: z.string().optional(),
+  retracted: z.boolean().optional(),
+  pinned: z.boolean().optional(),
 });
 export type Fact = z.infer<typeof Fact>;
 export type FactInput = z.input<typeof Fact>;

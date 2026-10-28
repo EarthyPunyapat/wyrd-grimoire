@@ -5,6 +5,7 @@ import { combatEventSchemas } from "./combat.ts";
 import { ActorId, ContentId, RngStateSchema } from "./common.ts";
 import { CampaignSettings } from "./settings.ts";
 import { CharacterSheet, ConditionInstance, Equipment, Wound, WoundSeverity } from "./sheet.ts";
+import { worldEventSchemas } from "./world.ts";
 
 /**
  * Payload schemas for every event type the engine knows. Adding an event means adding it here
@@ -94,6 +95,8 @@ export const eventPayloadSchemas = {
 
   // Combat (M4)
   ...combatEventSchemas,
+  // World and memory (M5)
+  ...worldEventSchemas,
 } as const;
 
 export type EventType = keyof typeof eventPayloadSchemas;

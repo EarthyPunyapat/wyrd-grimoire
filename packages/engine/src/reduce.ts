@@ -174,6 +174,119 @@ const handlers: { [K in Exclude<EventType, "CampaignCreated">]: Handler<K> } = {
     return { ...s, scene: { ...s.scene, positions } };
   },
 
+  // World (M5)
+  ClockCreated: (s, e) => ({ ...s, clocks: { ...s.clocks, [e.payload.clock.id]: e.payload.clock } }),
+  ClockAdvanced: (s, e) => {
+    const c = s.clocks[e.payload.clockId];
+    if (!c) throw new Error(`No clock ${e.payload.clockId}`);
+    return {
+      ...s,
+      clocks: { ...s.clocks, [c.id]: { ...c, filled: clamp(c.filled + e.payload.by, 0, c.segments) } },
+    };
+  },
+  FactionUpdated: (s, e) => ({
+    ...s,
+    factions: { ...s.factions, [e.payload.faction.id]: e.payload.faction },
+  }),
+  ReputationChanged: (s, e) => {
+    const f = s.factions[e.payload.factionId];
+    if (!f) throw new Error(`No faction ${e.payload.factionId}`);
+    return {
+      ...s,
+      factions: {
+        ...s.factions,
+        [f.id]: { ...f, reputation: clamp(f.reputation + e.payload.delta, -100, 100) },
+      },
+    };
+  },
+  RelationshipChanged: (s, e) => {
+    const { edge } = e.payload;
+    const rest = s.edges.filter((x) => !(x.from === edge.from && x.to === edge.to && x.type === edge.type));
+    return { ...s, edges: edge.strength > 0 ? [...rest, edge] : rest };
+  },
+  QuestStarted: (s, e) => ({ ...s, quests: { ...s.quests, [e.payload.quest.id]: e.payload.quest } }),
+  QuestObjectiveMet: (s, e) => {
+    const q = s.quests[e.payload.questId];
+    if (!q) throw new Error(`No quest ${e.payload.questId}`);
+    const stages = q.stages.map((st, i) => {
+      if (i !== e.payload.stage) return st;
+      const met = st.objectives.map((_, j) => st.met[j] ?? false);
+      met[e.payload.objective] = true;
+      return { ...st, met };
+    });
+    const done =
+      stages[q.stage]?.met.length === stages[q.stage]?.objectives.length &&
+      stages[q.stage]!.met.every(Boolean);
+    const stage = done && q.stage < stages.length - 1 ? q.stage + 1 : q.stage;
+    return { ...s, quests: { ...s.quests, [q.id]: { ...q, stages, stage } } };
+  },
+  QuestEnded: (s, e) => {
+    const q = s.quests[e.payload.questId];
+    if (!q) throw new Error(`No quest ${e.payload.questId}`);
+    return { ...s, quests: { ...s.quests, [q.id]: { ...q, status: e.payload.status } } };
+  },
+  KnowledgeGained: (s, e) => {
+    const { factId, entityId, entry } = e.payload;
+    const k = s.knowledge;
+    return {
+      ...s,
+      knowledge: {
+        facts: factId && !k.facts[factId] ? { ...k.facts, [factId]: entry } : k.facts,
+        entities: entityId && !k.entities[entityId] ? { ...k.entities, [entityId]: entry } : k.entities,
+      },
+    };
+  },
+  MemoryRecorded: (s, e) => {
+    const m = mind(s, e.payload.memory.npcId);
+    return {
+      ...s,
+      minds: { ...s.minds, [e.payload.memory.npcId]: { ...m, memories: [...m.memories, e.payload.memory] } },
+    };
+  },
+  DispositionChanged: (s, e) => {
+    const { npcId, towardId, delta } = e.payload;
+    const m = mind(s, npcId);
+    const d = m.dispositions[towardId] ?? { attitude: 0, trust: 50, fear: 0, respect: 50 };
+    const next = {
+      attitude: clamp(d.attitude + (delta.attitude ?? 0), -100, 100),
+      trust: clamp(d.trust + (delta.trust ?? 0), 0, 100),
+      fear: clamp(d.fear + (delta.fear ?? 0), 0, 100),
+      respect: clamp(d.respect + (delta.respect ?? 0), 0, 100),
+    };
+    return {
+      ...s,
+      minds: { ...s.minds, [npcId]: { ...m, dispositions: { ...m.dispositions, [towardId]: next } } },
+    };
+  },
+  RumorCreated: (s, e) => ({ ...s, rumors: { ...s.rumors, [e.payload.rumor.id]: e.payload.rumor } }),
+  RumorHeard: (s, e) => {
+    const r = s.rumors[e.payload.rumorId];
+    if (!r) throw new Error(`No rumour ${e.payload.rumorId}`);
+    const holders = {
+      ...r.holders,
+      [e.payload.holderId]: { content: e.payload.content, at: s.campaign.gameTime },
+    };
+    return { ...s, rumors: { ...s.rumors, [r.id]: { ...r, holders } } };
+  },
+  ThreatCreated: (s, e) => ({ ...s, threat: e.payload.threat }),
+  ThreatAdvanced: (s, e) =>
+    s.threat ? { ...s, threat: { ...s.threat, stage: e.payload.stage, defeated: e.payload.defeated } } : s,
+  WeatherSet: (s, e) => ({
+    ...s,
+    calendar: { ...s.calendar, weather: { ...s.calendar.weather, [e.payload.regionId]: e.payload.weather } },
+    scene: s.scene && e.payload.regionId === "scene" ? { ...s.scene, weather: e.payload.weather } : s.scene,
+  }),
+  TickCompleted: (s, e) => ({
+    ...s,
+    calendar: { ...s.calendar, lastTick: { ...s.calendar.lastTick, [e.payload.kind]: e.payload.at } },
+    campaign: e.payload.rngAfter ? { ...s.campaign, rngState: e.payload.rngAfter } : s.campaign,
+  }),
+  // Canon maintenance lives in projections; a dead entity's status matters to nobody in state.
+  EntityUpdated: (s) => s,
+  FactSuperseded: (s) => s,
+  FactRetracted: (s) => s,
+  FactPinned: (s) => s,
+
   // Turn records are projections (the turns table); they don't change engine state.
   TurnStarted: (s) => s,
   TurnCompleted: (s) => s,
@@ -205,14 +318,45 @@ function initialState(e: EventEnvelope<"CampaignCreated">): GameState {
     combat: null,
     inventory: {},
     economy: {},
-    factions: {},
-    quests: {},
-    clocks: {},
-    calendar: {},
+    ...EMPTY_WORLD(p.gameTime),
     flags: {},
     lastChecks: {},
   };
 }
+
+const EMPTY_WORLD = (gameTime: number) => ({
+  factions: {},
+  quests: {},
+  clocks: {},
+  calendar: { weather: {}, lastTick: { hour: gameTime, day: gameTime, week: gameTime } },
+  edges: [],
+  minds: {},
+  rumors: {},
+  knowledge: { facts: {}, entities: {} },
+  threat: null,
+});
+
+/** States from before M5 (old snapshots) gain the world fields. */
+function upgrade(s: GameState): GameState {
+  if (s.minds && s.knowledge && s.calendar?.lastTick) return s;
+  const t = s.campaign.gameTime;
+  const empty = EMPTY_WORLD(t);
+  return {
+    ...s,
+    factions: s.factions ?? {},
+    quests: s.quests ?? {},
+    clocks: s.clocks ?? {},
+    calendar: s.calendar?.lastTick ? s.calendar : empty.calendar,
+    edges: s.edges ?? [],
+    minds: s.minds ?? {},
+    rumors: s.rumors ?? {},
+    knowledge: s.knowledge ?? empty.knowledge,
+    threat: s.threat ?? null,
+  };
+}
+
+const mind = (s: GameState, npcId: string) => s.minds[npcId] ?? { memories: [], dispositions: {} };
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 /**
  * Pure, total reducer: `reduce(state, event) → state`. The first event of a campaign must be
@@ -236,7 +380,7 @@ export function reduce(
     }
     throw new Error(`Unknown event type: ${event.type}`);
   }
-  return handler(state, event);
+  return handler(upgrade(state), event);
 }
 
 /** Folds a list of events from an optional starting state (a snapshot). */

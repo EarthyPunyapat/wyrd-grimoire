@@ -111,7 +111,12 @@ function state(): GameState {
     factions: {},
     quests: {},
     clocks: {},
-    calendar: {},
+    calendar: { weather: {}, lastTick: { hour: 0, day: 0, week: 0 } },
+    edges: [],
+    minds: {},
+    rumors: {},
+    knowledge: { facts: {}, entities: {} },
+    threat: null,
     flags: {},
     lastChecks: {},
   };

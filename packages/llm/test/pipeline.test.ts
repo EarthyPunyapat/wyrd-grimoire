@@ -165,7 +165,10 @@ describe("exploration turn end to end (FakeProvider)", () => {
     expect(typesSince(head)).toEqual([
       "TurnStarted",
       "EntityMoved",
+      "MemoryRecorded", // Wenna remembers what she was asked
       "TimeAdvanced",
+      "KnowledgeGained", // the PC now knows the ferry and Wenna
+      "KnowledgeGained",
       "TurnCompleted",
       "NarrationCommitted",
     ]);
