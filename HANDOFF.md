@@ -164,3 +164,11 @@ names are emphasized automatically; the `narrator@2` contract allows sparse `**b
 important objects. Renderer and pipeline regressions plus desktop/phone flows pass; a deliberately
 broken highlighting condition was caught. Real-provider style evaluation remains for owner play.
 Hover/focus/tap detail cards are planned with M5 Codex/knowledge, documented in spec 13 and D70.
+
+### Pending owner request: setting-aware address
+
+Removing "traveller" from clarification/welcome copy was only a temporary fallback. The owner
+explicitly wants a setting- and character-appropriate address (e.g. "Lantern" for their Green Lantern
+character), generated from established world/character context, persisted, player-correctable and
+updated with identity changes. This remains unimplemented and is recorded in the M5 roadmap and
+spec 13, including cross-genre acceptance and protection against revealing secret identities.

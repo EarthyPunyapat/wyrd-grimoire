@@ -74,6 +74,7 @@ Each milestone lists its scope, the spec sections it implements, and acceptance 
 - Memory: full canon graph, PC knowledge, memory pyramid with summaries and session recaps, NPC minds, rumours, retrieval (FTS + vectors + RRF), the complete context assembler, guard v2 (secrets, witnesses, objectives, approval).
 - UI: Journal, Codex (pin, retcon), Map.
 - Narration reference cards: hover/focus/tap character, location and important entity names for player-known details and a Codex link. Use canonical IDs, handle duplicate names and keep unrevealed information private. Bold reading emphasis ships earlier in M3.
+- Setting-aware forms of address: replace generic labels such as `[traveller]` in clarification/welcome copy with wording appropriate to the generated setting and the player's established identity or title (for example, "Lantern" for a Green Lantern character, "Detective" for a detective). Derive and persist player-facing address metadata during world/character creation, allow player correction, and update it when the established identity changes. Never infer a title from genre alone or reveal an undiscovered identity. Neutral copy is a temporary fallback, not the finished feature; see spec 13.
 
 **Acceptance**
 - [ ] Generate a world from a pitch, then play 100+ turns across at least 3 sites.
