@@ -1,3 +1,5 @@
+export * from "./adapters/anthropic.ts";
+export * from "./adapters/openai-compatible.ts";
 export * from "./cassette.ts";
 export * from "./collect.ts";
 export * from "./fake.ts";
@@ -8,4 +10,3 @@ export * from "./router.ts";
 export * from "./tools.ts";
 export * from "./types.ts";
 export * from "./usage.ts";
-export * from "./adapters/openai-compatible.ts";

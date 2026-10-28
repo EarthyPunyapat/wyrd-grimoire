@@ -38,6 +38,9 @@ export async function collect(
             : {}),
         };
         break;
+      case "raw":
+        out.raw = e.raw;
+        break;
       case "done":
         out.finishReason = e.finishReason;
         break;

@@ -7,10 +7,16 @@ export type JsonSchema = Record<string, unknown>;
 /** A conversation message. Tool results carry the call's ID so providers can pair them. */
 export type Message =
   | { role: "user"; content: string }
-  | { role: "assistant"; content: string; toolCalls?: ToolCall[] }
+  | { role: "assistant"; content: string; toolCalls?: ToolCall[]; raw?: RawContent }
   | { role: "tool"; toolCallId: string; name: string; content: string };
 
 export type ToolCall = { id: string; name: string; args: unknown };
+
+/**
+ * A provider's own assistant content (e.g. Anthropic thinking blocks), echoed back unchanged on the
+ * next turn to the same provider so the conversation history stays intact.
+ */
+export type RawContent = { provider: string; content: unknown };
 
 export type ToolDef = { name: string; description: string; parameters: JsonSchema };
 
@@ -38,6 +44,7 @@ export type GenerateEvent =
   | { type: "text"; delta: string }
   | { type: "toolCall"; id: string; name: string; args: unknown }
   | { type: "usage"; usage: Usage }
+  | { type: "raw"; raw: RawContent }
   | { type: "done"; finishReason: string }
   | { type: "error"; code: ErrorCode; retryable: boolean; message: string };
 
@@ -55,7 +62,9 @@ export type ErrorCode =
   | "server"
   | "network"
   | "aborted"
-  | "invalid_output";
+  | "invalid_output"
+  /** The model declined on safety grounds; the router moves to the next target. */
+  | "refused";
 
 export type ModelInfo = {
   id: string;
@@ -85,6 +94,7 @@ export type Completion = {
   toolCalls: ToolCall[];
   usage: Usage;
   finishReason: string;
+  raw?: RawContent;
 };
 
 export class ProviderError extends Error {

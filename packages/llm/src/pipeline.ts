@@ -227,7 +227,12 @@ export class TurnPipeline {
         }
         const tc = completion.toolCalls[0];
         const reply = (content: string) => {
-          messages.push({ role: "assistant", content: completion.text, ...(tc ? { toolCalls: [tc] } : {}) });
+          messages.push({
+            role: "assistant",
+            content: completion.text,
+            ...(tc ? { toolCalls: [tc] } : {}),
+            ...(completion.raw ? { raw: completion.raw } : {}),
+          });
           messages.push(
             tc ? { role: "tool", toolCallId: tc.id, name: tc.name, content } : { role: "user", content },
           );
