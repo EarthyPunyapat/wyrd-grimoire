@@ -96,6 +96,32 @@ const handlers: { [K in Exclude<EventType, "CampaignCreated">]: Handler<K> } = {
     ...s,
     campaign: { ...s.campaign, gameTime: s.campaign.gameTime + e.payload.minutes },
   }),
+
+  // Canon lives in storage projections; the engine only tracks who and what is in the scene.
+  EntityCreated: (s, e) => {
+    const at = e.payload.at;
+    if (!s.scene || !at || at.locationId !== s.scene.locationId) return s;
+    const pcZone = s.party.pcId ? s.scene.positions[s.party.pcId] : undefined;
+    const zone = at.zoneId ?? pcZone ?? s.scene.zones[0]!.id;
+    if (!s.scene.zones.some((z) => z.id === zone)) throw new Error(`No zone ${zone} in scene ${s.scene.id}`);
+    return { ...s, scene: { ...s.scene, positions: { ...s.scene.positions, [e.payload.entity.id]: zone } } };
+  },
+  FactAsserted: (s) => s,
+  SceneOpened: (s, e) => ({ ...s, scene: e.payload.scene }),
+  SceneClosed: (s) => ({ ...s, scene: null }),
+  EntityMoved: (s, e) => {
+    const { entityId, toZoneId } = e.payload;
+    if (!s.scene) throw new Error("EntityMoved outside a scene");
+    if (!(entityId in s.scene.positions)) throw new Error(`${entityId} is not in the scene`);
+    if (!s.scene.zones.some((z) => z.id === toZoneId)) throw new Error(`No zone ${toZoneId} in scene`);
+    return { ...s, scene: { ...s.scene, positions: { ...s.scene.positions, [entityId]: toZoneId } } };
+  },
+
+  // Turn records are projections (the turns table); they don't change engine state.
+  TurnStarted: (s) => s,
+  TurnCompleted: (s) => s,
+  NarrationCommitted: (s) => s,
+  NarrationRerolled: (s) => s,
 };
 
 export const HANDLED_EVENT_TYPES: readonly EventType[] = [

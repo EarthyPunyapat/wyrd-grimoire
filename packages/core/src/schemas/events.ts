@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Entity, Fact, NarrationPayload, SceneState, TurnCompletedPayload } from "./canon.ts";
 import { CheckResolvedPayload } from "./check.ts";
 import { ActorId, ContentId, RngStateSchema } from "./common.ts";
 import { CampaignSettings } from "./settings.ts";
@@ -41,6 +42,23 @@ export const eventPayloadSchemas = {
   ConditionApplied: z.object({ actorId: ActorId, condition: ConditionInstance }),
   ConditionRemoved: z.object({ actorId: ActorId, conditionId: ContentId, reason: z.string().optional() }),
   TimeAdvanced: z.object({ minutes: z.number().int().positive(), reason: z.string() }),
+
+  // Canon (projections in storage; the engine only tracks what's present in the scene).
+  EntityCreated: z.object({
+    entity: Entity,
+    /** Puts the entity in the current scene when it names the scene's location. */
+    at: z.object({ locationId: z.string(), zoneId: z.string().optional() }).optional(),
+  }),
+  FactAsserted: z.object({ fact: Fact }),
+  SceneOpened: z.object({ scene: SceneState }),
+  SceneClosed: z.object({ sceneId: z.string(), reason: z.string() }),
+  EntityMoved: z.object({ entityId: z.string(), toZoneId: z.string() }),
+
+  // Turns: what the player typed, how it resolved, and what was narrated.
+  TurnStarted: z.object({ input: z.string(), uiContext: z.record(z.string(), z.unknown()).optional() }),
+  TurnCompleted: TurnCompletedPayload,
+  NarrationCommitted: NarrationPayload,
+  NarrationRerolled: NarrationPayload,
 } as const;
 
 export type EventType = keyof typeof eventPayloadSchemas;

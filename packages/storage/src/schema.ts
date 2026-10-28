@@ -56,12 +56,41 @@ const MIGRATIONS: readonly string[] = [
     created_seq INTEGER NOT NULL
   );
   `,
+  // v2: canon graph and turn records (M2).
+  `
+  CREATE TABLE entities (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL,
+    name TEXT NOT NULL,
+    record TEXT NOT NULL,
+    created_seq INTEGER NOT NULL
+  );
+  CREATE INDEX entities_name ON entities (name COLLATE NOCASE);
+  CREATE TABLE facts (
+    id TEXT PRIMARY KEY,
+    entity_id TEXT NOT NULL,
+    predicate TEXT NOT NULL,
+    visibility TEXT NOT NULL,
+    record TEXT NOT NULL,
+    asserted_seq INTEGER NOT NULL
+  );
+  CREATE INDEX facts_entity ON facts (entity_id);
+  CREATE TABLE turns (
+    id TEXT PRIMARY KEY,
+    started_seq INTEGER NOT NULL,
+    input TEXT NOT NULL,
+    status TEXT,
+    record TEXT,
+    narration TEXT,
+    narration_meta TEXT
+  );
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;
 
 /** Projection tables: dropped and refilled by `rebuild`. */
-export const PROJECTION_TABLES = ["actors"] as const;
+export const PROJECTION_TABLES = ["actors", "entities", "facts", "turns"] as const;
 
 export function migrate(db: Database): void {
   const current = (db.query("PRAGMA user_version").get() as { user_version: number }).user_version;

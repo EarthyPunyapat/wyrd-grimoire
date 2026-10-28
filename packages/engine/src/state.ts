@@ -5,6 +5,7 @@ import type {
   CheckRequest,
   CheckResult,
   RngState,
+  SceneState,
   Tuning,
 } from "@wyrd/core";
 import type { SkillCatalog } from "./skills.ts";
@@ -41,7 +42,7 @@ export type GameState = {
   mode: "exploration" | "dialogue" | "combat" | "downtime" | "creation";
   party: { pcId: ActorId | null; companionIds: ActorId[] };
   actors: Record<ActorId, ActorState>;
-  scene: null;
+  scene: SceneState | null;
   combat: null;
   inventory: Record<string, never>;
   economy: Record<string, never>;
