@@ -45,6 +45,9 @@
         "@wyrd/memory": "workspace:*",
         "zod": "^4.1.0",
       },
+      "devDependencies": {
+        "@wyrd/storage": "workspace:*",
+      },
     },
     "packages/memory": {
       "name": "@wyrd/memory",

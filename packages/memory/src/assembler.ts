@@ -6,7 +6,9 @@ export interface CanonSource {
   entity(id: string): Entity | null;
   factsAbout(entityId: string, opts?: { includeSecret?: boolean }): Fact[];
   findByName(name: string): Entity[];
-  recentTurns(limit: number): Array<{ input: string; narration: string | null; status: string | null }>;
+  recentTurns(
+    limit: number,
+  ): Array<{ id?: string; input: string; narration: string | null; status: string | null }>;
 }
 
 export type AssemblerRole = "parser" | "narrator" | "guard";
@@ -36,6 +38,8 @@ export type TurnInputs = {
   draft?: string;
   /** Narrator only: corrective notes after a blocked first draft. */
   corrections?: string[];
+  /** Reroll: leave the turn being re-narrated out of the recent turns. */
+  excludeTurnId?: string;
 };
 
 export type Section = { n: number; title: string; text: string };
@@ -221,7 +225,10 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
   if (o.turn.draft !== undefined) thisTurn.push("Draft narration to check:", o.turn.draft);
 
   // 12. Recent turns, verbatim; trimmed oldest-first down to the role's minimum.
-  const turns = canon.recentTurns(MAX_TURNS[role]).filter((t) => t.status !== null);
+  const turns = canon
+    .recentTurns(MAX_TURNS[role] + 1)
+    .filter((t) => t.status !== null && (o.turn.excludeTurnId === undefined || t.id !== o.turn.excludeTurnId))
+    .slice(-MAX_TURNS[role]);
   const turnText = (n: number) =>
     turns
       .slice(-n)
