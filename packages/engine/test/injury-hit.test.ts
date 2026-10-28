@@ -361,6 +361,19 @@ describe("resolveHit: Down", () => {
     expect(condition(s, "core:down")).toBeUndefined();
   });
 
+  test("a Down actor hit to 0 who fails END becomes Unconscious and loses Down", () => {
+    const downAbove0 = (s: Sim) => {
+      dropToZero(s);
+      s.commit(unwrap(applyCondition(s.state, "foe", { id: "core:down" })));
+    };
+    const s = seedWhere(attempt, (o) => o.downed === "unconscious", downAbove0);
+    const out = commitHit(s, fixed(3, "blunt"));
+    expect(out.downed).toBe("unconscious");
+    expect(types(out.events)).toContain("ConditionRemoved");
+    expect(condition(s, "core:unconscious")).toBeDefined();
+    expect(condition(s, "core:down")).toBeUndefined();
+  });
+
   test("a hit that doesn't reach 0 HP makes no check", () => {
     const out = unwrap(hit(sim(), fixed(3, "blunt")));
     expect(out.downed).toBeNull();

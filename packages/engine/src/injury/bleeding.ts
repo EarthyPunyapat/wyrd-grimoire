@@ -17,15 +17,17 @@ function mostSevere(wounds: readonly Wound[]): Wound | undefined {
   return worst;
 }
 
+function isUnconscious(state: GameState, actorId: ActorId): boolean {
+  return state.actors[actorId]!.sheet.status.conditions.some((c) => c.id === "core:unconscious");
+}
+
 /**
  * The 0 HP check for a bleed tick (spec 03, Bleeding). A Down actor who fails END becomes
  * Unconscious; an Unconscious actor who fails END has their most severe wound worsened to lethal.
+ * An Unconscious actor always rolls END here, even when there is nothing left to worsen.
  */
 function zeroHpCheck(w: Working, actorId: ActorId, ctx: InjuryContext): BleedResult["worsened"] {
-  const unconscious = w.state.actors[actorId]!.sheet.status.conditions.some(
-    (c) => c.id === "core:unconscious",
-  );
-  if (!unconscious) {
+  if (!isUnconscious(w.state, actorId)) {
     return downCheck(w, actorId, ctx) === "unconscious" ? "unconscious" : null;
   }
   if (endDownRoll(w, actorId, ctx)) return null;
@@ -37,8 +39,10 @@ function zeroHpCheck(w: Working, actorId: ActorId, ctx: InjuryContext): BleedRes
 
 /**
  * One bleed tick, at the end of the bleeder's turn (spec 03, Bleeding "In combat"). Above 0 HP,
- * bleeding N loses N HP, floored at 0. Reaching 0 HP, or bleeding at 0 HP, runs the 0 HP check.
- * With no bleeding, or the bleeding subsystem off, there are no events.
+ * bleeding N loses N HP, floored at 0. A Down actor reaching 0 HP runs the 0 HP check on that tick.
+ * An Unconscious actor reaching 0 HP is already worse than Down, so that tick emits only HpChanged;
+ * their END rolls start on the next tick. With no bleeding, or the bleeding subsystem off, there
+ * are no events.
  */
 export function bleedTick(state: GameState, actorId: ActorId, ctx: InjuryContext): Result<BleedResult> {
   const actor = state.actors[actorId];
@@ -51,7 +55,8 @@ export function bleedTick(state: GameState, actorId: ActorId, ctx: InjuryContext
   if (hpBefore > 0) {
     const hp = Math.max(0, hpBefore - level);
     w.apply([draft("HpChanged", { actorId, hp, delta: hp - hpBefore, cause: "bleeding" }, "engine")]);
-    if (hp > 0) return ok({ events: w.events, worsened: null });
+    if (hp > 0 || isUnconscious(state, actorId)) return ok({ events: w.events, worsened: null });
   }
-  return ok({ events: w.events, worsened: zeroHpCheck(w, actorId, ctx) });
+  const worsened = zeroHpCheck(w, actorId, ctx);
+  return ok({ events: w.events, worsened });
 }

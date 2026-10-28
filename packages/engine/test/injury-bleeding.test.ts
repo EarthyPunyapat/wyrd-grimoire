@@ -206,16 +206,33 @@ describe("bleedTick: at 0 HP", () => {
     expect(s.state.actors.foe!.sheet.status.wounds.map((w) => w.severity)).toEqual(["critical", "lethal"]);
   });
 
-  test("a failed END check on a wound that is already lethal changes nothing", () => {
-    const prepare = (s: Sim) => {
-      setHp(s, 0);
-      s.commit([draft("WoundInflicted", { actorId: "foe", wound: wound("foe-w1", "lethal") }, "engine")]);
-      s.commit(unwrap(applyCondition(s.state, "foe", { id: "core:unconscious" })));
-      bleed(s, 1);
-    };
-    const s = seedWhere((r) => types(r.events).includes("CheckResolved"), prepare);
+  test("an Unconscious actor whose worst wound is already lethal rolls END and changes nothing else", () => {
+    const s = sim();
+    setHp(s, 0);
+    s.commit([draft("WoundInflicted", { actorId: "foe", wound: wound("foe-w1", "lethal") }, "engine")]);
+    s.commit(unwrap(applyCondition(s.state, "foe", { id: "core:unconscious" })));
+    bleed(s, 1);
     const out = tick(s);
     expect(out.worsened).toBeNull();
-    expect(types(out.events)).not.toContain("WoundWorsened");
+    expect(types(out.events)).toEqual(["CheckResolved"]);
+    expect(s.state.actors.foe!.sheet.status.wounds.map((w) => w.severity)).toEqual(["lethal"]);
+  });
+});
+
+describe("bleedTick: Unconscious actors", () => {
+  test("an Unconscious actor reaching 0 HP from above emits only HpChanged; END rolls start next tick", () => {
+    const s = sim();
+    setHp(s, 2);
+    s.commit(unwrap(applyCondition(s.state, "foe", { id: "core:unconscious" })));
+    bleed(s, 3);
+    const out = tick(s);
+    expect(types(out.events)).toEqual(["HpChanged"]);
+    expect(out.events[0]).toMatchObject({ payload: { hp: 0, delta: -2, cause: "bleeding" } });
+    expect(out.worsened).toBeNull();
+    expect(s.state.actors.foe!.sheet.status.hp).toBe(0);
+    expect(condition(s, "core:down")).toBeUndefined();
+
+    const next = tick(s);
+    expect(types(next.events)).toContain("CheckResolved");
   });
 });
