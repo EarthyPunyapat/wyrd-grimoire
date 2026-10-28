@@ -94,6 +94,22 @@ export function normaliseSkill(
 const present = (scene: SceneState, id: string) => id in scene.positions || id === scene.locationId;
 const propIn = (scene: SceneState, id: string) => scene.zones.some((z) => z.props.some((p) => p.id === id));
 
+const isZone = (scene: SceneState, id: string) => scene.zones.some((z) => z.id === id);
+
+/** The gated edge (e.g. a climb) directly between two zones, if any. */
+const gatedEdge = (scene: SceneState, a: string, b: string) =>
+  scene.edges.find((e) => e.requires && ((e.a === a && e.b === b) || (e.a === b && e.b === a)));
+
+/** A zone from which a gated edge leads to `target`. */
+const gatedFrom = (scene: SceneState, target: string) => {
+  const e = scene.edges.find((x) => x.requires && (x.a === target || x.b === target));
+  return e ? (e.a === target ? e.b : e.a) : undefined;
+};
+
+/** Talking needs the same zone or a neighbouring one. */
+const withinEarshot = (scene: SceneState, a: string, b: string) =>
+  a === b || scene.edges.some((e) => (e.a === a && e.b === b) || (e.a === b && e.b === a));
+
 /** Zones reachable from `from`, with path length in edges (breadth-first). Edges with `requires` aren't walkable. */
 function reachable(scene: SceneState, from: string): Map<string, number> {
   const dist = new Map([[from, 0]]);
@@ -133,6 +149,18 @@ function validateOne(
     case "check": {
       if (!normaliseSkill(a.skill, ctx))
         return err("SKILL_UNKNOWN", `There is no skill or attribute called "${a.skill}"`);
+      if (a.targetId && isZone(scene, a.targetId)) {
+        // A check aimed at a place is an attempt to get there over a gated edge (a climb).
+        if (!here || !gatedEdge(scene, here, a.targetId)) {
+          const from = gatedFrom(scene, a.targetId);
+          return err(
+            "CLIMB_NOT_FROM_HERE",
+            `${ctx.nameOf(a.targetId)} can't be reached from here with a check`,
+            from && from !== here ? [{ type: "move", toZoneId: from }] : undefined,
+          );
+        }
+        return null;
+      }
       if (a.targetId && !present(scene, a.targetId) && !propIn(scene, a.targetId)) {
         return err("TARGET_NOT_PRESENT", `${a.targetId} isn't here`, lookAround);
       }
@@ -161,8 +189,8 @@ function validateOne(
       if (a.toZoneId === here) return err("ALREADY_THERE", `Already in ${ctx.nameOf(a.toZoneId)}`);
       if (!here) return err("NOT_IN_SCENE", "The actor isn't in the scene");
       if (!reachable(scene, here).has(a.toZoneId)) {
-        const gated = scene.edges.find((e) => e.requires && (e.a === a.toZoneId || e.b === a.toZoneId));
-        if (gated?.requires === "climb") {
+        const gate = gatedEdge(scene, here, a.toZoneId);
+        if (gate?.requires === "climb") {
           return err("ZONE_NEEDS_CLIMB", `Getting to ${ctx.nameOf(a.toZoneId)} needs a climb`, [
             {
               type: "check",
@@ -170,8 +198,17 @@ function validateOne(
               goal: `climb to ${ctx.nameOf(a.toZoneId)}`,
               proposedDifficulty: "normal",
               reason: "a climb",
+              targetId: a.toZoneId,
             },
           ]);
+        }
+        const from = gatedFrom(scene, a.toZoneId);
+        if (from && from !== here && reachable(scene, here).has(from)) {
+          return err(
+            "ZONE_NOT_FROM_HERE",
+            `${ctx.nameOf(a.toZoneId)} can only be reached from ${ctx.nameOf(from)}`,
+            [{ type: "move", toZoneId: from }],
+          );
         }
         return err("ZONE_UNREACHABLE", `There's no way to ${ctx.nameOf(a.toZoneId)} from here`);
       }
@@ -184,11 +221,20 @@ function validateOne(
         ]);
       }
       return null;
-    case "talk":
+    case "talk": {
       if (!present(scene, a.targetId))
         return err("TARGET_NOT_PRESENT", `${a.targetId} isn't here to talk to`, lookAround);
       if (a.targetId === actorId) return err("TALK_TO_SELF", "Talking to yourself needs no action");
+      const there = scene.positions[a.targetId];
+      if (here && there && !withinEarshot(scene, here, there)) {
+        return err(
+          "TARGET_OUT_OF_EARSHOT",
+          `${ctx.nameOf(a.targetId)} is in ${ctx.nameOf(there)}, out of earshot`,
+          reachable(scene, here).has(there) ? [{ type: "move", toZoneId: there }] : undefined,
+        );
+      }
       return null;
+    }
   }
 }
 
@@ -214,6 +260,7 @@ export function validatePlan(
     errors.push({ actionIndex: 0, code: "PLAN_EMPTY", message: "The plan has no actions" });
 
   const parsed: ExplorationAction[] = [];
+  let projected = state;
   actions.forEach((raw, i) => {
     const r = ExplorationAction.safeParse(raw);
     if (!r.success) {
@@ -229,8 +276,18 @@ export function validatePlan(
       return;
     }
     parsed.push(r.data);
-    const e = validateOne(state, actorId, r.data, i, ctx);
+    const e = validateOne(projected, actorId, r.data, i, ctx);
     if (e) errors.push(e);
+    // Later actions are judged from where earlier moves leave the actor ("go to the jetty, then talk").
+    else if (r.data.type === "move" && projected.scene) {
+      projected = {
+        ...projected,
+        scene: {
+          ...projected.scene,
+          positions: { ...projected.scene.positions, [actorId]: r.data.toZoneId },
+        },
+      };
+    }
   });
   if (errors.length) {
     return { ok: false, errors: errors.map(({ code, message }) => ({ code, message })), planErrors: errors };
@@ -257,6 +314,7 @@ export function resolvePlan(
   const events: EventDraft[] = [];
   const steps: ResolvedStep[] = [];
   const beats: string[] = [];
+  const forbidden = new Set<string>();
   let minutes = 0;
   let stoppedAt: number | undefined;
   const actorName = ctx.nameOf(plan.actorId);
@@ -328,14 +386,18 @@ export function resolvePlan(
           `tries to ${action.goal}`,
         );
         if (!r.ok) return r;
+        if (action.targetId && isZone(scene, action.targetId) && isSuccess(steps.at(-1)!.outcome as never)) {
+          apply([draft("EntityMoved", { entityId: plan.actorId, toZoneId: action.targetId }, "engine")]);
+          const last = steps.at(-1)!;
+          last.summary = `${last.summary} ${actorName} is now in ${ctx.nameOf(action.targetId)}.`;
+          beats[beats.length - 1] = last.summary;
+        }
         break;
       }
       case "examine": {
         const what = action.targetId ? ctx.nameOf(action.targetId) : (action.area ?? "the surroundings");
-        step(
-          "done",
-          `${actorName} examines ${what}. Describe only what can be seen, heard or smelled, and known facts.`,
-        );
+        step("done", `${actorName} examines ${what}.`);
+        forbidden.add("Describe only what the PC can perceive, plus facts they know; reveal no secrets.");
         break;
       }
       case "search": {
@@ -373,7 +435,10 @@ export function resolvePlan(
         const target = ctx.nameOf(action.targetId);
         const said = `${actorName} says to ${target}: "${action.utterance}"`;
         if (action.approach === "neutral") {
-          step("done", `${said}. ${target} answers in character; they decide nothing the engine hasn't.`);
+          step("done", `${said}.`);
+          forbidden.add(
+            `${target} may answer, but agrees to, gives or reveals nothing the engine hasn't resolved.`,
+          );
           break;
         }
         const skill = APPROACH_SKILL[action.approach];
@@ -423,7 +488,7 @@ export function resolvePlan(
       actorId: plan.actorId,
       steps,
       requiredBeats: beats,
-      forbidden: [],
+      forbidden: [...forbidden],
       ...(stoppedAt !== undefined ? { stoppedAt } : {}),
       minutes,
     },

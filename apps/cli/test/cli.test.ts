@@ -106,4 +106,44 @@ describe("dev CLI", () => {
     expect(r.code).toBe(2);
     expect(r.err).toContain("Invalid TimeAdvanced payload");
   });
+
+  test("play --offline: a world, a PC, a few scripted turns", () => {
+    const pc = join(dir, "wren.json");
+    const db = join(dir, "ashford.db");
+    ok("sheet", "build", "--archetype", "cutpurse", "--name", "Wren", "--ancestry", "halfling", "--out", pc);
+    expect(
+      ok(
+        "campaign",
+        "create",
+        db,
+        "--name",
+        "Ashford",
+        "--seed",
+        "5",
+        "--pc",
+        pc,
+        "--world",
+        "ashford-ferry",
+      ),
+    ).toContain("loaded world Ashford Ferry");
+    const out = ok(
+      "play",
+      db,
+      "--offline",
+      "--input",
+      "I look at the hearth",
+      "--input",
+      "I go out to the yard",
+      "--input",
+      "I climb into the hayloft",
+      "--input",
+      "/where",
+    );
+    expect(out).toContain("Ashford Ferry House, the common room · with Wenna Harrow, Aldric Vane");
+    expect(out).toContain("(offline narrator) Wren examines the hearth.");
+    expect(out).toContain("Getting to the hayloft needs a climb");
+    expect(out).toContain("1. Try to climb to the hayloft (athletics, normal)");
+    expect(out).toContain("Ashford Ferry House, the yard");
+    expect(wyrd("play", db).err).toContain("aren't wired up yet"); // real providers need step G
+  });
 });

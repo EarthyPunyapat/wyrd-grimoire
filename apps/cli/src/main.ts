@@ -13,6 +13,8 @@ import {
   type CompiledPack,
   type Difficulty,
   defaultTuning,
+  draft,
+  Entity,
   type EventDraft,
   type EventEnvelope,
   isEventType,
@@ -35,9 +37,19 @@ import {
   spendLuckReroll,
   validateCreation,
 } from "@wyrd/engine";
-import { creationContent, loadPack, scaffoldPack, skillCatalog } from "@wyrd/packs";
+import {
+  creationContent,
+  listWorlds,
+  loadPack,
+  loadWorld,
+  scaffoldPack,
+  skillCatalog,
+  worldEvents,
+} from "@wyrd/packs";
 import { CampaignStore, StorageError } from "@wyrd/storage";
 import { parse as parseYaml } from "yaml";
+import { CliError } from "./errors.ts";
+import { playCommand, WORLD_BIBLE_ID } from "./play.ts";
 
 const HELP = `wyrd — Wyrd Grimoire dev CLI
 
@@ -56,7 +68,8 @@ Characters
 
 Campaigns (a campaign is one SQLite file)
   campaign create <file.db> --name <name> [--pack <dir>] [--dice d100|d20] [--hardcore]
-                  [--seed s] [--pc sheet.json]
+                  [--seed s] [--pc sheet.json] [--world <id>]
+      --world loads a hand-authored world from the pack (e.g. ashford-ferry) and opens its first scene.
   check <file.db> --actor <id> --skill <skillId | attr:end> [--difficulty normal] [--mod source=value]...
                   [--boons n] [--banes n] [--tag t]... [--purpose text]
       Resolve a check with the engine and append its events.
@@ -69,6 +82,9 @@ Campaigns (a campaign is one SQLite file)
   rewind <file.db> <seq>               Fork a new branch at seq and make it active (not in hardcore).
   branches <file.db>                   List branches; * marks the active one.
   activate <file.db> <branchId>        Switch the active branch.
+  play <file.db> [--offline] [--input text]... [--config file]
+      Play exploration turns in the terminal. --offline uses a keyword-matching stand-in for the
+      models (no keys needed); --input runs scripted turns and exits. /help inside for commands.
   hash <file.db> [--branch id] [--seq n]
   rebuild <file.db>                    Drop projections and snapshots, replay, print the state hash.
 
@@ -76,8 +92,6 @@ Packs
   pack validate <dir>                  Schema, references and balance lints. Exit 1 on errors.
   pack new <id> [--dir packs/<id>]     Scaffold an empty pack.
 `;
-
-class CliError extends Error {}
 
 const out = (s: string) => process.stdout.write(`${s}\n`);
 const err = (s: string) => process.stderr.write(`${s}\n`);
@@ -187,6 +201,10 @@ const COMMON = {
   purpose: { type: "string" },
   branch: { type: "string" },
   json: { type: "boolean" },
+  world: { type: "string" },
+  offline: { type: "boolean" },
+  input: { type: "string", multiple: true },
+  config: { type: "string" },
   from: { type: "string" },
   seq: { type: "string" },
   file: { type: "string" },
@@ -194,7 +212,7 @@ const COMMON = {
   help: { type: "boolean", short: "h" },
 } as const;
 
-function main(argv: string[]): number {
+async function main(argv: string[]): Promise<number> {
   const { values: o, positionals: p } = parseArgs({
     args: argv,
     options: COMMON,
@@ -328,6 +346,36 @@ function main(argv: string[]): number {
           throw new CliError("The PC sheet has errors; the campaign was created without a PC");
         }
         store.append(unwrapOrFail(createActor(store.state(), sheet, "pc")));
+      }
+      if (o.world) {
+        const packDir = resolve(o.pack ?? "packs/fantasy-core");
+        const { world, issues } = loadWorld(packDir, o.world);
+        if (!world) {
+          for (const i of issues) err(`error ${i.code} ${i.path} — ${i.message}`);
+          store.close();
+          throw new CliError(
+            `World ${o.world} has errors; available: ${listWorlds(packDir).join(", ") || "none"}`,
+          );
+        }
+        const state = store.state();
+        const party = [state.party.pcId, ...state.party.companionIds].filter((x): x is string => !!x);
+        store.append([
+          draft(
+            "EntityCreated",
+            {
+              entity: Entity.parse({
+                id: WORLD_BIBLE_ID,
+                kind: "concept",
+                name: world.name,
+                detail: "full",
+                summary: world.premise,
+              }),
+            },
+            "system",
+          ),
+          ...worldEvents(world, party, state.campaign.gameTime),
+        ]);
+        out(`loaded world ${world.name}${party.length ? "" : " (no PC yet: pass --pc to place one)"}`);
       }
       out(`created ${file} (campaign ${store.campaignId})`);
       out(`hash ${store.stateHash()}`);
@@ -477,6 +525,15 @@ function main(argv: string[]): number {
       return 0;
     }
 
+    case "play": {
+      const store = openStore(sub ?? "");
+      return playCommand(store, rulesFor(store), {
+        offline: o.offline ?? false,
+        inputs: o.input,
+        ...(o.config ? { configPath: o.config } : {}),
+      }).finally(() => store.close());
+    }
+
     case "pack": {
       if (sub === "validate") {
         const dir = rest[0];
@@ -511,7 +568,7 @@ function main(argv: string[]): number {
 }
 
 try {
-  process.exitCode = main(process.argv.slice(2));
+  process.exitCode = await main(process.argv.slice(2));
 } catch (e) {
   if (e instanceof CliError || e instanceof StorageError) {
     err(`error: ${e.message}`);

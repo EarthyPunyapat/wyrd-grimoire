@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { draft, type ExplorationActionInput, SceneState } from "@wyrd/core";
+import { draft, type ExplorationActionInput, SceneState, seedRng } from "@wyrd/core";
 import { type ExplorationContext, normaliseSkill, resolvePlan, validatePlan } from "../src/exploration.ts";
 import { unwrap } from "../src/result.ts";
 import { attrs } from "./fixtures.ts";
@@ -83,13 +83,47 @@ describe("validatePlan", () => {
     ]);
   });
 
-  test("gated zones suggest the check that would open them", () => {
+  test("gated zones: from next door, the check that opens them; from further away, go there first", () => {
     const s = sim();
-    const r = validate(s, [{ type: "move", toZoneId: "z:loft" }]);
-    expect(r.planErrors?.[0]).toMatchObject({
-      code: "ZONE_NEEDS_CLIMB",
-      legalAlternatives: [{ type: "check", skill: "core:athletics" }],
+    expect(validate(s, [{ type: "move", toZoneId: "z:loft" }]).planErrors?.[0]).toMatchObject({
+      code: "ZONE_NOT_FROM_HERE",
+      legalAlternatives: [{ type: "move", toZoneId: "z:yard" }],
     });
+    expect(
+      validate(s, [
+        { type: "move", toZoneId: "z:yard" },
+        { type: "move", toZoneId: "z:loft" },
+      ]).planErrors?.[0],
+    ).toMatchObject({
+      actionIndex: 1,
+      code: "ZONE_NEEDS_CLIMB",
+      legalAlternatives: [{ type: "check", skill: "core:athletics", targetId: "z:loft" }],
+    });
+  });
+
+  test("a climb check only works from the zone next to the climb", () => {
+    const s = sim();
+    const climb = {
+      type: "check",
+      skill: "athletics",
+      goal: "climb up",
+      proposedDifficulty: "normal",
+      reason: "ladderless",
+      targetId: "z:loft",
+    };
+    expect(validate(s, [climb]).planErrors?.[0]).toMatchObject({ code: "CLIMB_NOT_FROM_HERE" });
+    expect(validate(s, [{ type: "move", toZoneId: "z:yard" }, climb]).ok).toBe(true);
+  });
+
+  test("talk needs the target within earshot (same or next zone)", () => {
+    const s = sim();
+    expect(
+      validate(s, [{ type: "talk", targetId: "npc:wenna", utterance: "Hi" }]).planErrors?.[0],
+    ).toMatchObject({
+      code: "TARGET_OUT_OF_EARSHOT",
+      legalAlternatives: [{ type: "move", toZoneId: "z:jetty" }],
+    });
+    expect(validate(s, [{ type: "talk", targetId: "npc:guard", utterance: "Hi" }]).ok).toBe(true); // next door
   });
 
   test("unknown zones list the legal moves", () => {
@@ -207,25 +241,80 @@ describe("resolvePlan", () => {
       resolvePlan(
         s.state,
         unwrap(
-          validate(s, [{ type: "talk", targetId: "npc:wenna", utterance: "Half price?", approach: "charm" }]),
+          validate(s, [
+            { type: "move", toZoneId: "z:jetty" },
+            { type: "talk", targetId: "npc:wenna", utterance: "Half price?", approach: "charm" },
+          ]),
         ),
         ctx,
       ),
     );
     expect(plain.events.filter((e) => e.type === "CheckResolved")).toHaveLength(1);
-    expect(plain.resolution.requiredBeats[0]).toMatch(/Wenna (is|isn't) swayed\.$/);
+    expect(plain.resolution.requiredBeats[1]).toMatch(/Wenna (is|isn't) swayed\.$/);
+  });
+
+  test("a successful climb moves the climber", () => {
+    for (let seed = 0; seed < 50; seed++) {
+      const s = sim();
+      s.state = { ...s.state, campaign: { ...s.state.campaign, rngState: seedRng(seed) } };
+      const plan = unwrap(
+        validate(s, [
+          { type: "move", toZoneId: "z:yard" },
+          {
+            type: "check",
+            skill: "athletics",
+            goal: "climb up",
+            proposedDifficulty: "easy",
+            reason: "x",
+            targetId: "z:loft",
+          },
+        ]),
+      );
+      const { events, resolution } = unwrap(resolvePlan(s.state, plan, ctx));
+      const moved = events.filter((e) => e.type === "EntityMoved").length;
+      const climbed = ["success", "critSuccess"].includes(resolution.steps[1]!.outcome);
+      expect(moved).toBe(climbed ? 2 : 1);
+      if (climbed) {
+        expect(resolution.requiredBeats[1]).toContain("Wren is now in the hayloft.");
+        return;
+      }
+    }
+    throw new Error("no successful climb in 50 seeds");
+  });
+
+  test("talk and examine put narrator guidance in forbidden, not in the beats", () => {
+    const s = sim();
+    const { resolution } = unwrap(
+      resolvePlan(
+        s.state,
+        unwrap(
+          validate(s, [
+            { type: "examine", targetId: "prop:hatch" },
+            { type: "talk", targetId: "npc:guard", utterance: "Evening." },
+          ]),
+        ),
+        ctx,
+      ),
+    );
+    expect(resolution.requiredBeats).toEqual([
+      "Wren examines the cellar hatch.",
+      'Wren says to the guard: "Evening.".',
+    ]);
+    expect(resolution.forbidden).toHaveLength(2);
   });
 
   test("stops when an earlier step makes a later one impossible", () => {
     const s = sim();
-    // Valid against the starting state, but after moving to the jetty, moving to the jetty again isn't.
-    const plan = unwrap(
-      validate(s, [
-        { type: "move", toZoneId: "z:jetty" },
-        { type: "move", toZoneId: "z:jetty" },
-        { type: "wait", minutes: 5 },
-      ]),
-    );
+    // Built by hand: validation would catch this one, but resolution must still stop safely
+    // when an earlier result invalidates a later action (e.g. a target dies in combat).
+    const plan = {
+      actorId: "pc",
+      actions: [
+        { type: "move" as const, toZoneId: "z:jetty" },
+        { type: "move" as const, toZoneId: "z:jetty" },
+        { type: "wait" as const, minutes: 5 },
+      ],
+    };
     const { resolution } = unwrap(resolvePlan(s.state, plan, ctx));
     expect(resolution.stoppedAt).toBe(1);
     expect(resolution.steps).toHaveLength(1);

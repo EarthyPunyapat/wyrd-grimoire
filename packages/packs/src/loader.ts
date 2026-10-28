@@ -18,6 +18,7 @@ import { parse as parseYaml } from "yaml";
 import type { z } from "zod";
 import { lintPack } from "./lints.ts";
 import { satisfies } from "./semver.ts";
+import { listWorlds, loadWorld } from "./world.ts";
 
 export type PackIssue = {
   severity: "error" | "warning";
@@ -214,6 +215,12 @@ export function loadPack(dir: string): LoadResult {
   };
   const hash = createHash("sha256").update(stableStringify(body)).digest("hex");
   const pack: CompiledPack = { ...body, hash };
+
+  for (const worldId of listWorlds(dir)) {
+    for (const i of loadWorld(dir, worldId).issues) {
+      error(`WORLD_${i.code}`, `worlds/${worldId}/world.yaml`, i.message, i.path || undefined);
+    }
+  }
 
   if (!issues.some((i) => i.severity === "error")) issues.push(...lintPack(pack, where));
   return { pack: issues.some((i) => i.severity === "error") ? null : pack, issues };

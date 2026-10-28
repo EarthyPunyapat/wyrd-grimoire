@@ -8,6 +8,8 @@
     "@wyrd/engine": "workspace:*",
     "@wyrd/packs": "workspace:*",
     "@wyrd/storage": "workspace:*",
-    "yaml": "^2.8.0"
+    "yaml": "^2.8.0",
+    "@wyrd/llm": "workspace:*",
+    "@wyrd/memory": "workspace:*"
   }
 }

@@ -1,6 +1,7 @@
 export * from "./cassette.ts";
 export * from "./collect.ts";
 export * from "./fake.ts";
+export * from "./offline.ts";
 export * from "./pipeline.ts";
 export * from "./prompts/index.ts";
 export * from "./router.ts";

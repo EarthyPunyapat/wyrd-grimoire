@@ -1,0 +1,112 @@
+# A small hand-authored location for testing the model loop (M2). Original content.
+id: ashford-ferry
+name: Ashford Ferry
+premise: >-
+  Late autumn in a wet river valley. The only crossing of the swollen Ash for a day's walk is a
+  rope ferry run by a hard-bargaining widow from a ferry house that doubles as an inn. The river
+  is too high to cross tonight, so travellers are stuck together until morning, and not everyone
+  is who they say they are.
+start: { locationId: "loc:ferry-house", zoneId: "z:common" }
+gameTime: 1110  # day 1, 18:30
+entities:
+  - id: loc:ferry-house
+    kind: location
+    name: Ashford Ferry House
+    aliases: [the ferry house, the inn]
+    detail: full
+    importance: 3
+    summary: A low stone ferry house and inn on the north bank of the Ash, smoke-black inside and smelling of eel stew.
+  - id: npc:wenna
+    kind: npc
+    name: Wenna Harrow
+    aliases: [Wenna, the ferrywoman, the widow]
+    detail: sketch
+    importance: 3
+    summary: The ferrywoman and innkeeper, fifties, widowed, sharp with money and sharper with fools.
+    facts:
+      - { predicate: appearance.hands, value: "cracked like old leather" }
+      - { predicate: appearance.clothing, value: "a man's oilskin coat, too big for her" }
+      - { predicate: personality, value: "blunt, mercenary, fiercely protective of her son" }
+      - { predicate: price, value: "two pennies a crossing, double after dark" }
+      - { predicate: secret, value: "she ferries stolen church relics across for a fence in Coldwater", visibility: secret }
+  - id: npc:hob
+    kind: npc
+    name: Hob
+    aliases: [the boy, Wenna's boy]
+    detail: sketch
+    importance: 2
+    summary: Wenna's son, twelve, who works the ferry rope and resents every minute of it.
+    facts:
+      - { predicate: personality, value: "sullen, curious, desperate for a reason to leave" }
+      - { predicate: secret, value: "he has seen the relics hidden in the cellar and wants to sell one himself", visibility: secret }
+  - id: npc:tamsin
+    kind: npc
+    name: Tamsin
+    aliases: [the cook]
+    detail: stub
+    importance: 1
+    summary: The cook, broad and cheerful, who hears everything said in the common room.
+  - id: npc:grey-cloak
+    kind: npc
+    name: Aldric Vane
+    aliases: [the man in the grey cloak, the stranger]
+    detail: sketch
+    importance: 3
+    summary: A quiet traveller in a wet grey cloak who arrived an hour ago and keeps his back to the wall.
+    facts:
+      - { predicate: appearance.marks, value: "an old burn scar across the back of his left hand" }
+      - { predicate: claims, value: "says he is a wool factor bound for the autumn fair" }
+      - { predicate: secret, value: "he is a reeve's agent sent to catch whoever is moving the relics", visibility: secret }
+  - id: item:strongbox
+    kind: item
+    name: Iron-bound Strongbox
+    aliases: [the strongbox]
+    detail: stub
+    importance: 2
+    summary: A heavy box under the cellar stairs, locked with a good lock.
+locations:
+  - locationId: loc:ferry-house
+    light: dim
+    weather: cold rain, river rising
+    zones:
+      - id: z:common
+        name: the common room
+        tags: [dim]
+        props:
+          - { id: prop:hearth, name: the hearth, affordances: [light, hide] }
+          - { id: prop:long-table, name: the long table, affordances: [cover, topple] }
+          - { id: prop:cellar-hatch, name: the cellar hatch, affordances: [open] }
+      - id: z:kitchen
+        name: the kitchen
+        props:
+          - { id: prop:stewpot, name: the stewpot, affordances: [throw] }
+      - id: z:yard
+        name: the yard
+        tags: [dark]
+        props:
+          - { id: prop:well, name: the well, affordances: [climb] }
+          - { id: prop:woodpile, name: the woodpile, affordances: [cover, hide] }
+      - id: z:jetty
+        name: the jetty
+        tags: [dark]
+        props:
+          - { id: prop:ferry, name: the rope ferry, affordances: [board] }
+          - { id: prop:ferry-rope, name: the ferry rope, affordances: [climb] }
+      - id: z:hayloft
+        name: the hayloft
+        tags: [elevated]
+      - id: z:cellar
+        name: the cellar
+        tags: [dark]
+    edges:
+      - { a: z:common, b: z:kitchen }
+      - { a: z:common, b: z:yard }
+      - { a: z:yard, b: z:jetty }
+      - { a: z:yard, b: z:hayloft, requires: climb }
+      - { a: z:common, b: z:cellar, requires: key }
+    positions:
+      npc:wenna: z:common
+      npc:tamsin: z:kitchen
+      npc:hob: z:jetty
+      npc:grey-cloak: z:common
+      item:strongbox: z:cellar
