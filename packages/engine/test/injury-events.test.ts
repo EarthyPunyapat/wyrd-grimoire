@@ -80,15 +80,68 @@ describe("injury events", () => {
         "engine",
       ),
     ]);
-    s.commit([draft("WoundWorsened", { actorId: "pc", woundId: "w1", severity: "serious" }, "engine")]);
+    s.commit([
+      draft(
+        "WoundWorsened",
+        { actorId: "pc", woundId: "w1", severity: "serious", hpMaxReduction: 5 },
+        "engine",
+      ),
+    ]);
     expect(s.state.actors.pc!.sheet.status.wounds[0]?.severity).toBe("serious");
+  });
+
+  test("worsening a wound carries its new max-HP reduction and clamps HP", () => {
+    const s = pcSim();
+    s.commit([draft("HpChanged", { actorId: "pc", hp: 18, delta: -2, cause: "damage" }, "engine")]);
+    s.commit([
+      draft(
+        "WoundInflicted",
+        { actorId: "pc", wound: wound({ severity: "minor", hpMaxReduction: 2 }) },
+        "engine",
+      ),
+    ]);
+    expect(s.state.actors.pc!.sheet.status.hp).toBe(18);
+
+    s.commit([
+      draft(
+        "WoundWorsened",
+        { actorId: "pc", woundId: "w1", severity: "critical", hpMaxReduction: 10 },
+        "engine",
+      ),
+    ]);
+    const sheet = s.state.actors.pc!.sheet;
+    expect(sheet.status.wounds[0]).toMatchObject({ severity: "critical", hpMaxReduction: 10 });
+    expect(effectiveHpMax(sheet)).toBe(10);
+    expect(sheet.status.hp).toBe(10);
   });
 
   test("WoundWorsened for an unknown wound throws", () => {
     const s = pcSim();
     expect(() =>
-      s.commit([draft("WoundWorsened", { actorId: "pc", woundId: "nope", severity: "serious" }, "engine")]),
+      s.commit([
+        draft(
+          "WoundWorsened",
+          { actorId: "pc", woundId: "nope", severity: "serious", hpMaxReduction: 5 },
+          "engine",
+        ),
+      ]),
     ).toThrow(/nope/);
+  });
+
+  test("WoundInflicted with an id the actor already has throws and leaves the wounds unchanged", () => {
+    const s = pcSim();
+    s.commit([
+      draft(
+        "WoundInflicted",
+        { actorId: "pc", wound: wound({ hpMaxReduction: 2, severity: "minor" }) },
+        "engine",
+      ),
+    ]);
+    expect(() =>
+      s.commit([draft("WoundInflicted", { actorId: "pc", wound: wound({ hpMaxReduction: 10 }) }, "engine")]),
+    ).toThrow(/w1/);
+    expect(s.state.actors.pc!.sheet.status.wounds).toHaveLength(1);
+    expect(s.state.actors.pc!.sheet.status.wounds[0]?.hpMaxReduction).toBe(2);
   });
 
   test("HitResolved writes rngAfter back to the campaign RNG state", () => {

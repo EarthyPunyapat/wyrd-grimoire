@@ -20,6 +20,12 @@ function updateSheet(
   return { ...state, actors: { ...state.actors, [actorId]: { ...actor, sheet: fn(actor.sheet) } } };
 }
 
+/** Keeps current HP within the sheet's effective max, which wounds can lower. */
+const clampHp = (sheet: CharacterSheet): CharacterSheet => ({
+  ...sheet,
+  status: { ...sheet.status, hp: Math.min(sheet.status.hp, effectiveHpMax(sheet)) },
+});
+
 const updateStatus = (
   state: GameState,
   actorId: string,
@@ -104,34 +110,29 @@ const handlers: { [K in Exclude<EventType, "CampaignCreated">]: Handler<K> } = {
   HitResolved: (s, e) => ({ ...s, campaign: { ...s.campaign, rngState: e.payload.rngAfter } }),
 
   HpChanged: (s, e) =>
-    updateSheet(s, e.payload.actorId, (sheet) => ({
-      ...sheet,
-      status: { ...sheet.status, hp: Math.min(e.payload.hp, effectiveHpMax(sheet)) },
-    })),
+    updateSheet(s, e.payload.actorId, (sheet) =>
+      clampHp({ ...sheet, status: { ...sheet.status, hp: e.payload.hp } }),
+    ),
 
   WoundInflicted: (s, e) =>
     updateSheet(s, e.payload.actorId, (sheet) => {
-      const withWound = {
-        ...sheet,
-        status: { ...sheet.status, wounds: [...sheet.status.wounds, e.payload.wound] },
-      };
-      return {
-        ...withWound,
-        status: { ...withWound.status, hp: Math.min(withWound.status.hp, effectiveHpMax(withWound)) },
-      };
+      const { wound } = e.payload;
+      if (sheet.status.wounds.some((w) => w.id === wound.id)) {
+        throw new Error(`Wound ${wound.id} already exists on ${e.payload.actorId}`);
+      }
+      return clampHp({ ...sheet, status: { ...sheet.status, wounds: [...sheet.status.wounds, wound] } });
     }),
 
   WoundWorsened: (s, e) =>
-    updateStatus(s, e.payload.actorId, (st) => {
-      if (!st.wounds.some((w) => w.id === e.payload.woundId)) {
-        throw new Error(`Wound ${e.payload.woundId} not found on ${e.payload.actorId}`);
+    updateSheet(s, e.payload.actorId, (sheet) => {
+      const { woundId, severity, hpMaxReduction } = e.payload;
+      if (!sheet.status.wounds.some((w) => w.id === woundId)) {
+        throw new Error(`Wound ${woundId} not found on ${e.payload.actorId}`);
       }
-      return {
-        ...st,
-        wounds: st.wounds.map((w) =>
-          w.id === e.payload.woundId ? { ...w, severity: e.payload.severity } : w,
-        ),
-      };
+      const wounds = sheet.status.wounds.map((w) =>
+        w.id === woundId ? { ...w, severity, hpMaxReduction } : w,
+      );
+      return clampHp({ ...sheet, status: { ...sheet.status, wounds } });
     }),
 
   // Canon lives in storage projections; the engine only tracks who and what is in the scene.

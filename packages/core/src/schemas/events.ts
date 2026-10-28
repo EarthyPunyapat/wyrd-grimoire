@@ -66,7 +66,13 @@ export const eventPayloadSchemas = {
     cause: z.enum(["damage", "bleeding", "healing"]),
   }),
   WoundInflicted: z.object({ actorId: ActorId, wound: Wound }),
-  WoundWorsened: z.object({ actorId: ActorId, woundId: z.string(), severity: WoundSeverity }),
+  /** `hpMaxReduction` is the new severity's reduction, computed by the emitter; the reducer has no tuning. */
+  WoundWorsened: z.object({
+    actorId: ActorId,
+    woundId: z.string(),
+    severity: WoundSeverity,
+    hpMaxReduction: z.number().int().nonnegative(),
+  }),
 
   // Canon (projections in storage; the engine only tracks what's present in the scene).
   EntityCreated: z.object({
