@@ -72,6 +72,7 @@ import { streamSSE } from "hono/streaming";
 import { z } from "zod";
 import { EXAMPLE_WORLD } from "./example-world.ts";
 import { ModelServices, mountModels } from "./models.ts";
+import { addressOf, mountWorld } from "./world-views.ts";
 
 const SESSION_TTL = 30 * 24 * 60 * 60 * 1000;
 const LOGIN_WINDOW = 15 * 60 * 1000;
@@ -216,6 +217,13 @@ export function createApp(options: Options) {
     return c.json({ ok: true });
   });
   mountModels(app, models);
+  mountWorld(app, {
+    campaign: (id) => campaign(id),
+    store,
+    body,
+    running: (id) => !!store.running(id),
+    router: () => (options.offline ? null : models.router()),
+  });
   function campaign(id: string) {
     // Registry membership authorizes the path. Never construct a path from an arbitrary route value.
     const entry = store.campaigns().find((row) => row.id === id);
@@ -494,6 +502,11 @@ export function createApp(options: Options) {
         offline: options.offline,
         combat: view.combat,
         ended: view.ended,
+        address: addressOf(canon),
+        known: Object.keys(state.knowledge.entities).flatMap((kid) => {
+          const e = canon.entity(kid);
+          return e && e.kind !== "concept" ? [{ id: kid, name: e.name, kind: e.kind }] : [];
+        }),
       }),
     );
   });

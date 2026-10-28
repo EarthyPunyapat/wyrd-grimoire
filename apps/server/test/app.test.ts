@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { GameView, WyrdConfig } from "@wyrd/core";
+import { CodexView, GameView, JournalView, MapView, WyrdConfig } from "@wyrd/core";
 import { createApp } from "../src/app.ts";
 
 const homes: string[] = [];
@@ -331,12 +331,19 @@ test("a generated world has regions, sites and roads; travel opens new sites and
       const v = await turn(`I travel to ${site}`);
       if (v.combat) {
         // Waylaid: fight it out, or slip away.
-        for (let i = 0; i < 20 && (await turn("I attack")).combat; i++);
+        let fight: GameView["combat"] = v.combat;
+        for (let i = 0; i < 25 && fight; i++) {
+          const foe: string | undefined = fight.combatants.find(
+            (c) => c.side === "enemy" && c.status === "active",
+          )?.name;
+          const next: GameView = await turn(foe ? `I attack ${foe}` : "I defend");
+          fight = next.combat;
+        }
       }
       const now = GameView.parse(
         await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json(),
       );
-      if (now.scene?.location.includes(site.split(" ")[0]!)) {
+      if (now.scene?.location.startsWith(site)) {
         places.add(now.scene.location);
         break;
       }
@@ -347,4 +354,32 @@ test("a generated world has regions, sites and roads; travel opens new sites and
     await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json(),
   );
   expect(end.gameTime).toBeGreaterThan(start.gameTime + 1440);
+  // Codex, map and journal show only what the PC knows (spec 07, spec 13).
+  const get = async (path: string) =>
+    (await request(server, `/campaigns/${id}${path}`, undefined, cookie)).json();
+  const codex = CodexView.parse(await get("/codex"));
+  expect(codex.entries.map((e) => e.name)).toContain("Greywater Market");
+  expect(JSON.stringify(codex)).not.toContain("nearly bankrupt"); // a faction secret
+  const map = MapView.parse(await get("/map"));
+  expect(map.sites.filter((x) => x.visited).length).toBeGreaterThanOrEqual(3);
+  expect(map.routes.length).toBeGreaterThan(0);
+  const journal = JournalView.parse(await get("/journal"));
+  expect(journal.summaries.length).toBeGreaterThan(0);
+  // Pin and retcon a known descriptive fact.
+  const known = codex.entries.flatMap((e) => e.facts).find((f) => f.editable)!;
+  const factPath = `/campaigns/${id}/facts/${encodeURIComponent(known.id)}`;
+  const pinned = CodexView.parse(
+    await (await request(server, `${factPath}/pin`, { pinned: true }, cookie)).json(),
+  );
+  expect(pinned.pins).toBe(1);
+  const edited = CodexView.parse(
+    await (await request(server, `${factPath}/retcon`, { value: "Rewritten by the player." }, cookie)).json(),
+  );
+  expect(edited.entries.flatMap((e) => e.facts).some((f) => f.value === "Rewritten by the player.")).toBe(
+    true,
+  );
+  expect((await request(server, `/campaigns/${id}/address`, { address: "Warden" }, cookie)).status).toBe(200);
+  const after = GameView.parse(await get("/view"));
+  expect(after.address).toBe("Warden");
+  expect(after.known.length).toBeGreaterThan(3);
 });

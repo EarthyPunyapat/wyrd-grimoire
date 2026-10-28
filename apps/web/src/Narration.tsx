@@ -1,5 +1,74 @@
-import type { GameView } from "@wyrd/core";
-import type { ReactNode } from "react";
+import { type CodexEntry, CodexView, type GameView } from "@wyrd/core";
+import { createContext, type ReactNode, useContext, useId, useState } from "react";
+import { api } from "./api.ts";
+
+/** Entities the PC knows, for reference cards on names (spec 13), and how to open them in the Codex. */
+export const RefContext = createContext<{
+  known: GameView["known"];
+  campaignId: string;
+  open: (id: string) => void;
+} | null>(null);
+
+/** A known name in the story: a button with a small card of what the PC knows (never secrets). */
+function RefName({ id, text }: { id: string; text: string }) {
+  const ctx = useContext(RefContext)!;
+  const card = useId();
+  const [open, setOpen] = useState(false);
+  const [entry, setEntry] = useState<CodexEntry | null | undefined>(undefined);
+  const show = async () => {
+    setOpen(true);
+    if (entry !== undefined) return;
+    try {
+      const codex = await api(`/campaigns/${ctx.campaignId}/codex`, (d) => CodexView.parse(d));
+      setEntry(codex.entries.find((e) => e.id === id) ?? null);
+    } catch {
+      setEntry(null);
+    }
+  };
+  return (
+    <span className="ref-wrap">
+      <button
+        type="button"
+        className="ref"
+        aria-expanded={open}
+        aria-controls={card}
+        onClick={() => (open ? setOpen(false) : void show())}
+        onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
+      >
+        {text}
+      </button>
+      {open && (
+        <span id={card} role="dialog" aria-label={text} className="ref-card">
+          {entry === undefined ? (
+            "…"
+          ) : entry ? (
+            <>
+              <strong>{entry.name}</strong> <span className="muted">· {entry.kind}</span>
+              {entry.summary && <span className="ref-summary">{entry.summary}</span>}
+              {entry.facts.slice(0, 3).map((f) => (
+                <span key={f.id} className="ref-fact">
+                  {f.predicate}: {f.value}
+                </span>
+              ))}
+            </>
+          ) : (
+            "You don't know much more than the name."
+          )}
+          <button
+            type="button"
+            className="ref-open"
+            onClick={() => {
+              setOpen(false);
+              ctx.open(id);
+            }}
+          >
+            Open in Codex
+          </button>
+        </span>
+      )}
+    </span>
+  );
+}
 
 export function narrationContext(view: GameView) {
   const speakers = {
@@ -9,7 +78,13 @@ export function narrationContext(view: GameView) {
   };
   return {
     speakers,
-    names: [...Object.values(speakers), view.worldName, view.scene?.location ?? "", view.scene?.zone ?? ""],
+    names: [
+      ...Object.values(speakers),
+      ...view.known.map((k) => k.name),
+      view.worldName,
+      view.scene?.location ?? "",
+      view.scene?.zone ?? "",
+    ],
   };
 }
 
@@ -17,6 +92,8 @@ const escapePattern = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$
 
 /** Only text and strong emphasis are rendered. Model HTML/links never become browser markup. */
 export function NarrativeText({ text, names }: { text: string; names: string[] }) {
+  const refs = useContext(RefContext);
+  const known = new Map((refs?.known ?? []).map((k) => [k.name.toLowerCase(), k.id]));
   const phrases = [...new Set(names.filter((n) => n.trim()))]
     .sort((a, b) => b.length - a.length)
     .map(escapePattern);
@@ -28,7 +105,11 @@ export function NarrativeText({ text, names }: { text: string; names: string[] }
   let offset = 0;
   for (const match of text.matchAll(pattern)) {
     parts.push(text.slice(offset, match.index));
-    parts.push(<strong key={match.index}>{match[1] ?? match[0]}</strong>);
+    const shown = match[1] ?? match[0];
+    const id = known.get(shown.toLowerCase());
+    parts.push(
+      id ? <RefName key={match.index} id={id} text={shown} /> : <strong key={match.index}>{shown}</strong>,
+    );
     offset = match.index + match[0].length;
   }
   parts.push(text.slice(offset));

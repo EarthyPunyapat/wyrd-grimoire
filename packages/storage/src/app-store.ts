@@ -54,6 +54,19 @@ export class AppStore {
     } | null;
     return row ? JSON.parse(row.value) : null;
   }
+  /** The player's own journal notes for a campaign (spec 07, Journal). */
+  saveNotes(campaignId: string, notes: string): void {
+    this.db.run("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", [
+      `notes:${campaignId}`,
+      JSON.stringify(notes),
+    ]);
+  }
+  notes(campaignId: string): string {
+    const row = this.db.query("SELECT value FROM settings WHERE key = ?").get(`notes:${campaignId}`) as {
+      value: string;
+    } | null;
+    return row ? (JSON.parse(row.value) as string) : "";
+  }
   providerConfig(): WyrdConfig | null {
     const row = this.db.query("SELECT value FROM settings WHERE key = 'provider-config'").get() as {
       value: string;

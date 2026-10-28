@@ -297,4 +297,49 @@ progress::-webkit-progress-value { background: var(--accent); }
   .combat-strip { display: flex; padding: .4rem 1rem 0; background: var(--surface); border-top: 1px solid var(--line); }
   .combat-strip .combatant { width: 54px; }
 }
+/* Journal, Codex, Map and reference cards (M5, spec 13) */
+.panel-tabs { overflow-x: auto; }
+.panel-tabs .tab-list { display: flex; flex: 1; }
+.panel-tabs button { min-width: 0; padding: .5rem .4rem; }
+.panel-tabs .expand { flex: 0 0 auto; color: var(--accent); }
+.world-panel { padding: 1rem 1.25rem 1.5rem; display: grid; gap: .75rem; font-size: .85rem; }
+.world-panel h3 { margin: .75rem 0 .25rem; font-size: .65rem; text-transform: uppercase; letter-spacing: .1em; color: var(--ink-muted); }
+.world-panel .small { font-size: .78rem; }
+.panel-pad { padding: 1.25rem; }
+.recap { border-left: 3px solid var(--accent); padding-left: .75rem; font-family: var(--font-body); }
+.recap p { margin: 0; }
+.quests, .plain, .facts { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+.quests ul { list-style: none; padding: 0; margin: .25rem 0 0; }
+.quests .completed { opacity: .65; }
+.clock { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+.clock .pips i { width: 10px; height: 10px; }
+.summary summary { cursor: pointer; text-transform: capitalize; }
+.summary p { font-family: var(--font-body); }
+.inline-form { display: flex; gap: .4rem; align-items: center; }
+.inline-form input { min-height: 36px; padding: .4rem .5rem; }
+.inline-form button { min-height: 36px; padding: .3rem .6rem; }
+.codex-kind { text-transform: capitalize; }
+.codex-entry { border-top: 1px solid var(--line); padding: .6rem 0; }
+.codex-entry.focus { background: var(--accent-soft); padding: .6rem; border-radius: 6px; }
+.codex-entry h4 { margin: 0 0 .2rem; font-family: var(--font-display); font-weight: 400; font-size: 1.05rem; }
+.facts li { display: flex; justify-content: space-between; gap: .5rem; align-items: start; }
+.fact-tools { display: flex; gap: .25rem; flex: none; }
+.fact-tools button { min-height: 32px; min-width: 32px; padding: .1rem .35rem; border: 0; color: var(--crit); }
+.map { width: 100%; height: auto; }
+.map .region { font-size: 11px; fill: var(--ink-muted); text-transform: uppercase; letter-spacing: .08em; }
+.map .route { stroke: var(--line); stroke-width: 2; }
+.map .route.danger-3, .map .route.danger-4, .map .route.danger-5 { stroke: var(--danger); stroke-dasharray: 4 3; }
+.map .route-label { font-size: 9.5px; fill: var(--ink-muted); }
+.map .site circle { fill: var(--surface-2); stroke: var(--ink-muted); stroke-width: 1.5; }
+.map .site.visited circle { fill: var(--accent-soft); stroke: var(--accent); }
+.map .site.here circle { fill: var(--pc); stroke: var(--pc); }
+.map .site text { font-size: 11px; fill: var(--ink); }
+.ref-wrap { position: relative; }
+.ref { display: inline; min-height: 0; padding: 0; border: 0; font: inherit; font-weight: 700; color: inherit; text-decoration: underline dotted var(--accent) 1.5px; text-underline-offset: 3px; cursor: pointer; }
+.ref:hover { background: var(--accent-soft); }
+.ref-card { position: absolute; left: 0; top: 1.6em; z-index: 20; display: grid; gap: .3rem; width: min(300px, 80vw); padding: .75rem; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,.18); font-family: var(--font-ui); font-size: .8rem; line-height: 1.4; }
+.ref-summary, .ref-fact { display: block; }
+.ref-fact { color: var(--ink-muted); }
+.ref-open { justify-self: start; min-height: 32px; padding: .2rem .6rem; font-size: .75rem; }
+.mobile-bar button { padding: .3rem .5rem; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; transition: none !important; } }

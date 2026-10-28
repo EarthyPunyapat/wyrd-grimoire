@@ -32,7 +32,15 @@ test("dialogue uses names and important references are emphasized safely", async
   await page.getByLabel("What do you do?", { exact: true }).fill("readability check");
   await page.getByRole("button", { name: "Send ↑" }).click();
   await expect(page.locator(".speaker")).toHaveText(["Mina Vale", "Jules Park"]);
-  await expect(page.locator(".prose p strong")).toHaveText(["Mina Vale", "Relay Nine", "the sealed hatch"]);
+  // Known names are reference cards (M5); narrator-marked clues stay bold.
+  await expect(page.locator(".prose p strong, .prose p .ref")).toHaveText([
+    "Mina Vale",
+    "Relay Nine",
+    "the sealed hatch",
+  ]);
+  await page.locator(".prose p .ref", { hasText: "Mina Vale" }).first().click();
+  await expect(page.getByRole("dialog", { name: "Mina Vale" })).toContainText("Open in Codex");
+  await page.keyboard.press("Escape");
   await expect(page.locator("blockquote strong:not(.speaker)")).toHaveText(["the inspection desk"]);
   await expect(page.locator(".prose")).not.toContainText("A voice");
   await page.reload();

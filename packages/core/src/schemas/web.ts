@@ -102,6 +102,10 @@ export const GameView = z.object({
   offline: z.boolean(),
   /** The fight, as the PC perceives it (spec 13 combat panel). */
   combat: CombatView.nullable().default(null),
+  /** How people in this world address the PC (spec 13 forms of address); player-correctable. */
+  address: z.string().default("traveller"),
+  /** Entities the PC knows, for reference cards on names in the narration (spec 13). */
+  known: z.array(z.object({ id: z.string(), name: z.string(), kind: z.string() })).default([]),
   /** Set when the PC has died in a hardcore campaign: the obituary and the Legacy offer. */
   ended: z
     .object({ reason: z.literal("death"), obituary: z.string() })
@@ -135,3 +139,80 @@ export const WebStreamEvent = z.discriminatedUnion("type", [
   z.object({ type: z.literal("turn.completed"), turnId: z.string() }),
   z.object({ type: z.literal("error"), message: z.string(), retryable: z.boolean() }),
 ]);
+
+// ── M5: Journal, Codex and Map (spec 13), all filtered to what the PC knows ─────────────────────
+export const CodexEntry = z.object({
+  id: z.string(),
+  name: z.string(),
+  kind: z.string(),
+  summary: z.string(),
+  how: z.string(),
+  standing: z.string().optional(),
+  facts: z.array(
+    z.object({
+      id: z.string(),
+      predicate: z.string(),
+      value: z.string(),
+      how: z.string(),
+      pinned: z.boolean(),
+      editable: z.boolean(),
+    }),
+  ),
+});
+export type CodexEntry = z.infer<typeof CodexEntry>;
+export const CodexView = z.object({
+  address: z.string(),
+  pins: z.number().int(),
+  entries: z.array(CodexEntry),
+});
+export type CodexView = z.infer<typeof CodexView>;
+
+export const JournalView = z.object({
+  recap: z.string().nullable(),
+  date: z.string(),
+  summaries: z.array(
+    z.object({ id: z.string(), level: z.enum(["scene", "chapter", "arc"]), text: z.string() }),
+  ),
+  quests: z.array(
+    z.object({
+      id: z.string(),
+      title: z.string(),
+      status: z.string(),
+      stage: z.string(),
+      objectives: z.array(z.object({ text: z.string(), met: z.boolean() })),
+    }),
+  ),
+  leads: z.array(z.object({ id: z.string(), title: z.string(), summary: z.string() })),
+  clocks: z.array(z.object({ name: z.string(), filled: z.number().int(), segments: z.number().int() })),
+  rumours: z.array(z.string()),
+  notes: z.string(),
+});
+export type JournalView = z.infer<typeof JournalView>;
+
+export const MapView = z.object({
+  regions: z.array(z.object({ id: z.string(), name: z.string() })),
+  sites: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      kind: z.string(),
+      regionId: z.string(),
+      visited: z.boolean(),
+      here: z.boolean(),
+    }),
+  ),
+  routes: z.array(
+    z.object({
+      a: z.string(),
+      b: z.string(),
+      days: z.number(),
+      terrain: z.string(),
+      danger: z.number().int(),
+    }),
+  ),
+});
+export type MapView = z.infer<typeof MapView>;
+export const PinInput = z.object({ pinned: z.boolean() }).strict();
+export const RetconInput = z.object({ value: z.string().trim().min(1).max(500) }).strict();
+export const AddressInput = z.object({ address: z.string().trim().min(1).max(40) }).strict();
+export const NotesInput = z.object({ notes: z.string().max(20000) }).strict();
