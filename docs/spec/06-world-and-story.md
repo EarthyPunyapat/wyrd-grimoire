@@ -33,7 +33,7 @@ Progress is shown step by step in the UI; each stage can be regenerated before t
 
 ## World generation
 
-Generation is split into small structured calls so each can be validated, retried and regenerated independently. All outputs are zod-validated; the engine assigns IDs and commits them as `EntityCreated`, `FactAsserted`, `RelationshipChanged` and `ClockCreated` events.
+Generation is split into small structured calls (M5 uses the opening call plus one world-bible call, D93) so each can be validated, retried and regenerated independently. All outputs are zod-validated; the engine assigns IDs and commits them as `EntityCreated`, `FactAsserted`, `RelationshipChanged` and `ClockCreated` events.
 
 ### Stage 1: world bible
 
@@ -66,7 +66,7 @@ When play reaches something that doesn't exist yet, it is generated **before** n
 | Entering an unvisited site or location | `generate_location(parentId, kind, constraints)` |
 | Asking about or addressing an unknown person ("who runs this inn?") | `generate_npc(locationId, role, constraints)` |
 | Searching, looting or examining something unknown | `generate_item` / `generate_detail` |
-| Needing a zone map for a scene | `propose_zone_map` ([03](03-combat-and-injury.md#scenes-and-zones)) |
+| Needing a zone map for a scene | `propose_zone_map` ([03](03-combat-and-injury.md#scenes-and-zones)) (later; D94) |
 | Upgrading a stub on first contact | `elaborate_entity(entityId)` |
 
 Constraints come from the parent's canon (a dwarven hold's smith is a dwarf; a poor district's inn is cheap) and from pack data. Generated content is validated against canon (e.g. it can't place a second leader at the head of a faction that already has one) and committed as events before the narrator sees it.
@@ -157,7 +157,7 @@ When time advances past a boundary, the engine runs ticks. Long time skips run t
 
 - Travel along a route advances time and rolls for encounters by route danger, region and time of day (pack encounter tables).
 - Encounters can be combat, social, discovery or hazard. They are generated from tables plus region canon, then narrated.
-- The player can choose travel pace (careful, normal, fast) which trades time for encounter odds and Survival/Navigation checks.
+- The player can choose travel pace (careful, normal, fast) which trades time for encounter odds and Survival/Navigation checks (one Navigation check per leg, D95).
 
 ## Downtime
 

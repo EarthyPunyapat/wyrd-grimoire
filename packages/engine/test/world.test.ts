@@ -137,3 +137,42 @@ describe("who knows what (spec 07)", () => {
     expect(s.state.threat!.stage).toBe(1);
   });
 });
+
+describe("rumour spread (spec 15)", () => {
+  test("reportsTo spreads lies faster than a casual friendship of the same strength", () => {
+    const daysToHear = (type: "reportsTo" | "friend", seed: number) => {
+      const s = new Sim({}, seed);
+      s.addActor("pc", "pc");
+      s.commit([
+        draft("RelationshipChanged", { edge: { from: "npc:a", to: "npc:b", type, strength: 0.5 } }),
+        draft("RumorCreated", {
+          rumor: {
+            id: "r1",
+            content: "Wren lied about the warehouse.",
+            about: ["pc"],
+            truth: { accuracy: "false" },
+            heat: 0.6,
+            secrecy: 0.1,
+            createdAt: 0,
+            urgent: true,
+            holders: { "npc:a": { content: "Wren lied about the warehouse.", at: 0 } },
+          },
+        }),
+      ]);
+      for (let day = 1; day <= 30; day++) {
+        s.commit([draft("TimeAdvanced", { minutes: 1440, reason: "test" })]);
+        s.commit(runTicks(s.state, ctx));
+        if (s.state.rumors.r1!.holders["npc:b"]) return day;
+      }
+      return 31;
+    };
+    const avg = (type: "reportsTo" | "friend") => {
+      let total = 0;
+      for (let seed = 1; seed <= 30; seed++) total += daysToHear(type, seed);
+      return total / 30;
+    };
+    expect(avg("reportsTo")).toBeLessThan(avg("friend"));
+    // Deterministic under a seed.
+    expect(daysToHear("friend", 9)).toBe(daysToHear("friend", 9));
+  });
+});

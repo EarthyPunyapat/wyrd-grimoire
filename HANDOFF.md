@@ -173,6 +173,35 @@ character), generated from established world/character context, persisted, playe
 updated with identity changes. This remains unimplemented and is recorded in the M5 roadmap and
 spec 13, including cross-genre acceptance and protection against revealing secret identities.
 
+## M5 — World and memory (branch `m5-world-memory`, stacked on `m4-combat`)
+
+**Built (steps A–F of `docs/superpowers/plans/2026-10-29-m5-roadmap.md`; decisions D92–D103).**
+
+- **World state in GameState** (`packages/core/src/schemas/world.ts`, `packages/engine/src/world/`): clocks, factions, quests, edges, NPC minds, rumours, PC knowledge, the threat. `runTicks` covers hours, days and weeks; `toldEvents`; `afterTurn` (knowledge, witnesses, ticks) runs from `resolveTurn`.
+- **Generation and travel:**
+  - `WorldBible`, `LocationProposal` and `Elaboration` (core).
+  - `generateWorldBible`, `generateLocation` and `elaborateEntity`, plus their offline stand-ins (llm).
+  - `bibleEvents` and `locationEvents` (packs).
+  - The `travel` action (engine `exploration.ts`).
+  - Lazy generation via `PipelineDeps.lazy`, built by the server's `lazyFor`.
+- **Memory:**
+  - Projections for summaries and a retrieval index: storage `memory-index.ts`, with FTS5, hashed embeddings, RRF and rerank.
+  - Pyramid writes from `writeSummaries` (llm `summaries.ts`).
+  - The assembler adds sections 5, 9, 10 and 11, plus NPC minds.
+  - Guard v2 (llm `tools.ts`, `pipeline.ts canonFromGuard`).
+- **UI:**
+  - Journal, Codex and Map (`apps/web/src/World.tsx`).
+  - Reference cards (`Narration.tsx`).
+  - Server views live in `apps/server/src/world-views.ts`: `/codex`, `/journal`, `/map`, pin, retcon, address, notes, end-session.
+- **Acceptance:**
+  - Lie → captain: `packages/engine/test/world.test.ts`.
+  - Codex filtering: the server tests.
+  - 100-turn three-site soak: `apps/server/test/soak.test.ts`.
+  - Memory eval: `packages/storage/test/memory-eval.test.ts`.
+  - The real-model NPC-knowledge eval is `bun evals/npc-knowledge/run.ts` (owner).
+
+Still to check with real models (owner): a pitch-generated world played 100+ turns, and the NPC-knowledge eval. Deferred: `generate_npc`/`generate_item`, NPC schedules and lighting on the hourly tick, pack calendars, stale-summary regeneration after retcons, and companion approval.
+
 ## M4 — Combat (branch `m4-combat`, stacked on `feature/m3-web-ui`)
 
 **M4 is built: steps A–G are done and every acceptance box is ticked.** Step A (damage and injury) is below; steps B–G (combat state, actions, AI, endings, pipeline, panel) followed in three commits. Decisions are D80–D90.

@@ -89,7 +89,7 @@ type Edge = {
 - **Chapter closes on:** a major quest stage, arriving in a new region, 8–12 scenes, or the player pressing **End session**.
 - **Arc closes on:** a threat stage change, a main or personal quest completing, or 5–8 chapters.
 
-**Summaries** are written by the `summarizer` role in the background from the events and narration in their range. Each records the entity IDs, locations, quests and facts involved, emotional beats, and an importance score. They are memory, not canon: the summarizer may not introduce facts, and any entity name it uses must resolve to a canon ID (validated). If a retcon changes facts used by a summary, the summary is flagged stale and regenerated.
+**Summaries** are written by the `summarizer` role right after the boundary turn (D99) from the events and narration in their range. Each records the entity IDs, locations, quests and facts involved, emotional beats, and an importance score. They are memory, not canon: the summarizer may not introduce facts, and any entity name it uses must resolve to a canon ID (validated). If a retcon changes facts used by a summary, the summary is flagged stale and regenerated.
 
 **Session recap:** when the player returns, a short "Previously…" recap is generated from the latest arc, chapter and scene summaries.
 
@@ -156,7 +156,7 @@ Each item has text, entity IDs, game time, seq, importance, visibility, and an e
 
 - **Full-text:** SQLite FTS5 (BM25). If FTS5 is unavailable in the runtime's SQLite, a small TF-IDF index in TypeScript is used instead.
 - **Vectors:** stored as BLOBs with the embedding model ID. Search uses `sqlite-vec` if it loads; otherwise a brute-force cosine scan over a pre-filtered candidate set (by namespace and entity), which is fast enough for campaign-sized data.
-- **Embeddings** come from the `embeddings` role ([09](09-models-and-providers.md)). If the embedding model changes, a background job re-embeds everything; until it finishes, retrieval falls back to full-text plus entity lookup.
+- **Embeddings** come from the `embeddings` role ([09](09-models-and-providers.md)); until one is configured, a local hashed embedder is used (D98). If the embedding model changes, a background job re-embeds everything; until it finishes, retrieval falls back to full-text plus entity lookup.
 
 ## Context assembler
 

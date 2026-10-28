@@ -77,9 +77,9 @@ Each milestone lists its scope, the spec sections it implements, and acceptance 
 - Setting-aware forms of address: replace generic labels such as `[traveller]` in clarification/welcome copy with wording appropriate to the generated setting and the player's established identity or title (for example, "Lantern" for a Green Lantern character, "Detective" for a detective). Derive and persist player-facing address metadata during world/character creation, allow player correction, and update it when the established identity changes. Never infer a title from genre alone or reveal an undiscovered identity. Neutral copy is a temporary fallback, not the finished feature; see spec 13.
 
 **Acceptance**
-- [ ] Generate a world from a pitch, then play 100+ turns across at least 3 sites.
-- [ ] Memory eval recall@10 ≥ 0.9; NPC-knowledge eval passes ([15](spec/15-testing.md#evals-real-models)).
-- [ ] The codex shows only what the PC knows; lying to an NPC, then their `reportsTo` superior later knowing, is demonstrable.
+- [ ] Generate a world from a pitch, then play 100+ turns across at least 3 sites. *(Offline: passing, `apps/server/test/soak.test.ts`. Real-model run: owner.)*
+- [ ] Memory eval recall@10 ≥ 0.9; NPC-knowledge eval passes ([15](spec/15-testing.md#evals-real-models)). *(Offline memory eval: recall@10 = 1.0. NPC-knowledge eval: run `bun evals/npc-knowledge/run.ts` on the host.)*
+- [x] The codex shows only what the PC knows; lying to an NPC, then their `reportsTo` superior later knowing, is demonstrable.
 
 ## M6 — Characters and companions
 
