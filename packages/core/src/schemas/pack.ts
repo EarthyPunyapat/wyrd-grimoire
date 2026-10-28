@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DiceExpr } from "../dice.ts";
 import { AttributeId, RangeBand } from "./common.ts";
 
 /**
@@ -103,8 +104,6 @@ export const ArchetypeDef = z.object({
   backstoryPrompts: z.array(z.string()).default([]),
 });
 export type ArchetypeDef = z.infer<typeof ArchetypeDef>;
-
-const DiceExpr = z.string().regex(/^\d+d\d+([+-]\d+)?$/, "expected dice like 1d8, 2d6+1");
 
 const ItemBase = {
   id: LocalId,

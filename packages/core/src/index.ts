@@ -1,3 +1,4 @@
+export * from "./dice.ts";
 export * from "./ids.ts";
 export * from "./rng.ts";
 export * from "./schemas/actions.ts";

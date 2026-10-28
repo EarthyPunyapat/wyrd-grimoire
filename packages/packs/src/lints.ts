@@ -1,4 +1,4 @@
-import { ATTRIBUTE_IDS, type CompiledPack, defaultTuning } from "@wyrd/core";
+import { ATTRIBUTE_IDS, averageDice, type CompiledPack, defaultTuning } from "@wyrd/core";
 import type { PackIssue } from "./loader.ts";
 
 const median = (xs: number[]): number => {
@@ -9,9 +9,7 @@ const median = (xs: number[]): number => {
 
 /** Average of a dice expression like "2d6+1". */
 export function averageDamage(expr: string): number {
-  const m = /^(\d+)d(\d+)([+-]\d+)?$/.exec(expr);
-  if (!m) return 0;
-  return (Number(m[1]) * (Number(m[2]) + 1)) / 2 + Number(m[3] ?? 0);
+  return averageDice(expr);
 }
 
 /**
