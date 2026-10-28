@@ -3,7 +3,8 @@
     "target": "ES2023",
     "module": "Preserve",
     "moduleResolution": "bundler",
-    "lib": ["ES2023"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
     "types": ["bun"],
     "strict": true,
     "noUncheckedIndexedAccess": true,
@@ -20,6 +21,10 @@
     "packages/*/src/**/*.ts",
     "packages/*/test/**/*.ts",
     "apps/*/src/**/*.ts",
+    "apps/*/src/**/*.tsx",
+    "apps/*/vite.config.ts",
+    "e2e/**/*.ts",
+    "playwright.config.ts",
     "apps/*/test/**/*.ts",
     "test/**/*.ts"
   ]

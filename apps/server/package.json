@@ -1,0 +1,14 @@
+{
+  "name": "@wyrd/server",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@wyrd/core": "workspace:*",
+    "@wyrd/engine": "workspace:*",
+    "@wyrd/llm": "workspace:*",
+    "@wyrd/packs": "workspace:*",
+    "@wyrd/storage": "workspace:*",
+    "hono": "^4.10.0",
+    "zod": "^4.1.0"
+  }
+}

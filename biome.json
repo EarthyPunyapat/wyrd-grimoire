@@ -1,6 +1,18 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "files": { "includes": ["**/*.ts", "**/*.json", "!**/node_modules", "!docs", "!bun.lock"] },
+  "files": {
+    "includes": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.json",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/test-results",
+      "!**/playwright-report",
+      "!docs",
+      "!bun.lock"
+    ]
+  },
   "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 110 },
   "linter": {
     "rules": {
