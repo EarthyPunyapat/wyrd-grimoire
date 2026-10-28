@@ -6,7 +6,6 @@ import {
   type Difficulty,
   draft,
   type EventDraft,
-  type EventEnvelope,
   ExplorationAction,
   type ExplorationActionInput,
   type Modifier,
@@ -15,11 +14,11 @@ import {
   type SceneState,
 } from "@wyrd/core";
 import { resolveCheck, resolveOpposedCheck } from "./checks.ts";
-import { reduce } from "./reduce.ts";
 import { isSuccess } from "./resolution/index.ts";
 import { fail, ok, type Result } from "./result.ts";
 import { lookupSkill } from "./skills.ts";
 import type { GameState, RulesContext } from "./state.ts";
+import { Working } from "./working.ts";
 
 /**
  * Exploration turns (spec 08): validate a parsed plan against the scene, then resolve it into
@@ -310,8 +309,7 @@ export function resolvePlan(
   plan: ValidatedPlan,
   ctx: ExplorationContext,
 ): Result<{ events: EventDraft[]; resolution: Resolution }> {
-  let state = initial;
-  const events: EventDraft[] = [];
+  const w = new Working(initial);
   const steps: ResolvedStep[] = [];
   const beats: string[] = [];
   const forbidden = new Set<string>();
@@ -320,34 +318,14 @@ export function resolvePlan(
   const actorName = ctx.nameOf(plan.actorId);
   const minutesFor = (t: ExplorationAction["type"]) => ctx.minutes?.[t] ?? DEFAULT_MINUTES[t];
 
-  // Apply drafts to the working state so later steps see earlier results. Seq/ids are throwaway.
-  const apply = (drafts: EventDraft[]) => {
-    for (const d of drafts) {
-      state = reduce(state, {
-        id: "working",
-        campaignId: state.campaign.id,
-        branchId: "working",
-        seq: 0,
-        turnId: null,
-        type: d.type,
-        payload: d.payload,
-        source: d.source ?? "engine",
-        gameTime: state.campaign.gameTime,
-        createdAt: "",
-        schemaVersion: 1,
-      } as EventEnvelope);
-      events.push(d);
-    }
-  };
-
   for (const [index, action] of plan.actions.entries()) {
-    const invalid = validateOne(state, plan.actorId, action, index, ctx);
+    const invalid = validateOne(w.state, plan.actorId, action, index, ctx);
     if (invalid) {
       stoppedAt = index;
       beats.push(`${actorName} couldn't go on to the next thing: ${invalid.message}.`);
       break;
     }
-    const scene = state.scene!;
+    const scene = w.state.scene!;
     const step = (
       outcome: ResolvedStep["outcome"],
       summary: string,
@@ -358,9 +336,9 @@ export function resolvePlan(
     };
 
     const runCheck = (req: CheckRequestInput, what: string) => {
-      const out = resolveCheck(state, req, ctx);
+      const out = resolveCheck(w.state, req, ctx);
       if (!out.ok) return out;
-      apply(out.value.events);
+      w.apply(out.value.events);
       const eff = out.value.effective;
       step(
         eff.degree,
@@ -387,7 +365,7 @@ export function resolvePlan(
         );
         if (!r.ok) return r;
         if (action.targetId && isZone(scene, action.targetId) && isSuccess(steps.at(-1)!.outcome as never)) {
-          apply([draft("EntityMoved", { entityId: plan.actorId, toZoneId: action.targetId }, "engine")]);
+          w.apply([draft("EntityMoved", { entityId: plan.actorId, toZoneId: action.targetId }, "engine")]);
           const last = steps.at(-1)!;
           last.summary = `${last.summary} ${actorName} is now in ${ctx.nameOf(action.targetId)}.`;
           beats[beats.length - 1] = last.summary;
@@ -422,7 +400,7 @@ export function resolvePlan(
         break;
       case "move": {
         const dist = reachable(scene, scene.positions[plan.actorId]!).get(action.toZoneId) ?? 1;
-        apply([draft("EntityMoved", { entityId: plan.actorId, toZoneId: action.toZoneId }, "engine")]);
+        w.apply([draft("EntityMoved", { entityId: plan.actorId, toZoneId: action.toZoneId }, "engine")]);
         minutes += dist * minutesFor("move") - minutesFor("move");
         step("done", `${actorName} goes to ${ctx.nameOf(action.toZoneId)}.`);
         break;
@@ -442,9 +420,9 @@ export function resolvePlan(
           break;
         }
         const skill = APPROACH_SKILL[action.approach];
-        if (state.actors[action.targetId]) {
+        if (w.state.actors[action.targetId]) {
           const out = resolveOpposedCheck(
-            state,
+            w.state,
             {
               actorId: plan.actorId,
               skill,
@@ -458,7 +436,7 @@ export function resolvePlan(
             ctx,
           );
           if (!out.ok) return out;
-          apply(out.value.events);
+          w.apply(out.value.events);
           const won = out.value.winner === "active";
           step(
             won ? "success" : "failure",
@@ -481,9 +459,9 @@ export function resolvePlan(
     minutes += minutesFor(action.type);
   }
 
-  if (minutes > 0) apply([draft("TimeAdvanced", { minutes, reason: "exploration" }, "engine")]);
+  if (minutes > 0) w.apply([draft("TimeAdvanced", { minutes, reason: "exploration" }, "engine")]);
   return ok({
-    events,
+    events: w.events,
     resolution: {
       actorId: plan.actorId,
       steps,
