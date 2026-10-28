@@ -1,4 +1,4 @@
-import type { GameView } from "@wyrd/core";
+import { ATTRIBUTE_IDS, ATTRIBUTE_NAMES, type GameView } from "@wyrd/core";
 
 export function Sheet({ view }: { view: GameView }) {
   const { pc } = view;
@@ -36,10 +36,10 @@ export function Sheet({ view }: { view: GameView }) {
       <div className="sheet-section">
         <h3>Attributes</h3>
         <dl className="attributes">
-          {Object.entries(pc.attributes).map(([name, value]) => (
+          {ATTRIBUTE_IDS.map((name) => (
             <div key={name}>
-              <dt>{name.toUpperCase()}</dt>
-              <dd>{value}</dd>
+              <dt title={ATTRIBUTE_NAMES[name]}>{name.toUpperCase()}</dt>
+              <dd>{pc.attributes[name]}</dd>
             </div>
           ))}
         </dl>
