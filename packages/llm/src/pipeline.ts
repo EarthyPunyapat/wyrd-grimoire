@@ -1,4 +1,4 @@
-import type { BodyPlanDef, CompiledPack, CreatureDef, ItemCatalog } from "@wyrd/core";
+import type { BodyPlanDef, CompiledPack, CreatureDef, ItemCatalog, SceneInput } from "@wyrd/core";
 import {
   type Clarification,
   draft,
@@ -102,6 +102,11 @@ export type PipelineDeps = {
   campaignId?: string;
   /** Combat content from the campaign's frozen pack: items, body plans and stat blocks. */
   content?: CombatContent;
+  /** Lazy generation (spec 06): canon events for a site's arrival place, or a stub's details. */
+  lazy?: {
+    location(siteId: string): Promise<EventDraft[]>;
+    elaborate(entityId: string): Promise<EventDraft[]>;
+  };
 };
 
 export type CombatContent = {
@@ -118,9 +123,10 @@ export function combatContent(pack: CompiledPack): CombatContent {
 /** Rules plus combat content plus canon lookups: what the engine needs for a turn in either mode. */
 export function makeTurnContext(
   state: GameState,
-  canon: Pick<CanonSource, "entity">,
+  canon: Pick<CanonSource, "entity" | "factsAbout">,
   rules: RulesContext,
   content?: CombatContent,
+  opts: { canGenerate?: boolean } = {},
 ): TurnContext {
   const c = content ?? { items: { weapons: {}, armor: {}, gear: {} }, bodyPlans: {}, creatures: {} };
   const itemName = (id: string) =>
@@ -148,6 +154,60 @@ export function makeTurnContext(
         canFight: !e || e.kind === "npc" || e.kind === "creature",
       };
     },
+    travel: {
+      canGenerate: !!opts.canGenerate,
+      siteOf: (locationId) => (canon.entity(locationId)?.data as { siteId?: string } | undefined)?.siteId,
+      arrival: (siteId) => {
+        const loc = (canon.entity(siteId)?.data as { arrivalLocationId?: string } | undefined)
+          ?.arrivalLocationId;
+        const scene = loc
+          ? (canon.entity(loc)?.data as { scene?: SceneInput } | undefined)?.scene
+          : undefined;
+        return loc && scene ? { locationId: loc, scene } : null;
+      },
+      encounter: (terrain, danger) => roadEncounter(c.creatures, terrain, danger),
+    },
+    regions: () => {
+      const here = state.scene
+        ? (canon.entity(state.scene.locationId)?.data as { siteId?: string } | undefined)?.siteId
+        : undefined;
+      const hereRegion = here
+        ? (canon.entity(here)?.data as { regionId?: string } | undefined)?.regionId
+        : undefined;
+      const ids = new Set(
+        state.edges.filter((e) => e.type === "locatedIn" && e.from.startsWith("site:")).map((e) => e.to),
+      );
+      return [...ids].map((id) => ({
+        id,
+        climate: String((canon.entity(id)?.data as { climate?: string } | undefined)?.climate ?? "temperate"),
+        ...(id === hereRegion ? { current: true } : {}),
+      }));
+    },
+    publicFactIds: (entityId) => canon.factsAbout(entityId).map((f) => f.id),
+    kindOf: (id) => canon.entity(id)?.kind,
+  };
+}
+
+/** A road encounter (spec 06): the pack's robbers if it has any, otherwise ordinary road thieves. */
+function roadEncounter(
+  creatures: CombatContent["creatures"],
+  terrain: string,
+  danger: number,
+): { name: string; foes: Array<{ name: string; statBlock?: string }> } | null {
+  if (danger < 2) return null;
+  const robbers = Object.values(creatures).filter((c) => c.intent === "rob" || c.intent === "prey");
+  const count = Math.min(4, danger);
+  if (robbers.length)
+    return {
+      name: `${robbers[0]!.name.toLowerCase()}s on the ${terrain}`,
+      foes: Array.from({ length: count }, (_, i) => {
+        const c = robbers[i % robbers.length]!;
+        return { name: `${c.name} ${i + 1}`, statBlock: c.id };
+      }),
+    };
+  return {
+    name: `road thieves on the ${terrain}`,
+    foes: Array.from({ length: count - 1 }, (_, i) => ({ name: `Road thief ${i + 1}` })),
   };
 }
 
@@ -228,6 +288,8 @@ export function describeAction(raw: ActionInput, nameOf: (id: string) => string)
       return `Say to ${nameOf(a.targetId)}: "${a.utterance}"`;
     case "strike":
       return `Attack ${nameOf(a.targetId)}`;
+    case "travel":
+      return `Travel to ${nameOf(a.toSiteId)}${a.pace && a.pace !== "normal" ? ` (${a.pace})` : ""}`;
   }
 }
 
@@ -256,7 +318,57 @@ export class TurnPipeline {
     id;
 
   private turnCtx(state: GameState): TurnContext {
-    return makeTurnContext(state, this.d.canon, this.d.rules, this.d.content);
+    return makeTurnContext(state, this.d.canon, this.d.rules, this.d.content, { canGenerate: !!this.d.lazy });
+  }
+
+  /**
+   * Lazy generation before resolution (spec 06): an unexplored travel destination gets its arrival
+   * place, and stubs the player is about to meet get elaborated. Committed as canon at once.
+   */
+  private async prepareWorld(actions: unknown[], turnId: string): Promise<boolean> {
+    if (!this.d.lazy) return false;
+    const drafts: EventDraft[] = [];
+    for (const raw of actions) {
+      const a = raw as { type?: string; toSiteId?: string; targetId?: string };
+      if (a.type === "travel" && a.toSiteId) {
+        const site = this.d.canon.entity(a.toSiteId);
+        if (site && !(site.data as { arrivalLocationId?: string }).arrivalLocationId)
+          drafts.push(...(await this.d.lazy.location(a.toSiteId)));
+      }
+      if ((a.type === "talk" || a.type === "examine") && a.targetId) {
+        const e = this.d.canon.entity(a.targetId);
+        if (e?.detail === "stub" && ["npc", "location", "site", "faction"].includes(e.kind))
+          drafts.push(...(await this.d.lazy.elaborate(a.targetId)));
+      }
+    }
+    if (drafts.length) this.d.store.append(drafts, { turnId });
+    return drafts.length > 0;
+  }
+
+  /** Roads from the current site, for the parser's travel action (spec 06). */
+  private travelText(state: GameState): string | undefined {
+    const journey = state.flags.journey as { fromSiteId: string; toSiteId: string } | null | undefined;
+    const here =
+      journey?.fromSiteId ??
+      (state.scene
+        ? (this.d.canon.entity(state.scene.locationId)?.data as { siteId?: string } | undefined)?.siteId
+        : undefined);
+    if (!here) return undefined;
+    const name = (id: string) => this.d.canon.entity(id)?.name ?? id;
+    const roads = state.edges
+      .filter((e) => e.type === "routeTo" && (e.from === here || e.to === here))
+      .map((e) => {
+        const to = e.from === here ? e.to : e.from;
+        const d = (e.data ?? {}) as { days?: number; terrain?: string; danger?: number };
+        return `${name(to)} [${to}] (${d.days ?? 1} days by ${d.terrain ?? "road"}, danger ${d.danger ?? 1}/5)`;
+      });
+    const lines = [`You are at ${name(here)} [${here}].`];
+    if (journey)
+      lines.push(
+        `On the road to ${name(journey.toSiteId)} [${journey.toSiteId}]; travelling again continues the journey.`,
+      );
+    if (roads.length) lines.push(`Roads (travel { toSiteId, pace }): ${roads.join("; ")}.`);
+    return lines.join("\n");
   }
 
   /** The fight as text for the parser and narrator: order, AP, who's where and engaged, legal actions. */
@@ -288,6 +400,7 @@ export class TurnPipeline {
     turn: Parameters<typeof assemble>[0]["turn"],
   ): AssembledPrompt {
     const combat = this.combatText(state);
+    const travel = role === "parser" && !state.combat ? this.travelText(state) : undefined;
     return assemble({
       role,
       state,
@@ -299,7 +412,7 @@ export class TurnPipeline {
         tone: this.d.tone,
         worldBible: this.d.worldBible,
       },
-      turn: combat ? { ...turn, combat } : turn,
+      turn: { ...turn, ...(combat ? { combat } : {}), ...(travel ? { travel } : {}) },
     });
   }
 
@@ -317,10 +430,10 @@ export class TurnPipeline {
     const emit = t.onEvent ?? (() => {});
     const turnId = this.d.newId();
     emit({ type: "turn.accepted", turnId });
-    const state = this.d.store.state();
+    let state = this.d.store.state();
     const pcId = state.party.pcId;
     if (!pcId) throw new Error("The campaign has no player character");
-    const ctx = this.turnCtx(state);
+    let ctx = this.turnCtx(state);
     const mode = state.combat ? "combat" : "exploration";
     const call = { campaignId: this.d.campaignId, turnId };
     const started = draft("TurnStarted", { input: t.input }, "player");
@@ -422,6 +535,16 @@ export class TurnPipeline {
         }
       }
       if (!plan) return this.clarifyFromErrors(turnId, started, lastErrors, ctx, state, emit, repairs);
+    }
+
+    // Lazy generation commits new canon first; the turn then resolves against it.
+    try {
+      if (await this.prepareWorld(plan.actions, turnId)) {
+        state = this.d.store.state();
+        ctx = this.turnCtx(state);
+      }
+    } catch (e) {
+      return this.failed(turnId, started, e, emit, repairs);
     }
 
     // A clicked option's actions still go through validation.

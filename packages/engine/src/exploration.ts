@@ -11,7 +11,8 @@ import {
   type Modifier,
   type Resolution,
   type ResolvedStep,
-  type SceneState,
+  type SceneInput,
+  SceneState,
 } from "@wyrd/core";
 import { resolveCheck, resolveOpposedCheck } from "./checks.ts";
 import { isSuccess } from "./resolution/index.ts";
@@ -31,7 +32,37 @@ export type ExplorationContext = RulesContext & {
   nameOf: (id: string) => string;
   /** Minutes each kind of action takes. */
   minutes?: Partial<Record<ExplorationAction["type"], number>>;
+  /** Canon lookups for travel between sites (spec 06); missing = no travel here. */
+  travel?: TravelLookups;
 };
+
+export type TravelLookups = {
+  /** The site a location belongs to. */
+  siteOf: (locationId: string) => string | undefined;
+  /** Where you arrive at a site, if it has been generated yet. */
+  arrival: (siteId: string) => { locationId: string; scene: SceneInput } | null;
+  /** Unexplored sites can be generated before the turn resolves (spec 06 lazy generation). */
+  canGenerate?: boolean;
+  /** A road encounter for this terrain and danger, from the pack's tables (null = none fits). */
+  encounter?: (
+    terrain: string,
+    danger: number,
+  ) => { name: string; foes: Array<{ name: string; statBlock?: string }> } | null;
+};
+
+type Route = { days: number; terrain: string; danger: number };
+const routeBetween = (state: GameState, a: string, b: string): Route | null => {
+  const e = state.edges.find(
+    (x) => x.type === "routeTo" && ((x.from === a && x.to === b) || (x.from === b && x.to === a)),
+  );
+  if (!e) return null;
+  const d = (e.data ?? {}) as Partial<Route>;
+  return { days: d.days ?? 1, terrain: d.terrain ?? "road", danger: d.danger ?? 1 };
+};
+type Journey = { fromSiteId: string; toSiteId: string; minutesLeft: number };
+const journeyOf = (state: GameState) => (state.flags.journey ?? null) as Journey | null;
+const PACE = { careful: 1.25, normal: 1, fast: 0.8 } as const;
+const DANGER_DIFFICULTY: readonly Difficulty[] = ["easy", "easy", "normal", "hard", "extreme"];
 
 const DEFAULT_MINUTES: Record<ExplorationAction["type"], number> = {
   check: 1,
@@ -42,6 +73,7 @@ const DEFAULT_MINUTES: Record<ExplorationAction["type"], number> = {
   wait: 0,
   talk: 1,
   strike: 0,
+  travel: 0,
 };
 
 /** Difficulty range the parser may propose for a free-form check; harder steps need rule tables. */
@@ -222,6 +254,35 @@ function validateOne(
         ]);
       }
       return null;
+    case "travel": {
+      if (!ctx.travel) return err("TRAVEL_UNAVAILABLE", "There's nowhere to travel to from here");
+      const journey = journeyOf(state);
+      const from = journey?.fromSiteId ?? ctx.travel.siteOf(scene.locationId);
+      if (!from) return err("NOT_AT_SITE", "You're not anywhere a road leads from");
+      if (journey && (a.toSiteId === journey.toSiteId || a.toSiteId === journey.fromSiteId)) {
+        return ctx.travel.arrival(a.toSiteId) || ctx.travel.canGenerate
+          ? null
+          : err("SITE_UNEXPLORED", `${ctx.nameOf(a.toSiteId)} isn't ready yet`);
+      }
+      if (a.toSiteId === from) return err("ALREADY_THERE", `You're already at ${ctx.nameOf(from)}`);
+      if (!routeBetween(state, from, a.toSiteId)) {
+        const options = state.edges
+          .filter((e) => e.type === "routeTo" && (e.from === from || e.to === from))
+          .map((e) => ({
+            type: "travel" as const,
+            toSiteId: e.from === from ? e.to : e.from,
+            pace: "normal" as const,
+          }));
+        return err(
+          "NO_ROUTE",
+          `No road leads from ${ctx.nameOf(from)} to ${ctx.nameOf(a.toSiteId)}`,
+          options,
+        );
+      }
+      return ctx.travel.arrival(a.toSiteId) || ctx.travel.canGenerate
+        ? null
+        : err("SITE_UNEXPLORED", `${ctx.nameOf(a.toSiteId)} isn't ready yet`);
+    }
     case "strike":
       if (!present(scene, a.targetId))
         return err("TARGET_NOT_PRESENT", `${a.targetId} isn't here to attack`, lookAround);
@@ -416,6 +477,14 @@ export function resolvePlan(
         minutes += action.minutes;
         step("done", `${actorName} waits about ${action.minutes} minutes.`);
         break;
+      case "travel": {
+        const r = travel(w, plan.actorId, action, ctx, (outcome, summary, mechanics) =>
+          step(outcome, summary, mechanics),
+        );
+        if (!r.ok) return r;
+        stoppedAt = index + 1 < plan.actions.length ? index + 1 : undefined;
+        break;
+      }
       case "strike":
         // The turn dispatcher turns a plan with a strike into a fight before resolvePlan runs.
         step("done", `${actorName} goes for ${ctx.nameOf(action.targetId)}.`);
@@ -483,6 +552,7 @@ export function resolvePlan(
       }
     }
     minutes += minutesFor(action.type);
+    if (action.type === "travel") break; // arriving (or being waylaid) ends the plan
   }
 
   if (minutes > 0) w.apply([draft("TimeAdvanced", { minutes, reason: "exploration" }, "engine")]);
@@ -502,4 +572,175 @@ export function resolvePlan(
 /** Plain summary used when narration fails, so the turn still reads sensibly. */
 export function mechanicalSummary(resolution: Resolution): string {
   return resolution.requiredBeats.join(" ");
+}
+
+/**
+ * A journey along a route (spec 06): a Navigation check set by danger and pace decides the time
+ * taken and whether trouble finds you. Arrival opens the site's arrival scene; an encounter stops
+ * you on the road (a road scene with the foes) and the journey resumes when you travel again.
+ */
+function travel(
+  w: Working,
+  actorId: string,
+  a: Extract<ExplorationAction, { type: "travel" }>,
+  ctx: ExplorationContext,
+  step: (outcome: ResolvedStep["outcome"], summary: string, mechanics?: ResolvedStep["mechanics"]) => void,
+): Result<true> {
+  const t = ctx.travel!;
+  const state = w.state;
+  const journey = journeyOf(state);
+  const from = journey?.fromSiteId ?? t.siteOf(state.scene!.locationId)!;
+  const resuming = journey && a.toSiteId === journey.toSiteId;
+  const route = routeBetween(state, journey?.fromSiteId ?? from, journey?.toSiteId ?? a.toSiteId) ?? {
+    days: 1,
+    terrain: "road",
+    danger: 1,
+  };
+  const base = resuming ? journey!.minutesLeft : route.days * 1440;
+  const shift = a.pace === "careful" ? -1 : a.pace === "fast" ? 1 : 0;
+  const di = Math.max(
+    0,
+    Math.min(
+      DANGER_DIFFICULTY.length - 1,
+      DANGER_DIFFICULTY.indexOf(DANGER_DIFFICULTY[route.danger - 1] ?? "normal") + shift,
+    ),
+  );
+  const check = resolveCheck(
+    state,
+    {
+      actorId,
+      skill: "core:navigation",
+      difficulty: DANGER_DIFFICULTY[di]!,
+      purpose: `travel to ${ctx.nameOf(a.toSiteId)}`,
+      tags: ["travel"],
+    },
+    ctx,
+  );
+  if (!check.ok) return check;
+  w.apply(check.value.events);
+  const degree = check.value.effective.degree;
+  const minutes = Math.round(base * PACE[a.pace] * (isSuccess(degree) ? 1 : 1.25));
+  const encounter =
+    (!isSuccess(degree) && route.danger >= 2) || degree === "critFailure"
+      ? (t.encounter?.(route.terrain, route.danger) ?? null)
+      : null;
+  if (encounter) {
+    const spent = Math.max(1, Math.round(minutes / 2));
+    const now = state.campaign.gameTime + spent;
+    const roadId = `location:road-${now}`;
+    const group = `road-${now}`;
+    const foes = encounter.foes.map((f, i) => ({ ...f, id: `npc:${group}-${i + 1}` }));
+    w.apply([
+      draft("TimeAdvanced", { minutes: spent, reason: "travel" }, "engine"),
+      draft(
+        "EntityCreated",
+        {
+          entity: {
+            id: roadId,
+            kind: "location",
+            name: `the ${route.terrain} to ${ctx.nameOf(a.toSiteId)}`,
+            aliases: [],
+            detail: "stub",
+            summary: `Somewhere between ${ctx.nameOf(from)} and ${ctx.nameOf(a.toSiteId)}.`,
+            data: { road: true },
+            status: "active",
+            importance: 1,
+          },
+        },
+        "engine",
+      ),
+      ...foes.map((f) =>
+        draft(
+          "EntityCreated",
+          {
+            entity: {
+              id: f.id,
+              kind: "npc" as const,
+              name: f.name,
+              aliases: [],
+              detail: "stub" as const,
+              summary: encounter.name,
+              data: { ...(f.statBlock ? { statBlock: f.statBlock } : {}), group, intent: "rob" },
+              status: "active" as const,
+              importance: 1,
+            },
+          },
+          "engine",
+        ),
+      ),
+      draft(
+        "SceneOpened",
+        {
+          scene: SceneState.parse({
+            id: `scene:${roadId}`,
+            locationId: roadId,
+            zones: [
+              { id: "z:road", name: "the road" },
+              { id: "z:verge", name: "the verge" },
+              { id: "z:brush", name: "the brush", tags: ["coverPartial", "dim"] },
+              { id: "z:back", name: "back the way you came", tags: ["exit"] },
+            ],
+            edges: [
+              { a: "z:road", b: "z:verge" },
+              { a: "z:verge", b: "z:brush" },
+              { a: "z:road", b: "z:brush" },
+              { a: "z:road", b: "z:back" },
+            ],
+            positions: {
+              ...Object.fromEntries([actorId, ...state.party.companionIds].map((id) => [id, "z:road"])),
+              ...Object.fromEntries(foes.map((f, i) => [f.id, i % 2 ? "z:brush" : "z:verge"])),
+            },
+            light: "bright",
+            openedAt: now,
+          }),
+        },
+        "engine",
+      ),
+      draft(
+        "JourneyChanged",
+        {
+          journey: {
+            fromSiteId: from,
+            toSiteId: journey?.toSiteId ?? a.toSiteId,
+            minutesLeft: Math.max(60, minutes - spent),
+          },
+        },
+        "engine",
+      ),
+    ]);
+    step(
+      degree,
+      `On the way to ${ctx.nameOf(a.toSiteId)}, ${ctx.nameOf(actorId)} is waylaid: ${encounter.name}.`,
+      check.value.effective.display,
+    );
+    return ok(true);
+  }
+  const arrival = t.arrival(a.toSiteId)!;
+  const arrivedAt = state.campaign.gameTime + minutes;
+  const scene = SceneState.parse({
+    ...arrival.scene,
+    id: `scene:${arrival.locationId}:${arrivedAt}`,
+    positions: {
+      ...arrival.scene.positions,
+      ...Object.fromEntries(
+        [actorId, ...state.party.companionIds].map((id) => [id, arrival.scene.zones[0]!.id]),
+      ),
+    },
+    openedAt: arrivedAt,
+  });
+  w.apply([
+    draft("TimeAdvanced", { minutes, reason: "travel" }, "engine"),
+    ...(journey ? [draft("JourneyChanged", { journey: null }, "engine")] : []),
+    draft("SceneClosed", { sceneId: state.scene!.id, reason: "travel" }, "engine"),
+    draft("SceneOpened", { scene }, "engine"),
+  ]);
+  const days = minutes / 1440;
+  const span =
+    days >= 1 ? `${Math.round(days * 10) / 10} days` : `${Math.max(1, Math.round(minutes / 60))} hours`;
+  step(
+    degree,
+    `After ${span} on the ${route.terrain}, ${ctx.nameOf(actorId)} arrives at ${ctx.nameOf(a.toSiteId)}.`,
+    check.value.effective.display,
+  );
+  return ok(true);
 }

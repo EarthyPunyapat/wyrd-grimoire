@@ -6,6 +6,7 @@ import {
   defaultTuning,
   draft,
   Entity,
+  type EventDraft,
   GameView,
   LegacyInput,
   PasscodeInput,
@@ -13,6 +14,7 @@ import {
   StartGeneratedCampaign,
   SubmitTurnInput,
   TurnCompletedPayload,
+  WorldBible,
   WorldPitch,
   WorldProposal,
 } from "@wyrd/core";
@@ -33,19 +35,27 @@ import {
 } from "@wyrd/engine";
 import {
   combatContent,
+  elaborateEntity,
+  generateLocation,
   generateWorld,
+  generateWorldBible,
   makeTurnContext,
+  offlineBible,
+  offlineElaboration,
+  offlineLocation,
   type RoleRouter,
   SecretStore,
   TurnPipeline,
   type TurnStreamEvent,
 } from "@wyrd/llm";
 import {
+  bibleEvents,
   compileGeneratedWorld,
   creationContent,
   generatedWorldPreview,
   loadPack,
   loadWorld,
+  locationEvents,
   skillCatalog,
   type WorldDef,
   worldEvents,
@@ -227,6 +237,8 @@ export function createApp(options: Options) {
   const StoredDraft = z.object({
     input: WorldPitch,
     proposal: WorldProposal,
+    /** Stage 1 world bible (M5); drafts from before M5 have none and start as a single site. */
+    bible: WorldBible.optional(),
     offline: z.boolean(),
     campaignId: z.string().optional(),
   });
@@ -240,8 +252,24 @@ export function createApp(options: Options) {
       const offline = options.offline && !options.router;
       const proposal = offline ? EXAMPLE_WORLD : await generateWorld(models.router(), input);
       const { pack } = compileGeneratedWorld(proposal);
+      const bibleInput = {
+        pitch: input.pitch,
+        worldName: proposal.worldName,
+        premise: proposal.premise,
+        opening: proposal.location.opening,
+        storyMode: "threatClock" as const,
+      };
+      const taken = [
+        proposal.worldName,
+        proposal.location.name,
+        ...proposal.location.people.map((p) => p.name),
+      ];
+      // The wider world is optional: if it can't be generated, the campaign starts as a single site (D93).
+      const bible = options.offline
+        ? offlineBible({ worldName: proposal.worldName, openingSite: proposal.location.name, threat: true })
+        : await generateWorldBible(models.router(), bibleInput, taken).catch(() => undefined);
       const id = randomUUID();
-      store.saveCreationDraft(id, { input, proposal, offline });
+      store.saveCreationDraft(id, { input, proposal, ...(bible ? { bible } : {}), offline });
       return c.json(generatedWorldPreview(id, input.name, proposal, pack, offline), 201);
     } catch (error) {
       if (error instanceof HTTPException) throw error;
@@ -269,6 +297,7 @@ export function createApp(options: Options) {
       },
       pack,
       world,
+      saved.data.bible ? (w) => bibleEvents(saved.data.bible!, w, defaultTuning) : undefined,
     );
     store.saveCreationDraft(input.draftId, { ...saved.data, campaignId: id });
     return c.json({ id }, 201);
@@ -319,6 +348,7 @@ export function createApp(options: Options) {
     input: { name: string; characterName: string; ancestry: string; archetype: string },
     pack: CompiledPack,
     world: WorldDef,
+    extra?: (world: WorldDef) => EventDraft[],
   ) {
     const content = creationContent([pack]);
     const archetype = content.archetypes[input.archetype];
@@ -359,6 +389,7 @@ export function createApp(options: Options) {
           }),
         }),
         ...worldEvents(world, [sheet.id]),
+        ...(extra?.(world) ?? []),
       ]);
       store.addCampaign({
         id,
@@ -464,6 +495,67 @@ export function createApp(options: Options) {
       }),
     );
   });
+  /** Lazy generation for a campaign (spec 06): offline stand-ins, or worldGen calls. */
+  function lazyFor(game: CampaignStore<GameState>, canon: CanonQueries) {
+    const world = () => canon.entity("concept:world-bible");
+    return {
+      location: async (siteId: string): Promise<EventDraft[]> => {
+        const site = canon.entity(siteId);
+        if (!site) return [];
+        const region = canon.entity(String((site.data as { regionId?: string }).regionId ?? ""));
+        const kind = String((site.data as { kind?: string }).kind ?? "settlement");
+        const proposal = options.offline
+          ? offlineLocation({ name: site.name, kind })
+          : await generateLocation(models.router(), {
+              world: `${world()?.name ?? ""}: ${world()?.summary ?? ""}`,
+              site: site.name,
+              siteKind: kind,
+              siteSummary: site.summary,
+              region: region?.name ?? "",
+              culture: String((region?.data as { culture?: string } | undefined)?.culture ?? ""),
+              taken: canon.allNames(),
+            });
+        return locationEvents(
+          proposal,
+          siteId,
+          site.data,
+          canon.allEntities().map((e) => e.id),
+        ).events;
+      },
+      elaborate: async (entityId: string): Promise<EventDraft[]> => {
+        const entity = canon.entity(entityId);
+        if (!entity) return [];
+        const e = options.offline
+          ? offlineElaboration(entity)
+          : await elaborateEntity(models.router(), {
+              world: `${world()?.name ?? ""}: ${world()?.summary ?? ""}`,
+              entity,
+              facts: canon.factsAbout(entityId, { includeSecret: true }),
+            });
+        const n = canon.factsAbout(entityId, { includeSecret: true, includeHistory: true }).length;
+        return [
+          draft("EntityUpdated", { entityId, patch: { detail: "sketch", summary: e.summary } }, "engine"),
+          ...e.facts.map((f, i) =>
+            draft(
+              "FactAsserted",
+              {
+                fact: {
+                  id: `fact:${entityId}:e${n + i + 1}`,
+                  entityId,
+                  predicate: f.predicate,
+                  value: f.value,
+                  source: "model" as const,
+                  visibility: f.secret ? ("secret" as const) : ("public" as const),
+                  importance: 2,
+                },
+              },
+              "engine",
+            ),
+          ),
+        ];
+      },
+    };
+  }
   /** Combat panel and death screen for the PC's view. */
   function combatParts(game: CampaignStore<GameState>, state: GameState, gamePack: CompiledPack) {
     const canon = new CanonQueries(game);
@@ -537,6 +629,7 @@ export function createApp(options: Options) {
       router: models.router(),
       rules: { skills: skillCatalog([frozen]), tuning: defaultTuning },
       content: combatContent(frozen),
+      lazy: lazyFor(game, canon),
       tone: frozen.tone,
       worldBible: canon.entity("concept:world-bible")?.summary ?? "",
       campaignId: game.campaignId,

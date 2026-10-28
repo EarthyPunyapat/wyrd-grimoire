@@ -6,6 +6,7 @@ export * from "./chatgpt-auth.ts";
 export * from "./collect.ts";
 export * from "./fake.ts";
 export * from "./offline.ts";
+export * from "./offline-world.ts";
 export * from "./pipeline.ts";
 export * from "./prompts/index.ts";
 export * from "./router.ts";

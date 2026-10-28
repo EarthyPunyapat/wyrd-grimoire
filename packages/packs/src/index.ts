@@ -5,3 +5,4 @@ export { KNOWN_PLUGINS, type LoadResult, loadPack, type PackIssue } from "./load
 export { scaffoldPack } from "./scaffold.ts";
 export { satisfies } from "./semver.ts";
 export * from "./world.ts";
+export * from "./world-bible.ts";

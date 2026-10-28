@@ -53,7 +53,7 @@ const provider: ChatProvider = {
   generate: (request) => {
     const input = request.messages[0];
     const context = input?.role === "user" ? input.content : "";
-    const current = /## This turn\n\nPlayer: (.*)/.exec(context)?.[1] ?? "";
+    const current = /## This turn\n\n(?:[\s\S]*?\n)?Player: (.*)/.exec(context)?.[1] ?? "";
     const special =
       request.role === "worldGen" ||
       (request.role === "parser"

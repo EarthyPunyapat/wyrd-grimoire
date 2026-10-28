@@ -42,6 +42,8 @@ export type TurnInputs = {
   excludeTurnId?: string;
   /** Combat: the fight as the engine sees it (turn order, AP, engagement, legal actions). */
   combat?: string;
+  /** Exploration: the roads from the current site (spec 06 travel). */
+  travel?: string;
 };
 
 export type Section = { n: number; title: string; text: string };
@@ -210,7 +212,11 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
     .join("\n");
 
   // 13. This turn.
-  const thisTurn = [...(o.turn.combat ? ["The fight:", o.turn.combat] : []), `Player: ${o.turn.input}`];
+  const thisTurn = [
+    ...(o.turn.combat ? ["The fight:", o.turn.combat] : []),
+    ...(o.turn.travel ? [o.turn.travel] : []),
+    `Player: ${o.turn.input}`,
+  ];
   if (o.turn.resolution) {
     const r = o.turn.resolution;
     const phased = r.steps.some((s) => s.phase);

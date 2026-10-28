@@ -35,6 +35,7 @@ export const EXPLORATION_RULES_DIGEST = `Mode: exploration. Available actions:
 - wait { minutes }: let time pass (up to 480).
 - talk { targetId, utterance, approach }: say something. Approaches other than neutral roll Persuasion, Deception or Intimidation.
 - strike { targetId }: attack someone. This starts a fight.
+- travel { toSiteId, pace }: journey to another site along a listed road (careful, normal or fast). Takes hours or days.
 Checks: d100 roll-under (or d20, per campaign). Degrees: critical success, success, failure, critical failure. Difficulty shifts the target: easy +20, normal 0, hard −20, extreme −40.`;
 
 export const COMBAT_RULES_DIGEST = `Mode: combat. Each turn the player's character has 3 action points (AP) and one reaction. Actions (AP):

@@ -53,6 +53,10 @@ function parse(r: GenerateRequest): FakeReply {
     const actions = combatClauses(input, ctx);
     if (actions.length) return act(actions);
   }
+  if (!inCombat && /\b(travel|journey|ride|set out|make for)\b/.test(lower)) {
+    const site = find("site:");
+    if (site) return act([{ type: "travel", toSiteId: site.id, pace: "normal" }]);
+  }
   if (!inCombat && ATTACK.test(lower)) {
     const who = find("npc:");
     if (who) return act([{ type: "strike", targetId: who.id }]);

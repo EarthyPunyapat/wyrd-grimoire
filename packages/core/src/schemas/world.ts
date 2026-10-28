@@ -230,4 +230,10 @@ export const worldEventSchemas = {
   FactSuperseded: z.object({ oldFactId: Id, fact: Fact }),
   FactRetracted: z.object({ factId: Id, reason: z.string() }),
   FactPinned: z.object({ factId: Id, pinned: z.boolean() }),
+  /** A journey interrupted on the road (an encounter); travelling again resumes it (spec 06, Travel). */
+  JourneyChanged: z.object({
+    journey: z
+      .object({ fromSiteId: Id, toSiteId: Id, minutesLeft: z.number().int().nonnegative() })
+      .nullable(),
+  }),
 } as const;

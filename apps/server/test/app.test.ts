@@ -271,3 +271,65 @@ test("a tavern brawl plays through the API: free text starts a fight and the vie
   }
   expect(view.combat).toBeNull();
 });
+
+test("a generated world has regions, sites and roads; travel opens new sites and the world ticks", async () => {
+  const server = setup();
+  const cookie = await login(server);
+  const draft = (await (
+    await request(
+      server,
+      "/world-drafts",
+      { name: "Reach", characterName: "", pitch: "A frontier mystery in a cold country." },
+      cookie,
+    )
+  ).json()) as { id: string; origins: Array<{ id: string }>; backgrounds: Array<{ id: string }> };
+  const made = await request(
+    server,
+    "/campaigns",
+    {
+      draftId: draft.id,
+      characterName: "Ash",
+      ancestry: draft.origins[0]!.id,
+      archetype: draft.backgrounds[0]!.id,
+    },
+    cookie,
+  );
+  const { id } = (await made.json()) as { id: string };
+  let n = 0;
+  const turn = async (input: string) => {
+    const r = await request(
+      server,
+      `/campaigns/${id}/turns`,
+      { input, clientTurnId: `reach-${n++}` },
+      cookie,
+    );
+    const { turnId } = (await r.json()) as { turnId: string };
+    await (await request(server, `/campaigns/${id}/turns/${turnId}/stream`, undefined, cookie)).text();
+    return GameView.parse(await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json());
+  };
+  const start = GameView.parse(
+    await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json(),
+  );
+  const places = new Set([start.scene!.location]);
+  for (const site of ["Greywater Market", "Hollow Watch", "Cinder Steading"]) {
+    for (let tries = 0; tries < 6; tries++) {
+      const v = await turn(`I travel to ${site}`);
+      if (v.combat) {
+        // Waylaid: fight it out, or slip away.
+        for (let i = 0; i < 20 && (await turn("I attack")).combat; i++);
+      }
+      const now = GameView.parse(
+        await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json(),
+      );
+      if (now.scene?.location.includes(site.split(" ")[0]!)) {
+        places.add(now.scene.location);
+        break;
+      }
+    }
+  }
+  expect(places.size).toBeGreaterThanOrEqual(3);
+  const end = GameView.parse(
+    await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json(),
+  );
+  expect(end.gameTime).toBeGreaterThan(start.gameTime + 1440);
+});

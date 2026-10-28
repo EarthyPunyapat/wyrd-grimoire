@@ -167,7 +167,8 @@ describe("exploration turn end to end (FakeProvider)", () => {
       "EntityMoved",
       "MemoryRecorded", // Wenna remembers what she was asked
       "TimeAdvanced",
-      "KnowledgeGained", // the PC now knows the ferry and Wenna
+      "KnowledgeGained", // the PC now knows the ferry, Wenna, and what they saw of her
+      "KnowledgeGained",
       "KnowledgeGained",
       "TurnCompleted",
       "NarrationCommitted",

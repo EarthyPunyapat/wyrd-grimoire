@@ -49,6 +49,13 @@ export const TalkAction = z.object({
   approach: z.enum(["neutral", "persuade", "deceive", "intimidate", "charm"]).default("neutral"),
 });
 
+/** Travel to another site along a route (spec 06, Travel and encounters). */
+export const TravelAction = z.object({
+  type: z.literal("travel"),
+  toSiteId: Id,
+  pace: z.enum(["careful", "normal", "fast"]).default("normal"),
+});
+
 export const ExplorationAction = z.discriminatedUnion("type", [
   CheckAction,
   ExamineAction,
@@ -59,12 +66,13 @@ export const ExplorationAction = z.discriminatedUnion("type", [
   TalkAction,
   /** Attacking someone outside a fight starts one (spec 03); the turn then resolves as combat. */
   StrikeAction,
+  TravelAction,
 ]);
 export type ExplorationAction = z.infer<typeof ExplorationAction>;
 export type ExplorationActionInput = z.input<typeof ExplorationAction>;
 
 export const ACTIONS_BY_MODE = {
-  exploration: ["check", "examine", "search", "interact", "move", "wait", "talk", "strike"],
+  exploration: ["check", "examine", "search", "interact", "move", "wait", "talk", "strike", "travel"],
   combat: COMBAT_ACTION_TYPES,
 } as const;
 
