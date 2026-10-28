@@ -172,3 +172,19 @@ explicitly wants a setting- and character-appropriate address (e.g. "Lantern" fo
 character), generated from established world/character context, persisted, player-correctable and
 updated with identity changes. This remains unimplemented and is recorded in the M5 roadmap and
 spec 13, including cross-genre acceptance and protection against revealing secret identities.
+
+## M4 — Combat (branch `m4-combat`, stacked on `feature/m3-web-ui`)
+
+**Step A (damage and injury) is done.** It is pure engine work plus core schemas and pack data.
+
+What step A adds:
+
+- Events in `packages/core/src/schemas/events.ts` (reduced in `packages/engine/src/reduce.ts`): `HitResolved`, `HpChanged`, `WoundInflicted`, `WoundWorsened`, `EquipmentChanged`.
+- `resolveHit` in `packages/engine/src/injury/hit.ts`: attack to damage, armour, wound, Down and lethal checks.
+- `bleedTick` in `packages/engine/src/injury/bleeding.ts`: bleeding at the end of a turn, and END rolls at 0 HP.
+- `woundModifiers` in `packages/engine/src/injury/penalties.ts`: wound penalties on checks.
+- `startingEquipment` in `packages/engine/src/equipment.ts`: the sheet's equipment from the archetype kit.
+
+Not yet built: out-of-combat bleeding per minute, first aid and the death clock. Those are step B/C work. Infection, fractures, healing and permanent injuries are M5 (D71).
+
+The plan is `docs/superpowers/plans/2026-10-28-m4-roadmap.md` (steps A–G). The decisions are D71–D79 in `docs/decisions.md`.

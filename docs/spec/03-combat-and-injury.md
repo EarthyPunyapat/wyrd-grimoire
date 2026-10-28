@@ -157,7 +157,7 @@ HP (10 + END × 2) is stamina, luck and near-misses. Losing HP means you are tir
 
 ## Wounds
 
-A wound is a lasting injury at a body location. It happens when **one hit's final damage ≥ wound threshold (WT)**, or on any damaging hit while Down.
+A wound is a lasting injury at a body location. It happens when **one hit's final damage ≥ wound threshold (WT)**, or on any damaging hit while Down (D77: HP was already 0 before the hit). Wound penalties apply to later checks, including END and lethal checks; a lethal check ignores its own wound (D76).
 
 | Final damage | Severity | Max HP reduction until healed |
 |---|---|---|
@@ -193,12 +193,15 @@ What "Lethal" means depends on who and which mode:
 
 ## Bleeding
 
-- **In combat:** Bleeding N loses N HP at the end of the bleeder's turn. At 0 HP, each bleed tick instead forces an END check (Normal); failure worsens the most severe wound's state (Down → Unconscious → Lethal).
+- **In combat:** Bleeding N loses N HP at the end of the bleeder's turn. At 0 HP, each bleed tick instead forces an END check (Normal); failure worsens the most severe wound's state (Down → Unconscious → Lethal) (see D78).
+- **Cut damage** adds +1 Bleeding even to wounds that otherwise don't bleed (D73).
 - **Out of combat:** Bleeding N loses N HP per minute of in-game time.
 - **First aid** (2 AP, Medicine, needs bandages or improvised cloth at −20): success reduces bleeding by 1, critSuccess by 2. A **tourniquet** stops limb bleeding fully, but the limb takes a Serious wound if left on for more than 2 hours.
 - **Bleeding 1** stops by itself after combat on a successful END check.
 
 ## Infection
+
+(Implemented in M5; see D71.)
 
 - Every wound that isn't **cleaned and dressed** within 6 in-game hours (Medicine, Normal, with supplies) is at risk.
 - Once per in-game day, each at-risk wound requires an END check. Difficulty: Normal for Minor, Hard for Serious and Critical. `pierce`, bites and `burn` are one step harder; filthy conditions add a bane.
@@ -207,9 +210,13 @@ What "Lethal" means depends on who and which mode:
 
 ## Fractures
 
+(Implemented in M5; see D71.)
+
 A fractured limb gives the wound's penalties until it is **set** (Medicine at Hard) and splinted, then heals in 6 weeks (Serious) or 10 weeks (Critical). Unset fractures heal badly: on recovery, an END check; failure → permanent injury.
 
 ## Healing
+
+(Implemented in M5; see D71.)
 
 | What | Short rest (1 h) | Long rest (8 h) |
 |---|---|---|
@@ -219,6 +226,8 @@ A fractured limb gives the wound's penalties until it is **set** (Medicine at Ha
 Base wound healing time with care: **Minor 3 days, Serious 2 weeks, Critical 6 weeks.** A daily Medicine check by a carer: success shortens the remaining time by 10%, critSuccess by 20%; no care doubles the time. Packs may add magic or technology that heals faster or reduces severity, always at a cost.
 
 ### Permanent injuries
+
+(Implemented in M5; see D71.)
 
 When a critical wound (or a badly healed fracture) finishes healing, the character makes an END check. Failure → a permanent injury from the location's table, for example: scar (cosmetic; may give +10 Intimidation), limp (Move costs 2 AP when sprinting; −10 Athletics), lost eye (−20 sight-based Perception, −10 Ranged), lost fingers (−10 fine manipulation), chronic pain (−10 when exhausted), hearing loss. Permanent injuries are written into canon as facts so NPCs notice and react.
 

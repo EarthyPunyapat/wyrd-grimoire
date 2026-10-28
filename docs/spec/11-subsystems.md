@@ -60,7 +60,7 @@ Described in [06](06-world-and-story.md#factions). When off, reputation isn't tr
 ## Injuries
 
 - **Realistic:** the full system in [03](03-combat-and-injury.md), with separate toggles for bleeding, infection, fractures and permanent injuries.
-- **Simple:** wounds still exist with flat penalties (Minor −10, Serious −20, Critical −30 and Down) but no bleeding, infection, fractures or permanent injuries; healing times are halved.
+- **Simple:** wounds still exist with flat penalties (Minor −10, Serious −20, Critical −30 and Down) but no bleeding, infection, fractures or permanent injuries; healing times are halved. Simple injuries still run lethal checks, and a repeat critical at one location is still lethal (D75).
 
 ## Weather effects
 

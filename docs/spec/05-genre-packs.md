@@ -31,7 +31,7 @@ packs/fantasy-core/
   worlds/              # optional hand-authored worlds (see below)
 ```
 
-All files are validated with zod schemas exported from `packages/core`. YAML is the authoring format; packs are compiled to a single JSON blob at load time.
+All files are validated with zod schemas exported from `packages/core`. YAML is the authoring format; packs are compiled to a single JSON blob at load time. Weapons in `items/weapons.yaml` may set `strengthBonus` (default true, except for skill `ranged`; D74).
 
 ### Manifest
 
