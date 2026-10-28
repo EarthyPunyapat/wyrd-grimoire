@@ -11,11 +11,18 @@ let dir: string;
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "wyrd-canon-"));
 });
-afterEach(() => rmSync(dir, { recursive: true, force: true }));
+let opened: Array<CampaignStore<GameState>> = [];
+afterEach(() => {
+  for (const s of opened) s.close(); // Windows can't delete open SQLite files
+  opened = [];
+  rmSync(dir, { recursive: true, force: true });
+});
 
 function store() {
   const created = unwrap(createCampaign({ name: "T", packIds: ["fantasy-core"], seed: 1 }));
-  return CampaignStore.create<GameState>(join(dir, "c.db"), created, { reduce });
+  const s = CampaignStore.create<GameState>(join(dir, "c.db"), created, { reduce });
+  opened.push(s);
+  return s;
 }
 
 const ferry = Entity.parse({ id: "loc:ferry", kind: "location", name: "Ashford Ferry", detail: "full" });
