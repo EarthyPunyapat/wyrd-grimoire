@@ -9,6 +9,7 @@
   "dependencies": {
     "@wyrd/core": "workspace:*",
     "@wyrd/engine": "workspace:*",
-    "yaml": "^2.8.0"
+    "yaml": "^2.8.0",
+    "zod": "^4.1.0"
   }
 }

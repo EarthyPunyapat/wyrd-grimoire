@@ -43,6 +43,7 @@
         "@wyrd/core": "workspace:*",
         "@wyrd/engine": "workspace:*",
         "yaml": "^2.8.0",
+        "zod": "^4.1.0",
       },
     },
     "packages/storage": {
