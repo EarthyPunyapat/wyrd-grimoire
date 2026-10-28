@@ -247,12 +247,27 @@ test("a tavern brawl plays through the API: free text starts a fight and the vie
     cookie,
   );
   const { id } = (await made.json()) as { id: string };
-  const turn = async (input: string, n: number) => {
-    const r = await request(server, `/campaigns/${id}/turns`, { input, clientTurnId: `brawl-${n}` }, cookie);
+  const turn = async (
+    input: string,
+    n: number,
+    clarification?: { turnId: string; option: number },
+  ): Promise<ReturnType<typeof GameView.parse>> => {
+    const r = await request(
+      server,
+      `/campaigns/${id}/turns`,
+      {
+        input,
+        clientTurnId: `brawl-${n}${clarification ? "-c" : ""}`,
+        ...(clarification ? { clarification } : {}),
+      },
+      cookie,
+    );
     const { turnId } = (await r.json()) as { turnId: string };
     const text = await (
       await request(server, `/campaigns/${id}/turns/${turnId}/stream`, undefined, cookie)
     ).text();
+    // A plan that doesn't fit (a stunned PC has 1 AP) gets a clarification card: take its first option.
+    if (text.includes("event: clarify") && !clarification) return turn("option", n, { turnId, option: 0 });
     expect(text).toContain("event: narration.final");
     expect(text.indexOf("event: mechanics.line")).toBeLessThan(text.indexOf("event: narration.final"));
     return GameView.parse(await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json());

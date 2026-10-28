@@ -54,6 +54,31 @@ export const GuardReportV1 = z.object({
   newFacts: z
     .array(z.object({ entityId: z.string(), predicate: z.string(), value: z.string(), quote: z.string() }))
     .default([]),
+  // Guard v2 (M5, spec 07).
+  secretsRevealed: z.array(z.object({ quote: z.string(), factId: z.string() })).default([]),
+  linesCrossed: z.array(z.object({ quote: z.string(), line: z.string() })).default([]),
+  witnessObservations: z
+    .array(
+      z.object({
+        witnessIds: z.array(z.string()).min(1),
+        content: z.string().min(1),
+        importance: z.number().int().min(1).max(5).default(3),
+        feeling: z.number().int().min(-3).max(3).default(0),
+      }),
+    )
+    .default([]),
+  objectiveMet: z
+    .array(
+      z.object({
+        questId: z.string(),
+        objectiveIndex: z.number().int().nonnegative(),
+        evidence: z.string().min(1),
+      }),
+    )
+    .default([]),
+  approvalDeltas: z
+    .array(z.object({ companionId: z.string(), delta: z.number().int(), reason: z.string() }))
+    .default([]),
 });
 export type GuardReportV1 = z.infer<typeof GuardReportV1>;
 
@@ -118,5 +143,16 @@ export function blockingIssues(r: GuardReportV1): Array<{ kind: string; quote: s
         quote: c.quote,
         detail: c.conflictsWith.resolution ?? `conflicts with fact ${c.conflictsWith.factId ?? "?"}`,
       })),
+    // Never show a secret's content to the player: the detail names only the fact id.
+    ...r.secretsRevealed.map((s) => ({
+      kind: "secret",
+      quote: s.quote,
+      detail: `reveals a secret (${s.factId})`,
+    })),
+    ...r.linesCrossed.map((l) => ({
+      kind: "line",
+      quote: l.quote,
+      detail: `crosses the player's line: ${l.line}`,
+    })),
   ];
 }

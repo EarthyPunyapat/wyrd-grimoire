@@ -1,5 +1,17 @@
 import type { Database } from "bun:sqlite";
 import type { Entity, Fact } from "@wyrd/core";
+import { type MemoryHit, type RetrieveOptions, retrieve } from "./memory-index.ts";
+
+export type SummaryRecord = {
+  id: string;
+  level: "scene" | "chapter" | "arc";
+  fromSeq: number;
+  toSeq: number;
+  gameTime: number;
+  text: string;
+  entityIds: string[];
+  importance: number;
+};
 
 /** A finished (or in-progress) turn as recorded in the `turns` projection. */
 export type TurnRecord = {
@@ -96,6 +108,34 @@ export class CanonQueries {
       record: r.record ? (JSON.parse(r.record) as Record<string, unknown>) : null,
       narration: r.narration,
     }));
+  }
+
+  /** Hybrid retrieval over the memory index (spec 07). */
+  retrieve(o: RetrieveOptions): MemoryHit[] {
+    return retrieve(this.db, o);
+  }
+
+  /** Summaries, oldest first; optionally one level and the latest `limit`. */
+  summaries(level?: SummaryRecord["level"], limit = 1000): SummaryRecord[] {
+    const rows = (
+      level
+        ? this.db
+            .query("SELECT record FROM summaries WHERE level = ? ORDER BY to_seq DESC LIMIT ?")
+            .all(level, limit)
+        : this.db.query("SELECT record FROM summaries ORDER BY to_seq DESC LIMIT ?").all(limit)
+    ) as { record: string }[];
+    return rows.map((r) => JSON.parse(r.record) as SummaryRecord).reverse();
+  }
+
+  /** Turns in a seq range (for summaries). */
+  turnsBetween(fromSeq: number, toSeq: number): TurnRecord[] {
+    return (
+      this.db
+        .query("SELECT id FROM turns WHERE started_seq BETWEEN ? AND ? ORDER BY started_seq")
+        .all(fromSeq, toSeq) as { id: string }[]
+    )
+      .map((r) => this.turn(r.id))
+      .filter((t): t is TurnRecord => t !== null);
   }
 
   turn(id: string): TurnRecord | null {

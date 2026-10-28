@@ -230,6 +230,19 @@ export const worldEventSchemas = {
   FactSuperseded: z.object({ oldFactId: Id, fact: Fact }),
   FactRetracted: z.object({ factId: Id, reason: z.string() }),
   FactPinned: z.object({ factId: Id, pinned: z.boolean() }),
+  /** Memory pyramid (spec 07): a scene, chapter or arc summary. Memory, not canon. */
+  SummaryWritten: z.object({
+    summary: z.object({
+      id: Id,
+      level: z.enum(["scene", "chapter", "arc"]),
+      fromSeq: z.number().int().positive(),
+      toSeq: z.number().int().positive(),
+      gameTime: z.number().int().nonnegative(),
+      text: z.string().min(1),
+      entityIds: z.array(Id).default([]),
+      importance: z.number().int().min(1).max(5).default(3),
+    }),
+  }),
   /** A journey interrupted on the road (an encounter); travelling again resumes it (spec 06, Travel). */
   JourneyChanged: z.object({
     journey: z

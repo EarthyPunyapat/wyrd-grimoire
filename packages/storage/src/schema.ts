@@ -85,12 +85,46 @@ const MIGRATIONS: readonly string[] = [
     narration_meta TEXT
   );
   `,
+  // v3: memory pyramid and the retrieval index (M5, spec 07).
+  `
+  CREATE TABLE summaries (
+    id TEXT PRIMARY KEY,
+    level TEXT NOT NULL,
+    from_seq INTEGER NOT NULL,
+    to_seq INTEGER NOT NULL,
+    game_time INTEGER NOT NULL,
+    record TEXT NOT NULL
+  );
+  CREATE TABLE memory_items (
+    id TEXT PRIMARY KEY,
+    namespace TEXT NOT NULL,
+    text TEXT NOT NULL,
+    entity_ids TEXT NOT NULL,
+    game_time INTEGER NOT NULL,
+    seq INTEGER NOT NULL,
+    importance INTEGER NOT NULL,
+    visibility TEXT NOT NULL,
+    pinned INTEGER NOT NULL DEFAULT 0,
+    embedding BLOB NOT NULL,
+    model TEXT NOT NULL
+  );
+  CREATE INDEX memory_items_ns ON memory_items (namespace);
+  CREATE VIRTUAL TABLE memory_fts USING fts5(id UNINDEXED, text);
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;
 
 /** Projection tables: dropped and refilled by `rebuild`. */
-export const PROJECTION_TABLES = ["actors", "entities", "facts", "turns"] as const;
+export const PROJECTION_TABLES = [
+  "actors",
+  "entities",
+  "facts",
+  "turns",
+  "summaries",
+  "memory_items",
+  "memory_fts",
+] as const;
 
 export function migrate(db: Database): void {
   const current = (db.query("PRAGMA user_version").get() as { user_version: number }).user_version;

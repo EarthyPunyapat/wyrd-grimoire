@@ -44,9 +44,11 @@ import {
   offlineElaboration,
   offlineLocation,
   type RoleRouter,
+  recap,
   SecretStore,
   TurnPipeline,
   type TurnStreamEvent,
+  writeSummaries,
 } from "@wyrd/llm";
 import {
   bibleEvents,
@@ -652,7 +654,13 @@ export function createApp(options: Options) {
     const task = (async () => {
       try {
         if (target) await pipeline.reroll(target, emit);
-        else await pipeline.run({ input, ...(actions ? { actions } : {}), onEvent: emit });
+        else {
+          await pipeline.run({ input, ...(actions ? { actions } : {}), onEvent: emit });
+          // Memory pyramid (spec 07): close scenes, chapters and arcs as their boundaries pass.
+          await writeSummaries(game, canon, options.offline ? null : models.router(), {
+            gameTime: game.state().campaign.gameTime,
+          }).catch(() => 0);
+        }
         store.touchCampaign(id);
       } catch {
         emit({

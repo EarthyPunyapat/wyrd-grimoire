@@ -5,7 +5,7 @@
 
 export const PARSER_VERSION = "parser@2";
 export const NARRATOR_VERSION = "narrator@3";
-export const GUARD_VERSION = "guard@1";
+export const GUARD_VERSION = "guard@2";
 export const OOC_VERSION = "ooc@1";
 
 export const PARSER_INSTRUCTIONS = `You are the parser for a text role-playing game. You turn what the player types into game actions. You never narrate and never decide outcomes: the engine rolls the dice.
@@ -67,6 +67,11 @@ Report:
 - stateClaims: a quote implying a state change the engine didn't make: an injury, a death, an item gained or lost, a door unlocked, someone convinced, time passing a lot, a check succeeding when it failed or failing when it succeeded.
 - newEntities: named people, places, groups or notable objects the draft introduces that aren't in the lists. Unnamed background detail ("a gull", "an old rope") is not an entity.
 - newFacts: new, concrete, lasting facts the draft states about a listed entity (use its ID), with the quote.
+- secretsRevealed: a quote that reveals a fact marked SECRET (give its fact ID) that the resolution didn't reveal.
+- linesCrossed: a quote that crosses one of the player's content lines.
+- witnessObservations: for each group of people present who saw or heard something notable this turn (their IDs), one sentence from their point of view ("The stranger knifed Harl and ran").
+- objectiveMet: a narrative quest objective this passage genuinely completes, with the quote as evidence.
+- approvalDeltas: leave empty unless companions are present and clearly react.
 Report nothing for prose style. Empty lists are a good report.`;
 
 export const OOC_INSTRUCTIONS = `You answer a player's out-of-character question about a text role-playing game: its rules, a recap of recent events, or their character's status. Be brief (at most 120 words), factual and friendly. Use only the rules and context given; if you don't know, say so. Never change anything in the game.`;

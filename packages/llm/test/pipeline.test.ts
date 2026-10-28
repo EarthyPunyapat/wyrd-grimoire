@@ -183,7 +183,7 @@ describe("exploration turn end to end (FakeProvider)", () => {
     expect(t.usage.records.map((u) => [u.role, u.promptVersion, u.turnId])).toEqual([
       ["parser", "parser@2", r.turnId],
       ["narrator", "narrator@3", r.turnId],
-      ["guard", "guard@1", r.turnId],
+      ["guard", "guard@2", r.turnId],
     ]);
     // The parser saw IDs; the narrator saw the required beats; the guard saw the draft.
     expect(lastUser(t.fake.calls("parser")[0]!)).toContain("the jetty [z:jetty]");

@@ -9,6 +9,17 @@ export interface CanonSource {
   recentTurns(
     limit: number,
   ): Array<{ id?: string; input: string; narration: string | null; status: string | null }>;
+  /** M5 memory (optional so simple sources still work): pyramid, retrieval and pins. */
+  summaries?(level?: "scene" | "chapter" | "arc", limit?: number): Array<{ id: string; text: string }>;
+  retrieve?(o: {
+    query: string;
+    namespaces: readonly string[];
+    includeSecret?: boolean;
+    now: number;
+    limit?: number;
+    exclude?: ReadonlySet<string>;
+  }): Array<{ id: string; text: string; namespace: string }>;
+  pinnedFacts?(): Fact[];
 }
 
 export type AssemblerRole = "parser" | "narrator" | "guard";
@@ -200,7 +211,11 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
     .map((id) => canon.entity(id))
     .filter((e): e is Entity => e !== null)
     .map((e) => {
-      const facts = canon.factsAbout(e.id, { includeSecret: role === "guard" });
+      // The narrator sees what the PC can perceive (present people and places) and what they know.
+      const perceivable = !scene || e.id in scene.positions || e.id === scene.locationId;
+      const facts = canon
+        .factsAbout(e.id, { includeSecret: role === "guard" })
+        .filter((f) => role !== "narrator" || perceivable || !!state.knowledge?.facts[f.id]);
       const factLines = facts.map(
         (f) =>
           `  - ${role === "guard" ? `[${f.id}] ` : ""}${f.predicate}: ${typeof f.value === "string" ? f.value : JSON.stringify(f.value)}${f.visibility === "secret" ? " (SECRET: the PC doesn't know this)" : ""}`,
@@ -242,6 +257,113 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
     thisTurn.push("Fix these problems from your last draft:", ...o.turn.corrections.map((c) => `- ${c}`));
   if (o.turn.draft !== undefined) thisTurn.push("Draft narration to check:", o.turn.draft);
 
+  // 5. The story so far: latest arc and chapter, the last scene, and pinned facts.
+  const pyramid =
+    role === "parser"
+      ? ""
+      : [
+          ...(canon.summaries?.("arc", 1) ?? []),
+          ...(canon.summaries?.("chapter", 1) ?? []),
+          ...(canon.summaries?.("scene", 1) ?? []),
+        ]
+          .map((s) => s.text)
+          .join("\n\n");
+  const pins =
+    role === "parser"
+      ? []
+      : (canon.pinnedFacts?.() ?? []).filter((f) => role === "guard" || f.visibility === "public");
+  const storyText = [
+    pyramid,
+    pins.length
+      ? `Pinned by the player (always true):\n${pins.map((f) => `- ${canon.entity(f.entityId)?.name ?? f.entityId}: ${f.predicate} ${typeof f.value === "string" ? f.value : JSON.stringify(f.value)}`).join("\n")}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  // 9. One-hop neighbours of focus entities: who is tied to whom (known or present ends only, for the narrator).
+  const knownOrHere = (id: string) =>
+    role !== "narrator" ||
+    !!state.knowledge?.entities[id] ||
+    (!!scene && (id in scene.positions || id === scene.locationId));
+  const edges = (state.edges ?? []).filter(
+    (e) =>
+      (focusIds.has(e.from) || focusIds.has(e.to)) &&
+      e.type !== "routeTo" &&
+      knownOrHere(e.from) &&
+      knownOrHere(e.to),
+  );
+  const neighbourText = edges
+    .slice(0, 30)
+    .map((e) => `- ${label(e.from, nameOf(e.from))} ${e.type} ${label(e.to, nameOf(e.to))}`)
+    .join("\n");
+
+  // 10. Retrieved memories (hybrid search): the narrator only sees the pyramid and what the PC knows.
+  const query = [
+    o.turn.input,
+    ...[...focusIds].map(nameOf),
+    ...(o.turn.resolution?.requiredBeats ?? []),
+  ].join(" ");
+  const retrieved =
+    role === "parser" || !canon.retrieve
+      ? []
+      : canon.retrieve({
+          query,
+          namespaces: role === "guard" ? ["summaries", "pc", "facts"] : ["summaries", "pc"],
+          includeSecret: role === "guard",
+          now: state.campaign.gameTime,
+          limit: 8,
+          exclude: new Set(canon.summaries?.("scene", 1).map((s) => s.id) ?? []),
+        });
+  const retrievedText = retrieved.map((r) => `- ${r.text}`).join("\n");
+
+  // 11. Quests, visible clocks and the rumours the PC has heard.
+  const pcId = state.party.pcId ?? "";
+  const quests = Object.values(state.quests ?? {})
+    .filter((q) => q.status === "active")
+    .map((q) => `- ${q.title}: ${q.stages[q.stage]?.summary ?? ""}`);
+  const clocks = Object.values(state.clocks ?? {})
+    .filter((c) => c.visible)
+    .map((c) => `- ${c.name}: ${c.filled}/${c.segments}`);
+  const heard = Object.values(state.rumors ?? {})
+    .filter((r) => r.holders[pcId])
+    .map((r) => `- Rumour: ${r.holders[pcId]!.content}`);
+  const questText = role === "parser" ? "" : [...quests, ...clocks, ...heard].join("\n");
+
+  // NPC minds (spec 07): whoever the PC is talking to speaks only from their own memories.
+  const spokenTo = new Set(
+    (o.turn.resolution?.steps ?? []).flatMap((s) => {
+      const a = s.action as { type?: string; targetId?: string };
+      return a.type === "talk" && a.targetId ? [a.targetId] : [];
+    }),
+  );
+  const mindText =
+    role !== "narrator"
+      ? ""
+      : [...spokenTo]
+          .map((id) => {
+            const m = state.minds?.[id];
+            const d = m?.dispositions[pcId];
+            const mem = canon.retrieve
+              ? canon.retrieve({
+                  query: o.turn.input,
+                  namespaces: [`npc:${id}`],
+                  includeSecret: true,
+                  now: state.campaign.gameTime,
+                  limit: 5,
+                })
+              : [];
+            const lines = [
+              `${nameOf(id)} (they speak only from this; they don't know anything else about the PC):`,
+              d
+                ? `- Toward the PC: attitude ${d.attitude}, trust ${d.trust}, fear ${d.fear}.`
+                : "- They have no settled opinion of the PC yet.",
+              ...mem.map((x) => `- Remembers: ${x.text}`),
+            ];
+            return lines.join("\n");
+          })
+          .join("\n\n");
+
   // 12. Recent turns, verbatim; trimmed oldest-first down to the role's minimum.
   const turns = canon
     .recentTurns(MAX_TURNS[role] + 1)
@@ -256,15 +378,31 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
   const budget = o.budget ?? ROLE_BUDGETS[role];
   let nTurns = turns.length;
   let detailedScene = true;
+  let withRetrieved = true;
+  let withNeighbours = true;
   const build = (): Section[] => [
+    ...(storyText ? [{ n: 5, title: "The story so far", text: storyText }] : []),
     { n: 6, title: "Party", text: partyText || "(no party)" },
     { n: 7, title: "Scene", text: sceneFull(detailedScene) },
     { n: 8, title: "Who and what is here", text: focusText || "(nothing notable)" },
+    ...(withNeighbours && neighbourText ? [{ n: 9, title: "Connections", text: neighbourText }] : []),
+    ...(mindText ? [{ n: 9.5, title: "What they know", text: mindText }] : []),
+    ...(withRetrieved && retrievedText ? [{ n: 10, title: "Remembered", text: retrievedText }] : []),
+    ...(questText ? [{ n: 11, title: "Quests and clocks", text: questText }] : []),
     ...(nTurns > 0 ? [{ n: 12, title: "Recent turns", text: turnText(nTurns) }] : []),
     { n: 13, title: "This turn", text: thisTurn.join("\n") },
   ];
   const total = (secs: Section[]) => estimateTokens(instructions) + estimateTokens(join(secs));
   let sections = build();
+  // Trimming order (spec 07): retrieved memories, then neighbours, then older turns, then the scene.
+  if (total(sections) > budget) {
+    withRetrieved = false;
+    sections = build();
+  }
+  if (total(sections) > budget) {
+    withNeighbours = false;
+    sections = build();
+  }
   while (total(sections) > budget && nTurns > Math.min(MIN_TURNS[role], turns.length)) {
     nTurns--;
     sections = build();

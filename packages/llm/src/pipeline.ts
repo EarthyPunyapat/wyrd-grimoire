@@ -706,6 +706,49 @@ export class TurnPipeline {
   private canonFromGuard(state: GameState, report: GuardReportV1 | null): EventDraft[] {
     if (!report) return [];
     const drafts: EventDraft[] = [];
+    // Witnesses (spec 07): only people actually present get the memory.
+    const present = new Set(Object.keys(state.scene?.positions ?? {}));
+    report.witnessObservations.forEach((w, i) => {
+      for (const id of w.witnessIds) {
+        if (!present.has(id) || id === state.party.pcId || state.actors[id]?.dead) continue;
+        drafts.push(
+          draft(
+            "MemoryRecorded",
+            {
+              memory: {
+                id: `mem:${id}:${state.campaign.gameTime}:g${i}`,
+                npcId: id,
+                gameTime: state.campaign.gameTime,
+                kind: "witnessed",
+                content: w.content,
+                about: state.party.pcId ? [state.party.pcId] : [],
+                importance: w.importance,
+                feeling: w.feeling,
+                belief: 1,
+              },
+            },
+            "model",
+          ),
+        );
+      }
+    });
+    // Narrative objectives (spec 06): accepted only for an active quest's current narrative objective.
+    for (const m of report.objectiveMet) {
+      const q = state.quests?.[m.questId];
+      const objective = q?.stages[q.stage]?.objectives[m.objectiveIndex];
+      if (
+        q?.status === "active" &&
+        objective?.kind === "narrative" &&
+        !q.stages[q.stage]!.met[m.objectiveIndex]
+      )
+        drafts.push(
+          draft(
+            "QuestObjectiveMet",
+            { questId: q.id, stage: q.stage, objective: m.objectiveIndex, evidence: m.evidence },
+            "model",
+          ),
+        );
+    }
     const scene = state.scene;
     const actorNames = new Set(Object.values(state.actors).map((a) => a.sheet.identity.name.toLowerCase()));
     const seen = new Set<string>();

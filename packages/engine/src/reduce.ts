@@ -286,6 +286,7 @@ const handlers: { [K in Exclude<EventType, "CampaignCreated">]: Handler<K> } = {
   FactSuperseded: (s) => s,
   FactRetracted: (s) => s,
   FactPinned: (s) => s,
+  SummaryWritten: (s) => s,
   JourneyChanged: (s, e) => ({ ...s, flags: { ...s.flags, journey: e.payload.journey } }),
 
   // Turn records are projections (the turns table); they don't change engine state.
