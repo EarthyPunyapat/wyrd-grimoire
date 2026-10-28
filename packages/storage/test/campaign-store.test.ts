@@ -25,10 +25,26 @@ import { CampaignStore, StorageError } from "../src/campaign-store.ts";
 const ctx: RulesContext = { skills: CORE_SKILL_CATALOG, tuning: defaultTuning };
 
 let dir: string;
+/** Every store a test opens; closed before cleanup because Windows can't delete open SQLite files. */
+let opened: Array<CampaignStore<GameState>> = [];
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "wyrd-storage-"));
 });
-afterEach(() => rmSync(dir, { recursive: true, force: true }));
+afterEach(() => {
+  for (const s of opened) {
+    try {
+      s.close();
+    } catch {
+      // already closed by the test
+    }
+  }
+  opened = [];
+  rmSync(dir, { recursive: true, force: true });
+});
+const track = (s: CampaignStore<GameState>) => {
+  opened.push(s);
+  return s;
+};
 
 let reduceCalls = 0;
 const countingReduce = (s: GameState | undefined, e: EventEnvelope) => {
@@ -38,10 +54,12 @@ const countingReduce = (s: GameState | undefined, e: EventEnvelope) => {
 
 function newStore(settings: CampaignSettingsInput = {}, snapshotEvery = 200) {
   const created = unwrap(createCampaign({ name: "Test", packIds: ["fantasy-core"], settings, seed: 42 }));
-  return CampaignStore.create<GameState>(join(dir, "campaign.db"), created, {
-    reduce: countingReduce,
-    snapshotEvery,
-  });
+  return track(
+    CampaignStore.create<GameState>(join(dir, "campaign.db"), created, {
+      reduce: countingReduce,
+      snapshotEvery,
+    }),
+  );
 }
 
 function addPc(store: CampaignStore<GameState>) {
@@ -112,7 +130,7 @@ describe("CampaignStore", () => {
     store.append(check(store));
     const hash = store.stateHash();
     store.close();
-    const reopened = CampaignStore.open<GameState>(join(dir, "campaign.db"), { reduce });
+    const reopened = track(CampaignStore.open<GameState>(join(dir, "campaign.db"), { reduce }));
     expect(reopened.stateHash()).toBe(hash);
     reopened.close();
   });
@@ -124,10 +142,9 @@ describe("CampaignStore", () => {
     expect(snaps.map((s) => s.seq)).toEqual([5, 10]);
     const hash = store.stateHash();
     store.close();
-    const reopened = CampaignStore.open<GameState>(join(dir, "campaign.db"), {
-      reduce: countingReduce,
-      snapshotEvery: 5,
-    });
+    const reopened = track(
+      CampaignStore.open<GameState>(join(dir, "campaign.db"), { reduce: countingReduce, snapshotEvery: 5 }),
+    );
     reduceCalls = 0;
     expect(reopened.stateHash()).toBe(hash);
     expect(reduceCalls).toBe(3); // seq 11–13 replayed on top of the seq-10 snapshot
