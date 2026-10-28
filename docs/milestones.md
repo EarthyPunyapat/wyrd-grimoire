@@ -23,7 +23,7 @@ Each milestone lists its scope, the spec sections it implements, and acceptance 
 - [x] Reducer property tests pass (determinism, snapshot + replay = full replay, rewind reproduces the branch).
 - [x] Dev CLI: create a campaign file, append events, rewind, rebuild → identical state hash.
 - [x] `bun run wyrd pack validate packs/fantasy-core` passes.
-- [ ] CI green.
+- [x] CI green.
 
 ## M2 — The model loop
 

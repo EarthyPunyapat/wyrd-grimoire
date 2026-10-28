@@ -5,11 +5,9 @@ Delete this file once its notes are no longer useful.
 
 ## Status (2026-10-28)
 
-**M1 — Engine core is implemented on branch `m1-engine-core`** (not yet pushed or merged).
-Every M1 acceptance box is ticked except **"CI green"**: the workflow (`.github/workflows/ci.yml`,
-Linux + Windows) has never run, because the branch hasn't been pushed. Push the branch, open a PR,
-and tick the box once CI passes. If Windows fails, it's most likely path or line-ending handling in
-`apps/cli/test/cli.test.ts` or `packages/packs/test/loader.test.ts`.
+**M1 — Engine core is done** on branch `m1-engine-core` (PR #1). Every acceptance box is ticked,
+including CI green on Linux and Windows. Windows needed LF line endings (`.gitattributes`) and tests
+that close SQLite files before deleting temp folders; keep both in mind for new tests.
 
 `bun run check` runs everything locally: typecheck → lint → 147 tests → `pack validate`.
 
