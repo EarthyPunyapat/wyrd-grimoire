@@ -150,7 +150,7 @@ export async function playCommand(
       return true;
     }
     if (input === "/reroll") {
-      if (!last || last.status !== "resolved") {
+      if (last?.status !== "resolved") {
         out(dim("Nothing to reroll yet."));
         return true;
       }

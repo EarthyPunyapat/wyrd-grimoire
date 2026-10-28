@@ -47,8 +47,12 @@ Build order (each step is its own commit):
 - [x] **B. Canon + turn events** — `EntityCreated`, `FactAsserted`, `SceneOpened/Closed`, `EntityMoved`, `TurnStarted`, `TurnCompleted`, `NarrationCommitted/Rerolled` (`core/src/schemas/canon.ts`). Engine tracks scene presence (`GameState.scene.positions`); storage projects `entities`, `facts`, `turns` (migration v2); `CanonQueries` reads them.
 - [x] **C. Exploration actions** — `core/src/schemas/actions.ts` + `engine/src/exploration.ts`: `validatePlan` (stable codes + legal alternatives) and `resolvePlan` (re-validates each step, stops mid-plan, emits events + `Resolution` with required beats).
 - [x] **D. Context assembler v1** — `packages/memory/src/assembler.ts` (parser/narrator/guard).
-- [ ] **E. Turn pipeline** — `packages/llm/src/pipeline.ts` + `prompts/`: parse → validate → repair (max 2) → clarify → resolve → narrate → guard v1 (contradictions, state claims, new entities) → regenerate once → flag → commit one transaction; reroll; mechanical-summary fallback.
-- [ ] **F. Test location + terminal loop** — `packs/fantasy-core/worlds/ashford-ferry/world.yaml`, world loader in `packs`, `wyrd play` in the CLI.
+- [x] **E. Turn pipeline** — `packages/llm/src/pipeline.ts` + `prompts/`: parse → validate → repair (max 2) → clarify → resolve → narrate → guard v1 (contradictions, state claims, new entities) → regenerate once → flag → commit one transaction; reroll; mechanical-summary fallback.
+- [x] **F. Test location + terminal loop** — `packs/fantasy-core/worlds/ashford-ferry/world.yaml`, world loader in `packs`, `wyrd play` in the CLI.
 - [ ] **G. Real adapters** — openai-compatible (DeepSeek/Ollama), anthropic, chatgpt-plan (SIWC OAuth PKCE + Responses API), secrets in `WYRD_HOME/secrets/` with atomic writes; mocked-HTTP contract tests. Everything marked VERIFY in spec 09 must be checked against official docs.
+
+Try it offline (no keys): `bun run wyrd sheet build --archetype cutpurse --name Wren --out /tmp/wren.json`, then `bun run wyrd campaign create /tmp/a.db --name Ashford --pc /tmp/wren.json --world ashford-ferry`, then `bun run wyrd play /tmp/a.db --offline`. Real providers: `apps/cli/src/providers.ts` (`loadRouterFromConfig`) is a stub until step G.
+
+Acceptance 1 (FakeProvider end to end, repair → clarification, guard regeneration) is covered by `packages/llm/test/pipeline.test.ts`; tick it once CI is green on the M2 PR.
 
 Acceptance 2 and 3 (real ChatGPT sign-in, a 20-turn session with real DeepSeek + ChatGPT) need the owner's accounts on the host PC; the code can be finished and tested offline, but those boxes are ticked only after the owner runs them.
