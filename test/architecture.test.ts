@@ -88,3 +88,14 @@ describe("pure engine", () => {
     expect(violations).toEqual([]);
   });
 });
+
+test("the browser imports only core workspace schemas and never server or IO modules", () => {
+  const dir = join(ROOT, "apps/web/src");
+  if (!statSync(dir).isDirectory()) throw new Error("Missing web sources");
+  const files = readdirSync(dir).filter((name) => /\.tsx?$/.test(name));
+  for (const name of files)
+    for (const spec of importsOf(join(dir, name))) {
+      if (spec.startsWith("@wyrd/")) expect(spec).toBe("@wyrd/core");
+      expect(spec).not.toMatch(/^(node:|bun:|\.\.\/)/);
+    }
+});
