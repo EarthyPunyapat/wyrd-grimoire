@@ -232,6 +232,7 @@ export function loadPack(dir: string): LoadResult {
     const s = resolveSkill(w.skill);
     if (!s) badRef(w.id, "skill", "Skill", w.skill);
     w.skill = s ?? w.skill;
+    w.strengthBonus ??= localIdOf(w.skill) !== "ranged";
   }
   for (const a of Object.values(content.armor)) {
     a.penalties = a.penalties.map((p, i) => {

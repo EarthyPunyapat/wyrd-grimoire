@@ -183,6 +183,8 @@ export const WeaponDef = z.object({
   /** Range bands the weapon works in, with the modifier at each; a missing band means it can't be used there. */
   ranges: z.partialRecord(RangeBand, z.number().int()),
   reloadAp: z.number().int().nonnegative().default(0),
+  /** Whether the wielder's STR bonus adds to damage. The loader fills it in: true unless the skill is `ranged`. */
+  strengthBonus: z.boolean().optional(),
 });
 export type WeaponDef = z.infer<typeof WeaponDef>;
 

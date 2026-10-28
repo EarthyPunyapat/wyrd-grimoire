@@ -64,6 +64,11 @@ describe("fantasy-core", () => {
     });
   });
 
+  test("weapons get the strength bonus unless they use the ranged skill", () => {
+    expect(pack!.items.weapons["fantasy-core:dagger"]?.strengthBonus).toBe(true);
+    expect(pack!.items.weapons["fantasy-core:shortbow"]?.strengthBonus).toBe(false);
+  });
+
   test("the hash is stable and changes with content", () => {
     expect(loadPack(FANTASY).pack!.hash).toBe(pack!.hash);
     const d = copy();
