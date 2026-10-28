@@ -115,7 +115,7 @@ export function validateCombatAction(
 
   switch (a.type) {
     case "strike": {
-      const p = strikeProblem({ state }, actorId, a.targetId, ctx, a.weaponId);
+      const p = strikeProblem({ state }, actorId, a.targetId, ctx, a.weaponId, a.calledLocation);
       if (!p) return null;
       if (p.code === "NOT_ENGAGED") return err(p.code, p.message, [{ type: "engage", targetId: a.targetId }]);
       if (p.code === "NEEDS_RELOAD") return err(p.code, p.message, [{ type: "reload" }]);
@@ -588,11 +588,11 @@ export function resolveCombatAction(
     case "surrender":
       return ok([step(actorId, a, "done", `${name(actorId)} threw down their weapon and surrendered.`)]);
     case "flee": {
-      const steps = opportunityAttacks(w, actorId, ctx);
+      // Flee is Disengage then Move out (spec 03), so it doesn't provoke.
       breakEngagements(w, actorId);
       patch(w, actorId, { status: "fled", ap: 0 });
       w.apply([draft("EntityLeftScene", { entityId: actorId, reason: "fled the fight" }, "engine")]);
-      return ok([...steps, step(actorId, a, "done", `${name(actorId)} fled the fight.`)]);
+      return ok([step(actorId, a, "done", `${name(actorId)} fled the fight.`)]);
     }
   }
 }

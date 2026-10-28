@@ -274,6 +274,9 @@ export class TurnPipeline {
         : "";
       lines.push(`- [${c.id}] ${c.name} (${c.side}) in [${c.zoneId}]: ${c.condition}${engaged}`);
     }
+    lines.push(
+      "Called shots (calledLocation) on humanoids: head, torso, right-arm, left-arm, right-leg, left-leg.",
+    );
     const legal = v.actions.filter((a) => a.legal);
     if (legal.length) lines.push(`Legal now: ${legal.map((a) => `${a.label} (${a.ap} AP)`).join("; ")}.`);
     return lines.join("\n");

@@ -1,4 +1,4 @@
-import { type ActorId, draft, type MechanicsLine, type Modifier } from "@wyrd/core";
+import { type ActorId, draft, findBodyPlan, type MechanicsLine, type Modifier } from "@wyrd/core";
 import { resolveCheck } from "../checks.ts";
 import { resolveHit } from "../injury/index.ts";
 import { compareResults, isSuccess } from "../resolution/index.ts";
@@ -42,6 +42,7 @@ export function strikeProblem(
   targetId: ActorId,
   ctx: CombatContext,
   weaponId?: string,
+  calledLocation?: string,
 ): { code: string; message: string } | null {
   const state = w.state;
   const target = combatant(state, targetId);
@@ -73,6 +74,14 @@ export function strikeProblem(
     return { code: "NO_LINE_OF_SIGHT", message: `You can't see ${ctx.nameOf(targetId)} from here` };
   if (weapon && weapon.reloadAp > 0 && !combatant(state, attackerId)?.loaded)
     return { code: "NEEDS_RELOAD", message: `${weapon.name} needs reloading (${weapon.reloadAp} AP)` };
+  if (calledLocation) {
+    const plan = findBodyPlan(ctx.bodyPlans, sheetOf(state, targetId).bodyPlan);
+    if (!plan?.locations.some((l) => l.id === calledLocation))
+      return {
+        code: "LOCATION_UNKNOWN",
+        message: `Called shots on ${ctx.nameOf(targetId)} can aim at: ${(plan?.locations ?? []).map((l) => l.id).join(", ")}`,
+      };
+  }
   return null;
 }
 
@@ -100,7 +109,7 @@ export function resolveStrike(
   ctx: CombatContext,
   opts: StrikeOptions = {},
 ): Result<CombatStep> {
-  const problem = strikeProblem(w, attackerId, targetId, ctx, opts.weaponId);
+  const problem = strikeProblem(w, attackerId, targetId, ctx, opts.weaponId, opts.calledLocation);
   if (problem) return fail(problem.code, problem.message);
   const f = ctx.tuning.fight;
   const state = w.state;
@@ -138,15 +147,8 @@ export function resolveStrike(
   const size = f.size[target.size].toHit;
   if (size) modifiers.push({ source: `${target.size} target`, value: size });
   if (opts.calledLocation) {
-    const plan = ctx.bodyPlans[sheetOf(state, targetId).bodyPlan];
-    const kind =
-      plan?.locations.find((l) => l.id === opts.calledLocation)?.kind ??
-      (["head", "torso", "arm", "leg"].find((k) => opts.calledLocation!.includes(k)) as
-        | "head"
-        | "torso"
-        | "arm"
-        | "leg"
-        | undefined);
+    const plan = findBodyPlan(ctx.bodyPlans, sheetOf(state, targetId).bodyPlan);
+    const kind = plan?.locations.find((l) => l.id === opts.calledLocation)?.kind;
     if (kind) modifiers.push({ source: `called shot (${opts.calledLocation})`, value: f.calledShot[kind] });
   }
   modifiers.push(...(opts.extra ?? []));
@@ -352,7 +354,8 @@ export function resolveStrike(
             combat: replaceCombatant(combatOf(w.state), {
               ...t,
               status: "dying",
-              dyingRounds: h.lethal.deathInRounds,
+              // Another mortal wound never buys time: keep the shorter clock.
+              dyingRounds: Math.min(t.dyingRounds ?? h.lethal.deathInRounds, h.lethal.deathInRounds),
             }),
           },
           "engine",

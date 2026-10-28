@@ -8,7 +8,7 @@ import {
   validateCombatPlan,
 } from "./combat/index.ts";
 import { type ExplorationContext, type PlanError, resolvePlan, validatePlan } from "./exploration.ts";
-import type { Result } from "./result.ts";
+import { fail, type Result } from "./result.ts";
 import type { GameState } from "./state.ts";
 
 /** Everything a turn's rules need, in exploration or combat. */
@@ -26,6 +26,9 @@ export function validateTurn(
   actions: readonly unknown[],
   ctx: TurnContext,
 ): Result<TurnPlan> & { planErrors?: TurnPlanError[] } {
+  // The dead don't act; a hardcore death ends the PC's story (spec 03, Hardcore death).
+  if (state.actors[actorId]?.dead)
+    return { ...fail("ACTOR_DEAD", `${ctx.nameOf(actorId)} is dead`), planErrors: [] };
   if (state.combat) return validateCombatPlan(state, actorId, actions, ctx);
   return validatePlan(state, actorId, actions, ctx);
 }

@@ -14,6 +14,7 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
   const [combatOpen, setCombatOpen] = useState(false);
   const [tab, setTab] = useState<"combat" | "sheet">("combat");
   const [legacyName, setLegacyName] = useState("");
+  const [legacyError, setLegacyError] = useState("");
   const [math, setMath] = useState(localStorage.getItem("wyrd-math") === "true");
   const textarea = useRef<HTMLTextAreaElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
@@ -161,13 +162,16 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
                   onSubmit={async (e) => {
                     e.preventDefault();
                     if (!legacyName.trim()) return;
-                    await api(`/campaigns/${view.id}/legacy`, (d) => d, {
-                      characterName: legacyName.trim(),
-                      ancestry: view.pc.identity.ancestry,
-                      archetype: view.pc.archetypeId ?? "",
-                    });
-                    setLegacyName("");
-                    await play.refresh();
+                    setLegacyError("");
+                    try {
+                      await api(`/campaigns/${view.id}/legacy`, (d) => d, {
+                        characterName: legacyName.trim(),
+                      });
+                      setLegacyName("");
+                      await play.refresh();
+                    } catch (err) {
+                      setLegacyError((err as Error).message);
+                    }
                   }}
                 >
                   <label>
@@ -182,6 +186,11 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
                   <button className="primary" type="submit" disabled={!legacyName.trim()}>
                     Begin a new life →
                   </button>
+                  {legacyError && (
+                    <p role="alert" className="error">
+                      {legacyError}
+                    </p>
+                  )}
                 </form>
               </section>
             )}
@@ -190,6 +199,7 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
         </div>
         {inCombat && <CombatStrip combat={view.combat!} />}
         <form
+          hidden={!!view.ended}
           className="composer"
           onSubmit={(e) => {
             e.preventDefault();

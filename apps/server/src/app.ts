@@ -499,17 +499,24 @@ export function createApp(options: Options) {
     if (!view.ended) throw new HTTPException(409, { message: "Legacy is for a character who has died" });
     const ns = gamePack.manifest.id;
     const qualify = (x: string) => (x.includes(":") ? x : `${ns}:${x}`);
+    const dead = state.actors[state.party.pcId!]!.sheet;
     const newId = `pc-${Object.values(state.actors).filter((a) => a.role === "pc").length + 1}`;
     const sheet = buildPc(
       newId,
       {
         characterName: input.characterName,
-        ancestry: qualify(input.ancestry),
-        archetype: qualify(input.archetype),
+        ancestry: qualify(input.ancestry ?? dead.identity.ancestry),
+        archetype: qualify(input.archetype ?? dead.archetypeId ?? Object.keys(gamePack.archetypes)[0] ?? ""),
       },
       gamePack,
       state.campaign.settings,
     );
+    if (
+      validateCreation(sheet, creationContent([gamePack]), state.campaign.settings, defaultTuning).some(
+        (i) => i.severity === "error",
+      )
+    )
+      throw new HTTPException(422, { message: "This character combination is invalid" });
     game.append(unwrap(legacyEvents(state, sheet, view.ended.obituary)));
     return c.json({ id }, 201);
   });
@@ -579,6 +586,9 @@ export function createApp(options: Options) {
       return c.json({ turnId: existing.id });
     }
     if (store.running(id)) throw new HTTPException(409, { message: "A turn is already running" });
+    const now = game.state();
+    if (now.actors[now.party.pcId ?? ""]?.dead)
+      throw new HTTPException(409, { message: "Your character has died. Begin a new life to go on." });
     let actions: Parameters<TurnPipeline["run"]>[0]["actions"];
     let text = input.input;
     if (input.clarification) {

@@ -289,7 +289,14 @@ export function endTurn(w: Working, ctx: CombatContext): CombatStep[] {
         action: { type: "bleed" },
         outcome: "done",
         summary: `${ctx.nameOf(id)} bled${after < before ? ` (${before - after} HP)` : ""}${worse}.`,
-        lines: [{ text: `${ctx.nameOf(id)} bleeds: HP ${before} → ${after}` }],
+        lines: [
+          {
+            text:
+              c.side === "party"
+                ? `${ctx.nameOf(id)} bleeds: HP ${before} → ${after}`
+                : `${ctx.nameOf(id)} bleeds${bleed.value.worsened ? ` (${bleed.value.worsened})` : ""}`,
+          },
+        ],
       });
       if (bleed.value.worsened === "lethal") {
         const fate = lethalFateFor(w.state, id);
@@ -364,7 +371,8 @@ export function checkMorale(w: Working, ctx: CombatContext): CombatStep[] {
           skill: { attribute: "wil" },
           difficulty: ctx.tuning.fight.moraleDifficulty,
           purpose: "hold their nerve",
-          modifiers: m.tactics === "cowardly" ? [{ source: "cowardly", value: -20 }] : [],
+          modifiers:
+            m.tactics === "cowardly" ? [{ source: "cowardly", value: ctx.tuning.fight.cowardlyMorale }] : [],
           tags: ["morale", "resist"],
         },
         ctx,
@@ -409,7 +417,14 @@ export function combatOutcome(state: GameState, ctx: CombatContext): CombatOutco
   if (pc?.status === "surrendered") return "surrender";
   const all = Object.values(combat.combatants);
   const enemiesFighting = all.some((c) => c.side === "enemy" && stillFighting(state, c.actorId));
-  if (!enemiesFighting) return "victory";
+  // A dying party member's clock keeps running after the last enemy falls: allies get the chance to
+  // stabilise them, and otherwise they die (spec 03, Lethal).
+  if (!enemiesFighting) {
+    const dying = all.some(
+      (c) => c.side === "party" && c.status === "dying" && !state.actors[c.actorId]?.dead,
+    );
+    return dying && combat.round <= ctx.tuning.fight.maxRounds ? null : "victory";
+  }
   const partyFighting = all.some((c) => c.side === "party" && canAct(state, c.actorId));
   if (!partyFighting) {
     const dying = all.some((c) => c.side === "party" && c.status === "dying");
@@ -422,21 +437,13 @@ export function combatOutcome(state: GameState, ctx: CombatContext): CombatOutco
   return null;
 }
 
-const DEFEAT_OUTCOMES = {
-  robbed: { minutes: 60, hook: "Track down the people who robbed you and take back what's yours" },
-  leftForDead: { minutes: 240, hook: "Find out who left you for dead, and settle the score" },
-  captured: { minutes: 480, hook: "Escape your captors" },
-  rescued: { minutes: 360, hook: "Repay the stranger who dragged you to safety" },
+const DEFEAT_HOOKS = {
+  robbed: "Track down the people who robbed you and take back what's yours",
+  leftForDead: "Find out who left you for dead, and settle the score",
+  captured: "Escape your captors",
+  rescued: "Repay the stranger who dragged you to safety",
 } as const;
-type DefeatKind = keyof typeof DEFEAT_OUTCOMES;
-const WEIGHTS: Record<CombatState["intent"], Partial<Record<DefeatKind, number>>> = {
-  kill: { leftForDead: 2, rescued: 1 },
-  rob: { robbed: 3, leftForDead: 1 },
-  capture: { captured: 3, rescued: 1 },
-  arrest: { captured: 3 },
-  driveOff: { leftForDead: 1, rescued: 1 },
-  prey: { leftForDead: 2, rescued: 1 },
-};
+type DefeatKind = keyof typeof DEFEAT_HOOKS;
 
 export type EndResult = { steps: CombatStep[]; summary: string; hook?: string };
 
@@ -453,7 +460,7 @@ export function endCombat(w: Working, outcome: CombatOutcome, ctx: CombatContext
   if (outcome === "victory") {
     const fallen = Object.values(combat.combatants).filter((c) => c.side === "enemy" && c.status !== "fled");
     const pcEq = sheetOf(w.state, pcId).equipment;
-    const carried = [...pcEq.carried];
+    const carried = pcEq.carried.map((c) => ({ ...c }));
     const loot: string[] = [];
     for (const f of fallen) {
       if (canAct(w.state, f.actorId) && f.status === "active") continue; // still standing (surrendered handled below)
@@ -529,7 +536,9 @@ export function endCombat(w: Working, outcome: CombatOutcome, ctx: CombatContext
     }
   } else if (outcome === "defeat" || outcome === "surrender") {
     const rng = new Rng(w.state.campaign.rngState);
-    const weights = Object.entries(WEIGHTS[combat.intent]) as Array<[DefeatKind, number]>;
+    const weights = Object.entries(
+      ctx.tuning.fight.defeatWeights[combat.intent] ?? { leftForDead: 1 },
+    ) as Array<[DefeatKind, number]>;
     const total = weights.reduce((s, [, n]) => s + n, 0);
     let roll = rng.int(1, total);
     let kind: DefeatKind = weights[0]![0];
@@ -541,7 +550,7 @@ export function endCombat(w: Working, outcome: CombatOutcome, ctx: CombatContext
       }
     }
     rngAfter = [...rng.state] as [number, number, number, number];
-    const o = DEFEAT_OUTCOMES[kind];
+    const o = { minutes: ctx.tuning.fight.defeatMinutes[kind], hook: DEFEAT_HOOKS[kind] };
     hook = o.hook;
     w.apply(restorePc(w.state, pcId, ctx));
     const eq = sheetOf(w.state, pcId).equipment;
@@ -603,6 +612,27 @@ export function endCombat(w: Working, outcome: CombatOutcome, ctx: CombatContext
     summary = "You got away.";
   } else {
     summary = "Both sides break off, too spent to go on.";
+  }
+  // After a fight the party survived, the unconscious come round (D91): conditions cleared, at least 1 HP.
+  if (outcome === "victory" || outcome === "truce" || outcome === "fled") {
+    for (const c of Object.values(combatOf(w.state).combatants)) {
+      if (c.side !== "party" || w.state.actors[c.actorId]?.dead || c.status === "dying") continue;
+      if (!hasCondition(w.state, c.actorId, "core:unconscious")) continue;
+      const r = removeCondition(w.state, c.actorId, "core:unconscious", "came round after the fight");
+      if (r.ok) w.apply(r.value);
+      const hp = sheetOf(w.state, c.actorId).status.hp;
+      if (hp < 1)
+        w.apply([
+          draft("HpChanged", { actorId: c.actorId, hp: 1, delta: 1 - hp, cause: "healing" }, "engine"),
+        ]);
+      steps.push({
+        actorId: c.actorId,
+        action: { type: "aftermath" },
+        outcome: "done",
+        summary: `${name(c.actorId)} came round, battered.`,
+        lines: [],
+      });
+    }
   }
   // Surrendered enemies stay behind, disarmed.
   for (const c of Object.values(combatOf(w.state).combatants)) {

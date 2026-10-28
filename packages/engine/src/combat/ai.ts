@@ -91,6 +91,20 @@ function candidatePlans(state: GameState, actorId: ActorId, ctx: CombatContext):
     return next ? [[...lead, { type: "move", toZoneId: next }]] : [[...lead, { type: "defend" }]];
   }
   if (hasCondition(state, actorId, "core:prone")) plans.push([{ type: "standUp" }]);
+  // Save the dying and bind the badly bleeding on our side.
+  for (const ally of Object.values(combatOf(state).combatants).filter((c) => c.side === me.side)) {
+    const az = zoneOf(state, ally.actorId);
+    const hurt =
+      ally.status === "dying" ||
+      (hasCondition(state, ally.actorId, "core:bleeding") && ally.actorId !== actorId);
+    if (!hurt || !az || state.actors[ally.actorId]?.dead) continue;
+    if (az === here) plans.push([{ type: "firstAid", targetId: ally.actorId }]);
+    else if (neighbours(state, here).some((n) => n.zoneId === az))
+      plans.push([
+        ...(engagedFoes.length ? [{ type: "disengage" } as CombatAction] : []),
+        { type: "move", toZoneId: az },
+      ]);
+  }
 
   const weapon = heldWeapon(state, actorId, ctx);
   const ranged = isRangedWeapon(weapon);
@@ -187,7 +201,7 @@ function hitChance(state: GameState, attackerId: ActorId, targetId: ActorId, ctx
   const p = Math.min(95, Math.max(5, skill + bandMod + coverMod)) / 100;
   const t = combatant(state, targetId);
   const defends = t && canAct(state, targetId) && (t.reaction || t.defendReaction);
-  return defends ? p * 0.65 : p;
+  return defends ? p * ctx.tuning.fight.aiDefenceFactor : p;
 }
 
 function expectedDamage(
@@ -259,6 +273,21 @@ function scorePlan(
         score += me.tactics === "cowardly" ? 2 : 0.5;
     } else if (a.type === "move" || a.type === "engage") {
       score += 0.2; // closing in is worth a little on its own
+      if (a.type === "move" && plan.length <= 2) {
+        const dyingThere = Object.values(combatOf(state).combatants).some(
+          (c) => c.side === me.side && c.status === "dying" && zoneOf(state, c.actorId) === a.toZoneId,
+        );
+        if (dyingThere) score += 6;
+      }
+    } else if (a.type === "firstAid") {
+      const t = combatant(state, a.targetId);
+      score +=
+        t?.status === "dying"
+          ? 12
+          : 1 +
+            0.8 *
+              (sheetOf(state, a.targetId).status.conditions.find((c) => c.id === "core:bleeding")?.level ??
+                0);
     } else if (a.type === "reload" || a.type === "standUp") {
       score += 1;
     }

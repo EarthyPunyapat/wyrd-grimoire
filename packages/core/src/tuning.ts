@@ -107,6 +107,15 @@ export type Tuning = {
     >;
     /** Utility AI: random jitter added to each plan score (fraction of the best score). */
     aiJitter: number;
+    /** Utility AI: how much an aware defender's reaction cuts the chance to hit. */
+    aiDefenceFactor: number;
+    /** Morale modifier for cowardly combatants. */
+    cowardlyMorale: number;
+    /** Rounds per in-game minute when a fight's time is added. */
+    roundsPerMinute: number;
+    /** Defeat outcomes: in-game minutes each takes, and weights by enemy intent (spec 03, Defeat). */
+    defeatMinutes: Record<"robbed" | "leftForDead" | "captured" | "rescued", number>;
+    defeatWeights: Record<string, Partial<Record<"robbed" | "leftForDead" | "captured" | "rescued", number>>>;
     /** Safety stop for automated rounds. */
     maxRounds: number;
   };
@@ -252,6 +261,18 @@ export const defaultTuning: Tuning = {
       huge: { toHit: 20, hpMultiplier: 4, wtBonus: 10 },
     },
     aiJitter: 0.05,
+    aiDefenceFactor: 0.65,
+    cowardlyMorale: -20,
+    roundsPerMinute: 10,
+    defeatMinutes: { robbed: 60, leftForDead: 240, captured: 480, rescued: 360 },
+    defeatWeights: {
+      kill: { leftForDead: 2, rescued: 1 },
+      rob: { robbed: 3, leftForDead: 1 },
+      capture: { captured: 3, rescued: 1 },
+      arrest: { captured: 3 },
+      driveOff: { leftForDead: 1, rescued: 1 },
+      prey: { leftForDead: 2, rescued: 1 },
+    },
     maxRounds: 30,
   },
   snapshotEvery: 200,

@@ -21,6 +21,7 @@ import {
   combatant,
   combatOf,
   currentActor,
+  hasCondition,
   heldWeapon,
   replaceCombatant,
   sheetOf,
@@ -46,13 +47,21 @@ function project(w: Working, actorId: ActorId, a: CombatAction, ctx: CombatConte
   if (a.type === "disengage" || a.type === "move") next = { ...next, engaged: unengage(actorId) };
   if (a.type === "reload") next = replaceCombatant(next, { ...next.combatants[actorId]!, loaded: true });
   if (a.type === "aim")
-    next = replaceCombatant(next, { ...next.combatants[actorId]!, aim: Math.min(2, me.aim + 1) });
+    next = replaceCombatant(next, {
+      ...next.combatants[actorId]!,
+      aim: Math.min(ctx.tuning.fight.maxAim, me.aim + 1),
+    });
   if (a.type === "defend") next = replaceCombatant(next, { ...next.combatants[actorId]!, defending: true });
   if (a.type === "strike" && heldWeapon(w.state, actorId, ctx)?.reloadAp)
     next = replaceCombatant(next, { ...next.combatants[actorId]!, loaded: false });
   w.apply([draft("CombatChanged", { combat: next }, "engine")]);
-  if (a.type === "move")
+  if (a.type === "move") {
+    if (hasCondition(w.state, actorId, "core:in-cover")) {
+      const r = removeCondition(w.state, actorId, "core:in-cover", "moved");
+      if (r.ok) w.apply(r.value);
+    }
     w.apply([draft("EntityMoved", { entityId: actorId, toZoneId: a.toZoneId }, "engine")]);
+  }
   if (a.type === "draw") {
     const eq = sheetOf(w.state, actorId).equipment;
     const wpn = weaponById(ctx, a.weaponId);
@@ -120,8 +129,21 @@ export function validateCombatPlan(
       });
       return;
     }
+    let e = validateCombatAction(w.state, actorId, r.data, combatant(w.state, actorId)!.ap, ctx);
+    // "I attack Mags" when Mags is in the room: closing in is implied (spec 03, Engagement).
+    if (e?.code === "NOT_ENGAGED" && "targetId" in r.data && r.data.targetId) {
+      const engage: CombatAction = { type: "engage", targetId: r.data.targetId };
+      if (!validateCombatAction(w.state, actorId, engage, combatant(w.state, actorId)!.ap, ctx)) {
+        const probe = new Working(w.state);
+        project(probe, actorId, engage, ctx);
+        if (!validateCombatAction(probe.state, actorId, r.data, combatant(probe.state, actorId)!.ap, ctx)) {
+          parsed.push(engage);
+          project(w, actorId, engage, ctx);
+          e = null;
+        }
+      }
+    }
     parsed.push(r.data);
-    const e = validateCombatAction(w.state, actorId, r.data, combatant(w.state, actorId)!.ap, ctx);
     if (e) errors.push({ actionIndex: i, ...e });
     else project(w, actorId, r.data, ctx);
   });
@@ -285,7 +307,11 @@ function finish(
     ran.steps.push(...e.steps.map((s) => ({ ...s, phase: "others" as const })));
     ended = { summary: e.summary, ...(e.hook ? { hook: e.hook } : {}) };
     w.apply([
-      draft("TimeAdvanced", { minutes: Math.max(1, Math.ceil(rounds / 10)), reason: "combat" }, "engine"),
+      draft(
+        "TimeAdvanced",
+        { minutes: Math.max(1, Math.ceil(rounds / ctx.tuning.fight.roundsPerMinute)), reason: "combat" },
+        "engine",
+      ),
     ]);
   }
   return { events: w.events, resolution: toResolution(actorId, w, ran, ended, roundAtStart) };

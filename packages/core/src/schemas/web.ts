@@ -37,8 +37,15 @@ export const QuickStartInput = z
 export const LegacyInput = z
   .object({
     characterName: z.string().trim().min(1).max(80),
-    archetype: z.string().regex(/^[a-z0-9:-]+$/),
-    ancestry: z.string().regex(/^[a-z0-9:-]+$/),
+    /** Defaults to the fallen character's origin and background. */
+    archetype: z
+      .string()
+      .regex(/^[a-z0-9:-]+$/)
+      .optional(),
+    ancestry: z
+      .string()
+      .regex(/^[a-z0-9:-]+$/)
+      .optional(),
   })
   .strict();
 export const SubmitTurnInput = z
