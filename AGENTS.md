@@ -4,6 +4,7 @@ Wyrd Grimoire is a solo, any-genre LLM role-playing engine: a TypeScript (Bun) w
 
 ## Where things are
 
+- `HANDOFF.md` (if present) — the current branch, milestone status and what to do next, left by the previous agent. Read it right after this file.
 - `docs/milestones.md` — the build order and acceptance checks. Read it at the start of every task to find the current milestone.
 - `docs/spec/00-overview.md` — glossary and a map of every spec file. Read the spec files the current milestone lists before writing code.
 - `docs/decisions.md` — every design decision and why. Read it when a design choice looks wrong or unsettled: decisions there are settled, so raise a concern with the owner instead of changing course.
