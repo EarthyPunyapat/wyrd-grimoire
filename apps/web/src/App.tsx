@@ -237,7 +237,7 @@ function Unlock({ setupRequired, onUnlock }: { setupRequired: boolean; onUnlock:
   return (
     <main id="main" className="unlock home">
       <div className="eyebrow">THE STORY AWAITS</div>
-      <h1>{setupRequired ? "A key to your world." : "Welcome back, traveller."}</h1>
+      <h1>{setupRequired ? "A key to your world." : "Welcome back."}</h1>
       <p>
         {setupRequired
           ? "On the host PC, choose a passcode of at least 12 characters. Use it to unlock this grimoire from your other devices."
