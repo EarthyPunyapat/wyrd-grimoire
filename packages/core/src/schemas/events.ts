@@ -1,0 +1,106 @@
+import { z } from "zod";
+import { CheckResolvedPayload } from "./check.ts";
+import { ActorId, ContentId, RngStateSchema } from "./common.ts";
+import { CampaignSettings } from "./settings.ts";
+import { CharacterSheet, ConditionInstance } from "./sheet.ts";
+
+/**
+ * Payload schemas for every event type the engine knows. Adding an event means adding it here
+ * and handling it in the engine reducer; a test asserts the two stay in sync.
+ */
+export const eventPayloadSchemas = {
+  CampaignCreated: z.object({
+    name: z.string().min(1),
+    settings: CampaignSettings,
+    packIds: z.array(z.string()).min(1),
+    packHash: z.string().optional(),
+    rngState: RngStateSchema,
+    gameTime: z.number().int().nonnegative().default(0),
+  }),
+  SettingsChanged: z.object({
+    settings: CampaignSettings,
+    changed: z.array(z.string()), // dotted paths, e.g. "narration.showMath"
+  }),
+  BranchForked: z.object({ fromBranchId: z.string(), forkSeq: z.number().int().nonnegative() }),
+  ActorCreated: z.object({
+    role: z.enum(["pc", "companion", "npc"]),
+    sheet: CharacterSheet,
+  }),
+  CheckResolved: CheckResolvedPayload,
+  LuckSpent: z.object({
+    actorId: ActorId,
+    amount: z.number().int().positive(),
+    purpose: z.enum(["reroll", "downgradeWound"]),
+    woundId: z.string().optional(),
+  }),
+  LuckRegained: z.object({
+    actorId: ActorId,
+    amount: z.number().int().positive(),
+    reason: z.enum(["chapterClosed", "arcClosed", "ability", "other"]),
+  }),
+  ConditionApplied: z.object({ actorId: ActorId, condition: ConditionInstance }),
+  ConditionRemoved: z.object({ actorId: ActorId, conditionId: ContentId, reason: z.string().optional() }),
+  TimeAdvanced: z.object({ minutes: z.number().int().positive(), reason: z.string() }),
+} as const;
+
+export type EventType = keyof typeof eventPayloadSchemas;
+export const EVENT_TYPES = Object.keys(eventPayloadSchemas) as EventType[];
+export type EventPayload<T extends EventType = EventType> = z.infer<(typeof eventPayloadSchemas)[T]>;
+
+export const EventSource = z.enum(["engine", "model", "player", "system"]);
+export type EventSource = z.infer<typeof EventSource>;
+
+export const CURRENT_EVENT_SCHEMA_VERSION = 1;
+
+export const EventEnvelopeSchema = z.object({
+  id: z.string(),
+  campaignId: z.string(),
+  branchId: z.string(),
+  seq: z.number().int().positive(),
+  turnId: z.string().nullable(),
+  type: z.string(),
+  payload: z.unknown(),
+  source: EventSource,
+  gameTime: z.number().int().nonnegative(),
+  createdAt: z.string(),
+  schemaVersion: z.number().int().positive(),
+});
+
+export type EventEnvelope<T extends EventType = EventType> = {
+  [K in T]: {
+    id: string;
+    campaignId: string;
+    branchId: string;
+    seq: number;
+    turnId: string | null;
+    type: K;
+    payload: EventPayload<K>;
+    source: EventSource;
+    gameTime: number;
+    createdAt: string;
+    schemaVersion: number;
+  };
+}[T];
+
+/** What the engine emits: an event without the envelope fields that storage assigns. */
+export type EventDraft<T extends EventType = EventType> = {
+  [K in T]: { type: K; payload: EventPayload<K>; source?: EventSource };
+}[T];
+
+export function isEventType(type: string): type is EventType {
+  return Object.hasOwn(eventPayloadSchemas, type);
+}
+
+/** Validate an event payload against its type's schema; throws a ZodError on bad input. */
+export function parseEventPayload<T extends EventType>(type: T, payload: unknown): EventPayload<T> {
+  return eventPayloadSchemas[type].parse(payload) as EventPayload<T>;
+}
+
+/** Build a draft with a type-checked payload. */
+export function draft<T extends EventType>(
+  type: T,
+  payload: EventPayload<T>,
+  source?: EventSource,
+): EventDraft<T> {
+  return { type, payload, ...(source ? { source } : {}) } as EventDraft<T>;
+}

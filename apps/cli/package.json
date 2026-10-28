@@ -1,0 +1,12 @@
+{
+  "name": "@wyrd/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@wyrd/core": "workspace:*",
+    "@wyrd/engine": "workspace:*",
+    "@wyrd/packs": "workspace:*",
+    "@wyrd/storage": "workspace:*"
+  }
+}

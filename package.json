@@ -1,0 +1,23 @@
+{
+  "name": "wyrd-grimoire",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "wyrd": "bun apps/cli/src/main.ts",
+    "typecheck": "tsc -p .",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "test": "bun test",
+    "check": "bun run typecheck && bun run lint && bun test && bun run wyrd pack validate packs/fantasy-core"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.3",
+    "@types/bun": "^1.4.4",
+    "fast-check": "^4.10.2",
+    "typescript": "^7.0.2"
+  }
+}
