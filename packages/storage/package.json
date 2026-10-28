@@ -7,7 +7,9 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@wyrd/core": "workspace:*",
+    "@wyrd/core": "workspace:*"
+  },
+  "devDependencies": {
     "@wyrd/engine": "workspace:*"
   }
 }
