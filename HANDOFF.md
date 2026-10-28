@@ -39,6 +39,16 @@ that close SQLite files before deleting temp folders; keep both in mind for new 
 
 Every M1 implementation choice is recorded in `docs/decisions.md` as D41–D51.
 
-## Next: M2 — The model loop
+## M2 — The model loop (branch `m2-model-loop`, stacked on `m1-engine-core`)
 
-Read `docs/milestones.md` (M2) and specs 07, 08 and 09. Start with `packages/llm`: FakeProvider and the cassette format first, so the pipeline can be built and tested offline. Anything marked `VERIFY:` in spec 09 (ChatGPT plan / Responses API details) must be checked against official docs before it is coded.
+Build order (each step is its own commit):
+
+- [x] **A. llm foundation** — `packages/llm`: `ChatProvider` interface (`types.ts`), `FakeProvider`, `collect`, `RoleRouter` (fallback chains, retry transient once, bench a provider on `usage_limit`/`not_eligible`/`auth` instead of looping, one usage record per attempt), presets, price table, `CassetteProvider` (record/replay keyed by request hash, secrets scrubbed). `UsageRecord`/`Role` schemas live in `core`.
+- [x] **B. Canon + turn events** — `EntityCreated`, `FactAsserted`, `SceneOpened/Closed`, `EntityMoved`, `TurnStarted`, `TurnCompleted`, `NarrationCommitted/Rerolled` (`core/src/schemas/canon.ts`). Engine tracks scene presence (`GameState.scene.positions`); storage projects `entities`, `facts`, `turns` (migration v2); `CanonQueries` reads them.
+- [x] **C. Exploration actions** — `core/src/schemas/actions.ts` + `engine/src/exploration.ts`: `validatePlan` (stable codes + legal alternatives) and `resolvePlan` (re-validates each step, stops mid-plan, emits events + `Resolution` with required beats).
+- [x] **D. Context assembler v1** — `packages/memory/src/assembler.ts` (parser/narrator/guard).
+- [ ] **E. Turn pipeline** — `packages/llm/src/pipeline.ts` + `prompts/`: parse → validate → repair (max 2) → clarify → resolve → narrate → guard v1 (contradictions, state claims, new entities) → regenerate once → flag → commit one transaction; reroll; mechanical-summary fallback.
+- [ ] **F. Test location + terminal loop** — `packs/fantasy-core/worlds/ashford-ferry/world.yaml`, world loader in `packs`, `wyrd play` in the CLI.
+- [ ] **G. Real adapters** — openai-compatible (DeepSeek/Ollama), anthropic, chatgpt-plan (SIWC OAuth PKCE + Responses API), secrets in `WYRD_HOME/secrets/` with atomic writes; mocked-HTTP contract tests. Everything marked VERIFY in spec 09 must be checked against official docs.
+
+Acceptance 2 and 3 (real ChatGPT sign-in, a 20-turn session with real DeepSeek + ChatGPT) need the owner's accounts on the host PC; the code can be finished and tested offline, but those boxes are ticked only after the owner runs them.
