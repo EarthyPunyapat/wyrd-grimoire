@@ -37,7 +37,7 @@ test("dialogue uses names and important references are emphasized safely", async
   await expect(page.locator(".prose")).not.toContainText("A voice");
   await page.reload();
   await expect(page.locator(".speaker")).toHaveText(["Mina Vale", "Jules Park"]);
-  await page.screenshot({ path: `../../outputs/m3-reading-${info.project.name}.png`, fullPage: true });
+  await page.screenshot({ path: info.outputPath("m3-reading.png"), fullPage: true });
 });
 
 test("quick start, live turn, reroll, reload and character sheet", async ({ page }, info) => {
@@ -58,7 +58,7 @@ test("quick start, live turn, reroll, reload and character sheet", async ({ page
   await expect(page.getByLabel("What do you do?", { exact: true })).toBeEnabled();
   expect(await page.locator(".mechanics").textContent()).toBe(mechanics);
   await expect(page.locator(".story")).not.toContainText(/tokens|\$\d|cost estimate/i);
-  await page.screenshot({ path: `../../outputs/m3-${info.project.name}.png`, fullPage: true });
+  await page.screenshot({ path: info.outputPath("m3.png"), fullPage: true });
   await page.reload();
   await expect(page.locator(".prose")).toContainText("offline narrator");
   if (info.project.name === "phone") {
