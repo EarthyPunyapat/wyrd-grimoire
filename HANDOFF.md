@@ -47,7 +47,7 @@ M2 implementation choices are D52–D63 in `docs/decisions.md`.
 
 ### Acceptance status
 
-- [ ] **FakeProvider end to end in CI** (repair → clarification, guard regeneration): covered by `packages/llm/test/pipeline.test.ts`. Tick once CI is green on the M2 PR.
+- [x] **FakeProvider end to end in CI** (repair → clarification, guard regeneration): `packages/llm/test/pipeline.test.ts`, green on Linux and Windows (PR #2).
 - [ ] **Continue with ChatGPT on the host PC; refresh and rotation; mocked 429 falls back without loops.** The mocked parts are tested (`packages/llm/test/chatgpt.test.ts`). The owner must run `bun run wyrd connect chatgpt` on the main PC, then play a few turns, then (after an hour, or by editing `expires_at` in the record) play again to exercise a real refresh.
 - [ ] **20-turn session with real DeepSeek + ChatGPT plan** in Ashford Ferry, every blocking guard issue regenerated away or flagged. Owner-only; see "Real play" below. Run it with `--input` lines or interactively and keep the transcript.
 - [x] **Usage records for every call**: the router writes one per attempt; the CLI appends them to `WYRD_HOME/usage.jsonl`.

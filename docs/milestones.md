@@ -35,7 +35,7 @@ Each milestone lists its scope, the spec sections it implements, and acceptance 
 - A terminal play loop for testing before the UI exists, against a small hand-authored test location.
 
 **Acceptance**
-- [ ] With FakeProvider, an exploration turn runs end to end in CI, including a repair → clarification path and a guard regeneration path.
+- [x] With FakeProvider, an exploration turn runs end to end in CI, including a repair → clarification path and a guard regeneration path.
 - [ ] Connecting ChatGPT via "Continue with ChatGPT" works on the host PC; tokens refresh and rotate; a mocked `429` usage-limit error switches the narrator to its fallback without retry loops.
 - [ ] With real DeepSeek + ChatGPT plan: a 20-turn exploration session in the test location with every blocking guard issue either regenerated away or flagged.
 - [x] Usage records written for every call.
