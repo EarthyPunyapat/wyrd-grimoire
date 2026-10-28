@@ -1,6 +1,5 @@
 import type { Database } from "bun:sqlite";
 import type { Entity, Fact } from "@wyrd/core";
-import type { CampaignStore } from "./campaign-store.ts";
 
 /** A finished (or in-progress) turn as recorded in the `turns` projection. */
 export type TurnRecord = {
@@ -19,7 +18,8 @@ export type TurnRecord = {
 export class CanonQueries {
   private readonly db: Database;
 
-  constructor(store: CampaignStore<{ campaign: { gameTime: number } }>) {
+  /** Takes a CampaignStore (or anything exposing its database). */
+  constructor(store: { readonly db: Database }) {
     this.db = store.db;
   }
 
