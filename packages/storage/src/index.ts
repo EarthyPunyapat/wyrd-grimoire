@@ -1,3 +1,4 @@
+export * from "./app-store.ts";
 export * from "./campaign-store.ts";
 export { CanonQueries, type TurnRecord } from "./canon-queries.ts";
 export { applyProjections, resetProjections } from "./projections.ts";
