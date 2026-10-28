@@ -1,0 +1,15 @@
+{
+  "name": "@wyrd/llm",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@wyrd/core": "workspace:*",
+    "@wyrd/engine": "workspace:*",
+    "@wyrd/memory": "workspace:*",
+    "zod": "^4.1.0"
+  }
+}

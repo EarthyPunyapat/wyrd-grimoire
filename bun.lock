@@ -36,6 +36,25 @@
         "@wyrd/core": "workspace:*",
       },
     },
+    "packages/llm": {
+      "name": "@wyrd/llm",
+      "version": "0.1.0",
+      "dependencies": {
+        "@wyrd/core": "workspace:*",
+        "@wyrd/engine": "workspace:*",
+        "@wyrd/memory": "workspace:*",
+        "zod": "^4.1.0",
+      },
+    },
+    "packages/memory": {
+      "name": "@wyrd/memory",
+      "version": "0.1.0",
+      "dependencies": {
+        "@wyrd/core": "workspace:*",
+        "@wyrd/engine": "workspace:*",
+        "@wyrd/storage": "workspace:*",
+      },
+    },
     "packages/packs": {
       "name": "@wyrd/packs",
       "version": "0.1.0",
@@ -129,6 +148,10 @@
     "@wyrd/core": ["@wyrd/core@workspace:packages/core"],
 
     "@wyrd/engine": ["@wyrd/engine@workspace:packages/engine"],
+
+    "@wyrd/llm": ["@wyrd/llm@workspace:packages/llm"],
+
+    "@wyrd/memory": ["@wyrd/memory@workspace:packages/memory"],
 
     "@wyrd/packs": ["@wyrd/packs@workspace:packages/packs"],
 
