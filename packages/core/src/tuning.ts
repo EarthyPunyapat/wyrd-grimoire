@@ -1,5 +1,31 @@
 import type { Difficulty } from "./schemas/common.ts";
 
+export type LocationKind = "head" | "torso" | "arm" | "leg";
+
+/** What one wound severity does at one body location. Read by hit resolution and the check penalties. */
+export type WoundEffect = {
+  penalty?: { scope: "physical" | "movement" | "sameArm" | "all"; value: number };
+  /** Applied when the wound is inflicted. */
+  conditions?: Array<{ id: string; level?: number }>;
+  /** Bleeding levels the wound adds. */
+  bleeding?: number;
+  /** By damage type; replaces `bleeding` and the cut bonus. */
+  bleedingIf?: Record<string, number>;
+  /** Damage types that fracture. */
+  fractureIf?: string[];
+  lethalCheck?: boolean;
+  /** Read in steps B and C. */
+  moveCost?: number;
+  dropHeld?: boolean;
+  armUseless?: boolean;
+  cantStand?: boolean;
+  /** Cut only. */
+  severAtWtMultiple?: number;
+  permanentRisk?: boolean;
+  /** Required narration beat, e.g. "internal injury". */
+  beat?: string;
+};
+
 /**
  * Every tuning number the rules use. Defaults live here; the app overrides them from `app.db`.
  * Spec numbers are defaults, not constants: rules code reads them from a Tuning value.
@@ -39,6 +65,22 @@ export type Tuning = {
     archetypeTalents: number;
     freeTalents: number;
   };
+  combat: {
+    woundThresholdMultiples: Record<"minor" | "serious" | "critical", number>;
+    hpMaxReduction: Record<"minor" | "serious" | "critical", number>;
+    /** Strength bonus is floor((STR − strBonusBase) / strBonusDivisor). */
+    strBonusBase: number;
+    strBonusDivisor: number;
+    maxArmourLayers: number;
+    critArmourDivisor: number;
+    cutBleedingBonus: number;
+    maxBleeding: number;
+    downCheck: Difficulty;
+    lethalCheck: Difficulty;
+    unarmed: { damage: string; damageType: string };
+    woundEffects: Record<LocationKind, Record<"minor" | "serious" | "critical", WoundEffect>>;
+    simpleWoundPenalty: Record<"minor" | "serious" | "critical", number>;
+  };
   snapshotEvery: number;
 };
 
@@ -72,6 +114,65 @@ export const defaultTuning: Tuning = {
     interestMaxPerSkill: 30,
     archetypeTalents: 1,
     freeTalents: 1,
+  },
+  combat: {
+    woundThresholdMultiples: { minor: 1, serious: 2, critical: 3 },
+    hpMaxReduction: { minor: 2, serious: 5, critical: 10 },
+    strBonusBase: 5,
+    strBonusDivisor: 2,
+    maxArmourLayers: 2,
+    critArmourDivisor: 2,
+    cutBleedingBonus: 1,
+    maxBleeding: 3,
+    downCheck: "normal",
+    lethalCheck: "hard",
+    unarmed: { damage: "1d3", damageType: "blunt" },
+    woundEffects: {
+      head: {
+        minor: { conditions: [{ id: "core:dazed" }], bleeding: 1 },
+        serious: { conditions: [{ id: "core:stunned" }, { id: "core:concussed" }], bleeding: 1 },
+        critical: {
+          conditions: [{ id: "core:unconscious" }, { id: "core:concussed" }],
+          bleeding: 2,
+          lethalCheck: true,
+          permanentRisk: true,
+        },
+      },
+      torso: {
+        minor: { bleeding: 1, penalty: { scope: "physical", value: -10 } },
+        serious: {
+          bleeding: 2,
+          penalty: { scope: "physical", value: -20 },
+          fractureIf: ["blunt"],
+        },
+        critical: {
+          bleeding: 3,
+          conditions: [{ id: "core:down" }],
+          lethalCheck: true,
+          beat: "internal injury",
+        },
+      },
+      arm: {
+        minor: { penalty: { scope: "sameArm", value: -10 } },
+        serious: {
+          dropHeld: true,
+          penalty: { scope: "sameArm", value: -20 },
+          fractureIf: ["blunt"],
+          bleedingIf: { cut: 2 },
+        },
+        critical: { armUseless: true, bleeding: 3, severAtWtMultiple: 4 },
+      },
+      leg: {
+        minor: { penalty: { scope: "movement", value: -10 } },
+        serious: {
+          conditions: [{ id: "core:prone" }],
+          moveCost: 2,
+          fractureIf: ["blunt"],
+        },
+        critical: { cantStand: true, bleeding: 3, permanentRisk: true },
+      },
+    },
+    simpleWoundPenalty: { minor: -10, serious: -20, critical: -30 },
   },
   snapshotEvery: 200,
 };
