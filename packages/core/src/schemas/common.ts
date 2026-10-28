@@ -36,6 +36,9 @@ export const ResolutionId = z.enum(["d100", "d20"]);
 export type ResolutionId = z.infer<typeof ResolutionId>;
 
 export const DamageType = z.string().min(1); // cut, pierce, blunt, burn, cold, shock, poison, plus pack types
+/** Which checks a wound penalty applies to. Shared by the wound effects table and the Wound schema. */
+export const PenaltyScope = z.enum(["physical", "movement", "sameArm", "all"]);
+export type PenaltyScope = z.infer<typeof PenaltyScope>;
 export const RangeBand = z.enum(["engaged", "close", "near", "far", "distant"]);
 export type RangeBand = z.infer<typeof RangeBand>;
 

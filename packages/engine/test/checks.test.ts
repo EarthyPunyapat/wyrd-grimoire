@@ -320,7 +320,11 @@ describe("Luck", () => {
   test("2 Luck downgrades a lethal wound to critical", () => {
     const s = new Sim();
     s.addActor("pc", "pc", {
-      status: { wounds: [{ id: "w1", location: "torso", severity: "lethal", hpMaxReduction: 10 }] },
+      status: {
+        wounds: [
+          { id: "w1", location: "torso", locationKind: "torso", severity: "lethal", hpMaxReduction: 10 },
+        ],
+      },
     });
     s.commit(unwrap(spendLuckDowngrade(s.state, "pc", "w1", ctx)));
     const st = s.state.actors.pc!.sheet.status;

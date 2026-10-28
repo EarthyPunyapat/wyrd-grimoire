@@ -5,6 +5,7 @@ export * from "./creation.ts";
 export * from "./derived.ts";
 export * from "./equipment.ts";
 export * from "./exploration.ts";
+export * from "./injury/hp.ts";
 export * from "./luck.ts";
 export * from "./reduce.ts";
 export * from "./resolution/d20.ts";

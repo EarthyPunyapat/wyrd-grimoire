@@ -1,10 +1,10 @@
-import type { Difficulty } from "./schemas/common.ts";
+import type { Difficulty, PenaltyScope } from "./schemas/common.ts";
 
 export type LocationKind = "head" | "torso" | "arm" | "leg";
 
 /** What one wound severity does at one body location. Read by hit resolution and the check penalties. */
 export type WoundEffect = {
-  penalty?: { scope: "physical" | "movement" | "sameArm" | "all"; value: number };
+  penalty?: { scope: PenaltyScope; value: number };
   /** Applied when the wound is inflicted. */
   conditions?: Array<{ id: string; level?: number }>;
   /** Bleeding levels the wound adds. */

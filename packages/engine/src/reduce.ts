@@ -1,4 +1,5 @@
 import type { CharacterSheet, EventEnvelope, EventType } from "@wyrd/core";
+import { effectiveHpMax } from "./injury/hp.ts";
 import type { ActorState, GameState } from "./state.ts";
 
 export type ReduceOptions = {
@@ -99,6 +100,39 @@ const handlers: { [K in Exclude<EventType, "CampaignCreated">]: Handler<K> } = {
     ...s,
     campaign: { ...s.campaign, gameTime: s.campaign.gameTime + e.payload.minutes },
   }),
+
+  HitResolved: (s, e) => ({ ...s, campaign: { ...s.campaign, rngState: e.payload.rngAfter } }),
+
+  HpChanged: (s, e) =>
+    updateSheet(s, e.payload.actorId, (sheet) => ({
+      ...sheet,
+      status: { ...sheet.status, hp: Math.min(e.payload.hp, effectiveHpMax(sheet)) },
+    })),
+
+  WoundInflicted: (s, e) =>
+    updateSheet(s, e.payload.actorId, (sheet) => {
+      const withWound = {
+        ...sheet,
+        status: { ...sheet.status, wounds: [...sheet.status.wounds, e.payload.wound] },
+      };
+      return {
+        ...withWound,
+        status: { ...withWound.status, hp: Math.min(withWound.status.hp, effectiveHpMax(withWound)) },
+      };
+    }),
+
+  WoundWorsened: (s, e) =>
+    updateStatus(s, e.payload.actorId, (st) => {
+      if (!st.wounds.some((w) => w.id === e.payload.woundId)) {
+        throw new Error(`Wound ${e.payload.woundId} not found on ${e.payload.actorId}`);
+      }
+      return {
+        ...st,
+        wounds: st.wounds.map((w) =>
+          w.id === e.payload.woundId ? { ...w, severity: e.payload.severity } : w,
+        ),
+      };
+    }),
 
   // Canon lives in storage projections; the engine only tracks who and what is in the scene.
   EntityCreated: (s, e) => {

@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { ActorId, AttributeId, ContentId, SkillId } from "./common.ts";
+import type { LocationKind } from "../tuning.ts";
+import { ActorId, AttributeId, ContentId, PenaltyScope, SkillId } from "./common.ts";
 
 export const AttributesSchema = z.record(AttributeId, z.number().int().min(1).max(10));
 export type Attributes = Record<AttributeId, number>;
@@ -26,13 +27,17 @@ export type ConditionInstance = z.infer<typeof ConditionInstance>;
 export const WoundSeverity = z.enum(["minor", "serious", "critical", "lethal"]);
 export type WoundSeverity = z.infer<typeof WoundSeverity>;
 
-/** Wound shape needed by the rules core (Luck can downgrade lethal → critical). Combat (M4) extends it. */
+/** A wound on an actor. `penalty` is copied from the wound effect when the wound is inflicted; check penalties read it. */
 export const Wound = z.object({
   id: z.string(),
   location: z.string(),
+  locationKind: z.enum(["head", "torso", "arm", "leg"] as const satisfies readonly LocationKind[]),
   severity: WoundSeverity,
   damageType: z.string().optional(),
   hpMaxReduction: z.number().int().nonnegative().default(0),
+  fracture: z.boolean().default(false),
+  severed: z.boolean().default(false),
+  penalty: z.object({ scope: PenaltyScope, value: z.number().int() }).optional(),
 });
 export type Wound = z.infer<typeof Wound>;
 

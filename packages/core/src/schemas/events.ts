@@ -3,7 +3,7 @@ import { Entity, Fact, NarrationPayload, SceneState, TurnCompletedPayload } from
 import { CheckResolvedPayload } from "./check.ts";
 import { ActorId, ContentId, RngStateSchema } from "./common.ts";
 import { CampaignSettings } from "./settings.ts";
-import { CharacterSheet, ConditionInstance, Equipment } from "./sheet.ts";
+import { CharacterSheet, ConditionInstance, Equipment, Wound, WoundSeverity } from "./sheet.ts";
 
 /**
  * Payload schemas for every event type the engine knows. Adding an event means adding it here
@@ -43,6 +43,30 @@ export const eventPayloadSchemas = {
   ConditionRemoved: z.object({ actorId: ActorId, conditionId: ContentId, reason: z.string().optional() }),
   EquipmentChanged: z.object({ actorId: ActorId, equipment: Equipment }),
   TimeAdvanced: z.object({ minutes: z.number().int().positive(), reason: z.string() }),
+
+  // Injury (M4). Hit resolution emits HitResolved, then HP and wound events. The reducer writes rngAfter back.
+  HitResolved: z.object({
+    attackerId: ActorId.nullable(),
+    targetId: ActorId,
+    weaponId: ContentId.nullable(),
+    location: z.string(),
+    locationRoll: z.number().int().nullable(),
+    damageRolls: z.array(z.number().int()),
+    raw: z.number().int(),
+    protection: z.number().int(),
+    final: z.number().int(),
+    crit: z.boolean(),
+    rngAfter: RngStateSchema,
+  }),
+  /** `hp` is the new current HP; the reducer clamps it to the effective max. */
+  HpChanged: z.object({
+    actorId: ActorId,
+    hp: z.number().int().nonnegative(),
+    delta: z.number().int(),
+    cause: z.enum(["damage", "bleeding", "healing"]),
+  }),
+  WoundInflicted: z.object({ actorId: ActorId, wound: Wound }),
+  WoundWorsened: z.object({ actorId: ActorId, woundId: z.string(), severity: WoundSeverity }),
 
   // Canon (projections in storage; the engine only tracks what's present in the scene).
   EntityCreated: z.object({

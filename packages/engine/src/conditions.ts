@@ -90,6 +90,8 @@ export const CORE_CONDITIONS: readonly ConditionDef[] = [
     name: "Unconscious",
     onCheck: (ctx) => (has(ctx, "resist") ? undefined : { blocked: "Unconscious" }),
   },
+  // Down: knocked down by a critical torso wound. Its effects on attackers and AP come with combat.
+  { id: "core:down", name: "Down" },
   { id: "core:hidden", name: "Hidden" },
   { id: "core:in-cover", name: "In Cover", variants: ["partial", "full"] },
   {
