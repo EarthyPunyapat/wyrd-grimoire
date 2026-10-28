@@ -1,5 +1,6 @@
 export * from "./ids.ts";
 export * from "./rng.ts";
+export * from "./schemas/actions.ts";
 export * from "./schemas/canon.ts";
 export * from "./schemas/check.ts";
 export * from "./schemas/common.ts";

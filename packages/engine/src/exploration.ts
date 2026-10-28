@@ -1,0 +1,436 @@
+import {
+  ATTRIBUTE_IDS,
+  ATTRIBUTE_NAMES,
+  type AttributeId,
+  type CheckRequestInput,
+  type Difficulty,
+  draft,
+  type EventDraft,
+  type EventEnvelope,
+  ExplorationAction,
+  type ExplorationActionInput,
+  type Modifier,
+  type Resolution,
+  type ResolvedStep,
+  type SceneState,
+} from "@wyrd/core";
+import { resolveCheck, resolveOpposedCheck } from "./checks.ts";
+import { reduce } from "./reduce.ts";
+import { isSuccess } from "./resolution/index.ts";
+import { fail, ok, type Result } from "./result.ts";
+import { lookupSkill } from "./skills.ts";
+import type { GameState, RulesContext } from "./state.ts";
+
+/**
+ * Exploration turns (spec 08): validate a parsed plan against the scene, then resolve it into
+ * events plus a structured Resolution for the narrator. Pure: canon names come in through
+ * `nameOf`, never from storage.
+ */
+export type ExplorationContext = RulesContext & {
+  /** Display name for an actor, entity, zone or prop ID. */
+  nameOf: (id: string) => string;
+  /** Minutes each kind of action takes. */
+  minutes?: Partial<Record<ExplorationAction["type"], number>>;
+};
+
+const DEFAULT_MINUTES: Record<ExplorationAction["type"], number> = {
+  check: 1,
+  examine: 0,
+  search: 10,
+  interact: 0,
+  move: 1,
+  wait: 0,
+  talk: 1,
+};
+
+/** Difficulty range the parser may propose for a free-form check; harder steps need rule tables. */
+const PARSER_DIFFICULTIES: readonly Difficulty[] = ["easy", "normal", "hard", "extreme"];
+const MAX_WAIT_MINUTES = 8 * 60;
+
+export type PlanError = {
+  actionIndex: number;
+  code: string;
+  message: string;
+  legalAlternatives?: ExplorationActionInput[];
+};
+
+export type ValidatedPlan = { actorId: string; actions: ExplorationAction[] };
+
+const APPROACH_SKILL = {
+  persuade: "core:persuasion",
+  deceive: "core:deception",
+  intimidate: "core:intimidation",
+  charm: "core:persuasion",
+} as const;
+
+/** Normalises a skill reference the parser wrote: `stealth` → `core:stealth`, `END` → attribute. */
+export function normaliseSkill(
+  raw: string,
+  ctx: RulesContext,
+): { skill: string | { attribute: AttributeId } } | null {
+  const s = raw.trim().toLowerCase();
+  if ((ATTRIBUTE_IDS as readonly string[]).includes(s)) return { skill: { attribute: s as AttributeId } };
+  const byName = ATTRIBUTE_IDS.find((a) => ATTRIBUTE_NAMES[a].toLowerCase() === s);
+  if (byName) return { skill: { attribute: byName } };
+  const candidates = s.includes(":")
+    ? [s]
+    : [
+        `core:${s}`,
+        ...Object.keys(ctx.skills)
+          .filter((k) => k.endsWith(`:${s.split("/")[0]}`))
+          .map((k) => (s.includes("/") ? `${k}/${s.split("/")[1]}` : k)),
+      ];
+  for (const c of candidates) {
+    try {
+      lookupSkill(c, ctx.skills);
+      return { skill: c };
+    } catch {
+      // try the next candidate
+    }
+  }
+  return null;
+}
+
+const present = (scene: SceneState, id: string) => id in scene.positions || id === scene.locationId;
+const propIn = (scene: SceneState, id: string) => scene.zones.some((z) => z.props.some((p) => p.id === id));
+
+/** Zones reachable from `from`, with path length in edges (breadth-first). Edges with `requires` aren't walkable. */
+function reachable(scene: SceneState, from: string): Map<string, number> {
+  const dist = new Map([[from, 0]]);
+  const queue = [from];
+  while (queue.length) {
+    const z = queue.shift()!;
+    for (const e of scene.edges) {
+      if (e.requires) continue;
+      const next = e.a === z ? e.b : e.b === z ? e.a : null;
+      if (next && !dist.has(next)) {
+        dist.set(next, dist.get(z)! + e.moveCost);
+        queue.push(next);
+      }
+    }
+  }
+  return dist;
+}
+
+function validateOne(
+  state: GameState,
+  actorId: string,
+  a: ExplorationAction,
+  index: number,
+  ctx: ExplorationContext,
+): PlanError | null {
+  const scene = state.scene!;
+  const err = (code: string, message: string, legalAlternatives?: ExplorationActionInput[]): PlanError => ({
+    actionIndex: index,
+    code,
+    message,
+    ...(legalAlternatives ? { legalAlternatives } : {}),
+  });
+  const here = scene.positions[actorId];
+  const lookAround: ExplorationActionInput[] = [{ type: "examine", area: "the surroundings" }];
+
+  switch (a.type) {
+    case "check": {
+      if (!normaliseSkill(a.skill, ctx))
+        return err("SKILL_UNKNOWN", `There is no skill or attribute called "${a.skill}"`);
+      if (a.targetId && !present(scene, a.targetId) && !propIn(scene, a.targetId)) {
+        return err("TARGET_NOT_PRESENT", `${a.targetId} isn't here`, lookAround);
+      }
+      return null;
+    }
+    case "examine":
+    case "search":
+      if (a.targetId && !present(scene, a.targetId) && !propIn(scene, a.targetId)) {
+        return err("TARGET_NOT_PRESENT", `${a.targetId} isn't here`, [
+          { type: a.type, area: a.area ?? "the surroundings" },
+        ]);
+      }
+      return null;
+    case "interact":
+      if (!present(scene, a.targetId) && !propIn(scene, a.targetId)) {
+        return err("TARGET_NOT_PRESENT", `${a.targetId} isn't here`, lookAround);
+      }
+      return null;
+    case "move": {
+      if (!scene.zones.some((z) => z.id === a.toZoneId)) {
+        const options = scene.zones
+          .filter((z) => z.id !== here)
+          .map((z) => ({ type: "move" as const, toZoneId: z.id }));
+        return err("ZONE_UNKNOWN", `There is no place called ${a.toZoneId} here`, options);
+      }
+      if (a.toZoneId === here) return err("ALREADY_THERE", `Already in ${ctx.nameOf(a.toZoneId)}`);
+      if (!here) return err("NOT_IN_SCENE", "The actor isn't in the scene");
+      if (!reachable(scene, here).has(a.toZoneId)) {
+        const gated = scene.edges.find((e) => e.requires && (e.a === a.toZoneId || e.b === a.toZoneId));
+        if (gated?.requires === "climb") {
+          return err("ZONE_NEEDS_CLIMB", `Getting to ${ctx.nameOf(a.toZoneId)} needs a climb`, [
+            {
+              type: "check",
+              skill: "core:athletics",
+              goal: `climb to ${ctx.nameOf(a.toZoneId)}`,
+              proposedDifficulty: "normal",
+              reason: "a climb",
+            },
+          ]);
+        }
+        return err("ZONE_UNREACHABLE", `There's no way to ${ctx.nameOf(a.toZoneId)} from here`);
+      }
+      return null;
+    }
+    case "wait":
+      if (a.minutes > MAX_WAIT_MINUTES) {
+        return err("WAIT_TOO_LONG", `Waiting is at most ${MAX_WAIT_MINUTES} minutes; longer is a rest`, [
+          { type: "wait", minutes: MAX_WAIT_MINUTES },
+        ]);
+      }
+      return null;
+    case "talk":
+      if (!present(scene, a.targetId))
+        return err("TARGET_NOT_PRESENT", `${a.targetId} isn't here to talk to`, lookAround);
+      if (a.targetId === actorId) return err("TALK_TO_SELF", "Talking to yourself needs no action");
+      return null;
+  }
+}
+
+/**
+ * Validates a plan for the current state: shape (zod), mode, presence and reachability.
+ * Errors carry stable codes and, where useful, legal alternatives for the repair loop.
+ */
+export function validatePlan(
+  state: GameState,
+  actorId: string,
+  actions: readonly unknown[],
+  ctx: ExplorationContext,
+): Result<ValidatedPlan> & { planErrors?: PlanError[] } {
+  const errors: PlanError[] = [];
+  if (state.mode !== "exploration") {
+    return { ...fail("MODE_UNSUPPORTED", `Mode ${state.mode} isn't playable yet`), planErrors: [] };
+  }
+  if (!state.scene) return { ...fail("NO_SCENE", "No scene is open"), planErrors: [] };
+  if (!state.actors[actorId] && !(actorId in state.scene.positions)) {
+    return { ...fail("ACTOR_UNKNOWN", `No actor ${actorId}`), planErrors: [] };
+  }
+  if (actions.length === 0)
+    errors.push({ actionIndex: 0, code: "PLAN_EMPTY", message: "The plan has no actions" });
+
+  const parsed: ExplorationAction[] = [];
+  actions.forEach((raw, i) => {
+    const r = ExplorationAction.safeParse(raw);
+    if (!r.success) {
+      const type = (raw as { type?: unknown })?.type;
+      const known = ExplorationAction.options.some((o) => o.shape.type.value === type);
+      errors.push({
+        actionIndex: i,
+        code: known ? "ACTION_INVALID" : "ACTION_NOT_AVAILABLE",
+        message: known
+          ? r.error.issues.map((x) => `${x.path.join(".")}: ${x.message}`).join("; ")
+          : `"${String(type)}" isn't an exploration action; use one of ${ExplorationAction.options.map((o) => o.shape.type.value).join(", ")}`,
+      });
+      return;
+    }
+    parsed.push(r.data);
+    const e = validateOne(state, actorId, r.data, i, ctx);
+    if (e) errors.push(e);
+  });
+  if (errors.length) {
+    return { ok: false, errors: errors.map(({ code, message }) => ({ code, message })), planErrors: errors };
+  }
+  return ok({ actorId, actions: parsed });
+}
+
+const LIGHT_MODIFIER: Record<SceneState["light"], Modifier | null> = {
+  bright: null,
+  dim: { source: "dim light", value: -20 },
+  dark: { source: "darkness", value: -40 },
+};
+
+/**
+ * Resolves a validated plan in order. Each action is re-validated against the state the earlier
+ * actions produced; if one no longer makes sense, execution stops there (spec 08, step 5).
+ */
+export function resolvePlan(
+  initial: GameState,
+  plan: ValidatedPlan,
+  ctx: ExplorationContext,
+): Result<{ events: EventDraft[]; resolution: Resolution }> {
+  let state = initial;
+  const events: EventDraft[] = [];
+  const steps: ResolvedStep[] = [];
+  const beats: string[] = [];
+  let minutes = 0;
+  let stoppedAt: number | undefined;
+  const actorName = ctx.nameOf(plan.actorId);
+  const minutesFor = (t: ExplorationAction["type"]) => ctx.minutes?.[t] ?? DEFAULT_MINUTES[t];
+
+  // Apply drafts to the working state so later steps see earlier results. Seq/ids are throwaway.
+  const apply = (drafts: EventDraft[]) => {
+    for (const d of drafts) {
+      state = reduce(state, {
+        id: "working",
+        campaignId: state.campaign.id,
+        branchId: "working",
+        seq: 0,
+        turnId: null,
+        type: d.type,
+        payload: d.payload,
+        source: d.source ?? "engine",
+        gameTime: state.campaign.gameTime,
+        createdAt: "",
+        schemaVersion: 1,
+      } as EventEnvelope);
+      events.push(d);
+    }
+  };
+
+  for (const [index, action] of plan.actions.entries()) {
+    const invalid = validateOne(state, plan.actorId, action, index, ctx);
+    if (invalid) {
+      stoppedAt = index;
+      beats.push(`${actorName} couldn't go on to the next thing: ${invalid.message}.`);
+      break;
+    }
+    const scene = state.scene!;
+    const step = (
+      outcome: ResolvedStep["outcome"],
+      summary: string,
+      mechanics?: ResolvedStep["mechanics"],
+    ) => {
+      steps.push({ index, action, outcome, summary, ...(mechanics ? { mechanics } : {}) });
+      beats.push(summary);
+    };
+
+    const runCheck = (req: CheckRequestInput, what: string) => {
+      const out = resolveCheck(state, req, ctx);
+      if (!out.ok) return out;
+      apply(out.value.events);
+      const eff = out.value.effective;
+      step(
+        eff.degree,
+        `${actorName} ${what}: ${eff.degree === "critSuccess" ? "a critical success" : eff.degree === "critFailure" ? "a critical failure" : eff.degree}.`,
+        eff.display,
+      );
+      return ok(true);
+    };
+
+    switch (action.type) {
+      case "check": {
+        const norm = normaliseSkill(action.skill, ctx)!;
+        const difficulty = PARSER_DIFFICULTIES.includes(action.proposedDifficulty)
+          ? action.proposedDifficulty
+          : "extreme";
+        const r = runCheck(
+          {
+            actorId: plan.actorId,
+            skill: norm.skill,
+            difficulty,
+            purpose: `${action.goal} (${action.reason})`,
+          },
+          `tries to ${action.goal}`,
+        );
+        if (!r.ok) return r;
+        break;
+      }
+      case "examine": {
+        const what = action.targetId ? ctx.nameOf(action.targetId) : (action.area ?? "the surroundings");
+        step(
+          "done",
+          `${actorName} examines ${what}. Describe only what can be seen, heard or smelled, and known facts.`,
+        );
+        break;
+      }
+      case "search": {
+        const what = action.targetId ? ctx.nameOf(action.targetId) : (action.area ?? "the area");
+        const light = LIGHT_MODIFIER[scene.light];
+        const r = runCheck(
+          {
+            actorId: plan.actorId,
+            skill: "core:perception",
+            difficulty: "normal",
+            modifiers: light ? [light] : [],
+            tags: ["sight"],
+            purpose: `search ${what}`,
+          },
+          `searches ${what}`,
+        );
+        if (!r.ok) return r;
+        break;
+      }
+      case "interact":
+        step("done", `${actorName} ${action.verb} ${ctx.nameOf(action.targetId)}.`);
+        break;
+      case "move": {
+        const dist = reachable(scene, scene.positions[plan.actorId]!).get(action.toZoneId) ?? 1;
+        apply([draft("EntityMoved", { entityId: plan.actorId, toZoneId: action.toZoneId }, "engine")]);
+        minutes += dist * minutesFor("move") - minutesFor("move");
+        step("done", `${actorName} goes to ${ctx.nameOf(action.toZoneId)}.`);
+        break;
+      }
+      case "wait":
+        minutes += action.minutes;
+        step("done", `${actorName} waits about ${action.minutes} minutes.`);
+        break;
+      case "talk": {
+        const target = ctx.nameOf(action.targetId);
+        const said = `${actorName} says to ${target}: "${action.utterance}"`;
+        if (action.approach === "neutral") {
+          step("done", `${said}. ${target} answers in character; they decide nothing the engine hasn't.`);
+          break;
+        }
+        const skill = APPROACH_SKILL[action.approach];
+        if (state.actors[action.targetId]) {
+          const out = resolveOpposedCheck(
+            state,
+            {
+              actorId: plan.actorId,
+              skill,
+              difficulty: "normal",
+              purpose: `${action.approach} ${target}`,
+              opposedBy: {
+                actorId: action.targetId,
+                skill: action.approach === "intimidate" ? { attribute: "wil" } : "core:insight",
+              },
+            },
+            ctx,
+          );
+          if (!out.ok) return out;
+          apply(out.value.events);
+          const won = out.value.winner === "active";
+          step(
+            won ? "success" : "failure",
+            `${said}. The attempt to ${action.approach} ${won ? "works" : "fails"}.`,
+            out.value.active.display,
+          );
+        } else {
+          const r = runCheck(
+            { actorId: plan.actorId, skill, difficulty: "normal", purpose: `${action.approach} ${target}` },
+            `tries to ${action.approach} ${target}`,
+          );
+          if (!r.ok) return r;
+          const last = steps.at(-1)!;
+          last.summary = `${said}. ${last.summary} ${isSuccess(last.outcome as never) ? `${target} is swayed.` : `${target} isn't swayed.`}`;
+          beats[beats.length - 1] = last.summary;
+        }
+        break;
+      }
+    }
+    minutes += minutesFor(action.type);
+  }
+
+  if (minutes > 0) apply([draft("TimeAdvanced", { minutes, reason: "exploration" }, "engine")]);
+  return ok({
+    events,
+    resolution: {
+      actorId: plan.actorId,
+      steps,
+      requiredBeats: beats,
+      forbidden: [],
+      ...(stoppedAt !== undefined ? { stoppedAt } : {}),
+      minutes,
+    },
+  });
+}
+
+/** Plain summary used when narration fails, so the turn still reads sensibly. */
+export function mechanicalSummary(resolution: Resolution): string {
+  return resolution.requiredBeats.join(" ");
+}
