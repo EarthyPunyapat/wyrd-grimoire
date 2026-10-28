@@ -74,7 +74,7 @@ const router = new RoleRouter({
   ),
 });
 const home = mkdtempSync(join(tmpdir(), "wyrd-e2e-"));
-const instance = createApp({ home, offline: true, router });
+const instance = createApp({ home, offline: true, router, seed: "e2e-combat" });
 instance.app.use("/*", webAssets(resolve("apps/web/dist")));
 const server = Bun.serve({
   hostname: "127.0.0.1",

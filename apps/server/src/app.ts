@@ -66,7 +66,15 @@ const LOGIN_WINDOW = 15 * 60 * 1000;
 const digest = (text: string) => createHash("sha256").update(text).digest("hex");
 const loopback = (ip: string) => ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(ip);
 export type AppEnvironment = { Bindings: { remoteAddress?: string }; Variables: SecureHeadersVariables };
-type Options = { home: string; offline: boolean; packDir?: string; router?: RoleRouter; now?: () => number };
+type Options = {
+  home: string;
+  offline: boolean;
+  packDir?: string;
+  router?: RoleRouter;
+  now?: () => number;
+  /** Tests only: seed every new campaign's dice the same way. */
+  seed?: string;
+};
 
 export function createApp(options: Options) {
   mkdirSync(options.home, { recursive: true });
@@ -321,7 +329,7 @@ export function createApp(options: Options) {
         name: input.name,
         packIds: [pack.manifest.id],
         packHash: pack.hash,
-        seed: randomBytes(16).toString("hex"),
+        seed: options.seed ?? randomBytes(16).toString("hex"),
       }),
     );
     const sheet = buildPc("pc", input, pack, created.payload.settings);

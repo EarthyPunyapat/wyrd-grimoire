@@ -1,6 +1,8 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import type { GameView } from "@wyrd/core";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { api } from "./api.ts";
+import { CombatPanel, CombatStrip } from "./Combat.tsx";
 import { NarrativeText, narrationContext } from "./Narration.tsx";
 import { Mechanics, Passage } from "./Passage.tsx";
 import { Sheet } from "./Sheet.tsx";
@@ -9,10 +11,19 @@ import { usePlay } from "./use-play.ts";
 export function Play({ view, onView }: { view: GameView; onView: (view: GameView) => void }) {
   const [input, setInput] = useState("");
   const [sheet, setSheet] = useState(false);
+  const [combatOpen, setCombatOpen] = useState(false);
+  const [tab, setTab] = useState<"combat" | "sheet">("combat");
+  const [legacyName, setLegacyName] = useState("");
   const [math, setMath] = useState(localStorage.getItem("wyrd-math") === "true");
   const textarea = useRef<HTMLTextAreaElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const play = usePlay(view, onView);
+  const fill = (text: string) => {
+    setInput(text);
+    setCombatOpen(false);
+    textarea.current?.focus();
+  };
+  const inCombat = !!view.combat && !view.ended;
   const last = view.turns.at(-1);
   const send = useCallback(
     async (text: string, option?: number) => {
@@ -141,9 +152,43 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
                 </button>
               </div>
             )}
+            {view.ended && (
+              <section className="obituary" aria-labelledby="obituary-title">
+                <div className="eyebrow">HERE ENDS A LIFE</div>
+                <h2 id="obituary-title">{view.pc.identity.name} is dead</h2>
+                <p className="prose">{view.ended.obituary}</p>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!legacyName.trim()) return;
+                    await api(`/campaigns/${view.id}/legacy`, (d) => d, {
+                      characterName: legacyName.trim(),
+                      ancestry: view.pc.identity.ancestry,
+                      archetype: view.pc.archetypeId ?? "",
+                    });
+                    setLegacyName("");
+                    await play.refresh();
+                  }}
+                >
+                  <label>
+                    Legacy: a new character in the same world
+                    <input
+                      value={legacyName}
+                      onChange={(e) => setLegacyName(e.target.value)}
+                      placeholder="Their name"
+                      maxLength={80}
+                    />
+                  </label>
+                  <button className="primary" type="submit" disabled={!legacyName.trim()}>
+                    Begin a new life →
+                  </button>
+                </form>
+              </section>
+            )}
             <div ref={bottom} />
           </div>
         </div>
+        {inCombat && <CombatStrip combat={view.combat!} />}
         <form
           className="composer"
           onSubmit={(e) => {
@@ -209,20 +254,63 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
           </div>
         </form>
       </section>
-      <aside className="desktop-sheet" aria-label="Character sheet">
-        <div className="panel-heading">
-          Character sheet{" "}
-          <button type="button" onClick={() => setSheet(true)} aria-label="Expand character sheet">
-            ↗
-          </button>
-        </div>
-        <Sheet view={view} />
+      <aside
+        className="desktop-sheet"
+        aria-label={inCombat && tab === "combat" ? "Combat" : "Character sheet"}
+      >
+        {inCombat ? (
+          <div className="panel-tabs" role="tablist" aria-label="Side panel">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "combat"}
+              onClick={() => setTab("combat")}
+            >
+              Combat
+            </button>
+            <button type="button" role="tab" aria-selected={tab === "sheet"} onClick={() => setTab("sheet")}>
+              Sheet
+            </button>
+          </div>
+        ) : (
+          <div className="panel-heading">
+            Character sheet{" "}
+            <button type="button" onClick={() => setSheet(true)} aria-label="Expand character sheet">
+              ↗
+            </button>
+          </div>
+        )}
+        {inCombat && tab === "combat" ? (
+          <CombatPanel combat={view.combat!} busy={play.busy} onFill={fill} />
+        ) : (
+          <Sheet view={view} />
+        )}
       </aside>
+      <Dialog.Root open={combatOpen} onOpenChange={setCombatOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="overlay" />
+          <Dialog.Content className="dialog sheet-dialog">
+            <Dialog.Title>Combat</Dialog.Title>
+            <Dialog.Description className="sr-only">
+              Turn order, the battlefield, and your legal actions.
+            </Dialog.Description>
+            {view.combat && <CombatPanel combat={view.combat} busy={play.busy} onFill={fill} />}
+            <Dialog.Close className="dialog-close" aria-label="Close combat panel">
+              ×
+            </Dialog.Close>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
       <Dialog.Root open={sheet} onOpenChange={setSheet}>
         <div className="mobile-bar">
           <span>
             {view.pc.identity.name} · HP {view.pc.status.hp}/{view.pc.derived.hpMax}
           </span>
+          {inCombat && (
+            <button type="button" className="hot" onClick={() => setCombatOpen(true)}>
+              Combat ↗
+            </button>
+          )}
           <Dialog.Trigger>Sheet ↗</Dialog.Trigger>
         </div>
         <Dialog.Portal>

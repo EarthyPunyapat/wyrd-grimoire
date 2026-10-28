@@ -4,6 +4,7 @@
   --accent-ink: #f3f2ec; --crit: #805708; --success: #2e6a3e; --failure: #6c5a4b;
   --danger: #8b2a26; --danger-soft: #ecd6d1; --sky: #c9cfd0; --hills: #a8b4ae;
   --shore: #7d9286; --tree: #465e51; --river: #dce1db;
+  --ally: #2b6c61; --enemy: #8b2a26; --pc: #946711;
   --font-display: "Palatino Linotype", "Book Antiqua", Georgia, serif;
   --font-body: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
   --font-ui: "Segoe UI", system-ui, sans-serif; --font-mono: "Cascadia Mono", Consolas, monospace;
@@ -16,6 +17,7 @@
   --accent-ink: #0e1210; --crit: #d8ad51; --success: #85ca99; --failure: #c2b09c;
   --danger: #f28f7f; --danger-soft: #3a211e; --sky: #273b40; --hills: #384d47;
   --shore: #2a4035; --tree: #142b20; --river: #8a9d95; color-scheme: dark;
+  --ally: #6db4a5; --enemy: #dc7363; --pc: #d8ad51;
 }
 @media (prefers-color-scheme: dark) {
   :root[data-theme="system"] {
@@ -24,6 +26,7 @@
     --accent-ink: #0e1210; --crit: #d8ad51; --success: #85ca99; --failure: #c2b09c;
     --danger: #f28f7f; --danger-soft: #3a211e; --sky: #273b40; --hills: #384d47;
     --shore: #2a4035; --tree: #142b20; --river: #8a9d95; color-scheme: dark;
+    --ally: #6db4a5; --enemy: #dc7363; --pc: #d8ad51;
   }
 }
 :root[data-font="large"] { --story-size: 1.45rem; --story-leading: 1.9; }
@@ -237,4 +240,61 @@ progress::-webkit-progress-value { background: var(--accent); }
   .passage-tools > span { display: none; }
 }
 @media (max-width: 360px) { .mode-badge { display: none; } .form-row { grid-template-columns: 1fr; } .card-sigil { width: 44px; } }
+/* Combat (spec 13, mockup play-and-combat.html) */
+.panel-tabs { display: flex; border-bottom: 1px solid var(--line); }
+.panel-tabs button { flex: 1; border: 0; border-radius: 0; font-size: .65rem; text-transform: uppercase; letter-spacing: .1em; color: var(--ink-muted); }
+.panel-tabs button[aria-selected="true"] { color: var(--ink); box-shadow: inset 0 -3px 0 var(--pc); font-weight: 700; }
+.combat-panel { padding: 1rem 1.25rem 1.5rem; display: grid; gap: 1rem; }
+.combat-head { display: flex; justify-content: space-between; align-items: baseline; }
+.combat-panel .label, .ap-row .label { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-muted); }
+.combat-panel .small { font-size: .78rem; color: var(--ink-muted); margin: .2rem 0; }
+.init, .combat-strip { display: flex; gap: 6px; overflow-x: auto; list-style: none; margin: 0; padding: 0 0 4px; }
+.combatant { width: 62px; flex: none; display: grid; justify-items: center; gap: 3px; padding: 5px 2px; border: 1px solid transparent; border-radius: 6px; }
+.combatant.current { border-color: var(--pc); background: var(--bg); }
+.combatant.out { opacity: .5; }
+.combatant .mono { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); font-family: var(--font-display); box-shadow: inset 0 0 0 2px var(--ally); }
+.combatant.enemy .mono { box-shadow: inset 0 0 0 2px var(--enemy); }
+.combatant.pc .mono { box-shadow: inset 0 0 0 2px var(--pc); }
+.combatant .name { font-size: 11.5px; text-align: center; line-height: 1.2; overflow-wrap: anywhere; }
+.hp-bar { width: 46px; height: 5px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.hp-bar b { display: block; height: 100%; background: var(--accent); }
+.combatant.enemy .hp-bar b { background: var(--enemy); }
+.zones { width: 100%; height: auto; font-family: var(--font-ui); }
+.zones .zedge { stroke: var(--line); stroke-width: 2; }
+.zones .zone rect { fill: var(--bg); stroke: var(--line); stroke-width: 1.2; cursor: pointer; }
+.zones .zone.here rect { stroke: var(--pc); stroke-width: 2; cursor: default; }
+.zones .zname { font-size: 12px; fill: var(--ink); pointer-events: none; }
+.zones .ztag { font-size: 10.5px; fill: var(--ink-muted); pointer-events: none; }
+.zones .engage { stroke: var(--enemy); stroke-width: 1.5; stroke-dasharray: 3 2; }
+.zones .token { cursor: pointer; }
+.zones .token circle { fill: var(--surface); stroke: var(--ally); stroke-width: 2; }
+.zones .token.enemy circle { stroke: var(--enemy); }
+.zones .token.pc circle { stroke: var(--pc); }
+.zones .token.selected circle { stroke-width: 4; }
+.zones .token.out { opacity: .45; }
+.zones .token text { font-family: var(--font-display); font-size: 11px; fill: var(--ink); pointer-events: none; }
+.ap-row { display: flex; justify-content: space-between; align-items: center; }
+.pips { display: flex; gap: 6px; }
+.pips i { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--pc); }
+.pips i.on { background: var(--pc); }
+.actions { display: flex; flex-wrap: wrap; gap: 6px; border: 0; padding: 0; margin: 0; }
+.act { min-height: 36px; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); font-size: 13.5px; }
+.act:hover { border-color: var(--pc); background: var(--bg); }
+.act.dim { opacity: .5; cursor: not-allowed; }
+.act .cost { font-family: var(--font-mono); font-size: 11px; color: var(--ink-muted); margin-left: 5px; }
+.target { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; display: grid; grid-template-columns: minmax(0, 1fr) 40px; gap: .5rem; background: var(--bg); }
+.target h4 { font-family: var(--font-display); font-size: 16px; font-weight: 400; margin: 0 0 .25rem; }
+.target .act { margin-top: .5rem; }
+.silhouette { width: 40px; height: 80px; }
+.silhouette .fig { fill: var(--surface-2); stroke: var(--line); }
+.silhouette .fig.minor { fill: var(--crit); }
+.silhouette .fig.serious, .silhouette .fig.critical { fill: var(--danger); }
+.combat-strip { display: none; }
+.mobile-bar .hot { color: var(--ink); font-weight: 700; text-decoration: underline var(--pc) 2px; }
+.obituary { margin: 2rem 0; padding: 1.5rem; border: 1px solid var(--line); border-top: 3px solid var(--danger); background: var(--surface); }
+.obituary h2 { font-size: 1.75rem; }
+@media (max-width: 767px) {
+  .combat-strip { display: flex; padding: .4rem 1rem 0; background: var(--surface); border-top: 1px solid var(--line); }
+  .combat-strip .combatant { width: 54px; }
+}
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; transition: none !important; } }
