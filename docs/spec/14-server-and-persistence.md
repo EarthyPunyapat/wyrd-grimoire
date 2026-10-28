@@ -104,12 +104,16 @@ All routes are under `/api`, JSON in and out, zod-validated on both sides (schem
 |---|---|
 | `GET/PUT /app/settings` | App settings |
 | `GET/PUT /providers`, `POST /providers/:id/test` | Provider config and capability probe |
-| `GET /providers/chatgpt/connect` | Starts SIWC sign-in. **Loopback requests only**; from other devices it returns instructions to use the host PC |
+| `POST /providers/chatgpt/connect` | Starts SIWC sign-in and returns an authorization link. **Loopback requests only**; from other devices it returns instructions to use the host PC |
 | `GET /usage?from&to&groupBy` | Usage meter data |
 | `GET /media/:assetId`, `POST /media/:assetId/regenerate`, `GET /audio/:turnId/:segment` | Media |
 | `GET /packs`, `POST /packs/validate` | Packs |
 
 The SIWC OAuth callback is served by a temporary listener on `127.0.0.1:1455` that exists only during the connect flow.
+
+M3 implementation details and current boundaries are in [the web guide](../m3-web.md). M3 also
+exposes `GET /connection`, `GET /providers/:id/models`, and host-only `POST /providers/:id/secret`.
+Canon-flag regeneration uses the narration-reroll endpoint; retcon/edit follows canon-editing events.
 
 ### The GameView
 

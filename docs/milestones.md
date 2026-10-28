@@ -49,9 +49,9 @@ Each milestone lists its scope, the spec sections it implements, and acceptance 
 
 **Acceptance**
 - [ ] Server on the main PC; play from the laptop over LAN and from a phone.
-- [ ] Mechanics lines appear before narration; narration appears after the guard by default.
-- [ ] No cost or token counts anywhere in the play UI.
-- [ ] Playwright e2e (FakeProvider) passes on desktop and phone viewports.
+- [x] Mechanics lines appear before narration; narration appears after the guard by default.
+- [x] No cost or token counts anywhere in the play UI.
+- [x] Playwright e2e (FakeProvider) passes on desktop and phone viewports.
 
 ## M4 — Combat ← first truly playable point
 

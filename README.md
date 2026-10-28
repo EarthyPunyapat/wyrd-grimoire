@@ -9,7 +9,7 @@
 
 ## Status
 
-**M1 (engine core, no models) is built.** Built milestone by milestone; see [docs/milestones.md](docs/milestones.md).
+**M1 engine core, M2 model loop, and the M3 web client are implemented.** Real-provider M2 acceptance and the M3 physical LAN/phone check are still pending; see [docs/milestones.md](docs/milestones.md).
 
 ```sh
 bun install
@@ -17,6 +17,19 @@ bun run check                      # typecheck, lint, tests, pack validate
 bun run wyrd --help                # dev CLI
 bun run wyrd roll 65 --difficulty hard --label Stealth
 ```
+
+## Play in a browser
+
+```sh
+bun install --frozen-lockfile --ignore-scripts
+bun run build
+bun run start --offline             # preview without model calls
+```
+
+Open `http://localhost:4777` on the host PC, set a passcode, and create an Ashford Ferry campaign.
+`bun run start` uses real providers, with Models, Connection and Usage under Settings.
+Provider settings and usage migrate from the CLI files into `app.db`; credentials stay in `WYRD_HOME/secrets/`.
+See [the web guide](docs/m3-web.md) for isolated previews, LAN access and browser tests.
 
 ## Read the spec
 

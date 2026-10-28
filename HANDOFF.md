@@ -109,6 +109,31 @@ VERIFY before trusting: the DeepSeek base URL and model ID (`wyrd models deepsee
 - The guard is v1 only (contradictions, state claims, new entities/facts). Secrets, witnesses, objectives and approval are guard v2 (M5).
 - The offline provider's keyword parser is deliberately dumb; it exists for demos and tests.
 
-### Next: M3 — Web UI v1
+### M3 — Web UI v1 (feature/m3-web-ui)
 
-Read `docs/milestones.md` (M3), specs 13 and 14, and `docs/design/`. The pipeline's `TurnStreamEvent`s already match the SSE event names in spec 08, and `TurnPipeline` is the thing the Hono server wraps. Move `WYRD_HOME/config.json` and `usage.jsonl` into app.db then (D59).
+The web implementation is runnable. See `docs/m3-web.md` for commands, supported flows, recovery,
+and current boundaries. The owner is independently playtesting M2 in `../m2-playtest`; do not reset
+that checkout or its campaign, and do not use the owner's real credentials for automated tests.
+
+- `apps/server`: Hono API, host-only first-run setup/account operations, passcode sessions, quick
+  starts, filtered GameView, persistent idempotent turn jobs, resumable SSE, rerolls, model settings,
+  connection status and usage. CSP style nonces support the dialog primitives without unsafe-inline.
+- `apps/web`: React/Vite home, quick start, play, mechanics, clarification and canon cards, compact
+  and expanded sheets, phone layout, reading preferences and Models/Connection/Usage settings.
+- `storage/AppStore`: forward-only app.db migrations for sessions, campaign registry, request/stream
+  journals, settings, provider/routing tables and usage. Config imports once; JSONL usage imports
+  idempotently. Live attempts each get a separate record even when their contents are identical.
+- Shared HTTP/provider schemas live in core. The web dependency check prohibits server/IO imports.
+- Browser tests use a fresh temp home and FakeProvider, covering desktop, phone, 320px/tablet layout,
+  a clean console and automated WCAG checks. An auth-guard mutation was caught by the regression test.
+- Latest checks: `bun run check` (255 tests), production build, 8 Playwright cases and `bun audit`
+  pass locally on Windows. CI now includes the browser suite and builds on Linux/Windows, but its
+  new remote run has not been observed yet.
+
+M3 is NOT fully accepted: the physical laptop/phone LAN check is still unticked. M2's real refresh
+and 20-turn review also remain unticked. Guard v1 remains the M2 implementation. Canon retcon/edit,
+combat, Journal/Map/Inventory/Party, media, and portable CLI-campaign import follow later milestones.
+The browser creates its own campaigns; it does not modify the owner's CLI campaign.
+
+Next: review the owner's M2 playtest when they report completion; perform the M3 LAN/device check,
+then begin M4 combat from its spec. D66–D68 record the web implementation choices.
