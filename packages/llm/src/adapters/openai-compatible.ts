@@ -11,6 +11,8 @@ export type OpenAICompatibleConfig = {
   /** e.g. https://api.deepseek.com or http://127.0.0.1:11434/v1; `/chat/completions` is appended. */
   baseUrl: string;
   apiKey?: string;
+  /** Explicit provider mode; omitted for servers that do not implement this extension. */
+  thinking?: "enabled" | "disabled";
   /** Optional parameters this server is known not to accept. */
   unsupported?: Array<"temperature" | "max_tokens" | "stream_options" | "response_format" | "tool_choice">;
   headers?: Record<string, string>;
@@ -113,6 +115,7 @@ export class OpenAICompatibleProvider implements ChatProvider {
       messages: toWire(req.instructions, req.messages),
       stream: true,
     };
+    if (this.cfg.thinking !== undefined) b.thinking = { type: this.cfg.thinking };
     const opt = (k: OptionalParam, v: unknown) => {
       if (v !== undefined && !this.unsupported.has(k)) b[k] = v;
     };

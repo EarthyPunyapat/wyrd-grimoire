@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadRouterFromConfig, secretStore } from "../src/providers.ts";
+import { loadRouterFromConfig, secretStore, WyrdConfig } from "../src/providers.ts";
 
 let dir: string;
 const prev = process.env.WYRD_HOME;
@@ -32,6 +32,15 @@ const config = (models: Record<string, unknown>) =>
       models,
     }),
   );
+
+test("provider config preserves an explicit DeepSeek thinking-mode setting", () => {
+  const cfg = WyrdConfig.parse({
+    providers: {
+      deepseek: { kind: "openai-compatible", baseUrl: "https://api.deepseek.com", thinking: "disabled" },
+    },
+  });
+  expect(cfg.providers.deepseek).toMatchObject({ thinking: "disabled" });
+});
 
 test("a filled-in config builds the Balanced routing with the spec's fallback chains", () => {
   config({

@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { OpenAICompatibleProvider } from "../src/adapters/openai-compatible.ts";
 import { collect } from "../src/collect.ts";
+import { FakeProvider } from "../src/fake.ts";
+import { type FallbackNotice, RoleRouter } from "../src/router.ts";
 import type { GenerateRequest } from "../src/types.ts";
+import { MemoryUsageSink } from "../src/usage.ts";
 import { json, mockFetch, sse, stream } from "./http.ts";
 
 const req: GenerateRequest = {
@@ -33,6 +36,110 @@ const textStream = () =>
   ]);
 
 describe("OpenAI-compatible adapter", () => {
+  test("malformed parser JSON regenerates once before fallback; every attempt is recorded", async () => {
+    const args = { actions: [{ type: "move", toZoneId: "z:common" }], intent: "Approach Wenna" };
+    const m = mockFetch((_r, n) =>
+      stream(
+        sse([
+          {
+            data: {
+              choices: [
+                {
+                  delta: {
+                    tool_calls: [
+                      {
+                        index: 0,
+                        id: `c${n}`,
+                        function: {
+                          name: "propose_actions",
+                          arguments: n === 1 ? '{"actions":[' : JSON.stringify(args),
+                        },
+                      },
+                    ],
+                  },
+                  finish_reason: "tool_calls",
+                },
+              ],
+            },
+          },
+          { data: "[DONE]" },
+        ]),
+      ),
+    );
+    const primary = new OpenAICompatibleProvider({
+      id: "deepseek",
+      baseUrl: "http://h",
+      thinking: "disabled",
+      fetch: m.fetch,
+    });
+    const fallback = new FakeProvider([{ reply: { text: "fallback" } }]);
+    const usage = new MemoryUsageSink();
+    const notices: FallbackNotice[] = [];
+    const router = new RoleRouter({
+      providers: { deepseek: primary, plan: fallback },
+      routing: {
+        parser: { provider: "deepseek", model: "flash", fallbacks: [{ provider: "plan", model: "sol" }] },
+      },
+      usage,
+      onFallback: (n) => notices.push(n),
+    });
+    const { role: _role, model: _model, signal: _signal, ...request } = req;
+    const result = await router.complete("parser", request, { promptVersion: "parser@test" });
+    expect(result.provider).toBe("deepseek");
+    expect(result.toolCalls[0]?.args).toEqual(args);
+    expect(m.requests).toHaveLength(2);
+    expect(fallback.requests).toHaveLength(0);
+    expect(notices).toEqual([]);
+    expect(usage.records.map((r) => [r.provider, r.ok, r.errorCode])).toEqual([
+      ["deepseek", false, "invalid_output"],
+      ["deepseek", true, undefined],
+    ]);
+  });
+
+  test("repeated malformed JSON falls back after two primary attempts without a retry loop", async () => {
+    const primary = new FakeProvider([{ reply: { error: { code: "invalid_output", retryable: true } } }]);
+    const fallback = new FakeProvider([
+      {
+        reply: {
+          toolCall: {
+            name: "propose_actions",
+            args: { actions: [{ type: "examine", area: "the room" }], intent: "Look around" },
+          },
+        },
+      },
+    ]);
+    const router = new RoleRouter({
+      providers: { deepseek: primary, plan: fallback },
+      routing: {
+        parser: { provider: "deepseek", model: "flash", fallbacks: [{ provider: "plan", model: "sol" }] },
+      },
+    });
+    const result = await router.complete(
+      "parser",
+      { instructions: "Parse", messages: [{ role: "user", content: "look around" }] },
+      { promptVersion: "parser@test" },
+    );
+    expect(result.provider).toBe("plan");
+    expect(primary.requests).toHaveLength(2);
+    expect(fallback.requests).toHaveLength(1);
+  });
+  test("sends the configured thinking mode so DeepSeek can accept forced parser tools", async () => {
+    const m = mockFetch((r) => {
+      const b = r.body as Record<string, unknown>;
+      if (b.thinking === undefined)
+        return json(400, { error: { message: "Thinking mode does not support this tool_choice" } });
+      return stream(textStream());
+    });
+    const p = new OpenAICompatibleProvider({
+      id: "deepseek",
+      baseUrl: "http://h",
+      thinking: "disabled",
+      fetch: m.fetch,
+    });
+    await collect(p.generate(req));
+    expect(m.requests).toHaveLength(1);
+    expect(m.requests[0]?.body).toMatchObject({ thinking: { type: "disabled" }, tool_choice: "required" });
+  });
   test("sends a Chat Completions request with system instructions, history, tools and auth", async () => {
     const m = mockFetch(() => stream(textStream()));
     const p = new OpenAICompatibleProvider({

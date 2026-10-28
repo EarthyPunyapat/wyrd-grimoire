@@ -41,6 +41,42 @@ Every M1 implementation choice is recorded in `docs/decisions.md` as D41–D51.
 
 ## M2 — The model loop (branch `m2-model-loop`, stacked on `m1-engine-core`)
 
+### Windows host playtest fix (2026-10-28)
+
+The browser launcher in `apps/cli/src/main.ts` used `cmd /c start`, which split the OAuth URL at
+`&` and opened only `?response_type=code`. This caused OpenAI's `missing_required_parameter`
+page. `apps/cli/src/browser.ts` now uses an encoded PowerShell command with a literal URL on
+Windows. `apps/cli/test/browser.test.ts` exercises the real Windows parser with `Start-Process`
+replaced by an argument capture, including apostrophes and shell metacharacters. No browser or
+model calls happen in these tests. The owner has confirmed real sign-in works. Real refresh/rotation
+and the 20-turn session review remain outstanding, so the M2 real-provider acceptance boxes stay open.
+
+### DeepSeek playtest and terminal feedback (2026-10-28)
+
+The first real turn resolved through ChatGPT after DeepSeek returned `invalid_output` and then
+`bad_request`. A standalone parser probe reproduced HTTP 400: `Thinking mode does not support
+this tool_choice`. The generic adapter had silently stripped `tool_choice` before retrying.
+DeepSeek enables thinking by default, so the playtest config and new CLI example configs now
+explicitly set `thinking: "disabled"`. The provider schema and adapter pass this optional extension
+through; other compatible servers omit it by default. A live parser + repair probe with this setting
+completed without the HTTP rejection and did not append campaign events. Invalid model plans still
+go through the existing engine validation/repair path; occasional invalid JSON still falls back safely.
+
+The terminal now prints `Working on your turn…` as soon as a turn is accepted and prints fallback
+notices immediately, instead of buffering them until the entire narration/guard pass finishes.
+Restart the running play process to load these changes; the campaign remains in its existing DB.
+
+### Intermittent malformed parser JSON (2026-10-28)
+
+The owner still saw `invalid_output` on "Walk up to wenna" after the mode fix. Four isolated live
+parser probes of that input returned valid action JSON; no campaign events were appended. This
+failure is intermittent, rather than an always-rejected request. The adapter marked malformed JSON
+as retryable, but the router did not include it among same-provider retries. The router now honors
+that flag with its existing one-retry budget before using the fallback. Contract tests exercise
+malformed streamed arguments followed by valid JSON, verify usage for both attempts, and prove
+two malformed replies fall back without looping. This does not guarantee that DeepSeek will always
+produce valid output; persistent failure still correctly uses ChatGPT. Restart play to load the fix.
+
 All seven build steps are done and committed (A llm foundation, B canon/turn events, C exploration
 actions, D context assembler, E turn pipeline, F test world + `wyrd play`, G real adapters).
 M2 implementation choices are D52–D63 in `docs/decisions.md`.

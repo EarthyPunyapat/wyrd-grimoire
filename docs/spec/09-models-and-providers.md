@@ -96,6 +96,17 @@ Because `max_output_tokens` isn't available on this route, passage length is con
 
 One adapter for anything that speaks the OpenAI Chat Completions API.
 
+Provider config may include `thinking: "enabled" | "disabled"` for servers that support this
+extension; otherwise the field is omitted. The DeepSeek playtest defaults to `"disabled"` so the
+parser and guard can use forced tool choice. Verified on 2026-10-28 against the
+[DeepSeek thinking-mode guide](https://api-docs.deepseek.com/guides/thinking_mode/) and a live
+host probe: thinking is enabled by default and rejects the forced tool-choice setting. Malformed
+plans still require engine validation and repair regardless of the selected mode.
+
+Malformed provider JSON marked retryable gets one regeneration attempt on the same target within
+the router's existing retry budget, then falls back. Engine plan-validation repairs remain a separate
+step; regenerating parser JSON happens before any game action is resolved.
+
 | Preset | Base URL | Notes |
 |---|---|---|
 | **DeepSeek** | `https://api.deepseek.com` (VERIFY) | **DeepSeek V4.1 Flash** (released 10 Sept 2026): tool calling, strict JSON output, streaming, ~1M context; roughly $0.14/M input, $0.30–0.54/M output depending on provider; cache hits much cheaper. VERIFY the official model ID and prices. |

@@ -3,14 +3,7 @@ import { createInterface } from "node:readline/promises";
 import type { Clarification, CompiledPack } from "@wyrd/core";
 import { createUlidFactory } from "@wyrd/core";
 import type { GameState, RulesContext } from "@wyrd/engine";
-import {
-  type FallbackNotice,
-  offlineProvider,
-  RoleRouter,
-  TurnPipeline,
-  type TurnResult,
-  type TurnStreamEvent,
-} from "@wyrd/llm";
+import { offlineProvider, RoleRouter, TurnPipeline, type TurnResult, type TurnStreamEvent } from "@wyrd/llm";
 import { type CampaignStore, CanonQueries } from "@wyrd/storage";
 import { CliError } from "./errors.ts";
 import { loadRouterFromConfig } from "./providers.ts";
@@ -57,7 +50,6 @@ export async function playCommand(
   if (!state.party.pcId) throw new CliError("The campaign has no PC; create it with --pc");
   if (!state.scene) throw new CliError("No scene is open; create the campaign with --world ashford-ferry");
 
-  const notices: FallbackNotice[] = [];
   const router = opts.offline
     ? new RoleRouter({
         providers: { offline: offlineProvider() },
@@ -70,7 +62,12 @@ export async function playCommand(
       })
     : loadRouterFromConfig({
         ...(opts.configPath ? { path: opts.configPath } : {}),
-        onFallback: (n) => notices.push(n),
+        onFallback: (n) =>
+          out(
+            dim(
+              `  (${n.from.provider} unavailable: ${n.reason}; ${n.role} is using ${n.to.provider} for now)`,
+            ),
+          ),
       });
 
   const canon = new CanonQueries(store);
@@ -101,18 +98,14 @@ export async function playCommand(
   };
 
   const onEvent = (e: TurnStreamEvent) => {
+    if (e.type === "turn.accepted")
+      out(dim("  Working on your turn… parsing, resolving, then checking narration."));
     if (e.type === "mechanics.line") out(dim(`  ⚄ ${e.line.text}`));
     if (e.type === "error") out(dim(`  ! ${e.message}`));
   };
   let pending: Clarification | null = null;
 
   const show = (r: TurnResult) => {
-    while (notices.length) {
-      const n = notices.shift()!;
-      out(
-        dim(`  (${n.from.provider} unavailable: ${n.reason}; ${n.role} is using ${n.to.provider} for now)`),
-      );
-    }
     if (r.status === "resolved" && r.narration) {
       out();
       out(renderNarration(r.narration, nameOf));
@@ -154,6 +147,7 @@ export async function playCommand(
         out(dim("Nothing to reroll yet."));
         return true;
       }
+      out(dim("  Rerolling narration… the dice stay the same."));
       last = await pipeline.reroll(last.turnId, onEvent);
       show(last);
       return true;

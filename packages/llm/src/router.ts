@@ -106,7 +106,8 @@ export class RoleRouter {
             this.benchedUntil.set(target.provider, this.now() + (this.opts.benchMs ?? 3_600_000));
             break;
           }
-          if (!RETRY_SAME.has(lastError.code)) break;
+          const regenerate = lastError.code === "invalid_output" && lastError.retryable;
+          if (!RETRY_SAME.has(lastError.code) && !regenerate) break;
         }
       }
       previous = target;

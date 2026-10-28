@@ -146,6 +146,8 @@ describe("dev CLI", () => {
     );
     expect(out).toContain("Ashford Ferry House, the common room · with Wenna Harrow, Aldric Vane");
     expect(out).toContain("(offline narrator) Wren examines the hearth.");
+    expect(out.indexOf("Working on your turn")).toBeGreaterThan(-1);
+    expect(out.indexOf("Working on your turn")).toBeLessThan(out.indexOf("(offline narrator)"));
     expect(out).toContain("Getting to the hayloft needs a climb");
     expect(out).toContain("1. Try to climb to the hayloft (athletics, normal)");
     expect(out).toContain("Ashford Ferry House, the yard");

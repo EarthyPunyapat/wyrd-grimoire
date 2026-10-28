@@ -40,6 +40,7 @@ const ProviderConfig = z.discriminatedUnion("kind", [
     baseUrl: z.string().url(),
     /** File name in WYRD_HOME/secrets holding the API key (local servers need none). */
     apiKeySecret: z.string().optional(),
+    thinking: z.enum(["enabled", "disabled"]).optional(),
     unsupported: z
       .array(z.enum(["temperature", "max_tokens", "stream_options", "response_format", "tool_choice"]))
       .optional(),
@@ -84,6 +85,7 @@ export const EXAMPLE_CONFIG = {
       kind: "openai-compatible",
       baseUrl: "https://api.deepseek.com",
       apiKeySecret: "deepseek.key",
+      thinking: "disabled",
     },
     "chatgpt-plan": { kind: "chatgpt-plan" },
     ollama: { kind: "openai-compatible", baseUrl: "http://127.0.0.1:11434/v1" },
@@ -149,6 +151,7 @@ export function buildProviders(cfg: WyrdConfig, secrets = secretStore()): Record
         id,
         baseUrl: p.baseUrl,
         ...(apiKey ? { apiKey } : {}),
+        ...(p.thinking ? { thinking: p.thinking } : {}),
         ...(p.unsupported ? { unsupported: p.unsupported } : {}),
       });
     } else if (p.kind === "chatgpt-plan") {
