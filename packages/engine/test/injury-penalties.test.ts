@@ -45,6 +45,7 @@ describe("woundModifiers", () => {
         id: "pc-w2",
         location: "right-arm",
         locationKind: "arm",
+        side: "right",
         severity: "serious",
         penalty: { scope: "sameArm", value: -20 },
       }),
@@ -60,12 +61,35 @@ describe("woundModifiers", () => {
       wound({
         location: "left-arm",
         locationKind: "arm",
+        side: "left",
         severity: "serious",
         penalty: { scope: "sameArm", value: -20 },
       }),
     );
     expect(woundModifiers(sheet, at("agi", ["hand:left"]))).toHaveLength(1);
     expect(woundModifiers(sheet, at("agi", ["hand:right"]))).toEqual([]);
+  });
+
+  test("a sameArm wound with no side contributes nothing, even on a hand check", () => {
+    const sheet = sheetWith(
+      wound({
+        location: "right-arm",
+        locationKind: "arm",
+        severity: "serious",
+        penalty: { scope: "sameArm", value: -20 },
+      }),
+    );
+    expect(woundModifiers(sheet, at("agi", ["hand:right"]))).toEqual([]);
+  });
+
+  test("a check tagged ignore-wound with a wound's id skips that wound only", () => {
+    const sheet = sheetWith(
+      wound({ id: "pc-w1", severity: "critical", penalty: { scope: "all", value: -30 } }),
+      wound({ id: "pc-w2", severity: "minor", penalty: { scope: "all", value: -10 } }),
+    );
+    expect(woundModifiers(sheet, at("end", ["resist", "ignore-wound:pc-w1"]))).toEqual([
+      { source: "Minor torso wound", value: -10 },
+    ]);
   });
 
   test("a minor leg wound (movement) gives -10 on a check tagged movement and nothing otherwise", () => {
@@ -99,7 +123,7 @@ describe("woundModifiers", () => {
     expect(woundModifiers(sheet, at("str", ["movement", "hand:right"], "core:athletics"))).toEqual([]);
   });
 
-  test("a lethal wound keeps the penalty it was inflicted with", () => {
+  test("a wound worsened to lethal keeps the penalty stamped while it was critical", () => {
     const sheet = sheetWith(wound({ severity: "lethal", penalty: { scope: "all", value: -30 } }));
     expect(woundModifiers(sheet, at("awa", [], "core:perception"))).toEqual([
       { source: "Lethal torso wound", value: -30 },

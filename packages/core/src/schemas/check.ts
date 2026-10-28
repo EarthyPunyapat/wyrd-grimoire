@@ -20,7 +20,9 @@ export const CheckRequest = z.object({
   pushed: z.boolean().optional(),
   /**
    * What kind of check this is, for conditions that care: "sight", "hearing", "attack", "escape",
-   * "resist", "fear", "movement", "physical". Not in the spec's CheckRequest; see decisions.md.
+   * "resist", "fear", "movement", "physical", "hand:<side>" (a hand check, for sameArm wound penalties),
+   * "ignore-wound:<woundId>" (a wound's own lethal check skips that wound's penalty). Not in the spec's
+   * CheckRequest; see decisions.md.
    */
   tags: z.array(z.string()).default([]),
 });

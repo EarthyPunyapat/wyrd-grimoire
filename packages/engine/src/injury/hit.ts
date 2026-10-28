@@ -217,6 +217,7 @@ export function resolveHit(state: GameState, hit: HitInput, ctx: InjuryContext):
     id: woundId,
     location: location.id,
     locationKind: location.kind,
+    ...(location.side ? { side: location.side } : {}),
     severity,
     damageType,
     hpMaxReduction: t.hpMaxReduction[severity],
@@ -273,7 +274,8 @@ export function resolveHit(state: GameState, hit: HitInput, ctx: InjuryContext):
             skill: { attribute: "end" },
             difficulty: t.lethalCheck,
             purpose: "survive a critical wound",
-            tags: ["resist"],
+            // The wound being tested must not penalise its own check; earlier wounds still do.
+            tags: ["resist", `ignore-wound:${woundId}`],
           },
           ctx,
         ),

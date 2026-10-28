@@ -37,6 +37,8 @@ export const Wound = z.object({
   hpMaxReduction: z.number().int().nonnegative().default(0),
   fracture: z.boolean().default(false),
   severed: z.boolean().default(false),
+  /** The limb's side, copied from the body plan when the wound is inflicted. Only limbs have one. */
+  side: z.enum(["left", "right"]).optional(),
   penalty: z.object({ scope: PenaltyScope, value: z.number().int() }).optional(),
 });
 export type Wound = z.infer<typeof Wound>;

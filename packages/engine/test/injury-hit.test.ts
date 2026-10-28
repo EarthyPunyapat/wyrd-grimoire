@@ -470,6 +470,39 @@ describe("resolveHit: simple injuries", () => {
   });
 });
 
+describe("resolveHit: wound side", () => {
+  test("a hit to a limb records the limb's side on the wound; a torso wound has none", () => {
+    const s = sim();
+    expect(commitHit(s, fixed(7, "cut"), { calledLocation: "right-arm" }).wound).toMatchObject({
+      location: "right-arm",
+      side: "right",
+    });
+    expect(commitHit(s, fixed(7, "cut"), { calledLocation: "torso" }).wound?.side).toBeUndefined();
+  });
+});
+
+describe("resolveHit: lethal check and its own wound", () => {
+  test("in simple mode the lethal check ignores the fresh critical wound but not an earlier one", () => {
+    const s = sim({ subsystems: { injuries: "simple" } });
+    commitHit(s, fixed(7, "cut"), { calledLocation: "torso" });
+    setHp(s, "foe", 0);
+    const out = commitHit(s, fixed(14, "blunt"), { calledLocation: "head" });
+    // Critical at the hit; the lethal check may already have worsened it to lethal.
+    expect(out.wound?.severity === "critical" || out.wound?.severity === "lethal").toBe(true);
+    const lethalCheck = out.events.find(
+      (e) => e.type === "CheckResolved" && e.payload.request.purpose === "survive a critical wound",
+    );
+    expect(lethalCheck?.type).toBe("CheckResolved");
+    if (lethalCheck?.type !== "CheckResolved") throw new Error("no lethal check");
+    const sources = lethalCheck.payload.prepared.modifiers.map((m) => m.source);
+    expect(sources).not.toContain("Critical head wound");
+    expect(lethalCheck.payload.prepared.modifiers).toContainEqual({
+      source: "Minor torso wound",
+      value: -10,
+    });
+  });
+});
+
 describe("resolveHit: replay", () => {
   test("committing the events and folding the log gives the same state, rng included", () => {
     const s = sim();
