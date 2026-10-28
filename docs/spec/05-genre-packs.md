@@ -55,7 +55,7 @@ supports:
 ### IDs and mixing packs
 
 - A campaign uses **one genre pack** plus any number of **addon packs** (e.g. `fantasy-core` + `horror-addon`).
-- Every content ID is namespaced `packId:localId`. Addons may override entries by ID; load order decides. Conflicts are reported at campaign creation.
+- Every content ID is namespaced `packId:localId`. Pack files use local IDs (`arcana`); references may be local or qualified (`core:melee`, `other-pack:thing`). A local skill reference resolves to the pack's own skill first, then to the core skills (`core:`). Field skills append the specialisation: `core:lore/history`. Addons may override entries by ID; load order decides. Conflicts are reported at campaign creation.
 - **Freezing:** when a campaign is created, the compiled pack content and its hash are stored inside `campaign.db`. Updating or deleting a pack never changes an existing campaign. A campaign can be explicitly migrated to a newer pack version from Settings (with a diff preview).
 
 ### tone.md

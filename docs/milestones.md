@@ -19,10 +19,10 @@ Each milestone lists its scope, the spec sections it implements, and acceptance 
 - A dev CLI: roll checks, build and validate a sheet, append events, rewind, rebuild.
 
 **Acceptance**
-- [ ] d20/d100 equivalence test passes for every skill 5–95.
-- [ ] Reducer property tests pass (determinism, snapshot + replay = full replay, rewind reproduces the branch).
-- [ ] Dev CLI: create a campaign file, append events, rewind, rebuild → identical state hash.
-- [ ] `bun run wyrd pack validate packs/fantasy-core` passes.
+- [x] d20/d100 equivalence test passes for every skill 5–95.
+- [x] Reducer property tests pass (determinism, snapshot + replay = full replay, rewind reproduces the branch).
+- [x] Dev CLI: create a campaign file, append events, rewind, rebuild → identical state hash.
+- [x] `bun run wyrd pack validate packs/fantasy-core` passes.
 - [ ] CI green.
 
 ## M2 — The model loop

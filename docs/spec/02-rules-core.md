@@ -95,6 +95,7 @@ type CheckRequest = {
   opposedBy?: { actorId: ActorId; skill: SkillId | { attribute: AttributeId } };
   purpose: string; // short human-readable reason, shown in the mechanics log
   pushed?: boolean;
+  tags: string[];  // what kind of check, for conditions: "sight", "hearing", "attack", "escape", "resist", "fear"…
 };
 
 type CheckResult = {
@@ -119,7 +120,7 @@ type CheckResult = {
 
 ### Modifiers
 
-Modifiers are in percent (the d20 module divides by 5). They come from conditions, wounds, equipment, environment, and help from others. They **sum**, with the total clamped to **±40**. Anything beyond that should be expressed as a difficulty step or as boons/banes.
+Modifiers are in percent (the d20 module divides by 5). They come from conditions, wounds, equipment, environment, and help from others. They **sum**, with the total clamped to **±40**. The campaign difficulty modifier counts towards that sum. Anything beyond that should be expressed as a difficulty step or as boons/banes.
 
 Common situational modifiers (pack-extensible):
 
@@ -172,7 +173,7 @@ Roll 1d100 (01–100):
 
 ### d20 (option)
 
-- **Modifier** m = round((skill − 50) / 5) + round(Σ modifiers / 5).
+- **Modifier** m = round((skill − 50) / 5) + round(Σ modifiers / 5), rounding halves away from zero so the conversion is symmetric around 50.
 - **DC** from the difficulty ladder (Normal 11).
 - Roll d20 + m against DC.
 
@@ -200,7 +201,7 @@ Long or complex tasks (research a cult, crack a vault, build a boat) use a **pro
 
 ## Pushing a roll
 
-After a failed non-combat check, the player may **push** it once: describe how they try harder or take a risk, and reroll. If the pushed roll also fails, the result becomes a **critFailure** and the narrator must apply a real consequence (an alarm, an injury, a broken tool, lost time, a burned bridge). Pushing is free; it is about raising the stakes, not resources.
+After a failed non-combat check, the player may **push** it once: describe how they try harder or take a risk, and reroll. If the pushed roll also fails, the result becomes a **critFailure** and the narrator must apply a real consequence (an alarm, an injury, a broken tool, lost time, a burned bridge). Pushing is free; it is about raising the stakes, not resources. Only a plain **failure** can be pushed: not a critFailure, an automatic failure (e.g. a sight check while Blinded), or an opposed check.
 
 ## Luck
 
@@ -212,7 +213,7 @@ A small pool the player spends to bend fate.
 | Brutal | 1 | |
 | Hardcore campaign | max − 1 (minimum 1) | Applied on top of the dial |
 
-- **Spend 1 Luck:** reroll any one of the PC's checks (including attacks and resistance checks) and keep the better result. Not usable on a pushed roll.
+- **Spend 1 Luck:** reroll any one of the PC's checks (including attacks and resistance checks) and keep the better result. Not usable on a pushed roll, and once per check. (Luck on opposed checks, e.g. attack vs Dodge, arrives with combat in M4.)
 - **Spend 2 Luck:** downgrade a **lethal** wound to **critical** (see [03](03-combat-and-injury.md#wounds)). This is what keeps one bad roll from ending a 50-hour campaign.
 - **Regain:** 1 point when a chapter closes ([07](07-memory.md#memory-pyramid)); refill to max when an arc closes. Pack abilities may grant more.
 - Companions do not have Luck.
@@ -236,7 +237,7 @@ Conditions are engine-tracked effects with a defined mechanical meaning. Packs a
 | Burning | 1d6 fire damage per round | Spend 1 AP to put out, or water |
 | Poisoned | Per poison | Per poison |
 | Exhausted (1–5) | −10 per level to all checks; at 5, unconscious | Rest |
-| Unconscious | Can't act; attacks against them are critical on success | Woken or recovers |
+| Unconscious | Can't act (only resistance checks, tagged `resist`, are allowed); attacks against them are critical on success | Woken or recovers |
 | Hidden | Attacks against it need Perception first; its first attack gains a boon | Revealed |
 | In Cover (partial/full) | −20 / −40 to ranged attacks against it | Leaves cover |
 | Intoxicated (1–3) | −10 per level to AGI/INT/AWA checks; +10 to resist fear | Time |

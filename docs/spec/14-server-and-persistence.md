@@ -55,7 +55,7 @@ SQLite in WAL mode, single writer.
 |---|---|
 | Autosave | After every turn, the active branch head moves |
 | Named save | `saves` row pointing at (branch, seq) |
-| Rewind to turn | Forks a new branch at the event before that turn and activates it; the old branch remains in the timeline |
+| Rewind to turn | Forks a new branch at the event before that turn and activates it; the old branch remains in the timeline. The fork's first event is `BranchForked` |
 | Load save | Activates its branch at that seq (forking if it's not the branch head) |
 | Hardcore | Rewind, fork and load-earlier are refused by the API (`409 hardcore`) |
 

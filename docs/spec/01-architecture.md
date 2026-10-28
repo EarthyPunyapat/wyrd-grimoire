@@ -28,6 +28,7 @@ wyrd-grimoire/
     media/       # image + TTS adapters, job queue
     storage/     # SQLite schema, migrations, event store, projections, snapshots
   apps/
+    cli/         # dev CLI (`bun run wyrd`): dice, sheets, campaign files, history, packs
     server/      # Hono HTTP + SSE server, auth, settings, wiring
     web/         # React client
   packs/         # built-in pack data (fantasy-core first); user packs live in WYRD_HOME/packs/
@@ -42,11 +43,12 @@ core   ← storage
 core, engine, storage ← memory
 core, engine, memory  ← llm
 core ← media
-everything ← apps/server
+everything ← apps/server, apps/cli
 apps/web depends only on core (types/schemas) and talks to the server over HTTP
 ```
 
 - `engine` MUST NOT import `llm`, `storage`, `media`, or anything that does IO, reads the clock, or uses `Math.random`.
+- `storage` doesn't import `engine`: the engine's `reduce` is injected when a campaign file is opened, and SQL projections are built from event payloads (whose schemas live in `core`).
 - Only `storage` touches SQLite. Only `llm` and `media` touch the network.
 - The web client never sees API keys or OAuth tokens.
 
@@ -92,6 +94,7 @@ type EventEnvelope<T extends EventType = EventType> = {
 Event families (non-exhaustive; each payload has a zod schema in `core`):
 
 - **Session/meta:** `CampaignCreated`, `SettingsChanged`, `BranchForked`, `TurnStarted`, `TurnCompleted`, `NarrationCommitted`, `NarrationRerolled`.
+- **Characters:** `ActorCreated` (a full sheet enters the campaign; the PC, companions, statted NPCs).
 - **Rules:** `CheckResolved`, `LuckSpent`, `ConditionApplied`, `ConditionRemoved`, `XpAwarded`, `AdvancementPurchased`, `SkillMarked`, `SkillImproved`.
 - **Combat:** `CombatStarted`, `InitiativeRolled`, `RoundStarted`, `ActionDeclared`, `AttackResolved`, `DamageApplied`, `WoundInflicted`, `BleedingTicked`, `MoraleChecked`, `CombatantDefeated`, `CombatEnded`.
 - **World/canon:** `EntityCreated`, `FactAsserted`, `FactRetracted`, `RelationshipChanged`, `EntityMoved`, `TimeAdvanced`, `ClockAdvanced`, `RumorCreated`, `RumorSpread`, `WorldEventOccurred`.
@@ -135,6 +138,7 @@ type GameState = {
   clocks: Record<ClockId, ClockState>;                  // threat clock, faction clocks, timers
   calendar: CalendarState;
   flags: Record<string, unknown>;                       // plugin-owned state lives under flags[pluginId]
+  lastChecks: Record<ActorId, LastCheck>;               // each actor's latest check, so a push or Luck reroll can be validated
 };
 ```
 

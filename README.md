@@ -9,7 +9,14 @@
 
 ## Status
 
-**Specification complete; implementation not started.** Built milestone by milestone; see [docs/milestones.md](docs/milestones.md).
+**M1 (engine core, no models) is built.** Built milestone by milestone; see [docs/milestones.md](docs/milestones.md).
+
+```sh
+bun install
+bun run check                      # typecheck, lint, tests, pack validate
+bun run wyrd --help                # dev CLI
+bun run wyrd roll 65 --difficulty hard --label Stealth
+```
 
 ## Read the spec
 

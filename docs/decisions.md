@@ -71,3 +71,19 @@ Every design decision behind this spec, in the order it was made, with the reaso
 | D38 | Canon guard runs **before** narration is shown by default (narration is buffered; mechanics log and a typing indicator appear immediately). A setting allows "show first, check after". | D26 requires contradictions to be caught before the player sees them; the setting exists for players who prefer instant streaming. |
 | D39 | Enemy and companion tactics use a **deterministic utility AI** in the engine; the model only writes their spoken lines. | Keeps combat fair, fast, cheap and replayable. |
 | D40 | Narrator output uses light markup (`<say who="…">`) for dialogue so TTS can voice each NPC differently. | Per-NPC voices (D32). |
+
+## Implementation decisions (M1)
+
+| # | Decision | Why |
+|---|---|---|
+| D41 | The dev CLI lives in **`apps/cli`** (`bun run wyrd`). | M1 needs a CLI before the server exists, and it is an app, not a library. |
+| D42 | **`storage` takes the engine's `reduce` as a parameter** instead of importing `engine`; its SQL projections are built from event payloads. | Keeps the spec's dependency rule (`core ← storage`) while still letting storage keep snapshots and replay in one transaction. |
+| D43 | **`CheckRequest.tags`** (sight, hearing, attack, escape, resist, fear…) added. | Conditions need to know what kind of check it is (Blinded fails sight checks, Unconscious allows only resistance, Grappled spares escapes). |
+| D44 | **`GameState.lastChecks`** keeps each actor's latest check; push and Luck act on it. `CheckResolved` records both the roll (`result`) and what counts (`effective`), plus `attempt` = initial / push / luck. | Push and Luck must be validated against the check they modify, and replay must never re-derive outcomes. |
+| D45 | **Only a plain `failure` can be pushed**, not a critFailure, an automatic failure or an opposed check. | A fumble already carries a consequence; pushing an impossible task makes no sense; opposed pushes have no clear meaning. |
+| D46 | **d20 rounding is half away from zero**, and the **campaign difficulty modifier counts inside the ±40 cap**. | Symmetric conversion around 50; one place where all modifiers meet keeps the cap meaningful. |
+| D47 | **Luck rerolls and pushes on opposed checks are deferred to M4** (combat), where attack vs Dodge makes the rules concrete. | Avoids guessing a design the combat milestone will define. |
+| D48 | **Frightened applies its −20 whenever present** until scenes track line of sight (M4/M5). | The engine can't know "in view" yet; erring towards the penalty keeps fear meaningful. |
+| D49 | **Rewind's fork starts with a `BranchForked` event.** | The fork point is visible in the log and timeline, and the reducer ignores it, so state hashes still match a straight replay. |
+| D50 | **Point-buy validates totals**: the sheet stores trained totals, and the validator checks that some split into the core and interest pools exists. Unspent points are warnings. | The sheet schema has no core/interest split; a feasibility check gives exact errors without adding one. |
+| D51 | **`fantasy-core` lists no plugins and no class mode yet.** Spellcasting is M7; classes need `classes.yaml`. | The pack validator rejects unknown plugins, so the pack only claims what the build supports. |

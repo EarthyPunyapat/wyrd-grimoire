@@ -1,22 +1,46 @@
 # Handoff notes
 
 Working notes for whichever agent picks this up next. Read `AGENTS.md` first, then this file.
-Delete this file once M1 is merged and its notes are folded into the spec or decisions log.
+Delete this file once its notes are no longer useful.
 
-## Current milestone: M1 — Engine core (branch `m1-engine-core`)
+## Status (2026-10-28)
 
-### Done
-- Bun workspace: `packages/{core,engine,packs,storage}`, `apps/cli`. Root `tsconfig.json` (strict, `tsc -p .`), Biome lint (code + JSON only; `docs/` excluded on purpose so it never reformats the spec).
-- `core`: xoshiro128** RNG (`rng.ts`), injectable ULID factory (`ids.ts`), stable JSON, tuning defaults (`tuning.ts`), zod schemas for settings, sheet, checks, events, pack content.
+**M1 — Engine core is implemented on branch `m1-engine-core`** (not yet pushed or merged).
+Every M1 acceptance box is ticked except **"CI green"**: the workflow (`.github/workflows/ci.yml`,
+Linux + Windows) has never run, because the branch hasn't been pushed. Push the branch, open a PR,
+and tick the box once CI passes. If Windows fails, it's most likely path or line-ending handling in
+`apps/cli/test/cli.test.ts` or `packages/packs/test/loader.test.ts`.
 
-### Next (in order)
-1. `engine`: derived stats, skill values, conditions → modifiers, d100 + d20 modules, check pipeline (push, Luck reroll), opposed checks, reducer + initial state, settings-lock validation, point-buy validator.
-2. `storage`: `campaign.db` (meta, pack_snapshot, events, branches, saves, snapshots, actors projection), append, rewind/fork, snapshots, rebuild, state hash.
-3. `packs`: YAML loader, namespacing, validator (schema, references, balance lints), `packs/fantasy-core`.
-4. `apps/cli`: `bun run wyrd` — roll, sheet validate, campaign create/append/rewind/rebuild/hash, pack validate.
-5. CI workflow, dependency-rule test, tick M1 boxes in `docs/milestones.md`.
+`bun run check` runs everything locally: typecheck → lint → 147 tests → `pack validate`.
 
-### Choices made so far (record in docs/decisions.md before merging)
-- Dev CLI lives in `apps/cli` (not in the spec's layout).
-- Last check per actor is kept in engine state (`lastChecks`) so push/Luck can validate against it.
-- `spellcasting` plugin is M7, so `fantasy-core/pack.yaml` lists no plugins yet.
+## Map of the code
+
+| Package | What's there |
+|---|---|
+| `packages/core` | xoshiro128** RNG, injectable ULIDs, stable JSON, `tuning.ts` (every number), zod schemas: settings, sheet, check, events (registry in `schemas/events.ts`), pack content |
+| `packages/engine` | skills + derived stats, `conditions.ts`, `resolution/` (d100, d20), `checks.ts` (prepare/resolve/push/opposed), `luck.ts`, `reduce.ts`, `settings.ts` (locks), `campaign.ts`, `creation.ts` (sheet builder + point-buy validator) |
+| `packages/storage` | `CampaignStore`: campaign.db schema/migrations, append (one transaction), branches/rewind, saves, gzip snapshots, rebuild, state hash. Depends on `core` only; the reducer is injected |
+| `packages/packs` | YAML loader → namespaced `CompiledPack`, reference resolution, balance lints, `pack new` scaffold |
+| `apps/cli` | `bun run wyrd …` (see `--help`) |
+| `packs/fantasy-core` | 4 ancestries, 6 archetypes, arcana/spellcasting(4 schools)/faith, 12 talents, 7 weapons, 4 armour, 15 gear |
+| `test/architecture.test.ts` | Enforces the spec's dependency rules and engine purity |
+
+## How to add things
+
+- **A new event:** add its payload schema to `eventPayloadSchemas` in `core/src/schemas/events.ts`, then a handler in `engine/src/reduce.ts` (a missing handler is a compile error, and a test checks the registry and reducer match). If it feeds a SQL projection, handle it in `storage/src/projections.ts` and add the table to the migrations (append a new migration; never edit v1).
+- **A tuning number:** add it to `Tuning` and `defaultTuning` in `core/src/tuning.ts`; never hard-code it.
+- **A condition:** `engine/src/conditions.ts` (`onCheck` covers the bearer's own checks only; effects on attackers and AP are M4).
+
+## Deferred to later milestones (deliberately)
+
+- Luck rerolls and pushes on **opposed** checks: M4, with attack vs Dodge (D47).
+- Condition effects on attackers, AP loss (Stunned/Dazed), Bleeding/Burning ticks: M4.
+- Extended tasks / progress clocks (`ClockAdvanced`): the state has an empty `clocks` slot.
+- Progression (XP, marks): M6/M7. Spellcasting plugin and class mode: M7.
+- More fantasy-core content (~40 talents, ~25 weapons, creatures, economy, calendar…): M4–M7.
+
+Every M1 implementation choice is recorded in `docs/decisions.md` as D41–D51.
+
+## Next: M2 — The model loop
+
+Read `docs/milestones.md` (M2) and specs 07, 08 and 09. Start with `packages/llm`: FakeProvider and the cassette format first, so the pipeline can be built and tested offline. Anything marked `VERIFY:` in spec 09 (ChatGPT plan / Responses API details) must be checked against official docs before it is coded.
