@@ -41,18 +41,38 @@ Every M1 implementation choice is recorded in `docs/decisions.md` as D41–D51.
 
 ## M2 — The model loop (branch `m2-model-loop`, stacked on `m1-engine-core`)
 
-Build order (each step is its own commit):
+All seven build steps are done and committed (A llm foundation, B canon/turn events, C exploration
+actions, D context assembler, E turn pipeline, F test world + `wyrd play`, G real adapters).
+M2 implementation choices are D52–D63 in `docs/decisions.md`.
 
-- [x] **A. llm foundation** — `packages/llm`: `ChatProvider` interface (`types.ts`), `FakeProvider`, `collect`, `RoleRouter` (fallback chains, retry transient once, bench a provider on `usage_limit`/`not_eligible`/`auth` instead of looping, one usage record per attempt), presets, price table, `CassetteProvider` (record/replay keyed by request hash, secrets scrubbed). `UsageRecord`/`Role` schemas live in `core`.
-- [x] **B. Canon + turn events** — `EntityCreated`, `FactAsserted`, `SceneOpened/Closed`, `EntityMoved`, `TurnStarted`, `TurnCompleted`, `NarrationCommitted/Rerolled` (`core/src/schemas/canon.ts`). Engine tracks scene presence (`GameState.scene.positions`); storage projects `entities`, `facts`, `turns` (migration v2); `CanonQueries` reads them.
-- [x] **C. Exploration actions** — `core/src/schemas/actions.ts` + `engine/src/exploration.ts`: `validatePlan` (stable codes + legal alternatives) and `resolvePlan` (re-validates each step, stops mid-plan, emits events + `Resolution` with required beats).
-- [x] **D. Context assembler v1** — `packages/memory/src/assembler.ts` (parser/narrator/guard).
-- [x] **E. Turn pipeline** — `packages/llm/src/pipeline.ts` + `prompts/`: parse → validate → repair (max 2) → clarify → resolve → narrate → guard v1 (contradictions, state claims, new entities) → regenerate once → flag → commit one transaction; reroll; mechanical-summary fallback.
-- [x] **F. Test location + terminal loop** — `packs/fantasy-core/worlds/ashford-ferry/world.yaml`, world loader in `packs`, `wyrd play` in the CLI.
-- [ ] **G. Real adapters** — openai-compatible (DeepSeek/Ollama), anthropic, chatgpt-plan (SIWC OAuth PKCE + Responses API), secrets in `WYRD_HOME/secrets/` with atomic writes; mocked-HTTP contract tests. Everything marked VERIFY in spec 09 must be checked against official docs.
+### Acceptance status
 
-Try it offline (no keys): `bun run wyrd sheet build --archetype cutpurse --name Wren --out /tmp/wren.json`, then `bun run wyrd campaign create /tmp/a.db --name Ashford --pc /tmp/wren.json --world ashford-ferry`, then `bun run wyrd play /tmp/a.db --offline`. Real providers: `apps/cli/src/providers.ts` (`loadRouterFromConfig`) is a stub until step G.
+- [ ] **FakeProvider end to end in CI** (repair → clarification, guard regeneration): covered by `packages/llm/test/pipeline.test.ts`. Tick once CI is green on the M2 PR.
+- [ ] **Continue with ChatGPT on the host PC; refresh and rotation; mocked 429 falls back without loops.** The mocked parts are tested (`packages/llm/test/chatgpt.test.ts`). The owner must run `bun run wyrd connect chatgpt` on the main PC, then play a few turns, then (after an hour, or by editing `expires_at` in the record) play again to exercise a real refresh.
+- [ ] **20-turn session with real DeepSeek + ChatGPT plan** in Ashford Ferry, every blocking guard issue regenerated away or flagged. Owner-only; see "Real play" below. Run it with `--input` lines or interactively and keep the transcript.
+- [x] **Usage records for every call**: the router writes one per attempt; the CLI appends them to `WYRD_HOME/usage.jsonl`.
 
-Acceptance 1 (FakeProvider end to end, repair → clarification, guard regeneration) is covered by `packages/llm/test/pipeline.test.ts`; tick it once CI is green on the M2 PR.
+### Real play (owner)
 
-Acceptance 2 and 3 (real ChatGPT sign-in, a 20-turn session with real DeepSeek + ChatGPT) need the owner's accounts on the host PC; the code can be finished and tested offline, but those boxes are ticked only after the owner runs them.
+```sh
+bun run wyrd config init                                  # writes WYRD_HOME/config.json (~/.wyrd or %APPDATA%\Wyrd)
+printf %s 'sk-…' | bun run wyrd secret set deepseek.key   # keys never go in the config file
+bun run wyrd connect chatgpt                              # on the PC that runs Wyrd
+bun run wyrd models chatgpt-plan                          # pick slugs, then edit "models" in config.json
+bun run wyrd models deepseek
+bun run wyrd sheet build --archetype cutpurse --name Wren --ancestry halfling --out wren.json
+bun run wyrd campaign create ashford.db --name "A Night at Ashford" --pc wren.json --world ashford-ferry
+bun run wyrd play ashford.db                              # or --offline to try it without keys
+```
+
+VERIFY before trusting: the DeepSeek base URL and model ID (`wyrd models deepseek` lists what the key can use), and the ChatGPT refresh request fields (D61). If the plan route rejects a parameter, the adapter strips what `error.param` names; anything else shows up as a `bad_request` with OpenAI's message.
+
+### Known gaps to pick up later
+
+- Spending caps (spec 09) aren't implemented; nothing in M2 needs them.
+- The guard is v1 only (contradictions, state claims, new entities/facts). Secrets, witnesses, objectives and approval are guard v2 (M5).
+- The offline provider's keyword parser is deliberately dumb; it exists for demos and tests.
+
+### Next: M3 — Web UI v1
+
+Read `docs/milestones.md` (M3), specs 13 and 14, and `docs/design/`. The pipeline's `TurnStreamEvent`s already match the SSE event names in spec 08, and `TurnPipeline` is the thing the Hono server wraps. Move `WYRD_HOME/config.json` and `usage.jsonl` into app.db then (D59).

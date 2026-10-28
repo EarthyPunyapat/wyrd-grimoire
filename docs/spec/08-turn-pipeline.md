@@ -100,7 +100,7 @@ type ValidationResult =
 ```
 
 1. On failure, the errors (with legal alternatives) go back to the parser for a **repair** (max 2 attempts).
-2. If repair fails or the problem is genuinely the player's choice, the player gets a **clarification card**: the question, numbered options built from the engine's legal alternatives (phrased by the parser), and the free-text box. Clicking an option submits its actions directly.
+2. If repair fails or the problem is genuinely the player's choice, the player gets a **clarification card**: the question, numbered options built from the engine's legal alternatives, and the free-text box. When the parser asks itself, it phrases the options; after failed repairs the engine labels them (no extra model call). Clicking an option submits its actions directly.
 3. In combat, the UI always shows the PC's legal actions and remaining AP as hint chips.
 
 ## Step 5: resolve

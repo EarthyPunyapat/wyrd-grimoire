@@ -78,6 +78,16 @@ What was true in October 2026 (**VERIFY all of it against OpenAI's SIWC docs bef
 - **Errors:** `429 subscription_sharing_usage_limit_exceeded` → do **not** retry in a loop; switch the role to its fallback (below). `403 subscription_sharing_user_not_eligible` → re-login won't help; show a clear message.
 - **Branding:** the button must say **"Continue with ChatGPT"** and follow OpenAI's branding rules.
 
+**Checked against OpenAI's token-sharing guide on 28 October 2026** (`developers.openai.com/siwc/token-sharing-open-source`):
+
+- Authorize also takes `agent_name_hint` (first registration only), `id_token_hint` and `login_hint` (later sign-ins), fresh `state` and `nonce` per attempt. Scope string: `openid profile email offline_access resource.invoke chatgpt.tokens.use.direct`.
+- The new-registration callback returns the issued `client_id` (`oaiapp_…`); reauthorization may omit it, and a different one must be rejected. Exchange the code with the same `redirect_uri` and `resource`.
+- Validate the ID token (signature against OpenAI's JWKS, issuer `https://auth.openai.com`, audience = the issued client ID, expiry, nonce). Plan usage needs the `chatgpt.tokens.use.direct` scope; without it, keep the sign-in but mark plan usage off.
+- Store one record per client ID and identity, written atomically with owner-only permissions; replace access token, expiry, scopes and the rotated refresh token together. Refresh tokens last 30 days and each refresh returns a replacement.
+- Inference: `POST /v1/responses` with `store: false` and `stream: true` on every request; success only on `response.completed`; `response.failed` can carry a usage-limit code mid-stream. Models: `GET /v1/models` returns `models[]`; keep `visibility == "list"`, keep the order, show `display_name`, send `slug`.
+- Errors: `subscription_sharing_usage_limit_exceeded` (429, pause plan requests, no reset time given), `subscription_sharing_user_not_eligible` (403, don't retry or re-login), `subscription_sharing_usage_unavailable` / `subscription_sharing_user_unavailable` (503, bounded backoff), `subscription_sharing_unsupported_capability` (400, remove what `error.param` names), plus `subscription_sharing_route_not_supported`, `subscription_sharing_invalid_user`, `chatpass_v2_*`. Terminal refresh errors (`invalid_grant`, `refresh_token_reused`, …) mean sign in again with the saved client ID.
+- Still VERIFY: the refresh request's exact form fields and the JWKS URL (the implementation uses the standard OAuth refresh grant plus `resource`, and OpenID discovery).
+
 **Sign-in on a self-hosted server:** because the redirect goes to `127.0.0.1` on the machine running the browser, the sign-in must be done **in a browser on the main PC itself**. If the Settings page is opened from another device, it shows: "Open Wyrd on the PC that runs it to connect ChatGPT." After that, the server holds and refreshes the tokens and every device can play.
 
 Because `max_output_tokens` isn't available on this route, passage length is controlled by instructions, and the client aborts generation past a hard character cap.

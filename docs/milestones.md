@@ -38,7 +38,7 @@ Each milestone lists its scope, the spec sections it implements, and acceptance 
 - [ ] With FakeProvider, an exploration turn runs end to end in CI, including a repair → clarification path and a guard regeneration path.
 - [ ] Connecting ChatGPT via "Continue with ChatGPT" works on the host PC; tokens refresh and rotate; a mocked `429` usage-limit error switches the narrator to its fallback without retry loops.
 - [ ] With real DeepSeek + ChatGPT plan: a 20-turn exploration session in the test location with every blocking guard issue either regenerated away or flagged.
-- [ ] Usage records written for every call.
+- [x] Usage records written for every call.
 
 ## M3 — Web UI v1
 

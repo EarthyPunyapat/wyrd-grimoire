@@ -72,7 +72,7 @@ UI theme tokens for the genre: palette (light and dark), display and body fonts,
 
 ### Hand-authored worlds
 
-`worlds/<worldId>/` contains a `world.yaml` (premise, regions, locations, factions, NPCs, items, quests, threat) in the same shapes the world generator produces. Loading a hand-authored world commits it as canon events at campaign start; lazy generation still fills gaps during play.
+`worlds/<worldId>/` contains a `world.yaml` (premise, regions, locations, factions, NPCs, items, quests, threat) in the same shapes the world generator produces. M2's subset: `premise`, `start` (location and zone), `gameTime`, `entities` (each with facts, public or secret) and `locations` (zones, edges, light, weather, starting positions); `fantasy-core` ships `ashford-ferry` as the test location. Loading a hand-authored world commits it as canon events at campaign start; lazy generation still fills gaps during play.
 
 ## Plugins
 
