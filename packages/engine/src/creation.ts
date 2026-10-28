@@ -13,7 +13,51 @@ import {
 import { deriveStats } from "./derived.ts";
 import { luckMax } from "./luck.ts";
 import type { RuleError } from "./result.ts";
-import { lookupSkill, type SkillCatalog, skillValue } from "./skills.ts";
+import { CORE_SKILL_CATALOG, lookupSkill, type SkillCatalog, skillValue } from "./skills.ts";
+
+/** Translate generated preferences into training under the same budgets as authored characters. */
+export function allocateStartingTraining(
+  priority: readonly (keyof Attributes)[],
+  skillIds: readonly string[],
+  tuning: Tuning,
+): Pick<ArchetypeDef, "suggestedAttributes" | "skills"> {
+  if (
+    priority.length !== ATTRIBUTE_IDS.length ||
+    new Set(priority).size !== ATTRIBUTE_IDS.length ||
+    priority.some((id) => !ATTRIBUTE_IDS.includes(id)) ||
+    skillIds.length !== 6 ||
+    new Set(skillIds).size !== 6
+  )
+    throw new Error("Choose seven distinct attributes and six distinct skills");
+  for (const id of skillIds) {
+    const skill = lookupSkill(id, CORE_SKILL_CATALOG);
+    if (skill.field) throw new Error("Generated starting training requires non-field core skills");
+  }
+  const c = tuning.creation;
+  const attributes = Object.fromEntries(ATTRIBUTE_IDS.map((id) => [id, c.attributeStart])) as Attributes;
+  for (let point = 0; point < c.attributePoints; point++) {
+    const candidates = priority.filter((id) => attributes[id] < c.attributeMax);
+    candidates.sort(
+      (a, b) =>
+        (attributes[a] - c.attributeStart) / (priority.length - priority.indexOf(a)) -
+        (attributes[b] - c.attributeStart) / (priority.length - priority.indexOf(b)),
+    );
+    if (!candidates[0]) throw new Error("The configured attribute pool exceeds starting capacity");
+    attributes[candidates[0]]++;
+  }
+  const skills = Object.fromEntries(skillIds.map((id) => [id, 0]));
+  for (const [pool, cap] of [
+    [c.corePoints, c.coreMaxPerSkill],
+    [c.interestPoints, c.interestMaxPerSkill],
+  ]) {
+    if (pool! > cap! * skillIds.length)
+      throw new Error("The configured skill pool exceeds starting capacity");
+    skillIds.forEach((id, i) => {
+      skills[id] = skills[id]! + Math.floor(pool! / skillIds.length) + (i < pool! % skillIds.length ? 1 : 0);
+    });
+  }
+  return { suggestedAttributes: attributes, skills };
+}
 
 /** Pack content the creation rules need, with full namespaced IDs. */
 export type CreationContent = {

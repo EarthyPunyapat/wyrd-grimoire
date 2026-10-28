@@ -2,6 +2,14 @@
 
 Covers the character sheet, the three creation paths, the four progression modes, and companions.
 
+## Pitch-first campaign creation
+
+The default web flow starts with a blank campaign name, a blank optional character name, and a description of the desired adventure/world. It must not ask the player to choose from fantasy races or classes before knowing the setting. The worldGen role proposes a player-safe premise, an opening site and situation, appropriate origins/ancestries/species, and backgrounds (starting training, not permanent classes). Human-only settings need no invented species. The player reviews these options, chooses an origin and background, and starts play. If the character name stays blank, use the generated suggestion, visibly explained during review.
+
+Code allocates attributes and skills within the existing creation budgets, validates the selected sheet, and freezes the generated content with the campaign. Seven attributes remain seven; the sheet displays three physical attributes above four mental/social attributes, with both rows filling the available width. Generated fiction cannot grant new executable rules. Private NPC secrets never enter the creation preview or GameView.
+
+This opening-site slice moves part of M5/M6 into the web flow at the owner's request. Full multi-region generation, lazy expansion, session-zero interviews and companions retain their existing milestones. Offline preview clearly identifies its deterministic example and does not claim to generate a world using AI.
+
 ## Character sheet
 
 The same schema is used for the PC, companions and any NPC with full stats. Lightweight NPCs may use a **statblock** (a subset: attributes, a few skills, HP, WT, armour, attacks, tactics profile) defined in pack data.

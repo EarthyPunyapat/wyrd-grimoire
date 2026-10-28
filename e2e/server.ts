@@ -2,11 +2,13 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createApp } from "../apps/server/src/app.ts";
+import { EXAMPLE_WORLD } from "../apps/server/src/example-world.ts";
 import { webAssets } from "../apps/server/src/web.ts";
 import { type ChatProvider, FakeProvider, offlineProvider, RoleRouter } from "../packages/llm/src/index.ts";
 
 const offline = offlineProvider();
 const cases = new FakeProvider([
+  { role: "worldGen", reply: { toolCall: { name: "propose_world", args: EXAMPLE_WORLD } } },
   {
     role: "parser",
     reply: {
@@ -46,7 +48,8 @@ const provider: ChatProvider = {
     const context = input?.role === "user" ? input.content : "";
     const current = /## This turn\n\nPlayer: (.*)/.exec(context)?.[1] ?? "";
     const special =
-      request.role === "parser" ? current === "ambiguous request" : current === "force a canon flag";
+      request.role === "worldGen" ||
+      (request.role === "parser" ? current === "ambiguous request" : current === "force a canon flag");
     return (special ? cases : offline).generate(request);
   },
 };
@@ -54,7 +57,7 @@ const router = new RoleRouter({
   usage: { record: (r) => instance.store.recordUsage(r) },
   providers: { offline: provider },
   routing: Object.fromEntries(
-    ["parser", "narrator", "guard"].map((role) => [
+    ["parser", "narrator", "guard", "worldGen"].map((role) => [
       role,
       { provider: "offline", model: "offline", fallbacks: [] },
     ]),

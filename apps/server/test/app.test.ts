@@ -113,7 +113,7 @@ test("campaign quick start persists and GameView excludes world truth and hidden
   const cookie = await login(server);
   const made = await request(
     server,
-    "/campaigns",
+    "/campaigns/quick-start",
     { name: "A night at Ashford", characterName: "Wren", archetype: "cutpurse" },
     cookie,
   );
@@ -136,7 +136,7 @@ test("turn IDs deduplicate submissions; SSE replays in order and reroll keeps di
   const cookie = await login(server);
   const made = await request(
     server,
-    "/campaigns",
+    "/campaigns/quick-start",
     { name: "Ferry", characterName: "Wren", archetype: "cutpurse" },
     cookie,
   );
@@ -185,7 +185,7 @@ test("unconfigured real play refuses a turn without leaving a running job", asyn
   const cookie = await login(server);
   const created = await request(
     server,
-    "/campaigns",
+    "/campaigns/quick-start",
     { name: "Unconfigured", characterName: "Wren", archetype: "cutpurse" },
     cookie,
   );
@@ -206,7 +206,7 @@ test("sessions, campaign views, and idempotent turn records survive a server res
   const home = homes.at(-1)!;
   const made = await request(
     before,
-    "/campaigns",
+    "/campaigns/quick-start",
     { name: "Persistent", characterName: "Wren", archetype: "cutpurse" },
     cookie,
   );

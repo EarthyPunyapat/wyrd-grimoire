@@ -45,7 +45,7 @@ Each milestone lists its scope, the spec sections it implements, and acceptance 
 **Spec:** [13](spec/13-ui.md), [14 API, auth, network](spec/14-server-and-persistence.md), mockups in [`design/`](design/)
 
 - Hono server: passcode auth, campaigns, turns, SSE streaming, GameView (filtered to PC knowledge).
-- Web: Home; minimal new-campaign flow (quick start + the hand-authored test world); Play screen (narration, mechanics log, input, suggestion chips, clarification card, guard flag card, reroll); compact Sheet tab; Settings → Models, Connection, Usage; fantasy theme; phone layout.
+- Web: Home; pitch-first new campaign → generated opening world, origins and backgrounds → review → play (owner correction, D69); Play screen (narration, mechanics log, input, suggestion chips, clarification card, guard flag card, reroll); compact Sheet tab with balanced seven-attribute layout; Settings → Models, Connection, Usage; parchment theme; phone layout. Offline preview labels its fixed sci-fi example. The authored fantasy fixture remains an explicit test API.
 
 **Acceptance**
 - [ ] Server on the main PC; play from the laptop over LAN and from a phone.

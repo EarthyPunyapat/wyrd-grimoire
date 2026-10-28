@@ -42,6 +42,18 @@ export class AppStore {
       })();
     }
   }
+  saveCreationDraft(id: string, value: unknown): void {
+    this.db.run("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", [
+      `creation-draft:${id}`,
+      JSON.stringify(value),
+    ]);
+  }
+  creationDraft(id: string): unknown {
+    const row = this.db.query("SELECT value FROM settings WHERE key = ?").get(`creation-draft:${id}`) as {
+      value: string;
+    } | null;
+    return row ? JSON.parse(row.value) : null;
+  }
   providerConfig(): WyrdConfig | null {
     const row = this.db.query("SELECT value FROM settings WHERE key = 'provider-config'").get() as {
       value: string;

@@ -118,7 +118,7 @@ that checkout or its campaign, and do not use the owner's real credentials for a
 - `apps/server`: Hono API, host-only first-run setup/account operations, passcode sessions, quick
   starts, filtered GameView, persistent idempotent turn jobs, resumable SSE, rerolls, model settings,
   connection status and usage. CSP style nonces support the dialog primitives without unsafe-inline.
-- `apps/web`: React/Vite home, quick start, play, mechanics, clarification and canon cards, compact
+- `apps/web`: React/Vite home, pitch-first creation, play, mechanics, clarification and canon cards, compact
   and expanded sheets, phone layout, reading preferences and Models/Connection/Usage settings.
 - `storage/AppStore`: forward-only app.db migrations for sessions, campaign registry, request/stream
   journals, settings, provider/routing tables and usage. Config imports once; JSONL usage imports
@@ -126,7 +126,7 @@ that checkout or its campaign, and do not use the owner's real credentials for a
 - Shared HTTP/provider schemas live in core. The web dependency check prohibits server/IO imports.
 - Browser tests use a fresh temp home and FakeProvider, covering desktop, phone, 320px/tablet layout,
   a clean console and automated WCAG checks. An auth-guard mutation was caught by the regression test.
-- Latest checks: `bun run check` (255 tests), production build, 8 Playwright cases and `bun audit`
+- Latest checks: `bun run check` (260 tests), production build, 8 Playwright cases and `bun audit`
   pass locally on Windows. CI now includes the browser suite and builds on Linux/Windows, but its
   new remote run has not been observed yet.
 
@@ -136,4 +136,20 @@ combat, Journal/Map/Inventory/Party, media, and portable CLI-campaign import fol
 The browser creates its own campaigns; it does not modify the owner's CLI campaign.
 
 Next: review the owner's M2 playtest when they report completion; perform the M3 LAN/device check,
-then begin M4 combat from its spec. D66–D68 record the web implementation choices.
+then begin M4 combat from its spec. D66–D69 record the web implementation choices.
+
+### Owner corrections included in M3
+
+Creation now asks for campaign name, optional character name (both initially blank), and an adventure/
+world pitch before any origin/background choices. `llm/generateWorld` calls the configured worldGen
+role with a bounded proposal schema. `packs/compileGeneratedWorld` compiles setting-specific content
+and canon-ready opening data; `engine/allocateStartingTraining` owns point allocation under tuning.
+`POST /api/world-drafts` persists a server-side draft; `POST /api/campaigns` starts it after review,
+validating choices and freezing the pack. Repeated starts return the existing campaign. Draft previews
+and GameView exclude NPC secrets. The old Ashford fixture is explicit `/api/campaigns/quick-start`.
+
+Offline preview uses a clearly labelled fixed sci-fi example. Tests exercise generated proposals via
+FakeProvider, including different genres, invalid skills/priorities/positions, draft restart, validation
+and private-data exclusion. The real worldGen call has not been evaluated with the owner's providers.
+The seven attributes remain unchanged mechanically and now fill two rows (three physical, four
+mental/social). Full multi-region generation, lazy expansion and session zero remain M5/M6.

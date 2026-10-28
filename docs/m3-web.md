@@ -56,7 +56,17 @@ role or model, and filters by starting date. No costs or token counters appear i
 
 ## Play and recovery
 
-Quick start creates a validated character and the hand-authored Ashford Ferry world. Suggestion chips
+New campaign starts with blank names and your adventure/world description. Character name is optional.
+The worldGen role creates a premise, one starting location with connected zones and people, and
+setting-appropriate origins/species and backgrounds. Review the generated options, choose your
+starting training and begin. A blank character name uses the suggestion shown on review. Code
+allocates the existing creation budgets and validates the sheet; content is frozen with the campaign.
+Generation errors preserve the form for retry, and drafts persist server-side across restarts.
+Offline preview explicitly uses a fixed sci-fi example; it does not call an AI. The authored Ashford
+fixture remains at `POST /api/campaigns/quick-start` for tests. Full multi-region/lazy world generation
+and the session-zero interview remain M5/M6. Seven attributes display in full rows of three and four.
+
+Suggestion chips
 fill the composer; Enter sends and Shift+Enter inserts a newline. Sheet opens on phones; `C` opens the
 expanded sheet. Clarification choices accept clicks or number keys outside text fields. Reading theme
 and text size are per-device preferences. Dialogue markup is rendered as text and named speech,
@@ -73,8 +83,9 @@ does not execute it again. Narration failures retain the engine result with a me
 Canon flags support Keep canon & regenerate via reroll. Retcon/edit needs the later canon-editing
 events; it is not implemented as a direct state mutation.
 
-GameView exposes the PC sheet, effective skills, current location and same-zone names, plus player
-turn history. It never serializes the world bible, NPC sheets, entity summaries, facts or engine RNG.
+GameView exposes the PC sheet, effective skills, public world name/opening, current location and
+same-zone names, plus player turn history. It never serializes the full world bible, NPC sheets,
+private facts, raw canon records or engine RNG. Generated NPC secrets stay out of the draft preview.
 The M2 guard remains v1; full secret/witness guarding is M5.
 
 ## Verify

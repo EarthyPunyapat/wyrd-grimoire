@@ -1,4 +1,5 @@
 export * from "./content.ts";
+export * from "./generated.ts";
 export { averageDamage, lintPack } from "./lints.ts";
 export { KNOWN_PLUGINS, type LoadResult, loadPack, type PackIssue } from "./loader.ts";
 export { scaffoldPack } from "./scaffold.ts";

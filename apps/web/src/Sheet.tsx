@@ -12,7 +12,8 @@ export function Sheet({ view }: { view: GameView }) {
         <div>
           <h2>{pc.identity.name}</h2>
           <p>
-            {pc.identity.ancestry.split(":")[1]} · {pc.archetypeId?.split(":")[1]}
+            {view.originName}
+            {view.backgroundName && ` · ${view.backgroundName}`}
           </p>
         </div>
       </div>

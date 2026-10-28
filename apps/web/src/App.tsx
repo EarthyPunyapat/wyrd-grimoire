@@ -1,15 +1,9 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import {
-  AuthStatus,
-  CampaignCard,
-  CreatedCampaign,
-  GameView,
-  QuickStartInput,
-  QuickStartOptions,
-} from "@wyrd/core";
+import { AuthStatus, CampaignCard, GameView } from "@wyrd/core";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api.ts";
 import { ModelSettings } from "./ModelSettings.tsx";
+import { NewCampaign } from "./NewCampaign.tsx";
 import { Play } from "./Play.tsx";
 
 export function App() {
@@ -148,7 +142,7 @@ export function App() {
                   </span>
                   <span>
                     <strong>{card.name}</strong>
-                    <span>{card.characterName} · Ashford Ferry</span>
+                    <span>{card.characterName}</span>
                   </span>
                   <span className="card-arrow" aria-hidden="true">
                     ↗
@@ -160,7 +154,7 @@ export function App() {
             <div className="empty-campaigns">
               <span aria-hidden="true">✧</span>
               <h3>Every story begins somewhere.</h3>
-              <p>Make a character and take your first steps into Ashford Ferry.</p>
+              <p>Describe a world. Discover who you could be within it.</p>
               <button type="button" onClick={() => setCreating(true)}>
                 Begin a new story →
               </button>
@@ -173,12 +167,13 @@ export function App() {
         <Dialog.Portal>
           <Dialog.Overlay className="overlay" />
           <Dialog.Content className="dialog">
-            <Dialog.Title>A night at Ashford</Dialog.Title>
+            <Dialog.Title>Begin a new story</Dialog.Title>
             <Dialog.Description>
-              A missing ferryman, a rain-swollen river, and a village with something to hide. A hand-authored
-              fantasy adventure.
+              Tell us what you want to play. Review your world and character options before the adventure
+              begins.
             </Dialog.Description>
             <NewCampaign
+              offline={auth?.offline ?? false}
               onCreate={(id) => {
                 setCreating(false);
                 void openCampaign(id);
@@ -285,76 +280,5 @@ function Unlock({ setupRequired, onUnlock }: { setupRequired: boolean; onUnlock:
         </button>
       </form>
     </main>
-  );
-}
-
-function NewCampaign({ onCreate }: { onCreate: (id: string) => void }) {
-  const [options, setOptions] = useState<ReturnType<typeof QuickStartOptions.parse>>();
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [ancestry, setAncestry] = useState("human");
-  const [archetype, setArchetype] = useState("cutpurse");
-  useEffect(() => {
-    void api("/packs", QuickStartOptions.parse)
-      .then(setOptions)
-      .catch((e) => setError(e.message));
-  }, []);
-  return (
-    <form
-      onSubmit={async (e) => {
-        e.preventDefault();
-        setBusy(true);
-        setError("");
-        try {
-          const input = QuickStartInput.parse(Object.fromEntries(new FormData(e.currentTarget)));
-          const created = await api("/campaigns", CreatedCampaign.parse, input);
-          onCreate(created.id);
-        } catch (e) {
-          setError((e as Error).message);
-        } finally {
-          setBusy(false);
-        }
-      }}
-    >
-      <label>
-        Campaign name
-        <input name="name" defaultValue="A Night at Ashford" required maxLength={100} />
-      </label>
-      <label>
-        Character name
-        <input name="characterName" defaultValue="Wren" required maxLength={80} />
-      </label>
-      <div className="form-row">
-        <label>
-          Ancestry
-          <select name="ancestry" value={ancestry} onChange={(e) => setAncestry(e.target.value)}>
-            {options?.ancestries.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Archetype
-          <select name="archetype" value={archetype} onChange={(e) => setArchetype(e.target.value)}>
-            {options?.archetypes.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <p className="muted">Quick start · fantasy-core · d100 · standard rules</p>
-      {error && (
-        <p role="alert" className="error">
-          {error}
-        </p>
-      )}
-      <button type="submit" className="primary" disabled={busy || !options}>
-        {busy ? "Preparing your story…" : "Step into Ashford Ferry →"}
-      </button>
-    </form>
   );
 }

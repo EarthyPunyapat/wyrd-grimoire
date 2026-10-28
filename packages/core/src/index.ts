@@ -11,5 +11,6 @@ export * from "./schemas/settings.ts";
 export * from "./schemas/sheet.ts";
 export * from "./schemas/usage.ts";
 export * from "./schemas/web.ts";
+export * from "./schemas/world-generation.ts";
 export * from "./stable-json.ts";
 export * from "./tuning.ts";

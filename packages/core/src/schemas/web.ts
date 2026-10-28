@@ -64,6 +64,10 @@ export const GameView = z.object({
   id: z.string(),
   name: z.string(),
   gameTime: z.number(),
+  worldName: z.string(),
+  opening: z.string(),
+  originName: z.string(),
+  backgroundName: z.string(),
   pc: CharacterSheet,
   skills: z.array(z.object({ id: z.string(), name: z.string(), value: z.number() })),
   scene: z

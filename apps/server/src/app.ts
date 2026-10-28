@@ -9,8 +9,11 @@ import {
   GameView,
   PasscodeInput,
   QuickStartInput,
+  StartGeneratedCampaign,
   SubmitTurnInput,
   TurnCompletedPayload,
+  WorldPitch,
+  WorldProposal,
 } from "@wyrd/core";
 import {
   buildSheet,
@@ -23,8 +26,17 @@ import {
   unwrap,
   validateCreation,
 } from "@wyrd/engine";
-import { type RoleRouter, SecretStore, TurnPipeline, type TurnStreamEvent } from "@wyrd/llm";
-import { creationContent, loadPack, loadWorld, skillCatalog, worldEvents } from "@wyrd/packs";
+import { generateWorld, type RoleRouter, SecretStore, TurnPipeline, type TurnStreamEvent } from "@wyrd/llm";
+import {
+  compileGeneratedWorld,
+  creationContent,
+  generatedWorldPreview,
+  loadPack,
+  loadWorld,
+  skillCatalog,
+  type WorldDef,
+  worldEvents,
+} from "@wyrd/packs";
 import { AppStore, CampaignStore, CanonQueries } from "@wyrd/storage";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
@@ -32,7 +44,8 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
 import { NONCE, type SecureHeadersVariables, secureHeaders } from "hono/secure-headers";
 import { streamSSE } from "hono/streaming";
-import type { z } from "zod";
+import { z } from "zod";
+import { EXAMPLE_WORLD } from "./example-world.ts";
 import { ModelServices, mountModels } from "./models.ts";
 
 const SESSION_TTL = 30 * 24 * 60 * 60 * 1000;
@@ -186,11 +199,78 @@ export function createApp(options: Options) {
       ancestries: Object.values(content.ancestries).map((a) => ({ id: a.id.split(":")[1], name: a.name })),
     }),
   );
+  const StoredDraft = z.object({
+    input: WorldPitch,
+    proposal: WorldProposal,
+    offline: z.boolean(),
+    campaignId: z.string().optional(),
+  });
+  let generating = false;
+  app.post("/api/world-drafts", async (c) => {
+    const input = await body(c, WorldPitch);
+    if (generating)
+      throw new HTTPException(409, { message: "A world is already being generated. Please wait." });
+    generating = true;
+    try {
+      const offline = options.offline && !options.router;
+      const proposal = offline ? EXAMPLE_WORLD : await generateWorld(models.router(), input);
+      const { pack } = compileGeneratedWorld(proposal);
+      const id = randomUUID();
+      store.saveCreationDraft(id, { input, proposal, offline });
+      return c.json(generatedWorldPreview(id, input.name, proposal, pack, offline), 201);
+    } catch (error) {
+      if (error instanceof HTTPException) throw error;
+      throw new HTTPException(502, {
+        message:
+          "The world could not be generated or validated. Your description is still here; try again or check model settings.",
+      });
+    } finally {
+      generating = false;
+    }
+  });
   app.post("/api/campaigns", async (c) => {
+    const input = await body(c, StartGeneratedCampaign);
+    const saved = StoredDraft.safeParse(store.creationDraft(input.draftId));
+    if (!saved.success)
+      throw new HTTPException(404, { message: "World draft not found. Generate your world first." });
+    if (saved.data.campaignId) return c.json({ id: saved.data.campaignId }, 201);
+    const { pack, world } = compileGeneratedWorld(saved.data.proposal);
+    const id = createGame(
+      {
+        name: saved.data.input.name,
+        characterName: input.characterName || saved.data.proposal.suggestedCharacterName,
+        ancestry: input.ancestry,
+        archetype: input.archetype,
+      },
+      pack,
+      world,
+    );
+    store.saveCreationDraft(input.draftId, { ...saved.data, campaignId: id });
+    return c.json({ id }, 201);
+  });
+  // Explicit authored test fixture; the normal web flow never chooses fantasy-core implicitly.
+  app.post("/api/campaigns/quick-start", async (c) => {
     const input = await body(c, QuickStartInput);
-    const archetype = content.archetypes[`${pack.manifest.id}:${input.archetype}`];
-    if (!archetype || !content.ancestries[`${pack.manifest.id}:${input.ancestry}`])
-      throw new HTTPException(422, { message: "Choose a valid archetype and ancestry" });
+    const id = createGame(
+      {
+        ...input,
+        ancestry: `${pack.manifest.id}:${input.ancestry}`,
+        archetype: `${pack.manifest.id}:${input.archetype}`,
+      },
+      pack,
+      world,
+    );
+    return c.json({ id }, 201);
+  });
+  function createGame(
+    input: { name: string; characterName: string; ancestry: string; archetype: string },
+    pack: CompiledPack,
+    world: WorldDef,
+  ) {
+    const content = creationContent([pack]);
+    const archetype = content.archetypes[input.archetype];
+    if (!archetype || !content.ancestries[input.ancestry])
+      throw new HTTPException(422, { message: "Choose an origin and background from this world" });
     const created = unwrap(
       createCampaign({
         name: input.name,
@@ -202,7 +282,7 @@ export function createApp(options: Options) {
     const sheet = buildSheet(
       {
         id: "pc",
-        identity: { name: input.characterName, ancestry: `${pack.manifest.id}:${input.ancestry}` },
+        identity: { name: input.characterName, ancestry: input.ancestry, background: archetype.description },
         archetypeId: archetype.id,
         attributes: archetype.suggestedAttributes,
         skills: Object.fromEntries(
@@ -251,8 +331,8 @@ export function createApp(options: Options) {
       game.close();
       throw error;
     }
-    return c.json({ id }, 201);
-  });
+    return id;
+  }
   app.get("/api/campaigns/:id/view", (c) => {
     const id = c.req.param("id");
     const game = campaign(id);
@@ -274,6 +354,15 @@ export function createApp(options: Options) {
         id,
         name: state.campaign.name,
         gameTime: state.campaign.gameTime,
+        worldName: canon.entity("concept:world-bible")?.name ?? state.campaign.name,
+        opening: scene
+          ? String(
+              canon.factsAbout(scene.locationId).find((f) => f.predicate === "opening")?.value ??
+                "Look around, speak to someone nearby, or follow your curiosity.",
+            )
+          : "Your next chapter awaits.",
+        originName: gamePack.ancestries[pc.identity.ancestry]?.name ?? pc.identity.ancestry,
+        backgroundName: gamePack.archetypes[pc.archetypeId ?? ""]?.name ?? "",
         pc,
         skills: Object.keys(pc.skills).map((id) => ({
           id,

@@ -12,8 +12,19 @@ async function unlock(page: Page) {
 async function create(page: Page) {
   await unlock(page);
   await page.getByRole("button", { name: "+ New campaign", exact: true }).click();
-  await page.getByRole("button", { name: "Step into Ashford Ferry →" }).click();
-  await expect(page.getByRole("heading", { name: "The river keeps its secrets." })).toBeVisible();
+  await expect(page.getByLabel("Campaign name", { exact: true })).toHaveValue("");
+  await expect(page.getByLabel("Character name", { exact: false })).toHaveValue("");
+  await expect(page.getByLabel("Background", { exact: true })).toHaveCount(0);
+  await page.getByLabel("Campaign name", { exact: true }).fill("Silent Relay Test");
+  await page.getByLabel("Character name", { exact: false }).fill("Wren");
+  await page
+    .getByLabel("What kind of adventure or world do you want?")
+    .fill("A hard sci-fi mystery on a failing space station, human crew, no magic.");
+  await page.getByRole("button", { name: "Preview example world →" }).click();
+  await expect(page.getByRole("heading", { name: "The Silent Relay" })).toBeVisible();
+  await expect(page.getByLabel("Background", { exact: true })).toContainText("Systems technician");
+  await page.getByRole("button", { name: "Begin adventure →" }).click();
+  await expect(page.getByRole("heading", { name: "Relay Nine" })).toBeVisible();
 }
 
 test("quick start, live turn, reroll, reload and character sheet", async ({ page }, info) => {

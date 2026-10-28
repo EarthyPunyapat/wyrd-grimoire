@@ -72,24 +72,18 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
             </button>
             <div className="scene-banner" aria-hidden="true">
               <svg viewBox="0 0 800 210" preserveAspectRatio="xMidYMid slice">
-                <title>A river crossing in the mist</title>
+                <title>A map of possible paths</title>
                 <path
                   className="hills"
-                  d="M0 100 90 60 180 90 280 45 390 80 490 55 600 92 710 42 800 70V210H0Z"
-                />
-                <path className="river" d="M365 100h40l120 110H210Z" />
-                <path
-                  className="shore"
-                  d="M0 125 160 105 350 115 290 140 170 170 120 210H0Zm800-5-120-15-275 10 75 30 150 30 80 35h90Z"
+                  d="M0 150 100 120 220 160 350 100 450 140 570 80 680 130 800 90V210H0Z"
                 />
                 <path
-                  className="trees"
-                  d="m85 145 18-45 18 45h-12v35H97v-35Zm43 8 23-60 23 60h-17v37h-12v-37Zm550-4 22-58 22 58h-16v38h-12v-38Z"
+                  className="ferry"
+                  d="M100 120 220 160 350 100 450 140 570 80 680 130M350 100v-55m-25 25h50m-25-15 15 15-15 15-15-15Z"
                 />
-                <path className="ferry" d="m365 137 74 2-13 14h-48Zm31 0V93m0 2 25 33h-25M315 122l188 4" />
               </svg>
               <span>
-                ASHFORD FERRY <small>ON THE EDGE OF SOMETHING</small>
+                {view.worldName} <small>ON THE EDGE OF SOMETHING</small>
               </span>
             </div>
             <div className="chapter-label">
@@ -100,11 +94,8 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
             {!view.turns.length && (
               <div className="opening">
                 <div className="eyebrow">CHAPTER ONE</div>
-                <h2>The river keeps its secrets.</h2>
-                <p>
-                  The crossing at Ashford Ferry lies before you. Take a look around, speak to someone nearby,
-                  or follow your curiosity.
-                </p>
+                <h2>{view.scene?.location ?? view.worldName}</h2>
+                <p>{view.opening}</p>
                 <p className="opening-note">Your story begins with what you choose to do.</p>
               </div>
             )}
