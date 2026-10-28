@@ -4,10 +4,11 @@ import { type GameState, type RulesContext, skillLabel, skillValue } from "@wyrd
 /** What the assembler reads from canon. `CanonQueries` from storage satisfies it. */
 export interface CanonSource {
   entity(id: string): Entity | null;
-  factsAbout(entityId: string, opts?: { includeSecret?: boolean }): Fact[];
+  factsAbout(entityId: string, opts?: { includeSecret?: boolean; horizonSeq?: number }): Fact[];
   findByName(name: string): Entity[];
   recentTurns(
     limit: number,
+    horizonSeq?: number,
   ): Array<{ id?: string; input: string; narration: string | null; status: string | null }>;
 }
 
@@ -40,6 +41,8 @@ export type TurnInputs = {
   corrections?: string[];
   /** Reroll: leave the turn being re-narrated out of the recent turns. */
   excludeTurnId?: string;
+  /** Reroll: hide canon asserted after this sequence number, so the past cannot see the future. */
+  horizonSeq?: number;
 };
 
 export type Section = { n: number; title: string; text: string };
@@ -78,6 +81,14 @@ function clock(gameTime: number): string {
   const part =
     m < 300 ? "night" : m < 720 ? "morning" : m < 1020 ? "afternoon" : m < 1260 ? "evening" : "night";
   return `Day ${day}, ${hh}:${mm} (${part})`;
+}
+
+/** Renders a location fact for a prompt: the opening passage and zone descriptions read as prose. */
+function locationFact(f: Fact, zoneName: (id: string) => string): string {
+  const value = typeof f.value === "string" ? f.value : JSON.stringify(f.value);
+  if (f.predicate === "opening") return `Opening passage: ${value}`;
+  if (f.predicate.startsWith("zone:")) return `${zoneName(f.predicate.slice("zone:".length))}: ${value}`;
+  return `${f.predicate}: ${value}`;
 }
 
 export type AssembleOptions = {
@@ -181,6 +192,13 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
         (e) => `${zone(e.a)} ↔ ${zone(e.b)}${e.requires ? ` (needs ${e.requires})` : ""}`,
       );
       if (exits.length) lines.push(`Ways between places: ${exits.join("; ")}.`);
+      // Location prose the player can read (the opening passage, zone descriptions) has to reach the
+      // models too, or the first narration can contradict the passage that introduced the scene.
+      const facts = canon.factsAbout(scene.locationId, {
+        ...(role === "guard" ? { includeSecret: true } : {}),
+        ...(o.turn.horizonSeq === undefined ? {} : { horizonSeq: o.turn.horizonSeq }),
+      });
+      for (const fact of facts) lines.push(locationFact(fact, zone));
     }
     return lines.join("\n");
   };
@@ -196,7 +214,10 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
     .map((id) => canon.entity(id))
     .filter((e): e is Entity => e !== null)
     .map((e) => {
-      const facts = canon.factsAbout(e.id, { includeSecret: role === "guard" });
+      const facts = canon.factsAbout(e.id, {
+        ...(role === "guard" ? { includeSecret: true } : {}),
+        ...(o.turn.horizonSeq === undefined ? {} : { horizonSeq: o.turn.horizonSeq }),
+      });
       const factLines = facts.map(
         (f) =>
           `  - ${role === "guard" ? `[${f.id}] ` : ""}${f.predicate}: ${typeof f.value === "string" ? f.value : JSON.stringify(f.value)}${f.visibility === "secret" ? " (SECRET: the PC doesn't know this)" : ""}`,
@@ -226,7 +247,7 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
 
   // 12. Recent turns, verbatim; trimmed oldest-first down to the role's minimum.
   const turns = canon
-    .recentTurns(MAX_TURNS[role] + 1)
+    .recentTurns(MAX_TURNS[role] + 1, o.turn.horizonSeq)
     .filter((t) => t.status !== null && (o.turn.excludeTurnId === undefined || t.id !== o.turn.excludeTurnId))
     .slice(-MAX_TURNS[role]);
   const turnText = (n: number) =>

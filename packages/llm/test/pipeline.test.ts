@@ -329,6 +329,80 @@ describe("exploration turn end to end (FakeProvider)", () => {
     });
     expect(t.events.find((e) => e.type === "guard.flag")).toBeDefined();
     expect(t.fake.calls("narrator")).toHaveLength(2);
+    // The blocked draft is never narrated to the player: one narration event, after the guard.
+    expect(t.events.filter((e) => e.type === "narration.final")).toHaveLength(1);
+    expect(t.events.some((e) => e.type === "narration.delta")).toBe(false);
+  });
+
+  test("guard flags shown to the player carry no model-written detail", async () => {
+    const t = setup([
+      { role: "parser", reply: propose(GOOD_MOVE), times: 1 },
+      { role: "narrator", reply: { text: "Wenna hands you the ferry key." }, times: 1 },
+      {
+        role: "guard",
+        reply: report({
+          contradictions: [
+            {
+              quote: "ferry key",
+              conflictsWith: { resolution: "the key lies under the cellar floorboards" },
+              severity: "major",
+            },
+          ],
+        }),
+        times: 2,
+      },
+      { role: "narrator", reply: { text: "Wenna names her price." }, times: 1 },
+    ]);
+    const r = await t.pipeline.run({ input: "To the jetty.", onEvent: t.onEvent });
+    expect(r.guard?.flagged).toEqual([
+      { kind: "contradiction", quote: "ferry key", detail: "conflicts with an established fact" },
+    ]);
+    expect(JSON.stringify(t.events)).not.toContain("floorboards");
+    expect(JSON.stringify(store.events())).not.toContain("floorboards");
+  });
+
+  test("a plan that acts as an NPC is rejected and repaired, never resolved", async () => {
+    const t = setup([
+      {
+        role: "parser",
+        reply: {
+          toolCall: {
+            name: "propose_actions",
+            args: { actorId: "npc:wenna", actions: [{ type: "move", toZoneId: "z:jetty" }], intent: "move" },
+          },
+        },
+        times: 1,
+      },
+      { role: "parser", reply: propose([{ type: "wait", minutes: 1 }]), times: 1 },
+      { role: "narrator", reply: { text: "You wait by the water." }, times: 1 },
+      { role: "guard", reply: report(), times: 1 },
+    ]);
+    const r = await t.pipeline.run({ input: "I wait.", onEvent: t.onEvent });
+    expect(r.repairs).toBe(1);
+    expect(lastUser(t.fake.calls("parser")[1]!)).toContain("ACTOR_NOT_CONTROLLABLE");
+    // The rejected NPC plan moved nobody; the repaired plan is what resolved.
+    expect(store.state().scene?.positions.pc).toBe("z:common");
+    expect(store.state().scene?.positions["npc:wenna"]).toBe("z:jetty");
+  });
+
+  test("rerolling an old turn cannot see later turns", async () => {
+    const t = setup([
+      { role: "parser", reply: propose(GOOD_MOVE), times: 1 },
+      { role: "narrator", reply: { text: "The first passage." }, times: 1 },
+      { role: "guard", reply: report(), times: 1 },
+      { role: "parser", reply: propose([{ type: "wait", minutes: 1 }]), times: 1 },
+      { role: "narrator", reply: { text: "A second passage, much later." }, times: 1 },
+      { role: "guard", reply: report(), times: 1 },
+      { role: "narrator", reply: { text: "The first passage, retold." }, times: 1 },
+      { role: "guard", reply: report(), times: 1 },
+    ]);
+    const first = await t.pipeline.run({ input: "Look around.", onEvent: t.onEvent });
+    await t.pipeline.run({ input: "Wait.", onEvent: t.onEvent });
+    const calls = t.fake.calls("narrator").length;
+    const rerolled = await t.pipeline.reroll(first.turnId, t.onEvent);
+    expect(rerolled.narration).toBe("The first passage, retold.");
+    const prompt = lastUser(t.fake.calls("narrator")[calls]!);
+    expect(prompt).not.toContain("A second passage, much later.");
   });
 
   test("minor contradictions don't block", async () => {

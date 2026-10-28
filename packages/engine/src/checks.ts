@@ -227,7 +227,27 @@ export function resolveOpposedCheck(
   const a = roll(state, rng, activeReq, ctx);
   if (!a.ok) return a;
   const d = roll(state, rng, defenderReq, ctx);
-  if (!d.ok) return d;
+  if (!d.ok) {
+    if (d.errors[0]?.code !== "ACTOR_INCAPACITATED") return d;
+    // A defender who cannot act does not oppose: the active side wins on its own roll, and the
+    // turn continues instead of failing on the defender's condition.
+    const name = state.actors[defenderReq.actorId]?.sheet.identity.name ?? "The defender";
+    return ok({
+      events: resolvedEvents(state, activeReq, a.value, a.value.result, "initial", rng, {
+        role: "active",
+        againstActorId: defenderReq.actorId,
+        won: true,
+      }),
+      winner: "active",
+      active: a.value.result,
+      defender: {
+        degree: "failure",
+        margin: 0,
+        rolls: [],
+        display: { text: `${name} can't oppose (${d.errors[0].message})`, degree: "failure" },
+      },
+    });
+  }
   const winner = compareResults(a.value.result, d.value.result);
 
   // Both events record the generator state after both rolls; replay only ever applies the latest.

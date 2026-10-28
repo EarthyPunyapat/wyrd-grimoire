@@ -4,7 +4,10 @@ import type { ToolDef } from "./types.ts";
 
 /** Parser tools (spec 08, step 2). Their JSON schemas are generated from the same zod schemas the engine validates. */
 export const ProposeActions = z.object({
-  actorId: z.string().optional(),
+  actorId: z
+    .string()
+    .optional()
+    .describe("Omit for the player character. Only set it to a companion the player commands. Never an NPC."),
   actions: z.array(ExplorationAction).min(1),
   intent: z.string(),
 });
@@ -85,4 +88,19 @@ export function blockingIssues(r: GuardReportV1): Array<{ kind: string; quote: s
         detail: c.conflictsWith.resolution ?? `conflicts with fact ${c.conflictsWith.factId ?? "?"}`,
       })),
   ];
+}
+
+/**
+ * The flags the player sees. `blockingIssues` detail can quote a secret fact the guard was given to
+ * check, so only the kind and the quoted narration line are safe to persist and send to the browser.
+ */
+export function guardFlags(r: GuardReportV1): Array<{ kind: string; quote: string; detail: string }> {
+  return blockingIssues(r).map(({ kind, quote }) => ({
+    kind,
+    quote,
+    detail:
+      kind === "stateClaim"
+        ? "asserts a change the engine did not make"
+        : "conflicts with an established fact",
+  }));
 }

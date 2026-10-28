@@ -54,6 +54,28 @@ const facts: Fact[] = [
     source: "pack",
     visibility: "secret",
   }),
+  FactSchema.parse({
+    id: "f3",
+    entityId: "loc:ferry",
+    predicate: "opening",
+    value: "Rain hammers the ferry roof while the river rises.",
+    source: "pack",
+  }),
+  FactSchema.parse({
+    id: "f4",
+    entityId: "loc:ferry",
+    predicate: "zone:z:common",
+    value: "Tables crowd the hearth.",
+    source: "pack",
+  }),
+  FactSchema.parse({
+    id: "f5",
+    entityId: "loc:ferry",
+    predicate: "secret",
+    value: "the cellar hides a drowned man",
+    source: "pack",
+    visibility: "secret",
+  }),
 ];
 
 function canon(turns: Array<{ input: string; narration: string }> = []): CanonSource {
@@ -62,7 +84,10 @@ function canon(turns: Array<{ input: string; narration: string }> = []): CanonSo
     factsAbout: (id, o) =>
       facts.filter((f) => f.entityId === id && (o?.includeSecret || f.visibility === "public")),
     findByName: (n) => entities.filter((e) => e.name.toLowerCase() === n.toLowerCase()),
-    recentTurns: (limit) => turns.slice(-limit).map((t) => ({ ...t, status: "resolved" })),
+    recentTurns: (limit, horizonSeq) =>
+      (horizonSeq === undefined ? turns : turns.slice(0, horizonSeq))
+        .slice(-limit)
+        .map((t) => ({ ...t, status: "resolved" })),
   };
 }
 
@@ -212,5 +237,27 @@ describe("context assembler v1", () => {
       opts({ turn: { input: "x", resolution, corrections: ["Osric was not killed."] } }),
     );
     expect(context).toContain("Fix these problems from your last draft:\n- Osric was not killed.");
+  });
+
+  test("the opening passage and zone prose reach the narrator and the guard", () => {
+    const narrator = assemble(opts()).context;
+    expect(narrator).toContain("Opening passage: Rain hammers the ferry roof while the river rises.");
+    expect(narrator).toContain("the common room: Tables crowd the hearth.");
+    expect(narrator).not.toContain("drowned man");
+    const guard = assemble(
+      opts({ role: "guard", turn: { input: "x", resolution, draft: "Rain falls." } }),
+    ).context;
+    expect(guard).toContain("Opening passage: Rain hammers the ferry roof");
+    expect(guard).toContain("drowned man");
+  });
+
+  test("a horizon hides turns and facts from after the turn being re-narrated", () => {
+    const turns = Array.from({ length: 5 }, (_, i) => ({ input: `turn ${i}`, narration: `said ${i}` }));
+    const { context } = assemble(
+      opts({ canon: canon(turns), turn: { input: "x", resolution, horizonSeq: 2 } }),
+    );
+    expect(context).toContain("Player: turn 1");
+    expect(context).not.toContain("Player: turn 2");
+    expect(context).not.toContain("Player: turn 3");
   });
 });

@@ -38,6 +38,7 @@ import {
   blockingIssues,
   GUARD_TOOL,
   GuardReportV1,
+  guardFlags,
   PARSER_TOOLS,
   ProposeActions,
 } from "./tools.ts";
@@ -255,7 +256,31 @@ export class TurnPipeline {
         } else if (tc.name === "propose_actions") {
           const parsed = ProposeActions.safeParse(tc.args);
           if (parsed.success) {
-            const actorId = parsed.data.actorId ?? pcId;
+            const actorId: string = parsed.data.actorId ?? pcId;
+            // Only the player's own characters act (spec 08, step 2). A parser-chosen NPC would
+            // otherwise move, speak or spend time as that NPC through the ordinary action path.
+            if (actorId !== pcId && !state.party.companionIds.includes(actorId)) {
+              lastErrors = [
+                {
+                  actionIndex: 0,
+                  code: "ACTOR_NOT_CONTROLLABLE",
+                  message: `Only the player character or a companion the player commands can act, not "${actorId}". Write the plan as the player's side of the scene.`,
+                },
+              ];
+              if (attempt < MAX_REPAIRS) {
+                repairs++;
+                reply(
+                  JSON.stringify({
+                    rejected: true,
+                    errors: lastErrors,
+                    instruction:
+                      "Omit actorId (the player character acts) or name a companion the player controls. Never act as an NPC.",
+                  }),
+                );
+                continue;
+              }
+              break;
+            }
             const v = validatePlan(state, actorId, parsed.data.actions, ctx);
             if (v.ok) {
               plan = { actorId, actions: parsed.data.actions, intent: parsed.data.intent };
@@ -358,6 +383,7 @@ export class TurnPipeline {
     call: { campaignId?: string | undefined; turnId: string },
     emit: (e: TurnStreamEvent) => void,
     excludeTurnId?: string,
+    horizonSeq?: number,
   ) {
     const maxChars = MAX_CHARS[state.campaign.settings.narration.length];
     const showFirst = state.campaign.settings.narration.canonCheck === "afterShowing";
@@ -367,6 +393,7 @@ export class TurnPipeline {
         resolution,
         ...(corrections ? { corrections } : {}),
         ...(excludeTurnId ? { excludeTurnId } : {}),
+        ...(horizonSeq === undefined ? {} : { horizonSeq }),
       });
       return this.d.router.complete(
         "narrator",
@@ -380,7 +407,12 @@ export class TurnPipeline {
       );
     };
     const check = async (text: string): Promise<GuardReportV1 | null> => {
-      const p = this.prompt("guard", state, { input, resolution, draft: text });
+      const p = this.prompt("guard", state, {
+        input,
+        resolution,
+        draft: text,
+        ...(horizonSeq === undefined ? {} : { horizonSeq }),
+      });
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
           const c = await this.d.router.complete(
@@ -432,10 +464,10 @@ export class TurnPipeline {
           issues.map((i) => `"${i.quote}" is wrong: ${i.detail}. Narrate only what the engine resolved.`),
         );
         report = await check(final.text);
-        flagged = report ? blockingIssues(report) : [];
+        flagged = report ? guardFlags(report) : [];
       } catch {
         // Keep the first draft, flagged.
-        flagged = issues;
+        flagged = report ? guardFlags(report) : [];
       }
     }
     return {
@@ -654,7 +686,15 @@ export class TurnPipeline {
       }
       const before = this.d.store.state(this.d.store.activeBranchId, turn.startedSeq - 1);
       const call = { campaignId: this.d.campaignId, turnId };
-      const voiced = await this.voice(before, turn.input, record.resolution, call, emit, turnId);
+      const voiced = await this.voice(
+        before,
+        turn.input,
+        record.resolution,
+        call,
+        emit,
+        turnId,
+        turn.startedSeq - 1,
+      );
       this.d.store.append(
         [...this.canonFromGuard(before, voiced.report), draft("NarrationRerolled", voiced.narration)],
         {

@@ -47,18 +47,26 @@ export class CanonQueries {
     );
   }
 
-  factsAbout(entityId: string, opts: { includeSecret?: boolean } = {}): Fact[] {
+  factsAbout(entityId: string, opts: { includeSecret?: boolean; horizonSeq?: number } = {}): Fact[] {
     const rows = this.db
       .query(
-        `SELECT record FROM facts WHERE entity_id = ? ${opts.includeSecret ? "" : "AND visibility = 'public'"} ORDER BY asserted_seq`,
+        `SELECT record FROM facts WHERE entity_id = ? ${opts.includeSecret ? "" : "AND visibility = 'public'"} ${opts.horizonSeq === undefined ? "" : "AND asserted_seq <= ?"} ORDER BY asserted_seq`,
       )
-      .all(entityId) as { record: string }[];
+      .all(...(opts.horizonSeq === undefined ? [entityId] : [entityId, opts.horizonSeq])) as {
+      record: string;
+    }[];
     return rows.map((r) => JSON.parse(r.record) as Fact);
   }
 
-  /** The latest `limit` turns, oldest first. */
-  recentTurns(limit: number): TurnRecord[] {
-    const rows = this.db.query("SELECT * FROM turns ORDER BY started_seq DESC LIMIT ?").all(limit) as Array<{
+  /** The latest `limit` turns, oldest first. `horizonSeq` hides turns that started after it. */
+  recentTurns(limit: number, horizonSeq?: number): TurnRecord[] {
+    const rows = (
+      horizonSeq === undefined
+        ? this.db.query("SELECT * FROM turns ORDER BY started_seq DESC LIMIT ?").all(limit)
+        : this.db
+            .query("SELECT * FROM turns WHERE started_seq <= ? ORDER BY started_seq DESC LIMIT ?")
+            .all(horizonSeq, limit)
+    ) as Array<{
       id: string;
       started_seq: number;
       input: string;
