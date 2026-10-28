@@ -127,6 +127,8 @@ export function describeAction(a: ExplorationActionInput, nameOf: (id: string) =
       return `Wait ${a.minutes} minutes`;
     case "talk":
       return `Say to ${nameOf(a.targetId)}: "${a.utterance}"`;
+    case "strike":
+      return `Attack ${nameOf(a.targetId)}`;
   }
 }
 

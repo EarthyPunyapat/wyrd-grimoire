@@ -1,0 +1,95 @@
+# A one-room fight for testing combat (M4): bandits leaning on a roadside inn. Original content.
+id: tavern-brawl
+name: The Crooked Lantern
+premise: >-
+  A roadside inn on the Thornwood road, the night the Cutter's band came to collect. Four bandits
+  have the taproom, the innkeeper is counting out coins she can't spare, and every other guest has
+  found somewhere else to look.
+start: { locationId: "loc:crooked-lantern", zoneId: "z:taproom" }
+gameTime: 1260  # day 1, 21:00
+entities:
+  - id: loc:crooked-lantern
+    kind: location
+    name: The Crooked Lantern
+    aliases: [the inn, the Lantern]
+    detail: full
+    importance: 3
+    summary: A smoky roadside inn with a low beamed taproom, a long bar and a stair up to the rooms.
+  - id: npc:cutter
+    kind: npc
+    name: Cutter
+    aliases: [the captain, the bandit captain]
+    detail: sketch
+    importance: 3
+    summary: A lean ex-soldier with a notched sword who does the talking for the band.
+    data: { statBlock: bandit-captain, group: bandits, leader: true, intent: rob }
+    facts:
+      - { predicate: appearance.marks, value: "a white scar splitting his left eyebrow" }
+      - { predicate: personality, value: "patient, polite, and entirely without mercy" }
+  - id: npc:mags
+    kind: npc
+    name: Mags
+    aliases: [the woman with the cudgel]
+    detail: stub
+    summary: A broad, red-handed bandit who taps a cudgel against her palm.
+    data: { statBlock: bandit, group: bandits }
+  - id: npc:bram
+    kind: npc
+    name: Bram
+    aliases: [the young bandit]
+    detail: stub
+    summary: A gangling bandit barely old enough to shave, trying hard to look dangerous.
+    data: { statBlock: bandit, group: bandits }
+  - id: npc:fen
+    kind: npc
+    name: Fen
+    aliases: [the archer]
+    detail: stub
+    summary: A quiet bandit on the stairs with a shortbow across her knees.
+    data: { statBlock: bandit-archer, group: bandits }
+  - id: npc:orla
+    kind: npc
+    name: Orla Tamsey
+    aliases: [the innkeeper]
+    detail: sketch
+    summary: The innkeeper, grey and furious, counting coins onto the bar.
+    facts:
+      - { predicate: personality, value: "proud, stubborn, too old to be frightened and frightened anyway" }
+locations:
+  - locationId: loc:crooked-lantern
+    light: dim
+    weather: wind in the eaves
+    zones:
+      - id: z:taproom
+        name: the taproom
+        tags: [dim]
+        props:
+          - { id: prop:table, name: the long table, affordances: [topple, cover] }
+          - { id: prop:benches, name: the benches, affordances: [topple, throw] }
+          - { id: prop:hearth, name: the hearth, affordances: [light] }
+      - id: z:bar
+        name: the bar
+        props:
+          - { id: prop:counter, name: the bar counter, affordances: [cover] }
+          - { id: prop:lamp, name: the hanging lamp, affordances: [light, flammable] }
+      - id: z:stairs
+        name: the stairs
+        tags: [elevated]
+        props:
+          - { id: prop:banister, name: the banister, affordances: [climb] }
+      - id: z:door
+        name: the front door
+        tags: [exit]
+        props:
+          - { id: prop:doorway, name: the doorway, affordances: [cover] }
+    edges:
+      - { a: z:taproom, b: z:bar }
+      - { a: z:taproom, b: z:door }
+      - { a: z:taproom, b: z:stairs }
+      - { a: z:bar, b: z:stairs }
+    positions:
+      npc:cutter: z:bar
+      npc:orla: z:bar
+      npc:mags: z:taproom
+      npc:bram: z:taproom
+      npc:fen: z:stairs

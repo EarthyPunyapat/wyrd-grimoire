@@ -108,11 +108,11 @@ export function lintPack(
   }
 
   for (const [category, items] of Object.entries(pack.items)) {
-    const list = Object.values(items) as { id: string; name: string; price: number }[];
+    const list = Object.values(items) as { id: string; name: string; price: number; tags: string[] }[];
     if (list.length < 3) continue;
     const med = median(list.map((i) => i.price).filter((p) => p > 0));
     for (const i of list) {
-      if (i.price === 0 && category !== "gear") {
+      if (i.price === 0 && category !== "gear" && !i.tags.includes("natural")) {
         issues.push({
           severity: "warning",
           code: "PRICE_ZERO",

@@ -37,9 +37,9 @@ const issuesFor = (d: string, code: string) => loadPack(d).issues.filter((i) => 
 describe("fantasy-core and the built-in humanoid", () => {
   const { pack, issues } = loadPack(FANTASY);
 
-  test("validates and declares no extra body plans", () => {
+  test("validates and declares only the extra quadruped plan", () => {
     expect(issues).toEqual([]);
-    expect(pack!.bodyPlans).toEqual({});
+    expect(Object.keys(pack!.bodyPlans)).toEqual(["fantasy-core:quadruped"]);
   });
 
   test("ancestries that name the default plan resolve to the built-in humanoid", () => {

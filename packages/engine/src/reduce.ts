@@ -155,6 +155,25 @@ const handlers: { [K in Exclude<EventType, "CampaignCreated">]: Handler<K> } = {
     return { ...s, scene: { ...s.scene, positions: { ...s.scene.positions, [entityId]: toZoneId } } };
   },
 
+  CombatStarted: (s, e) => ({ ...s, mode: "combat", combat: e.payload.combat }),
+  CombatChanged: (s, e) => ({ ...s, combat: e.payload.combat }),
+  CombatEnded: (s, e) => ({
+    ...s,
+    mode: "exploration",
+    combat: null,
+    campaign: e.payload.rngAfter ? { ...s.campaign, rngState: e.payload.rngAfter } : s.campaign,
+  }),
+  ActorDied: (s, e) => {
+    const actor = s.actors[e.payload.actorId];
+    if (!actor) throw new Error(`No actor ${e.payload.actorId}`);
+    return { ...s, actors: { ...s.actors, [e.payload.actorId]: { ...actor, dead: true } } };
+  },
+  EntityLeftScene: (s, e) => {
+    if (!s.scene) return s;
+    const { [e.payload.entityId]: _gone, ...positions } = s.scene.positions;
+    return { ...s, scene: { ...s.scene, positions } };
+  },
+
   // Turn records are projections (the turns table); they don't change engine state.
   TurnStarted: (s) => s,
   TurnCompleted: (s) => s,

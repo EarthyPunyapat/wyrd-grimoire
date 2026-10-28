@@ -4,6 +4,7 @@ import type {
   CharacterSheet,
   CheckRequest,
   CheckResult,
+  CombatState,
   RngState,
   SceneState,
   Tuning,
@@ -12,7 +13,7 @@ import type { SkillCatalog } from "./skills.ts";
 
 export type ActorRole = "pc" | "companion" | "npc";
 
-export type ActorState = { role: ActorRole; sheet: CharacterSheet };
+export type ActorState = { role: ActorRole; sheet: CharacterSheet; dead?: true };
 
 /** The most recent check per actor, so a push or a Luck reroll can be validated against it. */
 export type LastCheck = {
@@ -43,7 +44,7 @@ export type GameState = {
   party: { pcId: ActorId | null; companionIds: ActorId[] };
   actors: Record<ActorId, ActorState>;
   scene: SceneState | null;
-  combat: null;
+  combat: CombatState | null;
   inventory: Record<string, never>;
   economy: Record<string, never>;
   factions: Record<string, never>;

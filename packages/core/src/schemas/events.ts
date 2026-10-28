@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Entity, Fact, NarrationPayload, SceneState, TurnCompletedPayload } from "./canon.ts";
 import { CheckResolvedPayload } from "./check.ts";
+import { combatEventSchemas } from "./combat.ts";
 import { ActorId, ContentId, RngStateSchema } from "./common.ts";
 import { CampaignSettings } from "./settings.ts";
 import { CharacterSheet, ConditionInstance, Equipment, Wound, WoundSeverity } from "./sheet.ts";
@@ -90,6 +91,9 @@ export const eventPayloadSchemas = {
   TurnCompleted: TurnCompletedPayload,
   NarrationCommitted: NarrationPayload,
   NarrationRerolled: NarrationPayload,
+
+  // Combat (M4)
+  ...combatEventSchemas,
 } as const;
 
 export type EventType = keyof typeof eventPayloadSchemas;

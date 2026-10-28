@@ -13,7 +13,7 @@ beforeEach(() => {
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 test("ashford-ferry loads and becomes canon events with the party at the start zone", () => {
-  expect(listWorlds(FANTASY)).toEqual(["ashford-ferry"]);
+  expect(listWorlds(FANTASY).sort()).toEqual(["ashford-ferry", "tavern-brawl"]);
   const { world, issues } = loadWorld(FANTASY, "ashford-ferry");
   expect(issues).toEqual([]);
   const events = worldEvents(world!, ["pc"]);

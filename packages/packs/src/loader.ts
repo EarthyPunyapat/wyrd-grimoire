@@ -7,6 +7,7 @@ import {
   ArmorDef,
   BodyPlanDef,
   type CompiledPack,
+  CreatureDef,
   GearDef,
   HUMANOID_BODY_PLAN,
   localIdOf,
@@ -45,6 +46,7 @@ const CONTENT_FILES = {
   weapons: { file: "items/weapons.yaml", schema: WeaponDef },
   armor: { file: "items/armor.yaml", schema: ArmorDef },
   gear: { file: "items/gear.yaml", schema: GearDef },
+  creatures: { file: "creatures.yaml", schema: CreatureDef },
 } as const;
 
 type Kind = keyof typeof CONTENT_FILES;
@@ -242,6 +244,53 @@ export function loadPack(dir: string): LoadResult {
     });
   }
 
+  for (const c of Object.values(content.creatures)) {
+    c.skills = Object.fromEntries(
+      Object.entries(c.skills).map(([sk, v]) => {
+        const resolved = resolveSkill(sk);
+        if (!resolved) badRef(c.id, `skills.${sk}`, "Skill", sk);
+        return [resolved ?? sk, v];
+      }),
+    );
+    const builtIn = localIdOf(c.bodyPlan) === localIdOf(HUMANOID_BODY_PLAN.id) ? HUMANOID_BODY_PLAN.id : null;
+    const plan = ref(content.bodyPlans, c.bodyPlan) ?? builtIn;
+    if (!plan) badRef(c.id, "bodyPlan", "Body plan", c.bodyPlan);
+    c.bodyPlan = plan ?? c.bodyPlan;
+    c.kit = c.kit.map((k, i) => {
+      const item = ref(allItems, k.item);
+      if (!item) badRef(c.id, `kit.${i}.item`, "Item", k.item);
+      return { ...k, item: item ?? k.item };
+    });
+    // Natural weapons and hide become ordinary items the creature carries.
+    for (const w of c.naturalWeapons) {
+      const id = `${c.id}-${w.id}`;
+      const s = resolveSkill(w.skill);
+      if (!s) badRef(c.id, `naturalWeapons.${w.id}.skill`, "Skill", w.skill);
+      content.weapons[id] = {
+        ...w,
+        id,
+        skill: s ?? w.skill,
+        strengthBonus: w.strengthBonus ?? true,
+        tags: [...w.tags, "natural"],
+      };
+      c.kit.push({ item: id, qty: 1 });
+    }
+    if (c.naturalArmor) {
+      const id = `${c.id}-hide`;
+      content.armor[id] = {
+        id,
+        name: `${c.name} hide`,
+        description: "",
+        weightKg: 0,
+        price: 0,
+        tags: ["natural"],
+        penalties: [],
+        ...c.naturalArmor,
+      };
+      c.kit.push({ item: id, qty: 1 });
+    }
+  }
+
   const body: Omit<CompiledPack, "hash"> = {
     manifest,
     tone,
@@ -250,6 +299,7 @@ export function loadPack(dir: string): LoadResult {
     ancestries: content.ancestries,
     bodyPlans: content.bodyPlans,
     archetypes: content.archetypes,
+    creatures: content.creatures,
     items: { weapons: content.weapons, armor: content.armor, gear: content.gear },
   };
   const hash = createHash("sha256").update(stableStringify(body)).digest("hex");

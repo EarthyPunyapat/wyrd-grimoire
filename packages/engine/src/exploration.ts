@@ -40,6 +40,7 @@ const DEFAULT_MINUTES: Record<ExplorationAction["type"], number> = {
   move: 1,
   wait: 0,
   talk: 1,
+  strike: 0,
 };
 
 /** Difficulty range the parser may propose for a free-form check; harder steps need rule tables. */
@@ -219,6 +220,11 @@ function validateOne(
           { type: "wait", minutes: MAX_WAIT_MINUTES },
         ]);
       }
+      return null;
+    case "strike":
+      if (!present(scene, a.targetId))
+        return err("TARGET_NOT_PRESENT", `${a.targetId} isn't here to attack`, lookAround);
+      if (a.targetId === actorId) return err("TARGET_SELF", "You can't attack yourself");
       return null;
     case "talk": {
       if (!present(scene, a.targetId))
@@ -408,6 +414,10 @@ export function resolvePlan(
       case "wait":
         minutes += action.minutes;
         step("done", `${actorName} waits about ${action.minutes} minutes.`);
+        break;
+      case "strike":
+        // The turn dispatcher turns a plan with a strike into a fight before resolvePlan runs.
+        step("done", `${actorName} goes for ${ctx.nameOf(action.targetId)}.`);
         break;
       case "talk": {
         const target = ctx.nameOf(action.targetId);

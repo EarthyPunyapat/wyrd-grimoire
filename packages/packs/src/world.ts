@@ -33,6 +33,8 @@ export const WorldEntity = z.object({
   detail: z.enum(["stub", "sketch", "full"]).default("sketch"),
   importance: z.number().int().min(1).max(5).default(2),
   summary: z.string().default(""),
+  /** Kind-specific data, e.g. combat: `{ statBlock: bandit, group: bandits, leader: true }`. */
+  data: z.record(z.string(), z.unknown()).default({}),
   facts: z.array(WorldFact).default([]),
 });
 

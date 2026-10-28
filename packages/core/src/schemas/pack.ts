@@ -199,6 +199,44 @@ export type ArmorDef = z.infer<typeof ArmorDef>;
 export const GearDef = z.object(ItemBase);
 export type GearDef = z.infer<typeof GearDef>;
 
+export const CreatureSize = z.enum(["tiny", "small", "medium", "large", "huge"]);
+export type CreatureSize = z.infer<typeof CreatureSize>;
+
+/**
+ * A creature or NPC stat block (spec 05, creatures). Natural weapons and hide compile into the
+ * pack's item tables as `pack:creature-weapon` / `pack:creature-hide`, so combat treats them like gear.
+ */
+export const CreatureDef = z.object({
+  id: LocalId,
+  name: z.string().min(1),
+  description: z.string().min(1),
+  size: CreatureSize.default("medium"),
+  bodyPlan: ContentRef.default("humanoid"),
+  attributes: z.record(AttributeId, z.number().int().min(1).max(10)),
+  /** Trained points per skill. */
+  skills: z.record(ContentRef, z.number().int().nonnegative()).default({}),
+  kit: z.array(KitEntry).default([]),
+  naturalWeapons: z
+    .array(
+      WeaponDef.omit({ weightKg: true, price: true }).extend({
+        weightKg: z.number().default(0),
+        price: z.number().int().default(0),
+      }),
+    )
+    .default([]),
+  naturalArmor: z
+    .object({
+      covers: z.array(z.string()).min(1),
+      protection: z.record(z.string(), z.number().int().nonnegative()),
+    })
+    .optional(),
+  tactics: z
+    .enum(["aggressive", "defensive", "cowardly", "cunning", "berserk", "protector", "sniper", "caster"])
+    .default("aggressive"),
+  intent: z.enum(["kill", "rob", "capture", "arrest", "driveOff", "prey"]).default("kill"),
+});
+export type CreatureDef = z.infer<typeof CreatureDef>;
+
 /** A compiled pack: every ID namespaced, every reference resolved to a full ID. */
 export type CompiledPack = {
   manifest: PackManifest;
@@ -208,6 +246,7 @@ export type CompiledPack = {
   ancestries: Record<string, AncestryDef & { id: string }>;
   bodyPlans: Record<string, BodyPlanDef>;
   archetypes: Record<string, ArchetypeDef & { id: string }>;
+  creatures: Record<string, CreatureDef & { id: string }>;
   items: {
     weapons: Record<string, WeaponDef & { id: string }>;
     armor: Record<string, ArmorDef & { id: string }>;

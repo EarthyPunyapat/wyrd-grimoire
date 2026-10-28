@@ -81,6 +81,35 @@ export type Tuning = {
     woundEffects: Record<LocationKind, Record<"minor" | "serious" | "critical", WoundEffect>>;
     simpleWoundPenalty: Record<"minor" | "serious" | "critical", number>;
   };
+  /** Turn structure and action numbers (spec 03, "Turn order" through "Enemy and companion tactics"). */
+  fight: {
+    apPerTurn: number;
+    apLoss: { stunned: number; dazed: number; surprised: number };
+    apCost: Record<string, number>;
+    /** Penalty for the 1st, 2nd and 3rd attack in a turn; agile weapons use their own row. */
+    multiAttack: number[];
+    agileMultiAttack: number[];
+    aimBonus: number;
+    maxAim: number;
+    defendBonus: number;
+    calledShot: Record<LocationKind, number>;
+    cover: { partial: number; full: number };
+    light: { dim: number; dark: number };
+    disarmPenalty: number;
+    improvisedFirstAid: number;
+    firstAidDifficulty: Difficulty;
+    stabiliseDifficulty: Difficulty;
+    moraleDifficulty: Difficulty;
+    stuntDifficulty: Difficulty;
+    size: Record<
+      "tiny" | "small" | "medium" | "large" | "huge",
+      { toHit: number; hpMultiplier: number; wtBonus: number }
+    >;
+    /** Utility AI: random jitter added to each plan score (fraction of the best score). */
+    aiJitter: number;
+    /** Safety stop for automated rounds. */
+    maxRounds: number;
+  };
   snapshotEvery: number;
 };
 
@@ -173,6 +202,57 @@ export const defaultTuning: Tuning = {
       },
     },
     simpleWoundPenalty: { minor: -10, serious: -20, critical: -30 },
+  },
+  fight: {
+    apPerTurn: 3,
+    apLoss: { stunned: 2, dazed: 1, surprised: 2 },
+    apCost: {
+      strike: 1,
+      move: 1,
+      engage: 1,
+      disengage: 1,
+      aim: 1,
+      defend: 1,
+      takeCover: 1,
+      draw: 1,
+      reload: 0,
+      firstAid: 2,
+      standUp: 1,
+      shove: 1,
+      trip: 1,
+      grapple: 1,
+      disarm: 1,
+      stunt: 1,
+      intimidate: 1,
+      rally: 1,
+      speak: 0,
+      surrender: 0,
+      flee: 2,
+      endTurn: 0,
+    },
+    multiAttack: [0, -20, -40],
+    agileMultiAttack: [0, -10, -20],
+    aimBonus: 20,
+    maxAim: 2,
+    defendBonus: 20,
+    calledShot: { head: -40, torso: -10, arm: -20, leg: -20 },
+    cover: { partial: -20, full: -40 },
+    light: { dim: -20, dark: -40 },
+    disarmPenalty: -20,
+    improvisedFirstAid: -20,
+    firstAidDifficulty: "normal",
+    stabiliseDifficulty: "hard",
+    moraleDifficulty: "normal",
+    stuntDifficulty: "normal",
+    size: {
+      tiny: { toHit: -20, hpMultiplier: 0.25, wtBonus: -4 },
+      small: { toHit: -10, hpMultiplier: 0.5, wtBonus: -2 },
+      medium: { toHit: 0, hpMultiplier: 1, wtBonus: 0 },
+      large: { toHit: 10, hpMultiplier: 2, wtBonus: 5 },
+      huge: { toHit: 20, hpMultiplier: 4, wtBonus: 10 },
+    },
+    aiJitter: 0.05,
+    maxRounds: 30,
   },
   snapshotEvery: 200,
 };

@@ -72,7 +72,7 @@ describe("validatePlan", () => {
       { type: "examine", targetId: "prop:hatch" },
       { type: "talk", targetId: "npc:ghost", utterance: "Hello?" },
       { type: "move", toZoneId: "z:common" },
-      { type: "strike", targetId: "npc:guard" },
+      { type: "cast", spell: "fireball" },
       { type: "check", skill: "flying", goal: "fly", proposedDifficulty: "hard", reason: "x" },
     ]);
     expect(r.planErrors?.map((e) => [e.actionIndex, e.code])).toEqual([

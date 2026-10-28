@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { COMBAT_ACTION_TYPES, StrikeAction } from "./combat.ts";
 import { AttributeId, Degree, Difficulty, MechanicsLine } from "./common.ts";
 
 /**
@@ -56,12 +57,15 @@ export const ExplorationAction = z.discriminatedUnion("type", [
   MoveAction,
   WaitAction,
   TalkAction,
+  /** Attacking someone outside a fight starts one (spec 03); the turn then resolves as combat. */
+  StrikeAction,
 ]);
 export type ExplorationAction = z.infer<typeof ExplorationAction>;
 export type ExplorationActionInput = z.input<typeof ExplorationAction>;
 
 export const ACTIONS_BY_MODE = {
-  exploration: ["check", "examine", "search", "interact", "move", "wait", "talk"],
+  exploration: ["check", "examine", "search", "interact", "move", "wait", "talk", "strike"],
+  combat: COMBAT_ACTION_TYPES,
 } as const;
 
 /** Re-exported so callers can build `check` actions on attributes without string typos. */
@@ -76,6 +80,10 @@ export const ResolvedStep = z.object({
   /** Plain statement of what happened, from the engine; never prose. */
   summary: z.string(),
   mechanics: MechanicsLine.optional(),
+  /** Combat: who acted, every mechanics line the step produced, and whether it was the player's turn. */
+  actorId: z.string().optional(),
+  lines: z.array(MechanicsLine).optional(),
+  phase: z.enum(["player", "others"]).optional(),
 });
 export type ResolvedStep = z.infer<typeof ResolvedStep>;
 
@@ -89,5 +97,9 @@ export const Resolution = z.object({
   /** Set when an earlier result made a later action impossible; actions from here weren't run. */
   stoppedAt: z.number().int().nonnegative().optional(),
   minutes: z.number().int().nonnegative(),
+  /** Combat only: the round and how the fight ended this turn, if it did. */
+  combat: z
+    .object({ round: z.number().int(), ended: z.string().optional(), hook: z.string().optional() })
+    .optional(),
 });
 export type Resolution = z.infer<typeof Resolution>;

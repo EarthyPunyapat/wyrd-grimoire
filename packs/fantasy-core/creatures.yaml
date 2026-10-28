@@ -1,0 +1,105 @@
+# Stat blocks for people and beasts. Original content. Skills are trained points.
+- id: bandit
+  name: Bandit
+  description: A hungry road-thief with a cudgel and more nerve than skill.
+  attributes: { str: 5, agi: 5, end: 5, int: 4, awa: 5, wil: 4, pre: 4 }
+  skills: { melee: 25, dodge: 15, athletics: 15, intimidation: 15, stealth: 15 }
+  kit: [{ item: cudgel }, { item: padded-jack }]
+  tactics: aggressive
+  intent: rob
+- id: bandit-archer
+  name: Bandit Archer
+  description: A poacher turned robber who would rather shoot from the dark than stand and fight.
+  attributes: { str: 4, agi: 6, end: 4, int: 4, awa: 6, wil: 4, pre: 3 }
+  skills: { ranged: 30, dodge: 15, stealth: 25, perception: 15, melee: 10 }
+  kit: [{ item: shortbow }, { item: arrows }, { item: dagger }]
+  tactics: sniper
+  intent: rob
+- id: bandit-captain
+  name: Bandit Captain
+  description: A former soldier who leads with a sword and keeps the others in line with a look.
+  attributes: { str: 6, agi: 6, end: 6, int: 5, awa: 5, wil: 6, pre: 6 }
+  skills: { melee: 40, dodge: 20, athletics: 20, intimidation: 35, perception: 15 }
+  kit: [{ item: arming-sword }, { item: leather-armor }, { item: open-helmet }]
+  tactics: cunning
+  intent: rob
+- id: thug
+  name: Tavern Thug
+  description: A big local who settles arguments with his fists and the nearest stool.
+  attributes: { str: 7, agi: 4, end: 6, int: 3, awa: 4, wil: 4, pre: 4 }
+  skills: { unarmed: 30, melee: 20, athletics: 25, intimidation: 20 }
+  kit: [{ item: cudgel }]
+  tactics: berserk
+  intent: driveOff
+- id: town-guard
+  name: Town Guard
+  description: A watchman with a spear, a helmet and orders to keep the peace.
+  attributes: { str: 5, agi: 5, end: 6, int: 4, awa: 5, wil: 5, pre: 4 }
+  skills: { melee: 30, dodge: 20, athletics: 15, perception: 20 }
+  kit: [{ item: spear }, { item: padded-jack }, { item: open-helmet }]
+  tactics: protector
+  intent: arrest
+- id: cultist
+  name: Cultist
+  description: A hollow-eyed devotee with a ritual knife and no fear of dying.
+  attributes: { str: 4, agi: 5, end: 4, int: 5, awa: 4, wil: 7, pre: 5 }
+  skills: { melee: 25, dodge: 10, stealth: 20 }
+  kit: [{ item: dagger }]
+  tactics: berserk
+  intent: capture
+- id: wolf
+  name: Wolf
+  description: A grey hunter that circles, bites low and pulls the weak down.
+  size: medium
+  bodyPlan: quadruped
+  attributes: { str: 5, agi: 7, end: 5, int: 2, awa: 7, wil: 4, pre: 2 }
+  skills: { unarmed: 35, dodge: 25, perception: 30, stealth: 25, athletics: 20 }
+  naturalWeapons:
+    - { id: bite, name: Bite, skill: unarmed, damage: 1d6, damageType: pierce, hands: 1, ranges: { engaged: 0 } }
+  naturalArmor: { covers: [head, body, right-foreleg, left-foreleg, right-hindleg, left-hindleg], protection: { cut: 1, pierce: 1, blunt: 0 } }
+  tactics: cunning
+  intent: prey
+- id: boar
+  name: Wild Boar
+  description: Bristled, tusked and too stubborn to know it should be dead.
+  size: medium
+  bodyPlan: quadruped
+  attributes: { str: 7, agi: 4, end: 8, int: 1, awa: 5, wil: 7, pre: 2 }
+  skills: { unarmed: 30, athletics: 25, perception: 15 }
+  naturalWeapons:
+    - { id: tusks, name: Tusks, skill: unarmed, damage: 1d8, damageType: cut, armorPiercing: 1, hands: 1, ranges: { engaged: 0 } }
+  naturalArmor: { covers: [head, body], protection: { cut: 2, pierce: 1, blunt: 1 } }
+  tactics: berserk
+  intent: driveOff
+- id: giant-rat
+  name: Giant Rat
+  description: A cellar rat the size of a dog, with yellow teeth and filthy habits.
+  size: small
+  bodyPlan: quadruped
+  attributes: { str: 2, agi: 7, end: 3, int: 1, awa: 6, wil: 3, pre: 1 }
+  skills: { unarmed: 25, dodge: 25, stealth: 30 }
+  naturalWeapons:
+    - { id: bite, name: Bite, skill: unarmed, damage: 1d4, damageType: pierce, hands: 1, ranges: { engaged: 0 } }
+  tactics: cowardly
+  intent: prey
+- id: bear
+  name: Brown Bear
+  description: A slab of muscle and fur that stands taller than a door when angered.
+  size: large
+  bodyPlan: quadruped
+  attributes: { str: 9, agi: 4, end: 9, int: 2, awa: 5, wil: 6, pre: 4 }
+  skills: { unarmed: 40, athletics: 35, perception: 20 }
+  naturalWeapons:
+    - { id: claws, name: Claws, skill: unarmed, damage: 1d10, damageType: cut, hands: 1, ranges: { engaged: 0 } }
+    - { id: bite, name: Bite, skill: unarmed, damage: 1d8, damageType: pierce, hands: 1, ranges: { engaged: 0 } }
+  naturalArmor: { covers: [head, body, right-foreleg, left-foreleg, right-hindleg, left-hindleg], protection: { cut: 2, pierce: 2, blunt: 1 } }
+  tactics: aggressive
+  intent: driveOff
+- id: barrow-wight
+  name: Barrow Wight
+  description: A dead thing in rotted grave-goods, cold to the touch and slow to stop.
+  attributes: { str: 6, agi: 4, end: 8, int: 3, awa: 5, wil: 9, pre: 6 }
+  skills: { melee: 35, intimidation: 40, perception: 20 }
+  kit: [{ item: arming-sword }, { item: mail-hauberk }]
+  tactics: aggressive
+  intent: kill

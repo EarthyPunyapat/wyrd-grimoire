@@ -1,0 +1,10 @@
+# Extra body plans (the humanoid plan is built in). Location kinds pick the wound-effects rows.
+- id: quadruped
+  name: Quadruped
+  locations:
+    - { id: head, name: Head, kind: head, from: 1, to: 15, multiplier: 1.5 }
+    - { id: body, name: Body, kind: torso, from: 16, to: 55 }
+    - { id: right-foreleg, name: Right foreleg, kind: leg, side: right, from: 56, to: 66 }
+    - { id: left-foreleg, name: Left foreleg, kind: leg, side: left, from: 67, to: 77 }
+    - { id: right-hindleg, name: Right hind leg, kind: leg, side: right, from: 78, to: 89 }
+    - { id: left-hindleg, name: Left hind leg, kind: leg, side: left, from: 90, to: 100 }
