@@ -8,6 +8,13 @@ import { type ChatProvider, FakeProvider, offlineProvider, RoleRouter } from "..
 
 const offline = offlineProvider();
 const cases = new FakeProvider([
+  {
+    role: "narrator",
+    match: (r) => r.messages.some((m) => m.content.includes("readability check")),
+    reply: {
+      text: 'Mina Vale waits at Relay Nine. She points to **the sealed hatch**. <say who="Mina Vale">Check **the inspection desk**.</say> <say who="npc:person-2">I can hear you.</say>',
+    },
+  },
   { role: "worldGen", reply: { toolCall: { name: "propose_world", args: EXAMPLE_WORLD } } },
   {
     role: "parser",
@@ -49,7 +56,10 @@ const provider: ChatProvider = {
     const current = /## This turn\n\nPlayer: (.*)/.exec(context)?.[1] ?? "";
     const special =
       request.role === "worldGen" ||
-      (request.role === "parser" ? current === "ambiguous request" : current === "force a canon flag");
+      (request.role === "parser"
+        ? current === "ambiguous request"
+        : current === "force a canon flag" ||
+          (request.role === "narrator" && context.includes("readability check")));
     return (special ? cases : offline).generate(request);
   },
 };

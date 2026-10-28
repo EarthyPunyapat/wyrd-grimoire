@@ -68,6 +68,7 @@ export const GameView = z.object({
   opening: z.string(),
   originName: z.string(),
   backgroundName: z.string(),
+  speakers: z.record(z.string(), z.string()).default({}),
   pc: CharacterSheet,
   skills: z.array(z.object({ id: z.string(), name: z.string(), value: z.number() })),
   scene: z

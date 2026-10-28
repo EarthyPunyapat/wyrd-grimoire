@@ -4,7 +4,7 @@
  */
 
 export const PARSER_VERSION = "parser@1";
-export const NARRATOR_VERSION = "narrator@1";
+export const NARRATOR_VERSION = "narrator@2";
 export const GUARD_VERSION = "guard@1";
 export const OOC_VERSION = "ooc@1";
 
@@ -41,7 +41,8 @@ Output contract:
 - Narrate every required beat, consistently with how it resolved. A failure is a failure; a success is a success.
 - Never invent outcomes, damage, items, deaths, or the player character's feelings and decisions beyond what the player said.
 - Don't introduce important new people, places or objects unless the beats need them; small sensory detail is welcome.
-- Wrap spoken lines as <say who="ID-or-name">…</say>. Narration outside the tags is your voice.
+- Wrap spoken lines as <say who="canonical-ID-or-character-name">…</say>. Prefer the canonical ID supplied in context; otherwise use the character's name. Preserve who is speaking. Narration outside the tags is your voice.
+- Use **bold** sparingly for character names, locations, and important clues, objects or discoveries. Usually emphasize the first mention in a paragraph; never bold whole sentences or ordinary sensory detail. No other Markdown or HTML formatting, except the speech tags above.
 - Exploration passages are 80–200 words. End on the situation, never on a list of options or a question to the player.`;
 
 export const GUARD_INSTRUCTIONS = `You are the canon guard for a text role-playing game. You check a draft narration against the engine's resolution and the established facts, and you report problems with the report_canon tool. You never rewrite the narration.

@@ -1,4 +1,5 @@
 import type { GameView, MechanicsLine, WebTurn } from "@wyrd/core";
+import { Narration, narrationContext } from "./Narration.tsx";
 
 const glyphs = { critSuccess: "✦", success: "✓", failure: "✗", critFailure: "✖" };
 export function Mechanics({ lines, expanded = false }: { lines: MechanicsLine[]; expanded?: boolean }) {
@@ -16,31 +17,6 @@ export function Mechanics({ lines, expanded = false }: { lines: MechanicsLine[];
         ))}
       </ul>
     </details>
-  );
-}
-function Narration({ text, view }: { text: string; view: GameView }) {
-  const parts = text.split(/(<say who="[^"]*">[\s\S]*?<\/say>)/g);
-  return (
-    <div className="prose">
-      {parts.map((part, index) => {
-        const speech = /^<say who="([^"]*)">([\s\S]*?)<\/say>$/.exec(part);
-        if (speech) {
-          const name =
-            speech[1] === view.pc.id
-              ? view.pc.identity.name
-              : (view.scene?.present.find((p) => p.id === speech[1])?.name ?? "A voice");
-          return (
-            <blockquote key={`${index}-${part}`}>
-              <span className="speaker">{name}</span>“{speech[2]}”
-            </blockquote>
-          );
-        }
-        return part
-          .split(/\n\s*\n/)
-          .filter((p) => p.trim())
-          .map((p, i) => <p key={`${index}-${i}-${p}`}>{p}</p>);
-      })}
-    </div>
   );
 }
 export function Passage({
@@ -64,7 +40,7 @@ export function Passage({
         <span aria-hidden="true">↳</span> {turn.input}
       </p>
       <Mechanics lines={turn.mechanics} expanded={math} />
-      {turn.narration && <Narration text={turn.narration} view={view} />}
+      {turn.narration && <Narration text={turn.narration} {...narrationContext(view)} />}
       {turn.answer && <p className="ooc">{turn.answer}</p>}
       {turn.status === "failed" && (
         <p role="alert" className="error">

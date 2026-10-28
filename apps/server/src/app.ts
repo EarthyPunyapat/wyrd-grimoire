@@ -349,6 +349,17 @@ export function createApp(options: Options) {
     );
     const gamePack = game.packSnapshot()!.content as CompiledPack;
     const skills = skillCatalog([gamePack]);
+    const turns = canon.recentTurns(100);
+    // Resolve only IDs already spoken in player-visible passages, never the full NPC registry.
+    // This also keeps older dialogue labelled after its speaker leaves the current room.
+    const speakers: Record<string, string> = { [pc.id]: pc.identity.name };
+    for (const turn of turns) {
+      for (const match of (turn.narration ?? "").matchAll(/<say\s+who=(?:"([^"]*)"|'([^']*)')\s*>/g)) {
+        const who = match[1] ?? match[2] ?? "";
+        const entity = canon.entity(who.trim());
+        if (entity?.kind === "npc" || entity?.kind === "creature") speakers[who.trim()] = entity.name;
+      }
+    }
     return c.json(
       GameView.parse({
         id,
@@ -364,6 +375,7 @@ export function createApp(options: Options) {
         originName: gamePack.ancestries[pc.identity.ancestry]?.name ?? pc.identity.ancestry,
         backgroundName: gamePack.archetypes[pc.archetypeId ?? ""]?.name ?? "",
         pc,
+        speakers,
         skills: Object.keys(pc.skills).map((id) => ({
           id,
           name: skillLabel(id, skills),
@@ -379,7 +391,7 @@ export function createApp(options: Options) {
                 .map(([id]) => ({ id, name: canon.entity(id)?.name ?? "Someone" })),
             }
           : null,
-        turns: canon.recentTurns(100).map((t) => {
+        turns: turns.map((t) => {
           const record = TurnCompletedPayload.parse(t.record);
           return {
             id: t.id,

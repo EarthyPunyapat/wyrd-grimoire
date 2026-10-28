@@ -178,7 +178,7 @@ describe("exploration turn end to end (FakeProvider)", () => {
     // One usage record per call: parser, narrator, guard.
     expect(t.usage.records.map((u) => [u.role, u.promptVersion, u.turnId])).toEqual([
       ["parser", "parser@1", r.turnId],
-      ["narrator", "narrator@1", r.turnId],
+      ["narrator", "narrator@2", r.turnId],
       ["guard", "guard@1", r.turnId],
     ]);
     // The parser saw IDs; the narrator saw the required beats; the guard saw the draft.

@@ -126,7 +126,7 @@ that checkout or its campaign, and do not use the owner's real credentials for a
 - Shared HTTP/provider schemas live in core. The web dependency check prohibits server/IO imports.
 - Browser tests use a fresh temp home and FakeProvider, covering desktop, phone, 320px/tablet layout,
   a clean console and automated WCAG checks. An auth-guard mutation was caught by the regression test.
-- Latest checks: `bun run check` (260 tests), production build, 8 Playwright cases and `bun audit`
+- Latest checks: `bun run check` (263 tests), production build, 10 Playwright cases and `bun audit`
   pass locally on Windows. CI now includes the browser suite and builds on Linux/Windows, but its
   new remote run has not been observed yet.
 
@@ -153,3 +153,14 @@ FakeProvider, including different genres, invalid skills/priorities/positions, d
 and private-data exclusion. The real worldGen call has not been evaluated with the owner's providers.
 The seven attributes remain unchanged mechanically and now fill two rows (three physical, four
 mental/social). Full multi-region generation, lazy expansion and session zero remain M5/M6.
+
+### Reading improvements
+
+Dialogue resolves a supplied name or canonical ID instead of replacing names with "A voice".
+GameView includes display names only for speakers referenced in visible narration, keeping old
+dialogue labels working outside the current room without returning the entire NPC registry.
+`apps/web/src/Narration.tsx` safely renders text, speech and strong emphasis. Known character/place
+names are emphasized automatically; the `narrator@2` contract allows sparse `**bold**` clues and
+important objects. Renderer and pipeline regressions plus desktop/phone flows pass; a deliberately
+broken highlighting condition was caught. Real-provider style evaluation remains for owner play.
+Hover/focus/tap detail cards are planned with M5 Codex/knowledge, documented in spec 13 and D70.

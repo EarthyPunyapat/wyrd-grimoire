@@ -73,6 +73,7 @@ Each milestone lists its scope, the spec sections it implements, and acceptance 
 - World generation stages 1–2; lazy generation; name registry; Threat Clock mode; factions; quests; time and calendar; world ticks; travel and encounters.
 - Memory: full canon graph, PC knowledge, memory pyramid with summaries and session recaps, NPC minds, rumours, retrieval (FTS + vectors + RRF), the complete context assembler, guard v2 (secrets, witnesses, objectives, approval).
 - UI: Journal, Codex (pin, retcon), Map.
+- Narration reference cards: hover/focus/tap character, location and important entity names for player-known details and a Codex link. Use canonical IDs, handle duplicate names and keep unrevealed information private. Bold reading emphasis ships earlier in M3.
 
 **Acceptance**
 - [ ] Generate a world from a pitch, then play 100+ turns across at least 3 sites.

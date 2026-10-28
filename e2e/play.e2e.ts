@@ -27,6 +27,19 @@ async function create(page: Page) {
   await expect(page.getByRole("heading", { name: "Relay Nine" })).toBeVisible();
 }
 
+test("dialogue uses names and important references are emphasized safely", async ({ page }, info) => {
+  await create(page);
+  await page.getByLabel("What do you do?", { exact: true }).fill("readability check");
+  await page.getByRole("button", { name: "Send ↑" }).click();
+  await expect(page.locator(".speaker")).toHaveText(["Mina Vale", "Jules Park"]);
+  await expect(page.locator(".prose p strong")).toHaveText(["Mina Vale", "Relay Nine", "the sealed hatch"]);
+  await expect(page.locator("blockquote strong:not(.speaker)")).toHaveText(["the inspection desk"]);
+  await expect(page.locator(".prose")).not.toContainText("A voice");
+  await page.reload();
+  await expect(page.locator(".speaker")).toHaveText(["Mina Vale", "Jules Park"]);
+  await page.screenshot({ path: `../../outputs/m3-reading-${info.project.name}.png`, fullPage: true });
+});
+
 test("quick start, live turn, reroll, reload and character sheet", async ({ page }, info) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));

@@ -1,6 +1,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import type { GameView } from "@wyrd/core";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { NarrativeText, narrationContext } from "./Narration.tsx";
 import { Mechanics, Passage } from "./Passage.tsx";
 import { Sheet } from "./Sheet.tsx";
 import { usePlay } from "./use-play.ts";
@@ -95,7 +96,9 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
               <div className="opening">
                 <div className="eyebrow">CHAPTER ONE</div>
                 <h2>{view.scene?.location ?? view.worldName}</h2>
-                <p>{view.opening}</p>
+                <p className="prose">
+                  <NarrativeText text={view.opening} names={narrationContext(view).names} />
+                </p>
                 <p className="opening-note">Your story begins with what you choose to do.</p>
               </div>
             )}

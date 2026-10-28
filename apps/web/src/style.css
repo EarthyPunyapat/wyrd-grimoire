@@ -139,6 +139,7 @@ em { font-weight: 400; }
 .player-input span { color: var(--accent); margin-right: .5rem; }
 .prose { font: var(--story-size)/var(--story-leading) var(--font-body); overflow-wrap: anywhere; }
 .prose p { margin-bottom: 1.25rem; line-height: inherit; }
+.prose strong { font-weight: 600; }
 .prose blockquote { border-left: 2px solid var(--accent); margin: 1.5rem 0; padding-left: 1.5rem; }
 .speaker { font: 600 .7rem var(--font-ui); text-transform: uppercase; display: block; letter-spacing: .08em; color: var(--accent); margin-bottom: .4rem; }
 .mechanics { font: .75rem/1.7 var(--font-mono); color: var(--ink-muted); margin: .75rem 0 1.25rem; }
