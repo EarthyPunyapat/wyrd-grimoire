@@ -2,6 +2,7 @@ import {
   type ActorId,
   type ArmorDef,
   type BodyPlanDef,
+  type CampaignSettings,
   type ConditionInstance,
   type ContentId,
   draft,
@@ -13,7 +14,7 @@ import {
   type Wound,
 } from "@wyrd/core";
 import { resolveCheck } from "../checks.ts";
-import { applyCondition } from "../conditions.ts";
+import { applyCondition, removeCondition } from "../conditions.ts";
 import { isSuccess } from "../resolution/index.ts";
 import { fail, ok, type Result, unwrap } from "../result.ts";
 import type { GameState, RulesContext } from "../state.ts";
@@ -69,11 +70,13 @@ function addCondition(w: Working, actorId: ActorId, condition: ConditionInstance
   w.apply(unwrap(applyCondition(w.state, actorId, condition)));
 }
 
-/**
- * The END check at 0 HP (spec 03, Hit points): success leaves the actor Down, failure Unconscious.
- * The condition is applied on `w`. Bleeding at 0 HP reuses this.
- */
-export function downCheck(w: Working, actorId: ActorId, ctx: InjuryContext): "down" | "unconscious" {
+/** Whether bleeding applies at all: the subsystem is on and injuries aren't simple. */
+export function bleedingEnabled(settings: CampaignSettings): boolean {
+  return settings.subsystems.bleeding && settings.subsystems.injuries !== "simple";
+}
+
+/** The END roll to stay conscious at 0 HP (spec 03, Hit points). Its events go on `w`; true on success. */
+export function endDownRoll(w: Working, actorId: ActorId, ctx: InjuryContext): boolean {
   const out = unwrap(
     resolveCheck(
       w.state,
@@ -89,9 +92,43 @@ export function downCheck(w: Working, actorId: ActorId, ctx: InjuryContext): "do
     ),
   );
   w.apply(out.events);
-  const result = isSuccess(out.effective.degree) ? "down" : "unconscious";
-  addCondition(w, actorId, { id: `core:${result}` });
-  return result;
+  return isSuccess(out.effective.degree);
+}
+
+/**
+ * The END check at 0 HP (spec 03, Hit points): success leaves the actor Down, failure Unconscious
+ * (Down is removed). The conditions are applied on `w`. Bleeding at 0 HP reuses this.
+ */
+export function downCheck(w: Working, actorId: ActorId, ctx: InjuryContext): "down" | "unconscious" {
+  if (endDownRoll(w, actorId, ctx)) {
+    addCondition(w, actorId, { id: "core:down" });
+    return "down";
+  }
+  if (w.state.actors[actorId]?.sheet.status.conditions.some((c) => c.id === "core:down")) {
+    w.apply(unwrap(removeCondition(w.state, actorId, "core:down")));
+  }
+  addCondition(w, actorId, { id: "core:unconscious" });
+  return "unconscious";
+}
+
+/**
+ * Worsens a wound to lethal, which counts as critical for max HP, and makes the actor Unconscious.
+ * With bleeding on, bleeding goes to its maximum (spec 03, Lethal wounds). The caller checks the
+ * wound is not lethal already.
+ */
+export function worsenToLethal(w: Working, actorId: ActorId, woundId: string, ctx: InjuryContext): void {
+  const t = ctx.tuning.combat;
+  w.apply([
+    draft(
+      "WoundWorsened",
+      { actorId, woundId, severity: "lethal", hpMaxReduction: t.hpMaxReduction.critical },
+      "engine",
+    ),
+  ]);
+  addCondition(w, actorId, { id: "core:unconscious" });
+  if (bleedingEnabled(w.state.campaign.settings)) {
+    addCondition(w, actorId, { id: "core:bleeding", level: t.maxBleeding }, true);
+  }
 }
 
 /**
@@ -203,7 +240,7 @@ export function resolveHit(state: GameState, hit: HitInput, ctx: InjuryContext):
 
   const settings = w.state.campaign.settings;
   const simple = settings.subsystems.injuries === "simple";
-  const bleedingOn = settings.subsystems.bleeding && !simple;
+  const bleedingOn = bleedingEnabled(settings);
   const fracturesOn = settings.subsystems.fractures && !simple;
   const damageType = weapon.damageType;
   const effect = t.woundEffects[location.kind][severity];
@@ -285,16 +322,7 @@ export function resolveHit(state: GameState, hit: HitInput, ctx: InjuryContext):
       immediate = check.effective.degree === "critFailure";
     }
     if (isLethal) {
-      // Lethal counts as critical for the max-HP reduction.
-      w.apply([
-        draft(
-          "WoundWorsened",
-          { actorId: hit.targetId, woundId, severity: "lethal", hpMaxReduction: t.hpMaxReduction.critical },
-          "engine",
-        ),
-      ]);
-      addCondition(w, hit.targetId, { id: "core:unconscious" });
-      if (bleedingOn) addCondition(w, hit.targetId, { id: "core:bleeding", level: t.maxBleeding }, true);
+      worsenToLethal(w, hit.targetId, woundId, ctx);
       lethal = {
         woundId,
         fate: lethalFate(w.state, hit.targetId),
