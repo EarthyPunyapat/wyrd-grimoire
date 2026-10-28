@@ -62,9 +62,9 @@ Each milestone lists its scope, the spec sections it implements, and acceptance 
 - `fantasy-core`: weapons, armour, ≥ 10 creatures.
 
 **Acceptance**
-- [ ] A tavern brawl is playable start to finish through the UI with free text ("kick the table over, duck behind it, shoot the archer" works as three actions).
-- [ ] Golden combat scenarios pass.
-- [ ] Defeat in a normal campaign produces a consequence and a new hook; death in hardcore produces an obituary and offers Legacy.
+- [x] A tavern brawl is playable start to finish through the UI with free text ("kick the table over, duck behind it, shoot the archer" works as three actions).
+- [x] Golden combat scenarios pass.
+- [x] Defeat in a normal campaign produces a consequence and a new hook; death in hardcore produces an obituary and offers Legacy.
 
 ## M5 — World and memory
 

@@ -1,6 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import { draft } from "@wyrd/core";
-import { applyCondition, autoFight, chooseActions, combatOf, startCombat, unwrap } from "@wyrd/engine";
+import {
+  applyCondition,
+  autoFight,
+  chooseActions,
+  combatOf,
+  legacyEvents,
+  obituary,
+  startCombat,
+  unwrap,
+} from "@wyrd/engine";
 import { Fight } from "./fixture.ts";
 
 const begin = (f: Fight, target = "npc:cutter") =>

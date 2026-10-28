@@ -175,7 +175,23 @@ spec 13, including cross-genre acceptance and protection against revealing secre
 
 ## M4 — Combat (branch `m4-combat`, stacked on `feature/m3-web-ui`)
 
-**Step A (damage and injury) is done.** It is pure engine work plus core schemas and pack data.
+**M4 is built: steps A–G are done and every acceptance box is ticked.** Step A (damage and injury) is below; steps B–G (combat state, actions, AI, endings, pipeline, panel) followed in three commits. Decisions are D80–D90.
+
+Where combat lives:
+
+- `packages/core/src/schemas/combat.ts`: `CombatState`, `CombatAction` (the parser's union in a fight), `CombatView` (browser), combat events.
+- `packages/engine/src/combat/`: `flow.ts` (start, turns, death clocks, morale, endings), `actions.ts` (validation with codes and alternatives, resolution, `legalActions`), `attack.ts` (attack → Dodge/Parry → `resolveHit`), `ai.ts` (utility AI), `turn.ts` (`runCombatTurn`, `startFight`, `autoFight`), `view.ts`, `legacy.ts`.
+- `packages/engine/src/turns.ts`: `validateTurn`/`resolveTurn` dispatch exploration vs combat; the pipeline calls only these.
+- `packages/llm`: combat parser tools and digest, `makeTurnContext`, two-paragraph combat narration (`narrator@3`, `parser@2`), offline combat parsing.
+- `packs/fantasy-core`: `creatures.yaml` (11), `bodyplans.yaml` (quadruped), `worlds/tavern-brawl`.
+- Tests: `packages/packs/test/combat/` (fights, golden scenarios in `golden/`, tactics, defeat, hardcore death, Legacy), the API brawl in `apps/server/test/app.test.ts`, and `e2e/combat.e2e.ts`.
+- Golden files change only on purpose: `WYRD_UPDATE_GOLDEN=1 bun test packages/packs/test/combat/golden.test.ts`, then review the diff.
+
+Still to check with real models (owner): the parser mapping free text to combat actions on DeepSeek, and the two-paragraph narration on the ChatGPT plan. Quick start into the brawl: `POST /api/campaigns/quick-start` with `{"name":"Brawl","characterName":"Wren","archetype":"hunter","world":"tavern-brawl"}`.
+
+Known gaps: Luck rerolls on attacks (D83), companion directives (M6), chases (M5), loot tables (M5), initiative groups/Delay/Ready/Hide/items/spells (D82).
+
+**Step A (damage and injury).** It is pure engine work plus core schemas and pack data.
 
 What step A adds:
 
@@ -185,6 +201,6 @@ What step A adds:
 - `woundModifiers` in `packages/engine/src/injury/penalties.ts`: wound penalties on checks.
 - `startingEquipment` in `packages/engine/src/equipment.ts`: the sheet's equipment from the archetype kit.
 
-Not yet built: out-of-combat bleeding per minute, first aid and the death clock. Those are step B/C work. Infection, fractures, healing and permanent injuries are M5 (D71).
+First aid and the death clock now exist (step C); out-of-combat bleeding per minute is still open. Infection, fractures, healing and permanent injuries are M5 (D71).
 
 The plan is `docs/superpowers/plans/2026-10-28-m4-roadmap.md` (steps A–G). The decisions are D71–D79 in `docs/decisions.md`.

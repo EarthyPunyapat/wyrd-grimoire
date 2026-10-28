@@ -22,7 +22,7 @@ type Prop = { id: string; name: string; affordances: Array<"cover" | "climb" | "
              | "topple" | "hide" | "breakable" | "light" | string> };
 ```
 
-- When combat starts at a location that already has a zone map in canon, the engine reuses it. Otherwise the narrator role is asked to generate one via the `propose_zone_map` tool (3–7 zones, tags, props, edges). The engine validates it (connected graph, sane tags) and commits it to canon for that location. The same tavern always has the same layout.
+- When combat starts at a location that already has a zone map in canon, the engine reuses it. (Today every scene has one; `propose_zone_map` arrives with lazy generation in M5, D81.) Otherwise the narrator role is asked to generate one via the `propose_zone_map` tool (3–7 zones, tags, props, edges). The engine validates it (connected graph, sane tags) and commits it to canon for that location. The same tavern always has the same layout.
 - Initial positions are proposed by the model from the fiction and validated by the engine.
 - Props give free-text stunts something real to act on ("kick the table over" needs a table with `topple`).
 
@@ -46,7 +46,7 @@ Weapons list the bands they work in, with penalties outside their best band (dat
 ## Turn order
 
 - **Surprise:** if one side is unaware, resolve Stealth vs Perception (opposed). Surprised combatants lose 2 AP in round 1 and have no reaction until their first turn.
-- **Initiative:** every combatant makes an Initiative check (AGI × 5 + AWA × 5). Order by degree, then margin; ties go to higher AGI, then to the PC. Order is fixed for the fight; arrivals roll when they enter.
+- **Initiative:** every combatant makes an Initiative check (AGI × 5 + AWA × 5; rolled as an AGI check with an AWA-difference modifier, D82). Order by degree, then margin; ties go to higher AGI, then to the PC. Order is fixed for the fight; arrivals roll when they enter.
 - **Groups:** identical minions may share one initiative slot to speed play.
 - **Delay:** a combatant may delay to a later point in the round.
 
@@ -78,7 +78,7 @@ Every combatant gets **3 AP** per turn and **1 reaction** per round.
 | Speak | free | One short sentence. Longer talk costs AP or happens outside combat |
 | Stunt | 1–3 | See [Stunts](#stunts) |
 
-**Reactions:** Dodge, Parry, opportunity attack, or a Readied action.
+**Reactions:** Dodge, Parry, opportunity attack, or a Readied action. (Groups, Delay, Ready, Hide, Use item and abilities follow later milestones; D82.)
 
 Conditions and wounds reduce AP (Stunned −2, Dazed −1) or raise costs (a serious leg wound makes Move cost 2).
 
@@ -258,14 +258,14 @@ In a normal campaign, when the PC is **Defeated** (lethal wound, the whole party
 2. It picks one by weighted roll (seeded) and commits it: time skip, location change, loss of items or money if appropriate, a persistent critical wound with permanent-injury risk, reputation changes, and a **new hook** (escape, debt to a rescuer, revenge).
 3. The narrator narrates the aftermath.
 
-Defeat is never "nothing happened". It always costs something and always opens a thread.
+Defeat is never "nothing happened". It always costs something and always opens a thread. (Outcome table by intent: D87.)
 
 ## Hardcore death
 
 In a hardcore campaign the PC can die. When they do:
 
 - The campaign's active branch ends. An **obituary and epilogue** is generated from canon.
-- **Legacy:** the player may start a new character in the same world. The dead PC becomes canon history: their grave, their gear (lootable), their unfinished business and the people who remember them.
+- **Legacy:** the player may start a new character in the same world (same campaign, D88). The dead PC becomes canon history: their grave, their gear (lootable), their unfinished business and the people who remember them.
 
 ## Fleeing, surrender and chases
 
@@ -295,6 +295,6 @@ Tactics are **deterministic utility AI** in the engine; the model only writes sp
 
 ## Combat narration pacing
 
-- The player's turn is resolved and narrated as one passage.
+- The player's turn is resolved and narrated as one passage. Each player input is a whole turn; unspent AP lapse (D86).
 - Everything until the player's next turn (enemies, companions) is resolved, then narrated as one combined passage.
 - A "fast combat" option narrates whole rounds in two or three sentences each and leaves detail to the mechanics log.
