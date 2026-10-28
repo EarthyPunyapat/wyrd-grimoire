@@ -1,0 +1,793 @@
+<title>Wyrd Grimoire Screens</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,600;1,400&family=Alegreya+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&family=IM+Fell+English+SC&display=swap">
+<style>
+/* Layout: app frame — top bar, a ~68ch narration column with the composer pinned under it,
+   and a 360px instrument panel on the right. Under 768px the panel becomes a bottom sheet
+   opened from a tab bar. Theme: fantasy-core — stone vellum, iron-gall ink, verdigris, gilt for criticals. */
+:root {
+  --bg: #e5e4dc;
+  --surface: #f0efe9;
+  --surface-2: #dad9cf;
+  --line: #c5c4b9;
+  --ink: #1c2220;
+  --ink-muted: #59625e;
+  --accent: #2b6c61;
+  --accent-soft: #d3e2dc;
+  --accent-ink: #f3f2ec;
+  --crit: #946711;
+  --success: #2e6a3e;
+  --failure: #6c5a4b;
+  --danger: #8b2a26;
+  --danger-soft: #ecd6d1;
+  --enemy: #8b2a26;
+  --ally: #2b6c61;
+  --pc: #946711;
+  --sky-a: #c9cfd0;
+  --sky-b: #e4d3b8;
+  --silhouette: #3a4442;
+  --font-display: "IM Fell English SC", "Iowan Old Style", Georgia, serif;
+  --font-body: "Alegreya", "Iowan Old Style", Georgia, serif;
+  --font-ui: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111513; --surface: #171d1a; --surface-2: #202724; --line: #2d3632;
+    --ink: #e1e5dd; --ink-muted: #94a09a; --accent: #6db4a5; --accent-soft: #1f3631; --accent-ink: #0e1210;
+    --crit: #d8ad51; --success: #76b98a; --failure: #a69684; --danger: #dc7363; --danger-soft: #3a211e;
+    --enemy: #dc7363; --ally: #6db4a5; --pc: #d8ad51;
+    --sky-a: #1d2a33; --sky-b: #4a3a2c; --silhouette: #0b0f0e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111513; --surface: #171d1a; --surface-2: #202724; --line: #2d3632;
+  --ink: #e1e5dd; --ink-muted: #94a09a; --accent: #6db4a5; --accent-soft: #1f3631; --accent-ink: #0e1210;
+  --crit: #d8ad51; --success: #76b98a; --failure: #a69684; --danger: #dc7363; --danger-soft: #3a211e;
+  --enemy: #dc7363; --ally: #6db4a5; --pc: #d8ad51;
+  --sky-a: #1d2a33; --sky-b: #4a3a2c; --silhouette: #0b0f0e;
+  color-scheme: dark;
+}
+
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-ui); font-size: 15px; line-height: 1.45;
+}
+* { box-sizing: border-box; }
+button { font: inherit; color: inherit; }
+button:focus-visible, textarea:focus-visible, summary:focus-visible, a:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+.frame { display: flex; flex-direction: column; height: 100%; }
+
+/* mockup annotation strip (not part of the app) */
+.annot {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+  padding-block: 6px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  font-size: 12.5px; color: var(--ink-muted);
+  border-bottom: 1px dashed var(--line);
+}
+.annot strong { color: var(--ink); font-weight: 500; letter-spacing: .04em; text-transform: uppercase; font-size: 11.5px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.seg a {
+  padding: 3px 12px; text-decoration: none; color: var(--ink-muted); font-size: 12.5px;
+}
+.seg a[aria-current="page"] { background: var(--ink); color: var(--bg); }
+
+/* top bar */
+.topbar {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding-block: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--line); background: var(--surface);
+}
+.wordmark { font-family: var(--font-display); font-size: 22px; letter-spacing: .02em; line-height: 1; }
+.campaign { font-family: var(--font-body); font-style: italic; color: var(--ink-muted); }
+.where { display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 13.5px; color: var(--ink-muted); min-width: 0; }
+.where span { white-space: nowrap; }
+.where b { color: var(--ink); font-weight: 500; }
+.tools { margin-left: auto; display: flex; gap: 4px; }
+.tbtn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: var(--radius);
+  background: none; border: 1px solid transparent; cursor: pointer; font-size: 13.5px; color: var(--ink-muted);
+}
+.tbtn:hover { border-color: var(--line); color: var(--ink); }
+.tbtn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+
+/* main layout */
+.layout { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 360px; }
+.story { display: flex; flex-direction: column; min-height: 0; min-width: 0; border-right: 1px solid var(--line); }
+.scroll { flex: 1; overflow-y: auto; padding-block: 24px 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: 16px; }
+.column { max-width: 68ch; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+
+.banner { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); }
+.banner svg { display: block; width: 100%; height: auto; max-width: 100%; }
+.banner figcaption { font-size: 12px; color: var(--ink-muted); padding: 6px 10px; background: var(--surface); border-top: 1px solid var(--line); }
+
+.place { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 21px; letter-spacing: .02em; text-wrap: balance; }
+.place small { display: block; font-family: var(--font-ui); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+
+.passage { display: flex; flex-direction: column; gap: 10px; }
+.you {
+  font-size: 14px; color: var(--ink-muted); font-style: italic; display: flex; gap: 8px;
+}
+.you::before { content: "›"; font-style: normal; color: var(--accent); font-weight: 700; }
+.prose { font-family: var(--font-body); font-size: 18px; line-height: 1.62; }
+.prose p { margin: 0 0 .7em; }
+.prose p:last-child { margin-bottom: 0; }
+.say { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 4px 12px; margin: .3em 0 .8em; }
+.say .mono { grid-row: span 2; }
+.speaker { font-family: var(--font-ui); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 500; }
+.say q { quotes: "“" "”"; font-family: var(--font-body); font-size: 18px; }
+
+.mono-badge, .mono {
+  width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--font-display); font-size: 15px; background: var(--surface-2); color: var(--ink);
+  border: 1px solid var(--line); flex: none;
+}
+.mono.ally { box-shadow: inset 0 0 0 2px var(--ally); }
+.mono.enemy { box-shadow: inset 0 0 0 2px var(--enemy); }
+.mono.pc { box-shadow: inset 0 0 0 2px var(--pc); }
+
+.pactions { display: flex; gap: 2px; align-items: center; }
+.icon-btn {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: var(--radius);
+  background: none; border: 1px solid transparent; cursor: pointer; font-size: 12.5px; color: var(--ink-muted);
+}
+.icon-btn:hover { border-color: var(--line); color: var(--ink); }
+.icon-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+
+details.mech { border-left: 2px solid var(--line); padding-left: 12px; }
+details.mech summary {
+  cursor: pointer; font-size: 12.5px; color: var(--ink-muted); list-style: none; display: inline-flex; gap: 6px; align-items: center;
+}
+details.mech summary::-webkit-details-marker { display: none; }
+details.mech summary::before { content: "▸"; transition: transform .15s; display: inline-block; }
+details.mech[open] summary::before { transform: rotate(90deg); }
+.mlines { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px;
+  font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.mlines li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 4px; }
+.g { font-family: var(--font-ui); font-weight: 700; text-align: center; }
+.g.crit { color: var(--crit); } .g.ok { color: var(--success); } .g.fail { color: var(--failure); }
+.g.cfail { color: var(--danger); } .g.note { color: var(--accent); }
+.mlines em { font-style: normal; font-weight: 500; }
+
+.clarify {
+  border: 1px solid var(--accent); background: var(--accent-soft); border-radius: var(--radius);
+  padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;
+}
+.clarify .q { font-weight: 500; }
+.opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.opt {
+  display: inline-flex; gap: 8px; align-items: center; padding: 6px 12px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--line); cursor: pointer; font-size: 14px;
+}
+.opt kbd { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-muted); }
+.opt:hover { border-color: var(--accent); }
+
+.typing { font-size: 13px; color: var(--ink-muted); display: flex; gap: 8px; align-items: center; }
+.dots { display: inline-flex; gap: 3px; }
+.dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--ink-muted); animation: blink 1.2s infinite; }
+.dots i:nth-child(2) { animation-delay: .2s; } .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+
+/* composer */
+.composer {
+  border-top: 1px solid var(--line); background: var(--surface);
+  padding-block: 10px 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: 16px;
+}
+.composer .column { gap: 8px; }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+.chip {
+  flex: none; padding: 4px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg);
+  font-size: 13.5px; cursor: pointer; white-space: nowrap;
+}
+.chip:hover { border-color: var(--accent); }
+.chip .ap { font-family: var(--font-mono); font-size: 11px; color: var(--ink-muted); margin-left: 6px; }
+.inputrow { display: flex; gap: 8px; align-items: flex-end; }
+.inputrow textarea {
+  flex: 1; min-width: 0; resize: none; min-height: 44px; max-height: 160px; padding: 10px 12px;
+  border-radius: var(--radius); border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 17px; line-height: 1.4;
+}
+.send {
+  height: 44px; padding: 0 18px; border-radius: var(--radius); border: none; cursor: pointer;
+  background: var(--accent); color: var(--accent-ink); font-weight: 500;
+}
+.hint { font-size: 12px; color: var(--ink-muted); }
+
+/* panel */
+.panel { display: flex; flex-direction: column; min-height: 0; background: var(--surface); }
+.tabs { display: flex; border-bottom: 1px solid var(--line); overflow-x: auto; padding-inline: 8px; }
+.tab {
+  padding: 10px 7px 9px; border: none; background: none; cursor: pointer; font-size: 13px; color: var(--ink-muted);
+  border-bottom: 2px solid transparent; white-space: nowrap;
+}
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tabpanels { flex: 1; overflow-y: auto; }
+.tp { padding: 16px; display: flex; flex-direction: column; gap: 18px; }
+.sheet-close { display: none; }
+
+.who { display: flex; gap: 12px; align-items: center; }
+.crest { width: 54px; height: 54px; border-radius: 50%; flex: none; }
+.who h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 21px; line-height: 1.1; }
+.who p { margin: 2px 0 0; font-size: 13px; color: var(--ink-muted); }
+
+.label { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); font-weight: 500; }
+.stat { display: flex; flex-direction: column; gap: 6px; }
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
+.bar { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; position: relative; }
+.bar > i { position: absolute; inset: 0 auto 0 0; background: var(--danger); border-radius: 99px; }
+.bar > b { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(45deg, var(--line) 0 3px, transparent 3px 6px); }
+.bar.ally > i { background: var(--ally); }
+.small { font-size: 12.5px; color: var(--ink-muted); }
+.pips { display: inline-flex; gap: 5px; }
+.pips i { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid var(--crit); }
+.pips i.on { background: var(--crit); }
+
+.body-wounds { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; align-items: center; }
+.body-wounds svg { width: 64px; height: auto; }
+.fig { fill: var(--surface-2); stroke: var(--line); stroke-width: 1; }
+.fig.minor { fill: var(--crit); } .fig.serious { fill: var(--danger); }
+.wlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; }
+.sev { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 99px; border: 1px solid currentColor; margin-left: 4px; }
+.sev.minor { color: var(--crit); }
+
+.attrs { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; text-align: center; }
+.attrs div { background: var(--bg); border-radius: 4px; padding: 6px 0 4px; }
+.attrs b { display: block; font-family: var(--font-mono); font-size: 16px; font-weight: 500; }
+.attrs span { font-size: 10.5px; letter-spacing: .06em; color: var(--ink-muted); }
+.skills { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 3px 14px; font-size: 13.5px; }
+.skills li { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; border-bottom: 1px dotted var(--line); padding-bottom: 2px; }
+.skills b { font-family: var(--font-mono); font-weight: 500; font-size: 12.5px; }
+.quests { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.quests li { display: flex; flex-direction: column; gap: 2px; }
+.quests .t { font-family: var(--font-body); font-size: 16px; }
+.quests .o { font-size: 13px; color: var(--ink-muted); }
+.quests .o.done { text-decoration: line-through; }
+
+.inv { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.inv li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.inv .meta { grid-column: 1; font-size: 12.5px; color: var(--ink-muted); font-family: var(--font-mono); }
+.inv .wt { font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-muted); }
+.slot { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+
+.comp { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 10px; }
+.comp .mono { width: 44px; height: 44px; font-size: 18px; }
+.comp h3 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 18px; }
+.toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; font-size: 12.5px; }
+.toggle span { padding: 2px 10px; } .toggle .on { background: var(--accent); color: var(--accent-ink); }
+
+.mapwrap svg { width: 100%; height: auto; }
+.mapnode rect { fill: var(--bg); stroke: var(--line); }
+.mapnode.here rect { stroke: var(--accent); stroke-width: 2; }
+.mapnode text, .zone text, .maplbl { fill: var(--ink); font-family: var(--font-ui); font-size: 12px; }
+.maplbl { fill: var(--ink-muted); font-size: 10.5px; }
+.route { stroke: var(--ink-muted); stroke-width: 1.2; fill: none; }
+.route.fog { stroke-dasharray: 3 4; opacity: .5; }
+.mapnode.fog rect { stroke-dasharray: 3 3; opacity: .6; } .mapnode.fog text { fill: var(--ink-muted); }
+
+/* combat panel */
+.init { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.combatant { flex: none; width: 62px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px; border-radius: var(--radius); border: 1px solid transparent; text-align: center; }
+.combatant.current { border-color: var(--pc); background: var(--bg); }
+.combatant .n { font-size: 11.5px; line-height: 1.15; }
+.combatant .bar { width: 46px; height: 5px; }
+.combatant.fled { opacity: .5; }
+.zone rect { fill: var(--bg); stroke: var(--line); stroke-width: 1.2; }
+.zone.cur rect { stroke: var(--pc); stroke-width: 2; }
+.zedge { stroke: var(--line); stroke-width: 2; }
+.ztag { fill: var(--ink-muted); font-family: var(--font-ui); font-size: 10.5px; }
+.tok circle { stroke-width: 2; fill: var(--surface); }
+.tok text { font-family: var(--font-display); font-size: 11px; fill: var(--ink); text-anchor: middle; dominant-baseline: central; }
+.tok.pc circle { stroke: var(--pc); } .tok.ally circle { stroke: var(--ally); } .tok.enemy circle { stroke: var(--enemy); }
+.tok.fled { opacity: .45; }
+.engage { stroke: var(--enemy); stroke-width: 1.5; stroke-dasharray: 3 2; }
+.ap { display: flex; gap: 10px; align-items: center; }
+.ap .pips i { border-color: var(--pc); width: 14px; height: 14px; }
+.ap .pips i.on { background: var(--pc); }
+.actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.act { padding: 5px 10px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--bg); cursor: pointer; font-size: 13.5px; }
+.act span { font-family: var(--font-mono); font-size: 11px; color: var(--ink-muted); margin-left: 5px; }
+.act:hover { border-color: var(--pc); }
+.act.dim { opacity: .5; cursor: not-allowed; }
+.target { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; display: grid; grid-template-columns: minmax(0, 1fr) 40px; gap: 8px; background: var(--bg); }
+.target h4 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 16px; }
+.target svg { width: 40px; height: auto; }
+
+/* mobile */
+.mtabs { display: none; }
+.combat-strip { display: none; }
+@media (max-width: 767px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .story { border-right: none; }
+  .tools .tbtn span { display: none; }
+  .campaign { display: none; }
+  .where { order: 3; width: 100%; font-size: 12.5px; }
+  .prose, .say q { font-size: 17px; }
+  .scroll { padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .composer { padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-bottom: 8px; }
+  .panel {
+    position: fixed; left: 0; right: 0; bottom: 0; top: 18%; z-index: 20;
+    border-top: 1px solid var(--line); border-radius: 12px 12px 0 0; box-shadow: 0 -10px 30px rgba(0,0,0,.18);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px);
+  }
+  .panel:not(.open) { display: none; }
+  .sheet-close { display: inline-flex; margin-left: auto; align-self: center; }
+  .mtabs {
+    display: flex; justify-content: space-around; border-top: 1px solid var(--line); background: var(--surface);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px));
+  }
+  .mtabs button { flex: 1; background: none; border: none; padding: 9px 2px 8px; font-size: 12px; color: var(--ink-muted); cursor: pointer; }
+  .mtabs button.hot { color: var(--pc); font-weight: 700; }
+  .combat-strip:not([hidden]) { display: flex; }
+  .combat-strip { gap: 6px; overflow-x: auto; }
+  .combat-strip .combatant { width: 54px; padding: 4px 1px; }
+}
+</style>
+
+<div class="frame" id="app">
+  <div class="annot" role="note">
+    <strong>Mockup</strong>
+    <span>fantasy-core theme · follows light/dark</span>
+    <nav class="seg" aria-label="Mockup view">
+      <a href="#exploration" data-view="exploration">Exploration</a>
+      <a href="#combat" data-view="combat">Combat</a>
+    </nav>
+    <span>Narrow the window to see the phone layout.</span>
+  </div>
+
+  <header class="topbar">
+    <div class="wordmark">Wyrd</div>
+    <div class="campaign">The Drowned Coast</div>
+    <div class="where" aria-label="Current situation">
+      <span><b>Saltmere</b> · The Gull &amp; Anchor</span>
+      <span>Dusk · 3rd of Rainmoon</span>
+      <span>Drizzle, cold wind</span>
+    </div>
+    <div class="tools">
+      <button class="tbtn" aria-pressed="true" title="Voice narration">
+        <svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg><span>Voice</span></button>
+      <button class="tbtn" title="Journal (J)">
+        <svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/></svg><span>Journal</span></button>
+      <button class="tbtn" title="Map (M)">
+        <svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg><span>Map</span></button>
+      <button class="tbtn" title="Timeline and rewind">
+        <svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.6"/><path d="M4 4v4h4"/><path d="M12 8v4l3 2"/></svg><span>Timeline</span></button>
+      <button class="tbtn" title="Settings">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><span>Settings</span></button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <main class="story">
+      <div class="scroll" id="scroll" aria-live="polite">
+
+        <!-- EXPLORATION -->
+        <div class="column" data-show="exploration">
+          <figure class="banner" style="margin:0">
+            <svg viewBox="0 0 680 190" role="img" aria-label="Placeholder for generated scene art: Saltmere harbour at dusk">
+              <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--sky-a)"/><stop offset="1" style="stop-color:var(--sky-b)"/></linearGradient></defs>
+              <rect width="680" height="190" fill="url(#sky)"/>
+              <g style="fill:var(--silhouette)">
+                <rect x="0" y="122" width="680" height="68"/>
+                <polygon points="40,122 40,92 70,72 100,92 100,122"/>
+                <polygon points="110,122 110,84 135,64 160,84 160,122"/>
+                <rect x="170" y="98" width="70" height="24"/>
+                <polygon points="250,122 250,80 290,58 330,80 330,122"/>
+                <rect x="300" y="50" width="10" height="20"/>
+                <rect x="470" y="20" width="3" height="102"/><rect x="520" y="34" width="3" height="88"/>
+                <polygon points="440,122 560,122 548,134 452,134"/>
+                <rect x="600" y="70" width="18" height="52"/><polygon points="596,70 622,70 609,56"/>
+              </g>
+              <g style="stroke:var(--sky-b)" stroke-width="1.2" opacity=".55">
+                <line x1="0" y1="150" x2="680" y2="150"/><line x1="40" y1="163" x2="640" y2="163"/><line x1="120" y1="176" x2="560" y2="176"/>
+              </g>
+              <rect x="608" y="78" width="4" height="6" style="fill:var(--sky-b)"/>
+            </svg>
+            <figcaption>Generated scene art appears here (Qwen-Image 2.1 via ComfyUI) on first arrival.</figcaption>
+          </figure>
+
+          <h1 class="place"><small>Arrived</small>The Gull &amp; Anchor, Saltmere</h1>
+
+          <section class="passage">
+            <div class="prose">
+              <p>You shoulder the door and the smell of tar and wet wool rolls over you. A dozen fishermen go quiet over their cups. Behind the bar, a broad man with a burn scar down one forearm sets down the tankard he was drying and watches your hands, not your face.</p>
+              <p>By the hearth, a hooded drinker sits with his back to the wall. His ale hasn't been touched.</p>
+            </div>
+            <details class="mech" open>
+              <summary>Mechanics (2)</summary>
+              <ul class="mlines">
+                <li><span class="g ok" title="Success">✓</span><span>Perception 55% · rolled 31 · <em>Success</em></span></li>
+                <li><span class="g note" title="Note">◆</span><span>New in codex: Harl (barkeep), hooded drinker</span></li>
+              </ul>
+            </details>
+            <div class="pactions">
+              <button class="icon-btn" title="Play narration"><svg viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg>Play</button>
+              <button class="icon-btn" title="Rewrite this passage. The dice don't change."><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v4h-4"/></svg>Reroll</button>
+            </div>
+          </section>
+
+          <section class="passage">
+            <div class="you">I ask the barkeep about the ferry that went missing last week.</div>
+            <div class="prose">
+              <p>You lean on the bar. He doesn't reach for a cup.</p>
+              <div class="say"><span class="mono" aria-hidden="true">H</span><span class="speaker">Harl · barkeep</span>
+                <q>Ferry don't run in Rainmoon. Everybody knows that.</q></div>
+              <p>He says it too fast, and his eyes flick, once, to the hooded man by the fire. Down the bar, a girl gutting mackerel into a bucket has stopped working to listen.</p>
+            </div>
+            <details class="mech" open>
+              <summary>Mechanics (2)</summary>
+              <ul class="mlines">
+                <li><span class="g ok" title="Success">✓</span><span>Insight 50% · Hard (−20) → 30% · rolled 22 · <em>Success</em></span></li>
+                <li><span class="g note" title="Note">◆</span><span>Harl: attitude −5 (you pressed about the ferry)</span></li>
+              </ul>
+            </details>
+            <div class="pactions">
+              <button class="icon-btn" title="Play narration"><svg viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg>Play</button>
+              <button class="icon-btn" title="Rewrite this passage. The dice don't change."><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v4h-4"/></svg>Reroll</button>
+            </div>
+          </section>
+
+          <section class="passage">
+            <div class="you">I talk to them.</div>
+            <div class="clarify" role="group" aria-labelledby="cq">
+              <div class="q" id="cq">Who do you want to talk to?</div>
+              <div class="opts">
+                <button class="opt" data-fill="I press Harl about why he looked at the hooded man."><kbd>1</kbd>Harl, the barkeep</button>
+                <button class="opt" data-fill="I take my drink over to the hooded man by the hearth."><kbd>2</kbd>The hooded drinker</button>
+                <button class="opt" data-fill="I ask the girl gutting mackerel what she knows about the ferry."><kbd>3</kbd>The girl at the bucket</button>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- COMBAT -->
+        <div class="column" data-show="combat" hidden>
+          <h1 class="place"><small>Combat · Round 3</small>Brawl at the Gull &amp; Anchor</h1>
+
+          <section class="passage">
+            <div class="you">I kick the table over, duck behind it, then shoot the archer.</div>
+            <div class="prose">
+              <p>You plant a boot against the edge of the trestle table and heave. It goes over in a crash of crockery, and you drop behind it as an arrow thunks into the planks a hand's width from your ear.</p>
+              <p>You rise just long enough to loose. The bolt takes the archer high in the right arm, and his next shot goes wide into the rafters.</p>
+            </div>
+            <details class="mech" open>
+              <summary>Mechanics (5) · round 2 · 3 of 3 AP</summary>
+              <ul class="mlines">
+                <li><span class="g ok" title="Success">✓</span><span>Stunt · topple table · Athletics 51% · rolled 44 · <em>Success</em> → partial cover in The Bar</span></li>
+                <li><span class="g note" title="Note">◆</span><span>Take Cover · partial · ranged attacks against you −20</span></li>
+                <li><span class="g ok" title="Success">✓</span><span>Strike · light crossbow · Ranged 52% · Near · rolled 17 · <em>Success</em></span></li>
+                <li><span class="g fail" title="Failure">✗</span><span>Archer · Dodge 30% · rolled 77 · <em>Failure</em></span></li>
+                <li><span class="g note" title="Note">◆</span><span>Hit: right arm (location 54) · 1d10 → 7 pierce − 0 armour = 7 · Archer HP 14 → 7 · ≥ WT 7: <em>Minor wound</em> (−10 with that arm)</span></li>
+              </ul>
+            </details>
+            <div class="pactions">
+              <button class="icon-btn" title="Play narration"><svg viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg>Play</button>
+              <button class="icon-btn" title="Rewrite this passage. The dice don't change."><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v4h-4"/></svg>Reroll</button>
+            </div>
+          </section>
+
+          <section class="passage">
+            <div class="prose">
+              <p>The bigger of the two thugs vaults the bar and comes at you round the table. You get your blade up a heartbeat late; his cleaver skids off your thigh and opens a shallow, stinging line.</p>
+              <div class="say"><span class="mono enemy" aria-hidden="true">B</span><span class="speaker">Brannoc · Tidewatch thug</span>
+                <q>Should've left the ferry alone, sellsword.</q></div>
+              <p>On the stairs, the archer clutches his arm, looks at the blood, and bolts for the landing. From the doorway, Mira's arrow hums across the room, but the second thug throws himself flat behind the hearth and it splinters the mantel instead.</p>
+            </div>
+            <details class="mech">
+              <summary>Mechanics (6)</summary>
+              <ul class="mlines">
+                <li><span class="g note" title="Note">◆</span><span>Brannoc · Move → The Bar · engages you</span></li>
+                <li><span class="g ok" title="Success">✓</span><span>Brannoc · Strike · Melee 45% · rolled 38 · <em>Success</em></span></li>
+                <li><span class="g fail" title="Failure">✗</span><span>You · Parry · Melee 63% · rolled 71 · <em>Failure</em> → hit: left leg · 1d6+1 → 5 cut · no armour · HP 16 → 11</span></li>
+                <li><span class="g note" title="Note">◆</span><span>Thug · Move → Hearth</span></li>
+                <li><span class="g fail" title="Failure">✗</span><span>Archer · Morale (wounded) · WIL 50% · rolled 64 · <em>Failure</em> → flees</span></li>
+                <li><span class="g ok" title="Success">✓</span><span>Round 3 · Mira · Strike · Ranged 58% · rolled 41 · <em>Success</em> vs Thug · Dodge 35% · rolled 06 · <em>Success</em> · higher margin → miss</span></li>
+              </ul>
+            </details>
+          </section>
+
+          <div class="typing">Round 3 · your turn · 3 AP</div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="column">
+          <div class="combat-strip" id="combatStrip" hidden aria-label="Initiative">
+            <div class="combatant"><span class="mono ally">M</span><span class="n">Mira</span></div>
+            <div class="combatant current"><span class="mono pc">K</span><span class="n">You</span></div>
+            <div class="combatant"><span class="mono enemy">B</span><span class="n">Brannoc</span></div>
+            <div class="combatant"><span class="mono enemy">T</span><span class="n">Thug</span></div>
+            <div class="combatant fled"><span class="mono enemy">A</span><span class="n">Archer</span></div>
+          </div>
+          <div class="chips" id="chips"></div>
+          <div class="inputrow">
+            <textarea id="input" rows="1" placeholder="What do you do?" aria-label="What do you do?"></textarea>
+            <button class="send" type="button">Send</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="panel" id="panel" aria-label="Character and world">
+      <div class="tabs" role="tablist" id="tablist">
+        <button class="tab" role="tab" id="t-combat" aria-controls="p-combat" data-tab="combat" hidden>Combat</button>
+        <button class="tab" role="tab" id="t-sheet" aria-controls="p-sheet" data-tab="sheet">Sheet</button>
+        <button class="tab" role="tab" id="t-inv" aria-controls="p-inv" data-tab="inv">Inventory</button>
+        <button class="tab" role="tab" id="t-party" aria-controls="p-party" data-tab="party">Party</button>
+        <button class="tab" role="tab" id="t-journal" aria-controls="p-journal" data-tab="journal">Journal</button>
+        <button class="tab" role="tab" id="t-map" aria-controls="p-map" data-tab="map">Map</button>
+        <button class="icon-btn sheet-close" id="closePanel" type="button">Close</button>
+      </div>
+      <div class="tabpanels">
+
+        <!-- COMBAT PANEL -->
+        <section class="tp" role="tabpanel" id="p-combat" aria-labelledby="t-combat" hidden>
+          <div class="row"><span class="label">Round 3 · initiative</span><span class="small">Your turn</span></div>
+          <div class="init">
+            <div class="combatant"><span class="mono ally">M</span><span class="n">Mira</span><span class="bar ally"><i style="width:100%"></i></span></div>
+            <div class="combatant current"><span class="mono pc">K</span><span class="n">You</span><span class="bar"><i style="width:61%"></i><b style="left:90%;right:0"></b></span></div>
+            <div class="combatant"><span class="mono enemy">B</span><span class="n">Brannoc</span><span class="bar"><i style="width:100%"></i></span></div>
+            <div class="combatant"><span class="mono enemy">T</span><span class="n">Thug</span><span class="bar"><i style="width:85%"></i></span></div>
+            <div class="combatant fled"><span class="mono enemy">A</span><span class="n">Archer · fleeing</span><span class="bar"><i style="width:50%"></i></span></div>
+          </div>
+
+          <svg viewBox="0 0 330 214" role="img" aria-label="Zone map: Doorway, The Bar, Stairs, Hearth">
+            <line class="zedge" x1="80" y1="52" x2="235" y2="52"/>
+            <line class="zedge" x1="235" y1="52" x2="235" y2="160"/>
+            <line class="zedge" x1="80" y1="52" x2="80" y2="160"/>
+            <line class="zedge" x1="80" y1="160" x2="235" y2="160"/>
+            <g class="zone"><rect x="12" y="14" width="136" height="76" rx="10"/><text x="24" y="34">Doorway</text><text class="ztag" x="24" y="50">dim</text></g>
+            <g class="zone cur"><rect x="168" y="14" width="150" height="76" rx="10"/><text x="180" y="34">The Bar</text><text class="ztag" x="180" y="50">cover: overturned table</text></g>
+            <g class="zone"><rect x="12" y="124" width="136" height="76" rx="10"/><text x="24" y="144">Hearth</text><text class="ztag" x="24" y="160">cover · fire hazard</text></g>
+            <g class="zone"><rect x="168" y="124" width="150" height="76" rx="10"/><text x="180" y="144">Stairs</text><text class="ztag" x="180" y="160">difficult · elevated</text></g>
+            <line class="engage" x1="228" y1="72" x2="262" y2="72"/>
+            <g class="tok pc"><circle cx="216" cy="72" r="12"/><text x="216" y="72">K</text></g>
+            <g class="tok enemy"><circle cx="274" cy="72" r="12"/><text x="274" y="72">B</text></g>
+            <g class="tok ally"><circle cx="60" cy="70" r="12"/><text x="60" y="70">M</text></g>
+            <g class="tok enemy"><circle cx="100" cy="182" r="12"/><text x="100" y="182">T</text></g>
+            <g class="tok enemy fled"><circle cx="290" cy="182" r="12"/><text x="290" y="182">A</text></g>
+          </svg>
+
+          <div class="ap"><span class="label">Action points</span><span class="pips" aria-label="3 of 3 AP"><i class="on"></i><i class="on"></i><i class="on"></i></span></div>
+          <div class="actions">
+            <button class="act" data-fill="I hack at Brannoc.">Strike<span>1</span></button>
+            <button class="act" data-fill="I defend and wait for an opening.">Defend<span>1</span></button>
+            <button class="act" data-fill="I shove Brannoc back into the bar.">Shove<span>1</span></button>
+            <button class="act" data-fill="I disengage and fall back to the doorway.">Disengage<span>1</span></button>
+            <button class="act" data-fill="I reload the crossbow.">Reload<span>2</span></button>
+            <button class="act dim" title="Not engaged with the archer; he is out of sight on the landing" aria-disabled="true">Strike archer<span>—</span></button>
+            <button class="act" data-fill="I bind the cut on my leg.">First aid<span>2</span></button>
+          </div>
+
+          <div class="target">
+            <div>
+              <h4>Brannoc</h4>
+              <div class="small">Engaged · leather jack · cleaver</div>
+              <div class="small">Unhurt · morale steady</div>
+            </div>
+            <svg viewBox="0 0 40 80" aria-label="No wounds">
+              <circle class="fig" cx="20" cy="9" r="7"/><rect class="fig" x="12" y="18" width="16" height="26" rx="3"/>
+              <rect class="fig" x="4" y="19" width="6" height="22" rx="3"/><rect class="fig" x="30" y="19" width="6" height="22" rx="3"/>
+              <rect class="fig" x="12" y="46" width="7" height="30" rx="3"/><rect class="fig" x="21" y="46" width="7" height="30" rx="3"/>
+            </svg>
+          </div>
+        </section>
+
+        <!-- SHEET -->
+        <section class="tp" role="tabpanel" id="p-sheet" aria-labelledby="t-sheet">
+          <div class="who">
+            <svg class="crest" viewBox="0 0 54 54" aria-hidden="true">
+              <circle cx="27" cy="27" r="26" style="fill:var(--surface-2);stroke:var(--pc)" stroke-width="2"/>
+              <text x="27" y="28" text-anchor="middle" dominant-baseline="central" font-family="IM Fell English SC, Georgia, serif" font-size="24" style="fill:var(--ink)">KV</text>
+            </svg>
+            <div><h2>Kaelen Voss</h2><p>Human sellsword · classless · d100</p></div>
+          </div>
+
+          <div class="stat">
+            <div class="row"><span class="label">Hit points</span><span><b data-hp>16</b> / 18 <span class="small">(20 before wounds)</span></span></div>
+            <div class="bar"><i style="width:80%" data-hpbar></i><b style="left:90%;right:0"></b></div>
+            <div class="row small"><span>Wound threshold 8</span><span>Luck <span class="pips" aria-label="2 of 3 Luck"><i class="on"></i><i class="on"></i><i></i></span></span></div>
+          </div>
+
+          <div class="stat">
+            <span class="label">Wounds</span>
+            <div class="body-wounds">
+              <svg viewBox="0 0 40 80" aria-label="Minor wound on the left arm">
+                <circle class="fig" cx="20" cy="9" r="7"/><rect class="fig" x="12" y="18" width="16" height="26" rx="3"/>
+                <rect class="fig" x="4" y="19" width="6" height="22" rx="3"/><rect class="fig minor" x="30" y="19" width="6" height="22" rx="3"/>
+                <rect class="fig" x="12" y="46" width="7" height="30" rx="3"/><rect class="fig" x="21" y="46" width="7" height="30" rx="3"/>
+              </svg>
+              <ul class="wlist">
+                <li>Left arm <span class="sev minor">Minor</span><div class="small">Dressed · heals in 2 days · −10 with that arm</div></li>
+                <li class="small">No conditions</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="stat">
+            <span class="label">Attributes</span>
+            <div class="attrs">
+              <div><b>6</b><span>STR</span></div><div><b>6</b><span>AGI</span></div><div><b>5</b><span>END</span></div>
+              <div><b>4</b><span>INT</span></div><div><b>5</b><span>AWA</span></div><div><b>6</b><span>WIL</span></div><div><b>4</b><span>PRE</span></div>
+            </div>
+          </div>
+
+          <div class="stat">
+            <span class="label">Skills</span>
+            <ul class="skills">
+              <li>Melee <b>63%</b></li><li>Ranged <b>52%</b></li>
+              <li>Dodge <b>48%</b></li><li>Athletics <b>51%</b></li>
+              <li>Perception <b>55%</b></li><li>Insight <b>50%</b></li>
+              <li>Intimidation <b>48%</b></li><li>Survival <b>35%</b></li>
+            </ul>
+          </div>
+
+          <div class="stat">
+            <span class="label">Quests</span>
+            <ul class="quests">
+              <li><span class="t">The Missing Ferry</span><span class="o done">Reach Saltmere</span><span class="o">Find out what happened to the Rainmoon ferry</span></li>
+              <li><span class="t">A Debt to the Lantern House</span><span class="o">Repay 40 silver before the new moon</span></li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- INVENTORY -->
+        <section class="tp" role="tabpanel" id="p-inv" aria-labelledby="t-inv" hidden>
+          <div class="stat">
+            <div class="row"><span class="label">Load</span><span class="small">12.2 / 30 kg · unencumbered</span></div>
+            <div class="bar ally"><i style="width:41%"></i></div>
+          </div>
+          <ul class="inv">
+            <li><span><span class="slot">Held</span> Arming sword</span><span class="wt">1.3 kg</span><span class="meta">1d8 cut · Melee</span></li>
+            <li><span><span class="slot">Belt</span> Light crossbow</span><span class="wt">2.5 kg</span><span class="meta">1d10 pierce · Near–Far · reload 2 AP</span></li>
+            <li><span><span class="slot">Belt</span> Bolts ×13</span><span class="wt">0.9 kg</span><span class="meta">1 spent this fight</span></li>
+            <li><span><span class="slot">Body</span> Leather jack</span><span class="wt">5.0 kg</span><span class="meta">torso, arms · cut 3 · pierce 2 · blunt 1</span></li>
+            <li><span><span class="slot">Pack</span> Bandages ×3, flint, rations ×2</span><span class="wt">2.4 kg</span><span class="meta">first aid supplies</span></li>
+            <li><span><span class="slot">Purse</span> 3 silver, 14 copper</span><span class="wt">0.1 kg</span><span class="meta">owes 40 silver (Lantern House)</span></li>
+          </ul>
+        </section>
+
+        <!-- PARTY -->
+        <section class="tp" role="tabpanel" id="p-party" aria-labelledby="t-party" hidden>
+          <div class="comp">
+            <span class="mono ally" aria-hidden="true">M</span>
+            <div class="stat">
+              <h3>Mira of the Fens</h3>
+              <div class="small">Hunter · hunting bow · Ranged 58%</div>
+              <div class="row small"><span>HP 19 / 19</span><span>No wounds</span></div>
+              <div class="row"><span class="label">Approval</span><span class="small">Warm</span></div>
+              <div class="bar ally"><i style="width:67%"></i></div>
+              <div class="row small"><span>Control</span><span class="toggle"><span class="on">AI</span><span>Manual</span></span></div>
+              <div class="small">Directive: “Stay back and cover me.”</div>
+              <div class="small">Personal quest unlocks at Fond.</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- JOURNAL -->
+        <section class="tp" role="tabpanel" id="p-journal" aria-labelledby="t-journal" hidden>
+          <div class="stat">
+            <span class="label">Chapter 2 · The Salt Road</span>
+            <p class="small" style="margin:0;font-family:var(--font-body);font-size:15px;color:var(--ink)">You and Mira followed the coast road to Saltmere after the ferryman's widow begged you to learn why the Rainmoon crossing never reached the far shore. On the road you found a Tidewatch badge in a burned-out waystation.</p>
+          </div>
+          <div class="stat">
+            <span class="label">This scene</span>
+            <p class="small" style="margin:0">Harl the barkeep denied the ferry runs in Rainmoon, but glanced at a hooded drinker by the hearth.</p>
+          </div>
+          <div class="stat">
+            <span class="label">Pinned facts</span>
+            <p class="small" style="margin:0">The ferry left on the 26th of Fogmoon with eleven aboard.</p>
+          </div>
+        </section>
+
+        <!-- MAP -->
+        <section class="tp mapwrap" role="tabpanel" id="p-map" aria-labelledby="t-map" hidden>
+          <svg viewBox="0 0 330 240" role="img" aria-label="Map of discovered places around Saltmere">
+            <path class="route" d="M70 52 L165 120"/><text class="maplbl" x="94" y="80">1 day</text>
+            <path class="route" d="M165 120 L262 62"/><text class="maplbl" x="220" y="82">4 h · risky</text>
+            <path class="route fog" d="M165 120 L232 200"/>
+            <path class="route" d="M70 52 L60 182"/><text class="maplbl" x="20" y="120">2 days</text>
+            <g class="mapnode"><rect x="18" y="36" width="104" height="30" rx="6"/><text x="30" y="55">Brinefold</text></g>
+            <g class="mapnode here"><rect x="112" y="104" width="106" height="32" rx="6"/><text x="124" y="124">Saltmere</text></g>
+            <g class="mapnode"><rect x="214" y="46" width="108" height="30" rx="6"/><text x="226" y="65">Gullwatch Light</text></g>
+            <g class="mapnode"><rect x="8" y="168" width="112" height="30" rx="6"/><text x="20" y="187">Burned waystation</text></g>
+            <g class="mapnode fog"><rect x="186" y="186" width="124" height="30" rx="6"/><text x="198" y="205">The Sunken Road</text></g>
+          </svg>
+          <p class="small" style="margin:0">Dashed: heard of, not yet travelled.</p>
+        </section>
+      </div>
+    </aside>
+  </div>
+
+  <nav class="mtabs" aria-label="Panels">
+    <button data-open="combat" class="hot" hidden>Combat</button>
+    <button data-open="sheet">Sheet</button>
+    <button data-open="inv">Inventory</button>
+    <button data-open="party">Party</button>
+    <button data-open="journal">Journal</button>
+    <button data-open="map">Map</button>
+  </nav>
+</div>
+
+<script>
+(function () {
+  var chipsByView = {
+    exploration: ["Ask the girl about the ferry", "Buy the hooded man a drink", "Watch the door"],
+    combat: ["Hack at Brannoc", "Shove him into the bar", "Fall back to the doorway"]
+  };
+  var view = "exploration";
+  var input = document.getElementById("input");
+  var panel = document.getElementById("panel");
+
+  function fill(text) { input.value = text; input.focus(); }
+
+  function selectTab(name) {
+    document.querySelectorAll(".tab[data-tab]").forEach(function (t) {
+      var on = t.dataset.tab === name;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+    });
+  }
+
+  function setView(v) {
+    view = v === "combat" ? "combat" : "exploration";
+    document.querySelectorAll("[data-show]").forEach(function (el) { el.hidden = el.dataset.show !== view; });
+    document.querySelectorAll(".seg a").forEach(function (a) {
+      if (a.dataset.view === view) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+    });
+    var combat = view === "combat";
+    document.getElementById("t-combat").hidden = !combat;
+    document.querySelector('.mtabs [data-open="combat"]').hidden = !combat;
+    document.getElementById("combatStrip").hidden = !combat;
+    selectTab(combat ? "combat" : "sheet");
+    var hp = combat ? 11 : 16;
+    document.querySelector("[data-hp]").textContent = hp;
+    document.querySelector("[data-hpbar]").style.width = (hp / 20 * 100) + "%";
+    var chips = document.getElementById("chips");
+    chips.innerHTML = "";
+    chipsByView[view].forEach(function (c) {
+      var b = document.createElement("button");
+      b.className = "chip"; b.type = "button"; b.textContent = c;
+      b.addEventListener("click", function () { fill(c); });
+      chips.appendChild(b);
+    });
+    document.getElementById("scroll").scrollTop = 0;
+  }
+
+  document.querySelectorAll(".tab[data-tab]").forEach(function (t) {
+    t.addEventListener("click", function () { selectTab(t.dataset.tab); });
+  });
+  document.querySelectorAll("[data-open]").forEach(function (b) {
+    b.addEventListener("click", function () { selectTab(b.dataset.open); panel.classList.add("open"); });
+  });
+  document.getElementById("closePanel").addEventListener("click", function () { panel.classList.remove("open"); });
+  document.querySelectorAll("[data-fill]").forEach(function (b) {
+    b.addEventListener("click", function () { fill(b.dataset.fill); });
+  });
+  document.addEventListener("keydown", function (e) {
+    if (view !== "exploration" || document.activeElement === input) return;
+    var opts = document.querySelectorAll(".clarify .opt");
+    var i = parseInt(e.key, 10);
+    if (i >= 1 && i <= opts.length) opts[i - 1].click();
+  });
+
+  function route() { setView((location.hash || "#exploration").slice(1)); }
+  window.addEventListener("hashchange", route);
+  route();
+})();
+</script>
