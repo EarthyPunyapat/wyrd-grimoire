@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { GuardSummary } from "./canon.ts";
+import { CombatView } from "./combat.ts";
 import { MechanicsLine } from "./common.ts";
 import { CharacterSheet } from "./sheet.ts";
 export const ConnectionStatus = z.object({
@@ -28,6 +29,16 @@ export const QuickStartInput = z
       .string()
       .regex(/^[a-z-]+$/)
       .default("human"),
+    /** Which authored test world to start in. */
+    world: z.enum(["ashford-ferry", "tavern-brawl"]).default("ashford-ferry"),
+  })
+  .strict();
+/** Legacy (spec 03): a new character after a hardcore death, from the same world's options. */
+export const LegacyInput = z
+  .object({
+    characterName: z.string().trim().min(1).max(80),
+    archetype: z.string().regex(/^[a-z0-9:-]+$/),
+    ancestry: z.string().regex(/^[a-z0-9:-]+$/),
   })
   .strict();
 export const SubmitTurnInput = z
@@ -82,6 +93,13 @@ export const GameView = z.object({
   turns: z.array(WebTurn),
   suggestions: z.array(z.string()),
   offline: z.boolean(),
+  /** The fight, as the PC perceives it (spec 13 combat panel). */
+  combat: CombatView.nullable().default(null),
+  /** Set when the PC has died in a hardcore campaign: the obituary and the Legacy offer. */
+  ended: z
+    .object({ reason: z.literal("death"), obituary: z.string() })
+    .nullable()
+    .default(null),
 });
 export type GameView = z.infer<typeof GameView>;
 export type WebTurn = z.infer<typeof WebTurn>;

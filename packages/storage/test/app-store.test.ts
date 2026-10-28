@@ -10,7 +10,7 @@ test("app usage preserves identical live attempts but deduplicates legacy import
       role: "parser",
       provider: "offline",
       model: "offline",
-      promptVersion: "parser@1",
+      promptVersion: "parser@2",
       input: 5,
       cachedInput: 0,
       output: 2,

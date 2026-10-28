@@ -40,6 +40,8 @@ export type TurnInputs = {
   corrections?: string[];
   /** Reroll: leave the turn being re-narrated out of the recent turns. */
   excludeTurnId?: string;
+  /** Combat: the fight as the engine sees it (turn order, AP, engagement, legal actions). */
+  combat?: string;
 };
 
 export type Section = { n: number; title: string; text: string };
@@ -208,12 +210,22 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
     .join("\n");
 
   // 13. This turn.
-  const thisTurn = [`Player: ${o.turn.input}`];
+  const thisTurn = [...(o.turn.combat ? ["The fight:", o.turn.combat] : []), `Player: ${o.turn.input}`];
   if (o.turn.resolution) {
     const r = o.turn.resolution;
+    const phased = r.steps.some((s) => s.phase);
+    const stepLines = phased
+      ? [
+          "The player character's turn:",
+          ...r.steps.filter((s) => s.phase === "player").map((s) => `- ${s.summary}`),
+          "Then, until the player's next turn:",
+          ...r.steps.filter((s) => s.phase !== "player").map((s) => `- ${s.summary}`),
+          ...(r.combat?.ended ? [`The fight ended (${r.combat.ended}).`] : []),
+        ]
+      : r.steps.map((s) => `- ${s.summary}`);
     thisTurn.push(
       "What happened (resolved by the engine; this is fixed):",
-      ...r.steps.map((s) => `- ${s.summary}`),
+      ...stepLines,
       ...(r.stoppedAt !== undefined ? [`- The plan stopped at action ${r.stoppedAt + 1}.`] : []),
       "Required beats (mention every one):",
       ...r.requiredBeats.map((b) => `- ${b}`),

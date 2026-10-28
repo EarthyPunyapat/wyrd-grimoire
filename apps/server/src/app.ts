@@ -7,6 +7,7 @@ import {
   draft,
   Entity,
   GameView,
+  LegacyInput,
   PasscodeInput,
   QuickStartInput,
   StartGeneratedCampaign,
@@ -17,9 +18,12 @@ import {
 } from "@wyrd/core";
 import {
   buildSheet,
+  combatView,
   createActor,
   createCampaign,
   type GameState,
+  legacyEvents,
+  obituary,
   reduce,
   skillLabel,
   skillValue,
@@ -27,7 +31,15 @@ import {
   unwrap,
   validateCreation,
 } from "@wyrd/engine";
-import { generateWorld, type RoleRouter, SecretStore, TurnPipeline, type TurnStreamEvent } from "@wyrd/llm";
+import {
+  combatContent,
+  generateWorld,
+  makeTurnContext,
+  type RoleRouter,
+  SecretStore,
+  TurnPipeline,
+  type TurnStreamEvent,
+} from "@wyrd/llm";
 import {
   compileGeneratedWorld,
   creationContent,
@@ -66,8 +78,12 @@ export function createApp(options: Options) {
   const loaded = loadPack(packDir);
   if (!loaded.pack) throw new Error("The fantasy-core pack failed validation");
   const pack = loaded.pack;
-  const world = loadWorld(packDir, "ashford-ferry").world;
-  if (!world) throw new Error("The Ashford Ferry world failed validation");
+  const worlds = {
+    "ashford-ferry": loadWorld(packDir, "ashford-ferry").world,
+    "tavern-brawl": loadWorld(packDir, "tavern-brawl").world,
+  };
+  for (const [name, w] of Object.entries(worlds))
+    if (!w) throw new Error(`The ${name} world failed validation`);
   const content = creationContent([pack]);
   const campaigns = new Map<string, CampaignStore<GameState>>();
   const tasks = new Set<Promise<void>>();
@@ -251,7 +267,7 @@ export function createApp(options: Options) {
   });
   // Explicit authored test fixture; the normal web flow never chooses fantasy-core implicitly.
   app.post("/api/campaigns/quick-start", async (c) => {
-    const input = await body(c, QuickStartInput);
+    const { world: worldId, ...input } = await body(c, QuickStartInput);
     const id = createGame(
       {
         ...input,
@@ -259,10 +275,38 @@ export function createApp(options: Options) {
         archetype: `${pack.manifest.id}:${input.archetype}`,
       },
       pack,
-      world,
+      worlds[worldId]!,
     );
     return c.json({ id }, 201);
   });
+  /** A PC sheet from an origin and background, with the background's kit (spec 04 quick start). */
+  function buildPc(
+    id: string,
+    input: { characterName: string; ancestry: string; archetype: string },
+    pack: CompiledPack,
+    settings: GameState["campaign"]["settings"],
+  ) {
+    const content = creationContent([pack]);
+    const archetype = content.archetypes[input.archetype];
+    if (!archetype || !content.ancestries[input.ancestry])
+      throw new HTTPException(422, { message: "Choose an origin and background from this world" });
+    return buildSheet(
+      {
+        id,
+        identity: { name: input.characterName, ancestry: input.ancestry, background: archetype.description },
+        bodyPlan: content.ancestries[input.ancestry]!.bodyPlan,
+        archetypeId: archetype.id,
+        attributes: archetype.suggestedAttributes,
+        skills: Object.fromEntries(
+          Object.entries(archetype.skills).map(([sk, trained]) => [sk, { trained }]),
+        ),
+        talents: [archetype.talent],
+        equipment: startingEquipment(archetype.kit, pack.items),
+      },
+      settings,
+      defaultTuning,
+    );
+  }
   function createGame(
     input: { name: string; characterName: string; ancestry: string; archetype: string },
     pack: CompiledPack,
@@ -280,22 +324,7 @@ export function createApp(options: Options) {
         seed: randomBytes(16).toString("hex"),
       }),
     );
-    const sheet = buildSheet(
-      {
-        id: "pc",
-        identity: { name: input.characterName, ancestry: input.ancestry, background: archetype.description },
-        bodyPlan: content.ancestries[input.ancestry]!.bodyPlan,
-        archetypeId: archetype.id,
-        attributes: archetype.suggestedAttributes,
-        skills: Object.fromEntries(
-          Object.entries(archetype.skills).map(([id, trained]) => [id, { trained }]),
-        ),
-        talents: [archetype.talent],
-        equipment: startingEquipment(archetype.kit, pack.items),
-      },
-      created.payload.settings,
-      defaultTuning,
-    );
+    const sheet = buildPc("pc", input, pack, created.payload.settings);
     if (
       validateCreation(sheet, content, created.payload.settings, defaultTuning).some(
         (i) => i.severity === "error",
@@ -352,6 +381,7 @@ export function createApp(options: Options) {
     );
     const gamePack = game.packSnapshot()!.content as CompiledPack;
     const skills = skillCatalog([gamePack]);
+    const view = combatParts(game, state, gamePack);
     const turns = canon.recentTurns(100);
     // Resolve only IDs already spoken in player-visible passages, never the full NPC registry.
     // This also keeps older dialogue labelled after its speaker leaves the current room.
@@ -414,10 +444,66 @@ export function createApp(options: Options) {
             ...(snapshots.get(t.id) ? { guard: snapshots.get(t.id)!.guard } : {}),
           };
         }),
-        suggestions: ["Look around", "Search the area", "Wait 10 minutes"],
+        suggestions: view.combat
+          ? view.combat.actions
+              .filter((a) => a.legal)
+              .slice(0, 4)
+              .map((a) => a.fill)
+          : ["Look around", "Search the area", "Wait 10 minutes"],
         offline: options.offline,
+        combat: view.combat,
+        ended: view.ended,
       }),
     );
+  });
+  /** Combat panel and death screen for the PC's view. */
+  function combatParts(game: CampaignStore<GameState>, state: GameState, gamePack: CompiledPack) {
+    const canon = new CanonQueries(game);
+    const pcId = state.party.pcId!;
+    const ctx = makeTurnContext(
+      state,
+      canon,
+      { skills: skillCatalog([gamePack]), tuning: defaultTuning },
+      combatContent(gamePack),
+    );
+    let ended: { reason: "death"; obituary: string } | null = null;
+    if (state.actors[pcId]?.dead) {
+      const died = [...game.events()]
+        .reverse()
+        .find((e) => e.type === "ActorDied" && (e.payload as { actorId: string }).actorId === pcId);
+      const cause = (died?.payload as { cause?: string } | undefined)?.cause ?? "died";
+      const place = state.scene
+        ? (canon.entity(state.scene.locationId)?.name ?? "an unknown place")
+        : "an unknown place";
+      ended = { reason: "death", obituary: obituary(state, pcId, cause, place, ctx.nameOf) };
+    }
+    return { combat: combatView(state, pcId, ctx), ended };
+  }
+  // Legacy (spec 03): after a hardcore death, a new character in the same world.
+  app.post("/api/campaigns/:id/legacy", async (c) => {
+    const id = c.req.param("id");
+    const game = campaign(id);
+    const input = await body(c, LegacyInput);
+    if (store.running(id)) throw new HTTPException(409, { message: "A turn is already running" });
+    const state = game.state();
+    const gamePack = game.packSnapshot()!.content as CompiledPack;
+    const view = combatParts(game, state, gamePack);
+    if (!view.ended) throw new HTTPException(409, { message: "Legacy is for a character who has died" });
+    const ns = gamePack.manifest.id;
+    const qualify = (x: string) => (x.includes(":") ? x : `${ns}:${x}`);
+    const newId = `pc-${Object.values(state.actors).filter((a) => a.role === "pc").length + 1}`;
+    const sheet = buildPc(
+      newId,
+      {
+        characterName: input.characterName,
+        ancestry: qualify(input.ancestry),
+        archetype: qualify(input.archetype),
+      },
+      gamePack,
+      state.campaign.settings,
+    );
+    game.append(unwrap(legacyEvents(state, sheet, view.ended.obituary)));
+    return c.json({ id }, 201);
   });
   function launch(
     id: string,
@@ -435,6 +521,7 @@ export function createApp(options: Options) {
       canon,
       router: models.router(),
       rules: { skills: skillCatalog([frozen]), tuning: defaultTuning },
+      content: combatContent(frozen),
       tone: frozen.tone,
       worldBible: canon.entity("concept:world-bible")?.summary ?? "",
       campaignId: game.campaignId,

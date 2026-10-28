@@ -236,3 +236,38 @@ test("sessions, campaign views, and idempotent turn records survive a server res
   expect(after.store.job("interrupted")?.status).toBe("done");
   expect(after.store.stream("interrupted", 0).map((e) => e.type)).toEqual(["error", "turn.completed"]);
 });
+
+test("a tavern brawl plays through the API: free text starts a fight and the view carries the combat panel", async () => {
+  const server = setup();
+  const cookie = await login(server);
+  const made = await request(
+    server,
+    "/campaigns/quick-start",
+    { name: "Brawl", characterName: "Wren", archetype: "hunter", world: "tavern-brawl" },
+    cookie,
+  );
+  const { id } = (await made.json()) as { id: string };
+  const turn = async (input: string, n: number) => {
+    const r = await request(server, `/campaigns/${id}/turns`, { input, clientTurnId: `brawl-${n}` }, cookie);
+    const { turnId } = (await r.json()) as { turnId: string };
+    const text = await (
+      await request(server, `/campaigns/${id}/turns/${turnId}/stream`, undefined, cookie)
+    ).text();
+    expect(text).toContain("event: narration.final");
+    expect(text.indexOf("event: mechanics.line")).toBeLessThan(text.indexOf("event: narration.final"));
+    return GameView.parse(await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json());
+  };
+  let view = await turn("I shoot Fen", 0);
+  expect(view.turns[0]!.mechanics.some((m) => m.text.startsWith("Initiative"))).toBe(true);
+  for (let n = 1; n < 30 && view.combat; n++) {
+    expect(view.combat.combatants.some((c) => c.side === "pc")).toBe(true);
+    // Enemy health is perceived, never exact.
+    for (const c of view.combat.combatants.filter((x) => x.side === "enemy"))
+      expect([0, 0.25, 0.5, 0.75, 1]).toContain(c.health);
+    const foe = view.combat.combatants.find((c) => c.side === "enemy" && c.status === "active");
+    const say =
+      n === 1 ? `kick the table over, duck behind it, then shoot ${foe?.name}` : `I shoot ${foe?.name}`;
+    view = await turn(foe ? say : "I defend", n);
+  }
+  expect(view.combat).toBeNull();
+});

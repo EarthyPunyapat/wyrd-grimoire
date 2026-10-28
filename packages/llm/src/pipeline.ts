@@ -1,3 +1,4 @@
+import type { BodyPlanDef, CompiledPack, CreatureDef, ItemCatalog } from "@wyrd/core";
 import {
   type Clarification,
   draft,
@@ -11,16 +12,20 @@ import {
   type Resolution,
 } from "@wyrd/core";
 import {
-  type ExplorationContext,
+  type CombatInfo,
+  combatView,
   type GameState,
   mechanicalSummary,
-  type PlanError,
   type RulesContext,
-  resolvePlan,
-  validatePlan,
+  resolveTurn,
+  type TurnContext,
+  type TurnPlanError,
+  validateTurn,
+  Working,
 } from "@wyrd/engine";
 import { type AssembledPrompt, type AssemblerRole, assemble, type CanonSource } from "@wyrd/memory";
 import {
+  COMBAT_RULES_DIGEST,
   EXPLORATION_RULES_DIGEST,
   GUARD_INSTRUCTIONS,
   GUARD_VERSION,
@@ -35,11 +40,13 @@ import type { RoleRouter } from "./router.ts";
 import {
   AnswerOoc,
   AskClarification,
+  AskCombatClarification,
   blockingIssues,
   GUARD_TOOL,
   GuardReportV1,
-  PARSER_TOOLS,
   ProposeActions,
+  ProposeCombatActions,
+  parserTools,
 } from "./tools.ts";
 import { type Message, ProviderError } from "./types.ts";
 
@@ -93,12 +100,71 @@ export type PipelineDeps = {
   /** Fresh unique IDs (ULIDs in production). */
   newId: () => string;
   campaignId?: string;
+  /** Combat content from the campaign's frozen pack: items, body plans and stat blocks. */
+  content?: CombatContent;
 };
+
+export type CombatContent = {
+  items: ItemCatalog;
+  bodyPlans: Record<string, BodyPlanDef>;
+  creatures: Record<string, CreatureDef & { id: string }>;
+};
+
+/** The combat content of a compiled pack (older frozen packs may lack creatures). */
+export function combatContent(pack: CompiledPack): CombatContent {
+  return { items: pack.items, bodyPlans: pack.bodyPlans ?? {}, creatures: pack.creatures ?? {} };
+}
+
+/** Rules plus combat content plus canon lookups: what the engine needs for a turn in either mode. */
+export function makeTurnContext(
+  state: GameState,
+  canon: Pick<CanonSource, "entity">,
+  rules: RulesContext,
+  content?: CombatContent,
+): TurnContext {
+  const c = content ?? { items: { weapons: {}, armor: {}, gear: {} }, bodyPlans: {}, creatures: {} };
+  const itemName = (id: string) =>
+    c.items.weapons[id]?.name ?? c.items.armor[id]?.name ?? c.items.gear[id]?.name;
+  return {
+    ...rules,
+    ...c,
+    nameOf: (id) =>
+      state.actors[id]?.sheet.identity.name ??
+      canon.entity(id)?.name ??
+      state.scene?.zones.find((z) => z.id === id)?.name ??
+      state.scene?.zones.flatMap((z) => z.props).find((p) => p.id === id)?.name ??
+      itemName(id) ??
+      id,
+    combatInfo: (id): CombatInfo => {
+      const e = canon.entity(id);
+      const d = (e?.data ?? {}) as Record<string, unknown>;
+      return {
+        ...(typeof d.statBlock === "string" ? { statBlock: d.statBlock } : {}),
+        ...(typeof d.group === "string" ? { group: d.group } : {}),
+        ...(d.leader === true ? { leader: true } : {}),
+        ...(typeof d.tactics === "string" ? { tactics: d.tactics as never } : {}),
+        ...(typeof d.intent === "string" ? { intent: d.intent as never } : {}),
+        ...(d.ally === true ? { ally: true } : {}),
+        canFight: !e || e.kind === "npc" || e.kind === "creature",
+      };
+    },
+  };
+}
+
+/** The state after applying drafts (for prompts only; storage assigns the real envelopes). */
+function afterEvents(state: GameState, drafts: EventDraft[]): GameState {
+  const w = new Working(state);
+  w.apply(drafts);
+  return w.state;
+}
+
+/** Any action the parser may propose: exploration or combat. */
+type ActionInput = ExplorationActionInput | { type: string; [k: string]: unknown };
 
 export type TurnInput = {
   input: string;
   /** Set when the player clicked a clarification option: its actions skip the parser. */
-  actions?: ExplorationActionInput[];
+  actions?: ActionInput[];
   onEvent?: (e: TurnStreamEvent) => void;
 };
 
@@ -111,7 +177,40 @@ const ROLE_INSTRUCTIONS: Record<AssemblerRole, string> = {
 };
 
 /** Short label for an action, for clarification options built from the engine's alternatives. */
-export function describeAction(a: ExplorationActionInput, nameOf: (id: string) => string): string {
+export function describeAction(raw: ActionInput, nameOf: (id: string) => string): string {
+  const c = raw as {
+    type: string;
+    targetId?: string;
+    toZoneId?: string;
+    weaponId?: string;
+    effect?: string;
+    propId?: string;
+    description?: string;
+  };
+  const combat: Record<string, () => string> = {
+    engage: () => `Close in on ${nameOf(c.targetId!)}`,
+    disengage: () => "Back out of the melee",
+    aim: () => "Take aim",
+    defend: () => "Defend",
+    takeCover: () => (c.propId ? `Take cover behind ${nameOf(c.propId)}` : "Take cover"),
+    draw: () => `Draw ${nameOf(c.weaponId!)}`,
+    reload: () => "Reload",
+    firstAid: () => `First aid on ${nameOf(c.targetId!)}`,
+    standUp: () => "Get up",
+    shove: () => `Shove ${nameOf(c.targetId!)}`,
+    trip: () => `Trip ${nameOf(c.targetId!)}`,
+    grapple: () => `Grapple ${nameOf(c.targetId!)}`,
+    disarm: () => `Disarm ${nameOf(c.targetId!)}`,
+    stunt: () => c.description || `Stunt: ${c.effect}`,
+    intimidate: () => `Intimidate ${nameOf(c.targetId!)}`,
+    rally: () => `Rally ${nameOf(c.targetId!)}`,
+    speak: () => "Say something",
+    surrender: () => "Surrender",
+    flee: () => "Flee",
+    endTurn: () => "Hold position",
+  };
+  if (combat[c.type]) return combat[c.type]!();
+  const a = raw as ExplorationActionInput;
   switch (a.type) {
     case "check":
       return `Try to ${a.goal} (${a.skill.replace(/^core:/, "")}, ${a.proposedDifficulty})`;
@@ -156,8 +255,28 @@ export class TurnPipeline {
     state.scene?.zones.flatMap((z) => z.props).find((p) => p.id === id)?.name ??
     id;
 
-  private explorationCtx(state: GameState): ExplorationContext {
-    return { ...this.d.rules, nameOf: this.nameOf(state) };
+  private turnCtx(state: GameState): TurnContext {
+    return makeTurnContext(state, this.d.canon, this.d.rules, this.d.content);
+  }
+
+  /** The fight as text for the parser and narrator: order, AP, who's where and engaged, legal actions. */
+  private combatText(state: GameState): string | undefined {
+    const pcId = state.party.pcId;
+    if (!state.combat || !pcId) return undefined;
+    const v = combatView(state, pcId, this.turnCtx(state));
+    if (!v) return undefined;
+    const lines = [
+      `Round ${v.round}. ${v.yourTurn ? `It's the player's turn: ${v.ap.current} AP left.` : "Not the player's turn yet."}`,
+    ];
+    for (const c of v.combatants) {
+      const engaged = c.engagedWith.length
+        ? `, engaged with ${c.engagedWith.map((id) => `[${id}]`).join(", ")}`
+        : "";
+      lines.push(`- [${c.id}] ${c.name} (${c.side}) in [${c.zoneId}]: ${c.condition}${engaged}`);
+    }
+    const legal = v.actions.filter((a) => a.legal);
+    if (legal.length) lines.push(`Legal now: ${legal.map((a) => `${a.label} (${a.ap} AP)`).join("; ")}.`);
+    return lines.join("\n");
   }
 
   private prompt(
@@ -165,6 +284,7 @@ export class TurnPipeline {
     state: GameState,
     turn: Parameters<typeof assemble>[0]["turn"],
   ): AssembledPrompt {
+    const combat = this.combatText(state);
     return assemble({
       role,
       state,
@@ -172,11 +292,11 @@ export class TurnPipeline {
       rules: this.d.rules,
       stable: {
         roleInstructions: ROLE_INSTRUCTIONS[role],
-        rulesDigest: EXPLORATION_RULES_DIGEST,
+        rulesDigest: state.combat ? COMBAT_RULES_DIGEST : EXPLORATION_RULES_DIGEST,
         tone: this.d.tone,
         worldBible: this.d.worldBible,
       },
-      turn,
+      turn: combat ? { ...turn, combat } : turn,
     });
   }
 
@@ -197,14 +317,15 @@ export class TurnPipeline {
     const state = this.d.store.state();
     const pcId = state.party.pcId;
     if (!pcId) throw new Error("The campaign has no player character");
-    const ctx = this.explorationCtx(state);
+    const ctx = this.turnCtx(state);
+    const mode = state.combat ? "combat" : "exploration";
     const call = { campaignId: this.d.campaignId, turnId };
     const started = draft("TurnStarted", { input: t.input }, "player");
 
     // ── Parse, validate, repair ────────────────────────────────────────────
-    let plan: { actorId: string; actions: ExplorationActionInput[]; intent: string } | null = null;
+    let plan: { actorId: string; actions: ActionInput[]; intent: string } | null = null;
     let repairs = 0;
-    let lastErrors: PlanError[] = [];
+    let lastErrors: TurnPlanError[] = [];
 
     if (t.actions) {
       plan = { actorId: pcId, actions: t.actions, intent: t.input };
@@ -219,7 +340,7 @@ export class TurnPipeline {
             {
               instructions: parserPrompt.instructions,
               messages,
-              tools: PARSER_TOOLS,
+              tools: parserTools(mode),
               toolChoice: "required",
             },
             { promptVersion: PARSER_VERSION, ...call },
@@ -249,16 +370,16 @@ export class TurnPipeline {
           break;
         }
         if (tc.name === "ask_clarification") {
-          const parsed = AskClarification.safeParse(tc.args);
+          const parsed = (mode === "combat" ? AskCombatClarification : AskClarification).safeParse(tc.args);
           if (parsed.success) return this.clarify(turnId, started, parsed.data, ctx, state, emit, repairs);
         } else if (tc.name === "answer_ooc") {
           const parsed = AnswerOoc.safeParse(tc.args);
           if (parsed.success) return this.ooc(turnId, started, parsed.data.question, state, emit, repairs);
         } else if (tc.name === "propose_actions") {
-          const parsed = ProposeActions.safeParse(tc.args);
+          const parsed = (mode === "combat" ? ProposeCombatActions : ProposeActions).safeParse(tc.args);
           if (parsed.success) {
             const actorId = parsed.data.actorId ?? pcId;
-            const v = validatePlan(state, actorId, parsed.data.actions, ctx);
+            const v = validateTurn(state, actorId, parsed.data.actions, ctx);
             if (v.ok) {
               plan = { actorId, actions: parsed.data.actions, intent: parsed.data.intent };
               break;
@@ -301,12 +422,12 @@ export class TurnPipeline {
     }
 
     // A clicked option's actions still go through validation.
-    const validated = validatePlan(state, plan.actorId, plan.actions, ctx);
+    const validated = validateTurn(state, plan.actorId, plan.actions, ctx);
     if (!validated.ok)
       return this.clarifyFromErrors(turnId, started, validated.planErrors ?? [], ctx, state, emit, repairs);
 
     // ── Resolve ────────────────────────────────────────────────────────────
-    const resolved = resolvePlan(state, validated.value, ctx);
+    const resolved = resolveTurn(state, validated.value, ctx, this.d.newId());
     if (!resolved.ok)
       return this.failed(
         turnId,
@@ -320,8 +441,10 @@ export class TurnPipeline {
     for (const line of mechanics) emit({ type: "mechanics.line", line });
 
     // ── Narrate and guard ──────────────────────────────────────────────────
-    const voiced = await this.voice(state, t.input, resolution, call, emit);
-    const canonDrafts = this.canonFromGuard(state, voiced.report);
+    // In a fight the narrator and guard see the state after it (who's down, who's new to the scene).
+    const narrState = resolution.combat ? afterEvents(state, ruleEvents) : state;
+    const voiced = await this.voice(narrState, t.input, resolution, call, emit);
+    const canonDrafts = this.canonFromGuard(narrState, voiced.report);
 
     const completed = draft("TurnCompleted", {
       status: "resolved",
@@ -512,9 +635,9 @@ export class TurnPipeline {
     started: EventDraft,
     c: {
       question: string;
-      options: Array<{ label: string; actions?: ExplorationActionInput[] | undefined }>;
+      options: Array<{ label: string; actions?: ActionInput[] | undefined }>;
     },
-    ctx: ExplorationContext,
+    ctx: TurnContext,
     state: GameState,
     emit: (e: TurnStreamEvent) => void,
     repairs: number,
@@ -524,7 +647,7 @@ export class TurnPipeline {
     const clarification: Clarification = {
       question: c.question,
       options: c.options.map((o) =>
-        o.actions && validatePlan(state, pcId, o.actions, ctx).ok
+        o.actions && validateTurn(state, pcId, o.actions, ctx).ok
           ? { label: o.label, actions: o.actions }
           : { label: o.label },
       ),
@@ -542,17 +665,19 @@ export class TurnPipeline {
   private clarifyFromErrors(
     turnId: string,
     started: EventDraft,
-    errors: PlanError[],
-    ctx: ExplorationContext,
+    errors: TurnPlanError[],
+    ctx: TurnContext,
     state: GameState,
     emit: (e: TurnStreamEvent) => void,
     repairs: number,
   ): TurnResult {
-    const alternatives = errors.flatMap((e) => e.legalAlternatives ?? []);
-    const fallback: ExplorationActionInput[] = [
-      { type: "examine", area: "the surroundings" },
-      { type: "wait", minutes: 10 },
-    ];
+    const alternatives = errors.flatMap((e) => (e.legalAlternatives ?? []) as ActionInput[]);
+    const fallback: ActionInput[] = state.combat
+      ? [{ type: "defend" }, { type: "endTurn" }]
+      : [
+          { type: "examine", area: "the surroundings" },
+          { type: "wait", minutes: 10 },
+        ];
     const options = [...alternatives, ...fallback]
       .filter((a, i, all) => all.findIndex((b) => JSON.stringify(b) === JSON.stringify(a)) === i)
       .slice(0, 4)

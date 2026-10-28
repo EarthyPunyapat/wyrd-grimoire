@@ -1,4 +1,4 @@
-import { EntityKind, ExplorationAction } from "@wyrd/core";
+import { CombatAction, EntityKind, ExplorationAction } from "@wyrd/core";
 import { z } from "zod";
 import type { ToolDef } from "./types.ts";
 
@@ -13,6 +13,20 @@ export const AskClarification = z.object({
   question: z.string().min(1),
   options: z
     .array(z.object({ label: z.string().min(1), actions: z.array(ExplorationAction).optional() }))
+    .min(2)
+    .max(5),
+});
+
+/** In a fight the parser proposes combat actions (spec 03 AP table) instead. */
+export const ProposeCombatActions = z.object({
+  actorId: z.string().optional(),
+  actions: z.array(CombatAction).min(1),
+  intent: z.string(),
+});
+export const AskCombatClarification = z.object({
+  question: z.string().min(1),
+  options: z
+    .array(z.object({ label: z.string().min(1), actions: z.array(CombatAction).optional() }))
     .min(2)
     .max(5),
 });
@@ -66,6 +80,26 @@ export const PARSER_TOOLS: ToolDef[] = [
     parameters: schemaOf(AnswerOoc),
   },
 ];
+
+/** Parser tools for a mode: exploration actions, or combat actions in a fight. */
+export function parserTools(mode: "exploration" | "combat"): ToolDef[] {
+  if (mode === "exploration") return PARSER_TOOLS;
+  return [
+    {
+      name: "propose_actions",
+      description:
+        "Propose the ordered combat actions the player is attempting this turn (they must fit in the AP left).",
+      parameters: schemaOf(ProposeCombatActions),
+    },
+    {
+      name: "ask_clarification",
+      description:
+        "Ask the player to choose when their input is ambiguous in a way that changes the outcome.",
+      parameters: schemaOf(AskCombatClarification),
+    },
+    PARSER_TOOLS[2]!,
+  ];
+}
 
 export const GUARD_TOOL: ToolDef = {
   name: "report_canon",

@@ -177,8 +177,8 @@ describe("exploration turn end to end (FakeProvider)", () => {
     expect(t.events.map((e) => e.type)).toEqual(["turn.accepted", "narration.final", "turn.completed"]);
     // One usage record per call: parser, narrator, guard.
     expect(t.usage.records.map((u) => [u.role, u.promptVersion, u.turnId])).toEqual([
-      ["parser", "parser@1", r.turnId],
-      ["narrator", "narrator@2", r.turnId],
+      ["parser", "parser@2", r.turnId],
+      ["narrator", "narrator@3", r.turnId],
       ["guard", "guard@1", r.turnId],
     ]);
     // The parser saw IDs; the narrator saw the required beats; the guard saw the draft.
@@ -506,5 +506,36 @@ describe("exploration turn end to end (FakeProvider)", () => {
     expect(lastUser(t.fake.calls("narrator")[1]!)).toContain(
       "Player: I wait.\\nNarration: The rain thickens.",
     );
+  });
+});
+
+describe("combat turns (FakeProvider)", () => {
+  test("attacking someone starts a fight; the parser then gets combat tools and the fight's state", async () => {
+    const t = setup([
+      { role: "parser", times: 1, reply: propose([{ type: "strike", targetId: "npc:wenna" }], "hit her") },
+      { role: "parser", reply: propose([{ type: "defend" }], "defend") },
+      { role: "narrator", reply: { text: "You lunge at Wenna.\n\nShe hits back." } },
+      { role: "guard", reply: report() },
+    ]);
+    // Put Wenna next to the PC so the punch can land.
+    store.append([draft("EntityMoved", { entityId: "npc:wenna", toZoneId: "z:common" })]);
+    const r = await t.pipeline.run({ input: "I punch Wenna", onEvent: t.onEvent });
+    expect(r.status).toBe("resolved");
+    const types = store.events().map((e) => e.type);
+    expect(types).toContain("CombatStarted");
+    expect(types).toContain("ActorCreated"); // Wenna got a stat-blocked sheet
+    expect(t.events.filter((e) => e.type === "mechanics.line").length).toBeGreaterThan(0);
+    // Mechanics lines stream before the narration.
+    const firstNarration = t.events.findIndex((e) => e.type === "narration.final");
+    const lastMechanics = t.events.map((e) => e.type).lastIndexOf("mechanics.line");
+    expect(lastMechanics).toBeLessThan(firstNarration);
+    expect(JSON.stringify(t.fake.calls("narrator")[0]?.messages)).toContain("The player character's turn:");
+    if (store.state().combat) {
+      // Next turn the parser sees combat tools and the fight.
+      await t.pipeline.run({ input: "I defend", onEvent: t.onEvent });
+      const last = t.fake.calls("parser").at(-1)!;
+      expect(JSON.stringify(last.tools)).toContain("takeCover");
+      expect(JSON.stringify(last.messages)).toContain("The fight:");
+    }
   });
 });

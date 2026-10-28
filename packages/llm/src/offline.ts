@@ -41,13 +41,22 @@ function listed(ctx: string, prefix: string): Array<{ id: string; name: string }
 
 function parse(r: GenerateRequest): FakeReply {
   const ctx = context(r);
-  const input = (/## This turn\n\nPlayer: (.*)/.exec(ctx)?.[1] ?? "").trim();
+  const input = (/## This turn\n\n(?:[\s\S]*?\n)?Player: (.*)/.exec(ctx)?.[1] ?? "").trim();
   const lower = input.toLowerCase();
   const find = (prefix: string) => listed(ctx, prefix).find((x) => lower.includes(x.name.toLowerCase()));
   const act = (actions: unknown[]) => ({
     toolCall: { name: "propose_actions", args: { actions, intent: input } },
   });
 
+  const inCombat = JSON.stringify(r.tools ?? []).includes("takeCover");
+  if (inCombat) {
+    const actions = combatClauses(input, ctx);
+    if (actions.length) return act(actions);
+  }
+  if (!inCombat && ATTACK.test(lower)) {
+    const who = find("npc:");
+    if (who) return act([{ type: "strike", targetId: who.id }]);
+  }
   if (/^\(|\?\)$|^ooc\b/.test(lower)) {
     return { toolCall: { name: "answer_ooc", args: { topic: "other", question: input } } };
   }
@@ -81,6 +90,47 @@ function parse(r: GenerateRequest): FakeReply {
   return act([
     target ? { type: "examine", targetId: target.id } : { type: "examine", area: "the surroundings" },
   ]);
+}
+
+const ATTACK = /\b(attack|hit|strike|stab|slash|punch|shoot|fire at|loose at|swing at|kill)\b/;
+
+/** Offline combat parsing: split on commas and "then"/"and", one action per clause (spec 03 free text). */
+function combatClauses(input: string, ctx: string): unknown[] {
+  const out: unknown[] = [];
+  for (const clause of input
+    .split(/,|\bthen\b|\band\b/i)
+    .map((c) => c.trim().toLowerCase())
+    .filter(Boolean)) {
+    const find = (prefix: string) => listed(ctx, prefix).find((x) => clause.includes(x.name.toLowerCase()));
+    const npc = find("npc:");
+    const prop = find("prop:");
+    if (/\b(kick|topple|flip|overturn|tip|knock)\b.*\b(table|bench|counter)/.test(clause))
+      out.push({
+        type: "stunt",
+        effect: "createCover",
+        ...(prop ? { propId: prop.id } : {}),
+        description: clause,
+      });
+    else if (/\b(duck|cover|crouch|hide behind|get behind)\b/.test(clause))
+      out.push({ type: "takeCover", ...(prop ? { propId: prop.id } : {}) });
+    else if (/\baim\b/.test(clause)) out.push({ type: "aim", ...(npc ? { targetId: npc.id } : {}) });
+    else if (ATTACK.test(clause) && npc) out.push({ type: "strike", targetId: npc.id });
+    else if (/\b(close in|charge|engage|rush)\b/.test(clause) && npc)
+      out.push({ type: "engage", targetId: npc.id });
+    else if (/\b(defend|parry|block|brace|guard)\b/.test(clause)) out.push({ type: "defend" });
+    else if (/\breload\b/.test(clause)) out.push({ type: "reload" });
+    else if (/\b(surrender|yield|give up)\b/.test(clause)) out.push({ type: "surrender" });
+    else if (/\b(flee|run away|escape)\b/.test(clause)) out.push({ type: "flee" });
+    else if (/\b(disengage|back off|step back)\b/.test(clause)) out.push({ type: "disengage" });
+    else if (/\b(get up|stand up|stand)\b/.test(clause)) out.push({ type: "standUp" });
+    else if (/\b(bandage|first aid|bind)\b/.test(clause))
+      out.push({ type: "firstAid", targetId: npc?.id ?? "pc" });
+    else if (/\b(go|move|run|head)\b/.test(clause)) {
+      const zone = find("z:");
+      if (zone) out.push({ type: "move", toZoneId: zone.id });
+    } else if (/\b(wait|hold)\b/.test(clause)) out.push({ type: "endTurn" });
+  }
+  return out;
 }
 
 function narrate(r: GenerateRequest): FakeReply {
