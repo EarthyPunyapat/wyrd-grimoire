@@ -48,6 +48,7 @@ import {
 } from "@wyrd/packs";
 import { CampaignStore, StorageError } from "@wyrd/storage";
 import { parse as parseYaml } from "yaml";
+import { browserCommand } from "./browser.ts";
 import { CliError } from "./errors.ts";
 import { playCommand, WORLD_BIBLE_ID } from "./play.ts";
 import { buildProviders, chatGptAuth, configPath, initConfig, loadConfig, secretStore } from "./providers.ts";
@@ -575,14 +576,8 @@ async function main(argv: string[]): Promise<number> {
       const rec = await auth.connect({
         open: (url) => {
           out(`If it doesn't open, visit:\n${url}`);
-          const cmd =
-            process.platform === "win32"
-              ? ["cmd", "/c", "start", "", url]
-              : process.platform === "darwin"
-                ? ["open", url]
-                : ["xdg-open", url];
           try {
-            Bun.spawn(cmd, { stdout: "ignore", stderr: "ignore" });
+            Bun.spawn(browserCommand(url), { stdout: "ignore", stderr: "ignore" });
           } catch {
             // no browser launcher; the URL is printed above
           }
