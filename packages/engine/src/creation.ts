@@ -7,6 +7,7 @@ import {
   type CampaignSettings,
   CharacterSheet,
   type CharacterSheetInput,
+  localIdOf,
   type TalentDef,
   type Tuning,
 } from "@wyrd/core";
@@ -67,6 +68,10 @@ export type CreationContent = {
   archetypes: Record<string, Omit<ArchetypeDef, "id"> & { id: string }>;
 };
 
+/**
+ * A draft sheet. `bodyPlan` is the ancestry's resolved plan (callers copy `ancestry.bodyPlan`); it
+ * defaults to the plain "humanoid" when omitted.
+ */
 export type SheetDraft = Omit<CharacterSheetInput, "derived" | "status"> & {
   status?: Partial<CharacterSheetInput["status"]>;
 };
@@ -103,6 +108,13 @@ export function validateCreation(
   // Ancestry and archetype.
   const ancestry = content.ancestries[sheet.identity.ancestry];
   if (!ancestry) err("ANCESTRY_UNKNOWN", "identity.ancestry", `Unknown ancestry ${sheet.identity.ancestry}`);
+  // Plans are compared by local id, as findBodyPlan matches them, so a plain "humanoid" matches "core:humanoid".
+  if (ancestry && localIdOf(sheet.bodyPlan) !== localIdOf(ancestry.bodyPlan))
+    err(
+      "BODYPLAN_MISMATCH",
+      "bodyPlan",
+      `The ${ancestry.name} ancestry uses the ${ancestry.bodyPlan} body plan, not ${sheet.bodyPlan}`,
+    );
   const archetype = sheet.archetypeId ? content.archetypes[sheet.archetypeId] : undefined;
   if (sheet.archetypeId && !archetype)
     err("ARCHETYPE_UNKNOWN", "archetypeId", `Unknown archetype ${sheet.archetypeId}`);

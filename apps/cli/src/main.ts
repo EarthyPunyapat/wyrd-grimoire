@@ -283,6 +283,7 @@ async function main(argv: string[]): Promise<number> {
           {
             id: "pc",
             identity: { name: o.name ?? a.name, ancestry },
+            bodyPlan: content.ancestries[ancestry]?.bodyPlan,
             archetypeId: a.id,
             attributes: a.suggestedAttributes,
             skills: Object.fromEntries(Object.entries(a.skills).map(([k, v]) => [k, { trained: v }])),

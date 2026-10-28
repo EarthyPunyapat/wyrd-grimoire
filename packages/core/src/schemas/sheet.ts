@@ -68,6 +68,8 @@ export const CharacterSheet = z.object({
     hookIds: z.array(z.string()).default([]),
   }),
   archetypeId: ContentId.optional(),
+  /** The body plan the ancestry resolved to (`packId:localId`). Old sheets default to the plain "humanoid". */
+  bodyPlan: z.string().min(1).default("humanoid"),
   attributes: AttributesSchema,
   /** Trained points per skill; the skill's value is untrained (attribute × 3) + trained. */
   skills: z.record(SkillId, z.object({ trained: z.number().int().nonnegative() })).default({}),

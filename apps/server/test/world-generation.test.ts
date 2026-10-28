@@ -2,8 +2,9 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { GameView, GeneratedWorldPreview } from "@wyrd/core";
+import { findBodyPlan, GameView, GeneratedWorldPreview, HUMANOID_BODY_PLAN } from "@wyrd/core";
 import { FakeProvider, RoleRouter } from "@wyrd/llm";
+import { compileGeneratedWorld } from "@wyrd/packs";
 import { createApp } from "../src/app.ts";
 import { EXAMPLE_WORLD } from "../src/example-world.ts";
 
@@ -100,6 +101,10 @@ test("different generated genres are preserved, with no forced fantasy ancestry 
   expect(preview.origins).toHaveLength(1);
   expect(preview.origins[0]!.name).toBe("Human");
   expect(preview.backgrounds[0]!.name).toBe("Private investigator");
+  const { pack } = compileGeneratedWorld(proposal);
+  for (const ancestry of Object.values(pack.ancestries)) {
+    expect(findBodyPlan(pack.bodyPlans, ancestry.bodyPlan)).toEqual(HUMANOID_BODY_PLAN);
+  }
 });
 
 test("invalid proposals cannot create canon and failure allows a subsequent generation attempt", async () => {

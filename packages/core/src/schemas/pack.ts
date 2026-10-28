@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DiceExpr } from "../dice.ts";
+import type { LocationKind } from "../tuning.ts";
 import { AttributeId, RangeBand } from "./common.ts";
 
 /**
@@ -90,6 +91,62 @@ export const AncestryDef = z.object({
 });
 export type AncestryDef = z.infer<typeof AncestryDef>;
 
+const LOCATION_KINDS = ["head", "torso", "arm", "leg"] as const satisfies readonly LocationKind[];
+
+/** One hit location: the d100 bands `from`–`to` (inclusive) land here. */
+export const BodyLocationDef = z.object({
+  id: LocalId,
+  name: z.string().min(1),
+  kind: z.enum(LOCATION_KINDS),
+  side: z.enum(["left", "right"]).optional(),
+  from: z.number().int().min(1).max(100),
+  to: z.number().int().min(1).max(100),
+  /** Scales final damage at this location (head 1.5). */
+  multiplier: z.number().positive().default(1),
+});
+export type BodyLocationDef = z.infer<typeof BodyLocationDef>;
+
+/** A pack-defined body plan: the hit-location table an attack rolls on. */
+export const BodyPlanDef = z.object({
+  id: LocalId,
+  name: z.string().min(1),
+  locations: z.array(BodyLocationDef).min(1),
+});
+export type BodyPlanDef = z.infer<typeof BodyPlanDef>;
+
+/** The part of an ID after the last `:`. */
+export const localIdOf = (id: string): string => id.slice(id.lastIndexOf(":") + 1);
+
+/**
+ * The humanoid body plan, built into the engine so every pack can use it without declaring it
+ * (spec 03, "Hit locations"; spec 05, `bodyplans.yaml`). Head × 1.5 is read by hit resolution.
+ */
+export const HUMANOID_BODY_PLAN: BodyPlanDef = {
+  id: "core:humanoid",
+  name: "Humanoid",
+  locations: [
+    { id: "head", name: "Head", kind: "head", from: 1, to: 10, multiplier: 1.5 },
+    { id: "torso", name: "Torso", kind: "torso", from: 11, to: 50, multiplier: 1 },
+    { id: "right-arm", name: "Right Arm", kind: "arm", side: "right", from: 51, to: 60, multiplier: 1 },
+    { id: "left-arm", name: "Left Arm", kind: "arm", side: "left", from: 61, to: 70, multiplier: 1 },
+    { id: "right-leg", name: "Right Leg", kind: "leg", side: "right", from: 71, to: 85, multiplier: 1 },
+    { id: "left-leg", name: "Left Leg", kind: "leg", side: "left", from: 86, to: 100, multiplier: 1 },
+  ],
+};
+
+/**
+ * Finds a body plan by ID. An exact match wins; then the first plan whose local ID (the part after
+ * the last `:`) equals the local ID asked for, so `humanoid` finds `fantasy-core:humanoid`. A
+ * humanoid request that no pack plan matches falls back to the built-in `HUMANOID_BODY_PLAN`.
+ */
+export function findBodyPlan(plans: Record<string, BodyPlanDef>, id: string): BodyPlanDef | undefined {
+  if (Object.hasOwn(plans, id)) return plans[id];
+  const local = localIdOf(id);
+  const found = Object.values(plans).find((plan) => localIdOf(plan.id) === local);
+  if (found) return found;
+  return local === localIdOf(HUMANOID_BODY_PLAN.id) ? HUMANOID_BODY_PLAN : undefined;
+}
+
 export const KitEntry = z.object({ item: ContentRef, qty: z.number().int().positive().default(1) });
 
 export const ArchetypeDef = z.object({
@@ -146,6 +203,7 @@ export type CompiledPack = {
   skills: Record<string, SkillDef & { id: string }>;
   talents: Record<string, TalentDef & { id: string }>;
   ancestries: Record<string, AncestryDef & { id: string }>;
+  bodyPlans: Record<string, BodyPlanDef>;
   archetypes: Record<string, ArchetypeDef & { id: string }>;
   items: {
     weapons: Record<string, WeaponDef & { id: string }>;

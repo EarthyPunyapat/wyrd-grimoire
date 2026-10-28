@@ -165,6 +165,18 @@ describe("creation validator", () => {
     expect(codes({ ...legal(), talents: ["test:tough", "test:tough"] })).toContain("TALENT_DUPLICATE");
   });
 
+  test("the sheet carries the body plan its draft names, defaulting to humanoid", () => {
+    const sheet = buildSheet({ ...legal(), bodyPlan: "core:humanoid" }, settings, defaultTuning);
+    expect(sheet.bodyPlan).toBe("core:humanoid");
+    expect(buildSheet(legal(), settings, defaultTuning).bodyPlan).toBe("humanoid");
+  });
+
+  test("a body plan that differs from the ancestry's is BODYPLAN_MISMATCH", () => {
+    expect(codes({ ...legal(), bodyPlan: "test:quadruped" })).toContain("BODYPLAN_MISMATCH");
+    expect(codes({ ...legal(), bodyPlan: "core:humanoid" })).not.toContain("BODYPLAN_MISMATCH");
+    expect(codes(legal())).not.toContain("BODYPLAN_MISMATCH");
+  });
+
   test("derived stats and starting status must match the rules", () => {
     const sheet = buildSheet(legal(), settings, defaultTuning);
     const tampered = {

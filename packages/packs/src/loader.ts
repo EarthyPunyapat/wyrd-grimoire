@@ -5,8 +5,11 @@ import {
   AncestryDef,
   ArchetypeDef,
   ArmorDef,
+  BodyPlanDef,
   type CompiledPack,
   GearDef,
+  HUMANOID_BODY_PLAN,
+  localIdOf,
   PackManifest,
   SkillDef,
   stableStringify,
@@ -37,6 +40,7 @@ const CONTENT_FILES = {
   skills: { file: "skills.yaml", schema: SkillDef },
   talents: { file: "talents.yaml", schema: TalentDef },
   ancestries: { file: "ancestries.yaml", schema: AncestryDef },
+  bodyPlans: { file: "bodyplans.yaml", schema: BodyPlanDef },
   archetypes: { file: "archetypes.yaml", schema: ArchetypeDef },
   weapons: { file: "items/weapons.yaml", schema: WeaponDef },
   armor: { file: "items/armor.yaml", schema: ArmorDef },
@@ -45,6 +49,25 @@ const CONTENT_FILES = {
 
 type Kind = keyof typeof CONTENT_FILES;
 type Entry<K extends Kind> = z.infer<(typeof CONTENT_FILES)[K]["schema"]>;
+
+/**
+ * Returns why a body plan's d100 bands don't cover 1–100 exactly once, or null if they do.
+ * Bands must not be inverted, overlap, leave a gap, or stop short of 100.
+ */
+function bodyPlanRangeProblem(plan: BodyPlanDef): string | null {
+  for (const l of plan.locations) {
+    if (l.from > l.to) return `Location "${l.id}" has from ${l.from} above to ${l.to}`;
+  }
+  const bands = [...plan.locations].sort((a, b) => a.from - b.from);
+  let next = 1;
+  for (const l of bands) {
+    if (l.from < next) return `Location "${l.id}" overlaps rolls ${l.from}–${Math.min(l.to, next - 1)}`;
+    if (l.from > next) return `Rolls ${next}–${l.from - 1} hit no location`;
+    next = l.to + 1;
+  }
+  if (next <= 100) return `Rolls ${next}–100 hit no location`;
+  return null;
+}
 
 /**
  * Loads a pack directory, validates every file with the core zod schemas, namespaces every ID
@@ -174,6 +197,20 @@ export function loadPack(dir: string): LoadResult {
       return resolved ?? r;
     });
   }
+  for (const a of Object.values(content.ancestries)) {
+    // A humanoid plan the pack doesn't declare resolves to the built-in one.
+    const builtIn = localIdOf(a.bodyPlan) === localIdOf(HUMANOID_BODY_PLAN.id) ? HUMANOID_BODY_PLAN.id : null;
+    const plan = ref(content.bodyPlans, a.bodyPlan) ?? builtIn;
+    if (!plan) badRef(a.id, "bodyPlan", "Body plan", a.bodyPlan);
+    a.bodyPlan = plan ?? a.bodyPlan;
+  }
+  for (const plan of Object.values(content.bodyPlans)) {
+    const problem = bodyPlanRangeProblem(plan);
+    if (problem) {
+      const o = where(plan.id);
+      error("BODYPLAN_RANGES", o.file, problem, o.path);
+    }
+  }
   for (const a of Object.values(content.archetypes)) {
     a.skills = Object.fromEntries(
       Object.entries(a.skills).map(([s, v]) => {
@@ -210,6 +247,7 @@ export function loadPack(dir: string): LoadResult {
     skills: content.skills,
     talents: content.talents,
     ancestries: content.ancestries,
+    bodyPlans: content.bodyPlans,
     archetypes: content.archetypes,
     items: { weapons: content.weapons, armor: content.armor, gear: content.gear },
   };

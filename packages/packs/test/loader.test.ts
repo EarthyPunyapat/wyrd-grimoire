@@ -79,6 +79,7 @@ describe("fantasy-core", () => {
         {
           id: "pc",
           identity: { name: a.name, ancestry: "fantasy-core:human" },
+          bodyPlan: pack!.ancestries["fantasy-core:human"]!.bodyPlan,
           archetypeId: a.id,
           attributes: a.suggestedAttributes,
           skills: Object.fromEntries(Object.entries(a.skills).map(([k, v]) => [k, { trained: v }])),

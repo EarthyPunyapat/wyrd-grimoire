@@ -283,6 +283,7 @@ export function createApp(options: Options) {
       {
         id: "pc",
         identity: { name: input.characterName, ancestry: input.ancestry, background: archetype.description },
+        bodyPlan: content.ancestries[input.ancestry]!.bodyPlan,
         archetypeId: archetype.id,
         attributes: archetype.suggestedAttributes,
         skills: Object.fromEntries(
