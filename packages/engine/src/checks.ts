@@ -14,6 +14,7 @@ import {
   Rng,
 } from "@wyrd/core";
 import { conditionEffects } from "./conditions.ts";
+import { woundModifiers } from "./injury/penalties.ts";
 import { compareResults, isSuccess, RESOLUTION_MODULES } from "./resolution/index.ts";
 import { fail, ok, type Result } from "./result.ts";
 import { governingAttribute, lookupSkill, skillLabel, skillValue } from "./skills.ts";
@@ -79,7 +80,8 @@ export function prepareCheck(
     return fail("ACTOR_INCAPACITATED", `${sheet.identity.name} can't act: ${effects.blocked}`);
   }
 
-  const modifiers: Modifier[] = [...req.modifiers, ...effects.modifiers];
+  const wounds = woundModifiers(sheet, { skillId, attribute, tags: req.tags });
+  const modifiers: Modifier[] = [...req.modifiers, ...effects.modifiers, ...wounds];
   const playerSide = actor.role === "pc" || actor.role === "companion";
   const campaignMod = ctx.tuning.campaignDifficultyModifier[state.campaign.settings.difficulty];
   if (playerSide && campaignMod !== 0) {
