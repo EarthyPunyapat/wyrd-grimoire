@@ -859,6 +859,12 @@ export function createApp(options: Options) {
                   : stack.location.kind,
             condition: stack.condition,
             quality: stack.quality,
+            kind: gameItems.weapons[stack.itemId]
+              ? ("weapon" as const)
+              : gameItems.armor[stack.itemId]
+                ? ("armor" as const)
+                : ("gear" as const),
+            description: item?.description ?? "",
           };
         }),
       },

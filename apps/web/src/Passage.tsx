@@ -106,7 +106,12 @@ export function RollNotes({
                 </span>
               </span>
             )}
-            {line.degree && <span className="roll-outcome">{DEGREE_WORD[line.degree]}</span>}
+            {line.degree && (
+              <span className="roll-outcome">
+                {DEGREE_WORD[line.degree]}
+                {line.purpose ? `: ${line.purpose}` : ""}
+              </span>
+            )}
           </div>
         );
       })}

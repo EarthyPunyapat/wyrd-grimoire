@@ -78,5 +78,7 @@ export const MechanicsLine = z.object({
   degree: Degree.optional(),
   /** Present when the line records a dice roll. */
   roll: MechanicsRoll.optional(),
+  /** What the roll was for, in the GM's words (a GM `roll` call's goal); shown with the outcome. */
+  purpose: z.string().max(200).optional(),
 });
 export type MechanicsLine = z.infer<typeof MechanicsLine>;

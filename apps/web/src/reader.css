@@ -235,3 +235,11 @@
 [data-preset="reader"] .input-row textarea { field-sizing: content; height: auto; }
 [data-preset="reader"] .passage-main blockquote,
 [data-preset="reader"] .live-passage blockquote { margin: var(--space-4) 0 0; }
+
+/* Item note: icon, gold name, printed type, one-sentence description (DESIGN.md Item Card). */
+[data-preset="reader"] .margin-notes .item-card { display: flex; gap: 10px; }
+[data-preset="reader"] .margin-notes .item-icon { flex-shrink: 0; color: var(--gold); }
+[data-preset="reader"] .margin-notes .item-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+[data-preset="reader"] .margin-notes .item-card h3 { margin: 0; font: var(--text-meta) / 1.6 var(--font-chrome); color: var(--gold); }
+[data-preset="reader"] .margin-notes .item-type { margin: 0; color: var(--ink-muted); }
+[data-preset="reader"] .margin-notes .item-description { margin: 0; font: 15px / 1.5 var(--font-read); color: var(--ink); }

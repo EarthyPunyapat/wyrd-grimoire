@@ -202,6 +202,8 @@ export const GameView = z.object({
           qty: z.number().int().positive(),
           location: z.string(),
           condition: z.string(),
+          kind: z.enum(["weapon", "armor", "gear"]).default("gear"),
+          description: z.string().default(""),
           quality: z.string(),
         }),
       ),

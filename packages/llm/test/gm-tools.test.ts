@@ -54,6 +54,7 @@ test("roll resolves a check", () => {
   expect(r.effects.mechanics).toHaveLength(1);
   expect(types(r)).toContain("CheckResolved");
   expect(r.effects.progress?.phase).toBe("rolling");
+  expect(r.effects.mechanics[0]?.purpose).toBe("slip past the ferrywoman");
 });
 
 test("act reports plan errors to the model", () => {

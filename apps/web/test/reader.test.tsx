@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import type { GameView, WebTurn } from "@wyrd/core";
 import { renderToStaticMarkup } from "react-dom/server";
+import { Cards } from "../src/Cards.tsx";
 import { Hotbar } from "../src/Hotbar.tsx";
 import { Passage } from "../src/Passage.tsx";
 import { StatusStrip } from "../src/StatusStrip.tsx";
@@ -134,4 +135,51 @@ test("the status strip carries the home wordmark and app settings when given", (
   );
   expect(html).toContain('aria-label="Wyrd Grimoire home"');
   expect(html).toContain(">Settings<");
+});
+
+test("a roll note says what the roll was for", () => {
+  const turn = {
+    ...baseTurn,
+    mechanics: [
+      {
+        text: "Willpower d20 14 +6 = 20 vs DC 18 · Success",
+        degree: "success",
+        purpose: "read whether Ethan is hiding something",
+        roll: { die: "d20", sides: 20, natural: 14, modifier: 6, total: 20, dc: 18 },
+      },
+    ],
+  } as unknown as WebTurn;
+  const html = renderToStaticMarkup(<Passage turn={turn} view={view} busy={false} math onReroll={noop} />);
+  expect(html).toContain("Success: read whether Ethan is hiding something");
+});
+
+test("an item card shows the icon, the gold name, the type line and the description", () => {
+  const v = {
+    ...view,
+    inventory: {
+      capacityKg: 10,
+      weightKg: 1,
+      band: "none",
+      coins: 0,
+      items: [
+        {
+          id: "campaign:axiom-prime",
+          name: "AXIOM PRIME",
+          qty: 1,
+          location: "worn",
+          condition: "good",
+          kind: "gear",
+          description: "Self-forged Source ring.",
+        },
+      ],
+    },
+    shop: null,
+  } as unknown as GameView;
+  const html = renderToStaticMarkup(
+    <Cards cards={[{ type: "item", itemId: "campaign:axiom-prime" }]} view={v} mechanics={[]} />,
+  );
+  expect(html).toContain('class="item-icon"');
+  expect(html).toContain("AXIOM PRIME");
+  expect(html).toContain("Gear · worn");
+  expect(html).toContain("Self-forged Source ring.");
 });

@@ -151,7 +151,12 @@ function run(name: ToolName, args: unknown, x: ToolContext): ToolOutcome {
         reason: a.goal,
         ...(a.targetId ? { targetId: a.targetId } : {}),
       };
-      return act(a.actorId ?? x.pcId, [check], x, { phase: "rolling", detail: a.goal });
+      const rolled = act(a.actorId ?? x.pcId, [check], x, { phase: "rolling", detail: a.goal });
+      rolled.effects.mechanics = rolled.effects.mechanics.map((m) => ({
+        ...m,
+        purpose: a.goal.slice(0, 200),
+      }));
+      return rolled;
     }
     case "act": {
       const a = args as ActArgs;
