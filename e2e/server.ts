@@ -76,9 +76,11 @@ const router = new RoleRouter({
 const home = mkdtempSync(join(tmpdir(), "wyrd-e2e-"));
 const instance = createApp({ home, offline: true, router, seed: "e2e-combat" });
 instance.app.use("/*", webAssets(resolve("apps/web/dist")));
+// A second checkout (worktree, parallel agent) can pick its own port.
+const port = Number(process.env.WYRD_E2E_PORT ?? 4789);
 const server = Bun.serve({
   hostname: "127.0.0.1",
-  port: 4789,
+  port,
   fetch: (req, server) =>
     instance.app.fetch(req, { remoteAddress: server.requestIP(req)?.address ?? "unknown" }),
 });
