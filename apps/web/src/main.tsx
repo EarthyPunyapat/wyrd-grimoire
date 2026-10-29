@@ -3,6 +3,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.tsx";
 import "./style.css";
+import "./tokens.css";
 
 const root = document.getElementById("root");
 const nonce = document.querySelector<HTMLMetaElement>('meta[name="wyrd-style-nonce"]')?.content;

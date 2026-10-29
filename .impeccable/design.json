@@ -1,0 +1,368 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-29T09:10:22Z",
+  "title": "Design System: Wyrd Grimoire",
+  "extensions": {
+    "colorMeta": {
+      "void-ink": {
+        "role": "neutral",
+        "displayName": "Void Ink",
+        "canonical": "#0d0e10",
+        "tonalRamp": ["#232529", "#3c414a", "#575d6b", "#71798b", "#9097a5", "#b1b6bf", "#d1d4d9", "#f1f2f3"]
+      },
+      "page": {
+        "role": "neutral",
+        "displayName": "Page",
+        "canonical": "#131417",
+        "tonalRamp": ["#242529", "#3d404a", "#575c6a", "#72788a", "#9196a4", "#b1b5bf", "#d1d3d9", "#f1f2f3"]
+      },
+      "page-raised": {
+        "role": "neutral",
+        "displayName": "Page Raised",
+        "canonical": "#181a1e",
+        "tonalRamp": ["#232529", "#3c414b", "#565d6b", "#70798c", "#9097a6", "#b0b5c0", "#d0d4da", "#f1f2f3"]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Rule",
+        "canonical": "#23252a",
+        "tonalRamp": ["#242529", "#3d414a", "#585d69", "#727989", "#9297a4", "#b2b5be", "#d1d3d9", "#f1f2f3"]
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "Rule Strong",
+        "canonical": "#3a3d44",
+        "tonalRamp": ["#242529", "#3e4149", "#595d68", "#747a88", "#9398a3", "#b2b6be", "#d2d4d8", "#f1f2f3"]
+      },
+      "rule-gold": {
+        "role": "secondary",
+        "displayName": "Rule Gold",
+        "canonical": "#3a3221",
+        "tonalRamp": ["#2e291e", "#564a31", "#7b6a46", "#a08a5b", "#b6a57f", "#cbbfa4", "#e1d9ca", "#f5f3f0"]
+      },
+      "moonpaper": {
+        "role": "neutral",
+        "displayName": "Moonpaper",
+        "canonical": "#ecebe6",
+        "tonalRamp": ["#2a2922", "#4d4a3a", "#6e6953", "#8f896d", "#a8a48d", "#c2beae", "#dbd9cf", "#f4f3f1"]
+      },
+      "marginal-grey": {
+        "role": "neutral",
+        "displayName": "Marginal Grey",
+        "canonical": "#9a9a96",
+        "tonalRamp": ["#272726", "#454542", "#62625f", "#80807b", "#9d9d99", "#b9b9b7", "#d6d6d4", "#f2f2f2"]
+      },
+      "faint-grey": {
+        "role": "neutral",
+        "displayName": "Faint Grey",
+        "canonical": "#77776f",
+        "tonalRamp": ["#272725", "#464641", "#64645d", "#828279", "#9e9e97", "#babab5", "#d7d7d4", "#f3f3f2"]
+      },
+      "lantern-green": {
+        "role": "primary",
+        "displayName": "Lantern Green",
+        "canonical": "#3ddc97",
+        "tonalRamp": ["#123a29", "#15724a", "#1ea469", "#26d589", "#55e0a4", "#87e9be", "#b8f2d9", "#ecf9f3"]
+      },
+      "lantern-gold": {
+        "role": "primary",
+        "displayName": "Lantern Gold",
+        "canonical": "#f2b33d",
+        "tonalRamp": ["#3f2e0d", "#7e5508", "#b57a0c", "#ec9f10", "#f2b543", "#f6cb7a", "#fae0b0", "#fbf5ea"]
+      },
+      "lantern-red": {
+        "role": "primary",
+        "displayName": "Lantern Red",
+        "canonical": "#e5566f",
+        "tonalRamp": ["#3b1119", "#751223", "#a71a32", "#da2242", "#e4516b", "#ec8496", "#f4b6c1", "#f9ebee"]
+      },
+      "lantern-cyan": {
+        "role": "primary",
+        "displayName": "Lantern Cyan",
+        "canonical": "#5cc8e0",
+        "tonalRamp": ["#13333a", "#166171", "#1f8aa2", "#28b4d3", "#57c6df", "#88d7e8", "#b9e7f2", "#ecf6f9"]
+      },
+      "ari-gold": {
+        "role": "secondary",
+        "displayName": "Ari Gold",
+        "canonical": "#e2b552",
+        "tonalRamp": ["#3b2e12", "#735513", "#a57a1c", "#d79f24", "#e2b653", "#ebcb85", "#f3e0b7", "#f9f5eb"]
+      },
+      "canon-red": {
+        "role": "secondary",
+        "displayName": "Canon Red",
+        "canonical": "#e5566f",
+        "tonalRamp": ["#3b1119", "#751223", "#a71a32", "#da2242", "#e4516b", "#ec8496", "#f4b6c1", "#f9ebee"]
+      },
+      "signal-cyan": {
+        "role": "secondary",
+        "displayName": "Signal Cyan",
+        "canonical": "#5cc8e0",
+        "tonalRamp": ["#13333a", "#166171", "#1f8aa2", "#28b4d3", "#57c6df", "#88d7e8", "#b9e7f2", "#ecf6f9"]
+      },
+      "speaker-blue": {
+        "role": "tertiary",
+        "displayName": "Speaker Blue",
+        "canonical": "#b3c8ff",
+        "tonalRamp": ["#0a1943", "#002587", "#0035c1", "#0045fb", "#376eff", "#7198ff", "#abc2ff", "#e9eefc"]
+      },
+      "atlas-sand": {
+        "role": "tertiary",
+        "displayName": "Atlas Sand",
+        "canonical": "#e3cda4",
+        "tonalRamp": ["#352b17", "#674e20", "#94702d", "#c0923b", "#d0ab66", "#dec392", "#ebdcbf", "#f7f4ed"]
+      },
+      "gold-deep": {
+        "role": "secondary",
+        "displayName": "Gold Deep",
+        "canonical": "#a88a4a",
+        "tonalRamp": ["#312a1b", "#5e4d29", "#866e3b", "#ae8f4d", "#c2a974", "#d4c29c", "#e5dbc5", "#f6f4ef"]
+      },
+      "link-hover": {
+        "role": "secondary",
+        "displayName": "Link Hover",
+        "canonical": "#8fdcec",
+        "tonalRamp": ["#12343b", "#146373", "#1c8da5", "#24b8d7", "#54c9e2", "#86d9ea", "#b7e9f3", "#ebf7f9"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Chapter titles in Reader; the largest reading voice."
+      },
+      "chapter-numeral": {
+        "displayName": "Chapter Numeral",
+        "purpose": "The hue chapter index; Reader only."
+      },
+      "reading": {
+        "displayName": "Reading",
+        "purpose": "Prose and dialogue, 65–75 characters per line."
+      },
+      "chrome": {
+        "displayName": "Chrome",
+        "purpose": "Status strip, rolls, clocks, keys, item metadata."
+      },
+      "choice": {
+        "displayName": "Choice",
+        "purpose": "The player’s next move."
+      },
+      "input": {
+        "displayName": "Input",
+        "purpose": "The composer’s italic reading voice."
+      },
+      "speaker": {
+        "displayName": "Speaker",
+        "purpose": "The italic name above a dialogue block."
+      },
+      "result": {
+        "displayName": "Result",
+        "purpose": "The large number in a roll note."
+      },
+      "item": {
+        "displayName": "Item",
+        "purpose": "The one-sentence description inside an item card."
+      },
+      "key": {
+        "displayName": "Key",
+        "purpose": "The letter or digit in a choice, hotbar action or menu hint."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "motion-fast",
+        "value": "120ms",
+        "purpose": "Hover, focus and small state changes."
+      },
+      {
+        "name": "motion-base",
+        "value": "200ms",
+        "purpose": "Cards opening and lines revealing."
+      },
+      {
+        "name": "motion-big",
+        "value": "600ms",
+        "purpose": "Big moments only: d20 tumble, level flare, artifact flip."
+      },
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Arrival from an already-visible default."
+      },
+      {
+        "name": "ease-dice",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "The d20 tumble’s overshoot."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "phone",
+        "value": "767px"
+      },
+      {
+        "name": "narrow",
+        "value": "1000px"
+      },
+      {
+        "name": "wide",
+        "value": "1600px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Status Strip",
+      "kind": "nav",
+      "refersTo": "status-strip",
+      "description": "The signature 44px chrome band: identity, level, place, time, companion clock and menu hints.",
+      "html": "<div class=\"ds-status\"><span class=\"ds-brand\">Wyrd</span><span>Ethan Hunt · Level <b>∞</b></span><span>Watchtower, low orbit</span><span>Day 412 · 19:06</span><span class=\"ds-grow\"></span><span class=\"ds-ari\">Ari · Corps audit 3/5</span><span class=\"ds-keys\">C I Q J M</span></div>",
+      "css": ".ds-status{display:flex;flex-wrap:wrap;align-items:center;gap:6px 22px;min-height:44px;padding:12px 40px;border-bottom:1px solid var(--rule);background:var(--void-ink,#0d0e10);color:var(--marginal-grey,#9a9a96);font:400 12px/1.6 var(--font-chrome,\"IBM Plex Mono\",monospace);font-variant-numeric:tabular-nums}.ds-status b{color:var(--hue,#3ddc97);font-weight:400}.ds-brand{color:var(--moonpaper,#ecebe6);font-weight:500}.ds-grow{flex:1}.ds-ari{color:var(--ari-gold,#e2b552)}.ds-keys{letter-spacing:.16em}"
+    },
+    {
+      "name": "Chapter Heading",
+      "kind": "custom",
+      "refersTo": "chapter-numeral",
+      "description": "The Reader opening: a hue numeral, an italic title and a mono locator on one baseline.",
+      "html": "<div class=\"ds-chapter\"><span class=\"ds-numeral\">XII</span><div><h1>The Ring Project</h1><span>Watchtower · night</span></div></div>",
+      "css": ".ds-chapter{display:flex;align-items:baseline;gap:18px;padding-bottom:6px;max-width:660px}.ds-numeral{font:400 56px/1 var(--font-read,\"Newsreader\",Georgia,serif);color:var(--hue,#3ddc97)}.ds-chapter h1{margin:0;font:italic 400 34px/1.1 var(--font-read,\"Newsreader\",Georgia,serif);color:var(--moonpaper,#ecebe6)}.ds-chapter div>span{display:block;margin-top:2px;font:400 12px/1.6 var(--font-chrome,\"IBM Plex Mono\",monospace);color:var(--marginal-grey,#9a9a96)}"
+    },
+    {
+      "name": "Speaker Block",
+      "kind": "custom",
+      "refersTo": "speaker-block",
+      "description": "Dialogue indented under an italic, type-tinted speaker name.",
+      "html": "<div class=\"ds-speaker\"><span class=\"ds-name ds-person\">Hal Jordan</span><p>“Going fine. Better than fine. Which is what bothers me.”</p></div>",
+      "css": ".ds-speaker{display:flex;flex-direction:column;gap:2px;padding-left:20px;max-width:660px}.ds-speaker .ds-name{font:italic 400 16px/1.4 var(--font-read,\"Newsreader\",Georgia,serif);color:var(--person,#b3c8ff)}.ds-speaker .ds-name.ds-companion{color:var(--gold,#e2b552)}.ds-speaker p{margin:0;font:400 20px/1.7 var(--font-read,\"Newsreader\",Georgia,serif);color:var(--ink,#ecebe6)}"
+    },
+    {
+      "name": "Margin Note — Roll",
+      "kind": "card",
+      "refersTo": "margin-note",
+      "description": "The Reader card substitute for a roll: label, result, die arithmetic and outcome.",
+      "html": "<div class=\"ds-note\"><span class=\"ds-label\">Roll · Hal, Willpower</span><span><b>20</b> d20 14 +6 vs 18</span><span class=\"ds-outcome\">Success: he knows the rings are monitored</span></div>",
+      "css": ".ds-note{display:flex;flex-direction:column;gap:4px;width:240px;padding-top:10px;border-top:1px solid var(--rule);background:var(--void-ink,#0d0e10);color:var(--marginal-grey,#9a9a96);font:400 12px/1.6 var(--font-chrome,\"IBM Plex Mono\",monospace);font-variant-numeric:tabular-nums}.ds-note b{font-size:22px;color:var(--moonpaper,#ecebe6)}.ds-note .ds-label{color:var(--marginal-grey,#9a9a96)}.ds-note .ds-outcome{color:var(--hue,#3ddc97)}"
+    },
+    {
+      "name": "Choice",
+      "kind": "button",
+      "refersTo": "choice",
+      "description": "One next move on a ruled row, with the number in the campaign hue and the consequence muted.",
+      "html": "<button class=\"ds-choice\"><span class=\"ds-n\">1</span><span>Tell Hal the truth <em>— he’ll want the link cut, from every ring.</em></span></button>",
+      "css": ".ds-choice{display:flex;gap:14px;align-items:baseline;width:100%;max-width:660px;min-height:44px;padding:10px 0;border:0;border-top:1px solid var(--rule);background:transparent;color:var(--ink,#ecebe6);text-align:left;font:400 18px/1.4 var(--font-read,\"Newsreader\",Georgia,serif);cursor:pointer}.ds-choice:hover,.ds-choice:focus-visible{background:var(--page,#131417);border-top-color:var(--hue,#3ddc97);outline:2px solid var(--hue,#3ddc97);outline-offset:2px}.ds-choice .ds-n{font:400 13px/1.4 var(--font-chrome,\"IBM Plex Mono\",monospace);color:var(--hue,#3ddc97)}.ds-choice em{color:var(--marginal-grey,#9a9a96)}"
+    },
+    {
+      "name": "Composer",
+      "kind": "input",
+      "refersTo": "composer",
+      "description": "A label and a single underline; the reading voice types directly into the page.",
+      "html": "<label class=\"ds-composer\"><span>What do you do?</span><input placeholder=\"Write your next line…   / to type, /gm to change the world\"></label>",
+      "css": ".ds-composer{display:flex;flex-direction:column;gap:6px;width:100%;max-width:660px}.ds-composer span{font:400 12px/1.6 var(--font-chrome,\"IBM Plex Mono\",monospace);color:var(--marginal-grey,#9a9a96)}.ds-composer input{min-height:44px;padding:8px 0;border:0;border-bottom:1px solid var(--rule-strong,#3a3d44);background:transparent;color:var(--ink,#ecebe6);font:italic 400 19px/1.4 var(--font-read,\"Newsreader\",Georgia,serif)}.ds-composer input::placeholder{color:var(--marginal-grey,#9a9a96);opacity:1}.ds-composer input:focus-visible{outline:2px solid var(--hue,#3ddc97);outline-offset:2px;border-bottom-color:var(--hue,#3ddc97)}"
+    },
+    {
+      "name": "Hotbar",
+      "kind": "nav",
+      "refersTo": "hotbar",
+      "description": "The 64px ability band with letter hints, action names and a gold companion action.",
+      "html": "<nav class=\"ds-hotbar\"><button><span>O</span>Observe</button><button><span>T</span>Time skip</button><button class=\"ds-gold\"><span>D</span>Delegate to Ari</button><button><span>S</span>Seal</button></nav>",
+      "css": ".ds-hotbar{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 28px;min-height:64px;padding:10px 40px 14px;border-top:1px solid var(--rule);background:var(--void-ink,#0d0e10);font:400 12px/1.6 var(--font-chrome,\"IBM Plex Mono\",monospace)}.ds-hotbar button{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 4px;border:0;background:transparent;color:var(--ink,#ecebe6);font:inherit;cursor:pointer}.ds-hotbar button span{color:var(--marginal-grey,#9a9a96)}.ds-hotbar button:hover,.ds-hotbar button:focus-visible{text-decoration:underline;text-decoration-color:var(--hue,#3ddc97);text-underline-offset:4px;outline:2px solid var(--hue,#3ddc97);outline-offset:2px}.ds-hotbar .ds-gold{color:var(--gold,#e2b552)}.ds-hotbar .ds-gold span{color:#a88a4a}"
+    },
+    {
+      "name": "Item Card",
+      "kind": "card",
+      "refersTo": "item-card",
+      "description": "Icon, gold name, printed type line and a one-sentence description; the same anatomy in every preset.",
+      "html": "<article class=\"ds-item\"><svg viewBox=\"0 0 44 44\" aria-hidden=\"true\"><circle cx=\"22\" cy=\"22\" r=\"15\" fill=\"none\" stroke=\"#e2b552\" stroke-width=\"2\"/><circle cx=\"22\" cy=\"22\" r=\"7\" fill=\"none\" stroke=\"#e2b552\" stroke-width=\"1.5\"/></svg><div><h3>AXIOM PRIME</h3><span>Artifact · worn · ∞</span><p>Self-forged Source ring. Holds a silent link to every ring you’ve given away.</p></div></article>",
+      "css": ".ds-item{display:flex;gap:14px;max-width:360px;padding:14px;border-top:1px solid var(--rule-gold,#3a3221);background:var(--page,#131417);color:var(--ink,#ecebe6)}.ds-item svg{width:44px;height:44px;flex:none}.ds-item h3{margin:0 0 2px;font:500 16px/1.4 var(--font-chrome,\"IBM Plex Mono\",monospace);color:var(--gold,#e2b552)}.ds-item span{display:block;font:400 12px/1.6 var(--font-chrome,\"IBM Plex Mono\",monospace);color:var(--marginal-grey,#9a9a96)}.ds-item p{margin:4px 0 0;font:400 15px/1.5 var(--font-read,\"Newsreader\",Georgia,serif);color:var(--ink,#ecebe6)}"
+    },
+    {
+      "name": "Entity Reference",
+      "kind": "custom",
+      "refersTo": "speaker-block",
+      "description": "A tinted name with a dotted underline; the hover card always names the type.",
+      "html": "<button class=\"ds-ref ds-place\">Watchtower</button>",
+      "css": ".ds-ref{min-height:0;padding:0;border:0;background:transparent;color:inherit;font:inherit;text-decoration:underline dotted currentColor 1px;text-underline-offset:4px;cursor:pointer}.ds-ref.ds-place{color:var(--place,#e3cda4)}.ds-ref.ds-person{color:var(--person,#b3c8ff)}.ds-ref:hover,.ds-ref:focus-visible{background:color-mix(in srgb,currentColor 12%,transparent);outline:2px solid var(--hue,#3ddc97);outline-offset:2px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Night Codex",
+    "overview": "Wyrd is read, not watched. The screen is a lit page in a dark room: near-black paper, bone-coloured ink, one lantern hue, and thin ruled lines instead of boxes. The story takes the reading column; every piece of machinery — the status strip, rolls, clocks, key hints, item metadata — takes the monospace chrome column. That split is the identity.",
+    "keyCharacteristics": [
+      "One campaign hue, three fixed signal accents, zero decorative colour.",
+      "A reading-font slot and a monospace chrome slot; the roles never swap.",
+      "1px rules and flat surfaces; no shadows, glass or glow.",
+      "A 660px reading column with margin notes as annotations, not a sidebar.",
+      "44px targets, keyboard-first hints, and text that stays above WCAG AA."
+    ],
+    "rules": [
+      {
+        "name": "The One Lantern Rule",
+        "body": "A campaign has exactly one hue. It is the only variable colour on the screen; adding a second accent is a redesign, not a customisation.",
+        "section": "colors"
+      },
+      {
+        "name": "The Signal Trio Rule",
+        "body": "Gold means companion or item, red means danger or canon, cyan means link or faction. Never reassign a signal to make a layout prettier.",
+        "section": "colors"
+      },
+      {
+        "name": "The Type Is Named Rule",
+        "body": "Entity tint is never the only cue. Every reference also carries a type in its card and a dotted underline, so a player who cannot distinguish the hues still knows what they are looking at.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Faces Rule",
+        "body": "Story text uses the reading slot; every number, key, clock, roll and label uses the chrome slot. Never set body prose in monospace, and never set a roll result in the serif.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Any number that can change — level, roll, clock segment, time, HP, currency — uses tabular figures. Proportional figures make a living character sheet twitch.",
+        "section": "typography"
+      },
+      {
+        "name": "The 66-Character Rule",
+        "body": "Reader prose is 660px wide — about 66 characters at 20px. Never full-bleed the story to gain density; density belongs to Cockpit.",
+        "section": "layout"
+      },
+      {
+        "name": "The Fixed Chrome Rule",
+        "body": "The status strip and hotbar are fixed chrome. The story scrolls between them; the page does not scroll the chrome out of reach.",
+        "section": "layout"
+      },
+      {
+        "name": "The No Shadow Rule",
+        "body": "If an element needs to separate, use a rule, a lightness step or spacing. A box-shadow is a bug in this system.",
+        "section": "elevation"
+      },
+      {
+        "name": "The No Glass Rule",
+        "body": "No backdrop-filter, no frosted panels, no gradient text. “Lantern Glass” is a flat true-black preset, not a glassmorphism theme.",
+        "section": "elevation"
+      },
+      {
+        "name": "The One Border Rule",
+        "body": "One 1px rule per division. A filled surface does not also get a border; a bordered surface does not also get a shadow.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do keep exactly one campaign hue and the three fixed signals; put the hue in --hue and use var(--accent).",
+      "Do keep prose at 660px in Reader and 20px/1.7; let Cockpit carry the density.",
+      "Do use 1px rules, lightness steps and spacing for separation; there is no shadow.",
+      "Do give every interactive element a 44px target, a visible hover state and a 2px hue focus ring.",
+      "Do use tabular figures for every changing number and monospace for every piece of chrome.",
+      "Do theme selection, caret, scrollbars and focus rings from the palette; they are part of the screen.",
+      "Do print the entity type in every reference card and keep the dotted underline, so colour is never the only cue."
+    ],
+    "donts": [
+      "Don’t add a second accent, a gradient, a glow or a coloured halo.",
+      "Don’t use Ari Gold for danger or Canon Red for a companion; the signals are fixed.",
+      "Don’t use hue as decoration on large fills; it is a line, a numeral, a word or a focus ring.",
+      "Don’t put a card inside a card, or a shadow on a bordered surface.",
+      "Don’t round Reader or Cockpit cards; the book page is square.",
+      "Don’t set long prose in monospace or rolls in the serif.",
+      "Don’t make a menu hint the only label for a control."
+    ]
+  }
+}
