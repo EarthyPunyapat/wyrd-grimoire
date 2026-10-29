@@ -1,3 +1,4 @@
+import type { Ability } from "@wyrd/core";
 /**
  * The ability hotbar (DESIGN.md Hotbar, spec §12). Until Levels, avatars and delegation land, it holds
  * the GM actions every character has; step 3 adds the character's own powers.
@@ -12,12 +13,14 @@ export const HOTBAR_ACTIONS: HotbarAction[] = [
 ];
 
 export function Hotbar({
+  abilities = [],
   busy,
   inCombat,
   onFill,
   onSend,
   onCombat,
 }: {
+  abilities?: Ability[];
   busy: boolean;
   inCombat: boolean;
   onFill: (text: string) => void;
@@ -34,6 +37,17 @@ export function Hotbar({
           Combat
         </button>
       )}
+      {abilities.map((a) => (
+        <button
+          type="button"
+          key={a.id}
+          disabled={busy}
+          title={`${a.description} · ${a.cost}`}
+          onClick={() => onFill(`Use ${a.name}: `)}
+        >
+          {a.name}
+        </button>
+      ))}
       {HOTBAR_ACTIONS.map((a) => (
         <button
           key={a.name}

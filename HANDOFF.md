@@ -4,11 +4,11 @@ Working notes for whoever picks this up next. Read `AGENTS.md` first, then this 
 
 ## Status (2026-10-29)
 
-**M1–M7, W2 step 2 and workstream C (wiki lore) are built.** Every milestone's acceptance check is ticked in `docs/milestones.md`.
+**M1–M7, W2 step 2 and workstreams A (Levels/abilities) and C (wiki lore) are built.** Owner-only and remaining W2 checks stay unticked in `docs/milestones.md`.
 The GM-with-tools turn (Tasks 1–8 of `docs/superpowers/plans/2026-10-29-w2-step2-gm-turn.md`) is on
 `w2-gm-ui` and merges to `main`: one GM model runs a turn with engine tools, streams prose, shows
 cards and choices, retcons with Undo, marks a backup model and runs a non-blocking structural check
-with Fix/Dismiss. `bun run check` is green: typecheck → lint (warnings only) → **708 tests** →
+with Fix/Dismiss. `bun run check` is green: typecheck → lint (warnings only) → **771 tests** →
 `pack validate packs/fantasy-core`.
 
 Owner-only checks still outstanding (need real hardware or keys):
@@ -17,6 +17,20 @@ Owner-only checks still outstanding (need real hardware or keys):
 - M3: LAN/phone playtest from the Arch laptop and a phone.
 - M5: a real-model world run and the NPC-knowledge eval.
 - M8: media (images, TTS) has not been built.
+
+## W2 A — Levels and abilities (2026-10-29)
+
+Built test-first on `w2-levels`, merged to `main`. Plan: `docs/superpowers/plans/2026-10-29-w2-levels.md`; implementation defaults: D155.
+
+- `core/schemas/domains/levels.ts` defines Level, Ability, proposals and the four events; `engine/reduce/levels.ts` alone handles them. Sheets default to Level 1 and empty abilities; optional effective levels are honored. Class levels remain separate.
+- `engine/levels.ts`: effective levels/Δ, a native-d20 wrapper, no-roll infinity, power rating, proposal/acceptance helpers, ranked abilities, cumulative XP thresholds, breakthroughs and GM corrections. Every quantitative default is in `tuning.levels`.
+- `checks.ts` applies the gap table, selected ability rank and cited exploit; opposed checks and d20 combat strikes pass actual opposition. Finite d100 checks retain their mechanics. Infinity never rolls even in legacy dice campaigns; infinite-vs-infinite stalemates. Large finite power ratings use magnitude labels instead of numeric infinity.
+- `gm/tools/levels.ts` owns roll, propose_level_up, grant_ability, rank_ability, breakthrough and set_level (one index import). Explicit `/gm` gates set_level and records a Retcon with Undo. Milestones never silently grant a level.
+- Lifetime XP awards in turns, chapter closes and GM changes emit every crossed level. Breakthrough success advances one configured step and applies the declared HP strain; failure keeps the level. The helper can be reused by future training/skip work.
+- `POST /api/campaigns/:id/levels/:proposalId/accept` rejects stale/double acceptance, hidden actors and running-turn conflicts. GameView exposes party proposals and power rating. Strip shows Level/∞, Sheet shows abilities/ranks/costs and power, and hotbar abilities prefill the composer.
+- Offline engine, tool, server, replay and render tests cover the rules and flow. Combat goldens were deliberately regenerated; only ActorCreated hashes changed for default sheet fields, with all combat outcomes unchanged.
+- Validation: `bun run check` passed: typecheck, lint (existing warnings), **771 tests**, and fantasy-core pack validation. `bun run build` also passed.
+- Browser verification: dedicated Levels workflow passes desktop and phone. Full `bun run test:e2e`: **45 passed, 3 existing skips**, sequential with one worker/browser at a time. Browser install/build outputs are not committed.
 
 ## W2 C — Lore from wikis (2026-10-29)
 
@@ -98,17 +112,13 @@ Built test-first on `w2-lore`; merged to `main`. Plan: `docs/superpowers/plans/2
 - Only the pack's first shop opens (at campaign start); per-settlement shop generation is future
   work (D118).
 - Themes exist for fantasy-core; other packs still use the app default palette (D119).
-- The Playwright e2e suite (`bun run test:e2e`) is not part of `bun run check`; run it separately
-  after UI changes. At this commit it fails 9 axe **colour-contrast** checks and one Codex pin-count
-  locator that were already failing on `main` after the UI 2.0 token merge; they are not GM-turn
-  regressions.
+- The Playwright e2e suite (`bun run test:e2e`) is not part of `bun run check`; run it separately after UI changes. The current A run passes 45 tests with 3 existing skips (one worker, sequential browsers).
 
 ## Next milestone
 
 **W2 — Wyrd 2.0** (before M8). The owner played M7 and found it lacking next to their own ChatGPT RPG sessions, and a 72-question interview on 2026-10-29 redesigned the game.
 
-Step 2 (the GM-with-tools turn) is done. Next is roadmap step 3: Levels with the ∞ perception scope,
-delegation and the full time skip with a watch list. Wiki `lookup_lore` (C) is done; source creation (D) can use `LoreResearch`.
+Step 2 and step 3 A/C are done. Next: B avatars/sealing, D source creation, F delegation, and E full time skips/watch list (after F). A exports the level/check/breakthrough helpers; C exports `LoreResearch`. Infinite observe scope remains in E.
 
 Read these first:
 - the spec: `docs/superpowers/specs/2026-10-29-wyrd-2-design.md`

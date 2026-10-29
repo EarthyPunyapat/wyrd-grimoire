@@ -208,3 +208,10 @@ After playing M7 on deepseek-flash, the owner judged the game "so lacking" next 
 | ID | Decision | Why |
 |---|---|---|
 | D154 | Lore cache `text` is the validated **summary**, not the raw downloaded page (D136 takes precedence over the roadmap's ambiguous cache shape). Lore facts add `source: "lore"`, optional high/low confidence and source-URL evidence; `LoreRecorded` retains per-world research provenance. Lore concepts are visible in Codex. The tool registry accepts async runs and emits research progress before waiting; the old core lookup registration moves to `gm/tools/lore.ts`. | Downloaded passages must not become campaign canon or persistent cache text. Existing fact/knowledge projections keep lore editable and replayable without new storage tables. Async IO requires awaiting tool execution through the shipped spine. |
+
+
+### W2 Levels implementation (2026-10-29)
+
+| ID | Decision | Why |
+|---|---|---|
+| D155 | Cosmic Levels default old sheets to Level 1 and no abilities; they coexist with M7 class levels. Native d20 adjustments wrap the existing resolver. Unopposed challenges default to equal level; infinity never rolls in either dice system, and two infinite sides stalemate. Default XP thresholds are cumulative `10 × (level − 1)^2` with table overrides. A breakthrough uses an equal-level training check and an explicit nonlethal HP success cost; failure keeps the level. All parameters live in `tuning.levels`. Extremely large finite power ratings use magnitude notation when numeric arithmetic overflows. | D130/D131 specify the gap rules and advancement routes, but leave these defaults and infinity-vs-infinity unspecified. Explicit defaults keep existing saves usable, training fallible, and open-ended Levels serializable. Milestones require player acceptance; explicit `/gm` corrections use Retcon Undo. |

@@ -11,6 +11,7 @@ export * from "./schemas/classes.ts";
 export * from "./schemas/combat.ts";
 export * from "./schemas/common.ts";
 export * from "./schemas/creation.ts";
+export * from "./schemas/domains/levels.ts";
 export * from "./schemas/domains/living.ts";
 export * from "./schemas/domains/lore.ts";
 export * from "./schemas/downtime.ts";

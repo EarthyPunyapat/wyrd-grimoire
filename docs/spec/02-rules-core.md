@@ -248,3 +248,14 @@ Survival conditions (hungry, thirsty, cold, overheated) live in the survival sub
 ## The mechanics log
 
 Every resolution produces a `MechanicsLine` shown in the collapsible mechanics log under the narration when "Show the math" is on. Lines are pre-rendered by the resolution module so the UI never re-implements rules. The narrator receives the same structured result (not the rendered line) and MUST narrate an outcome consistent with it.
+
+
+## Cosmic Levels (W2, D130/D131)
+
+Characters carry `level` (positive integer, open beyond 20, or `"infinite"`), optional `effectiveLevel`, and ranked abilities. Existing sheets default to `tuning.levels.start` and no abilities. Effective levels determine resolution; the underlying level determines cosmetic power rating. Class progression remains separate.
+
+In d20 campaigns the actor's effective level minus the opposition's gives Δ. Equal levels use the ordinary d20 skill/situational modifiers plus `ceil(selected ability rank / tuning.levels.rankBonus.divisor)`. At ±1, use ±`oneStepBonus` instead of the rank bonus. At a gap of `autoGap` or more, the higher side succeeds without dice; the lower side fails without dice unless a tool call cites an exploit, in which case it rolls at −`oneStepBonus`. An unopposed check defaults to an equal-level challenge. Opposed checks and combat strikes compare the actual opposing actors.
+
+Infinity never rolls, including in legacy d100 campaigns. Finite opposition cannot overcome infinity by citing an exploit; infinite-vs-infinite is a no-roll stalemate (failure/ties retain the defender's position). A seal's finite effective level allows ordinary resolution. Finite d100 resolution is unchanged.
+
+The power rating is `floor(base^(exponent × level) × (1 + sum(ranks)/rankDivisor))`, using `tuning.levels.powerRating`; infinity displays ∞. Beyond JavaScript's numeric range, finite ratings display a magnitude label such as `10^451+`, distinct from infinity.

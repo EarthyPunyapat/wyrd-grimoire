@@ -14,11 +14,13 @@ export function Cards({
   mechanics = [],
   retcon,
   onUndo,
+  onAcceptLevel,
 }: {
   cards: Card[];
   view: GameView;
   mechanics?: MechanicsLine[];
   retcon?: RetconView;
+  onAcceptLevel?: (proposalId: string) => void;
   onUndo?: (retconId: string) => void;
 }) {
   if (!cards.length) return null;
@@ -34,6 +36,7 @@ export function Cards({
             view={view}
             mechanics={mechanics}
             {...(retcon ? { retcon } : {})}
+            {...(onAcceptLevel ? { onAcceptLevel } : {})}
             {...(onUndo ? { onUndo } : {})}
           />
         );

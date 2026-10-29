@@ -1,4 +1,4 @@
-import { ATTRIBUTE_IDS, ATTRIBUTE_NAMES, type GameView } from "@wyrd/core";
+import { ATTRIBUTE_IDS, ATTRIBUTE_NAMES, defaultTuning, type GameView } from "@wyrd/core";
 import { DiceBadge, skillDisplay } from "./Dice.tsx";
 
 export function Sheet({ view }: { view: GameView }) {
@@ -27,6 +27,28 @@ export function Sheet({ view }: { view: GameView }) {
           </p>
         </div>
       </div>
+      <section className="sheet-section" aria-label="Levels and abilities">
+        <h3>{`Level ${pc.level === "infinite" ? "∞" : (pc.level ?? defaultTuning.levels.start)}`}</h3>
+        <p>Power rating: {view.powerRating ?? "—"}</p>
+        {pc.effectiveLevel !== undefined && (
+          <p>Effective level: {pc.effectiveLevel === "infinite" ? "∞" : pc.effectiveLevel}</p>
+        )}
+        <h3>Abilities</h3>
+        {(pc.abilities ?? []).length ? (
+          <ul className="plain">
+            {pc.abilities.map((a) => (
+              <li key={a.id}>
+                <strong>{a.name}</strong> · {`Rank ${a.rank}`} · Level{" "}
+                {a.level === "infinite" ? "∞" : a.level}
+                <p>{a.description}</p>
+                <p className="muted small">{a.cost}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted">No abilities yet.</p>
+        )}
+      </section>
       <div className="stat-label">
         <span>Vitality</span>
         <strong>

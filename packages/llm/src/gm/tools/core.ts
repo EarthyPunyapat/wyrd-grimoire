@@ -7,7 +7,6 @@ import {
   ObserveArgs,
   OfferChoicesArgs,
   RetconArgs,
-  RollArgs,
   ShowCardArgs,
   TimeSkipArgs,
 } from "@wyrd/core";
@@ -49,7 +48,7 @@ function publicFacts(x: ToolContext, entityId: string) {
 }
 
 function changes(name: "change_state" | "retcon", a: ChangeStateArgs | RetconArgs, x: ToolContext): ToolRun {
-  const applied = applyChanges(x.state, a.changes, { items: x.items, newId: x.newId });
+  const applied = applyChanges(x.state, a.changes, { items: x.items, newId: x.newId, tuning: x.ctx.tuning });
   const ok = applied.outcomes.some((o) => o.ok);
   const run: ToolRun = { ok, body: { outcomes: applied.outcomes }, effects: { drafts: applied.drafts } };
   if (name === "retcon" && ok) {
@@ -66,29 +65,6 @@ function changes(name: "change_state" | "retcon", a: ChangeStateArgs | RetconArg
   }
   return run;
 }
-
-registerGmTool({
-  name: "roll",
-  description: "Roll a check for an uncertain outcome; returns the dice and the degree to narrate.",
-  schema: RollArgs,
-  run: (a, x) => {
-    const check = {
-      type: "check",
-      skill: a.skill,
-      goal: a.goal,
-      proposedDifficulty: a.difficulty,
-      reason: a.goal,
-      ...(a.targetId ? { targetId: a.targetId } : {}),
-    };
-    const rolled = act(a.actorId ?? x.pcId, [check], x, { phase: "rolling", detail: a.goal });
-    if (rolled.effects?.mechanics)
-      rolled.effects.mechanics = rolled.effects.mechanics.map((m) => ({
-        ...m,
-        purpose: a.goal.slice(0, 200),
-      }));
-    return rolled;
-  },
-});
 
 registerGmTool({
   name: "act",

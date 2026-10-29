@@ -189,6 +189,20 @@ export function usePlay(view: GameView, onView: (view: GameView) => void) {
       setError((e as Error).message);
     }
   }
+  async function acceptLevel(proposalId: string) {
+    if (sending || pending) return;
+    setError("");
+    try {
+      const next = await api(
+        `/campaigns/${view.id}/levels/${proposalId}/accept`,
+        (d) => GameView.parse(d),
+        {},
+      );
+      onView(next);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
   return {
     busy: sending || Boolean(pending),
     mechanics,
@@ -203,6 +217,7 @@ export function usePlay(view: GameView, onView: (view: GameView) => void) {
     reroll,
     fix,
     undo,
+    acceptLevel,
     refresh,
   };
 }

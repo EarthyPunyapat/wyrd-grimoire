@@ -12,6 +12,7 @@ import {
 import { type ClassCatalog, classForArchetype, isClassSkill } from "./classes.ts";
 import { type CreationContent, talentProblems } from "./creation.ts";
 import { deriveStats } from "./derived.ts";
+import { xpLevelEvents } from "./levels.ts";
 import { fail, ok, type Result } from "./result.ts";
 import { lookupSkill, type SkillCatalog, skillValue } from "./skills.ts";
 import type { GameState } from "./state.ts";
@@ -158,7 +159,7 @@ export function turnAwards(
         out.push(...award(before, x.discovery.site, "discovery", "A new place reached", tuning));
     }
   }
-  return [...out, ...classLevelEvents(before, out, classes, tuning)];
+  return [...out, ...classLevelEvents(before, out, classes, tuning), ...xpLevelEvents(before, tuning, out)];
 }
 
 /**
@@ -273,7 +274,11 @@ export function closeEvents(
     return out;
   }
   const chapter = award(state, tuning.progression.xp.chapter, "chapter", "A chapter closed", tuning);
-  out.push(...chapter, ...classLevelEvents(state, chapter, content.classes ?? {}, tuning));
+  out.push(
+    ...chapter,
+    ...classLevelEvents(state, chapter, content.classes ?? {}, tuning),
+    ...xpLevelEvents(state, tuning, chapter),
+  );
   out.push(...improvementRolls(state, "chapter", content, tuning));
   if (mode(state) === "useBased")
     for (const id of party(state)) {

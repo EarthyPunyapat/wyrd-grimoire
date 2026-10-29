@@ -128,6 +128,7 @@ export function Passage({
   onChoice,
   onFix,
   onUndo,
+  onAcceptLevel,
 }: {
   turn: WebTurn;
   view: GameView;
@@ -136,6 +137,7 @@ export function Passage({
   onReroll: () => void;
   onChoice?: (index: number, label: string) => void;
   onFix?: (turnId: string) => void;
+  onAcceptLevel?: (proposalId: string) => void;
   onUndo?: (retconId: string) => void;
 }) {
   const storageKey = `wyrd-check-dismissed-${turn.id}`;
@@ -281,6 +283,7 @@ export function Passage({
       </div>
       <aside className="margin-notes" aria-label="Margin notes">
         <Cards
+          onAcceptLevel={busy ? undefined : onAcceptLevel}
           cards={cards}
           view={view}
           mechanics={turn.mechanics}

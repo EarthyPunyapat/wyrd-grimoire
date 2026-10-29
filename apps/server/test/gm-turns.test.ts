@@ -266,3 +266,70 @@ test("server lookup uses global summaries offline and makes correctable lore vis
   expect(entries[0]!.facts[0]!.value).toContain("Marsh lights lure walkers off safe paths.");
   expect(entries[0]!.facts[0]!.editable).toBe(true);
 });
+
+test("milestone cards require acceptance, reject double acceptance, and update the sheet", async () => {
+  const s = await setup([
+    {
+      role: "gm",
+      match: (req) => toolResults(req) === 0,
+      reply: call("propose_level_up", { level: 2, reason: "The first journey" }),
+    },
+    { role: "gm", reply: { text: "You are ready to advance." } },
+  ]);
+  await s.turn("I complete the journey.", "level-1");
+  let view = await s.view();
+  expect(view.pc.level).toBe(1);
+  const card = view.turns.at(-1)!.cards.find((c) => c.type === "levelUp");
+  expect(card?.type).toBe("levelUp");
+  if (card?.type !== "levelUp") throw new Error("Missing proposal card");
+  expect(view.levelProposals.find((p) => p.id === card.proposalId)?.status).toBe("pending");
+  s.server.store.startJob({
+    id: "busy-level",
+    campaign_id: s.id,
+    client_id: "busy-level",
+    input: "wait",
+    status: "running",
+    target_id: null,
+  });
+  const conflict = await s.request(`/campaigns/${s.id}/levels/${card.proposalId}/accept`, {}, s.cookie);
+  expect(conflict.status).toBe(409);
+  s.server.store.finish("busy-level");
+  const accepted = await s.request(`/campaigns/${s.id}/levels/${card.proposalId}/accept`, {}, s.cookie);
+  expect(accepted.status).toBe(200);
+  view = GameView.parse(await accepted.json());
+  expect(view.pc.level).toBe(2);
+  expect(view.powerRating).toBe(8);
+  const duplicate = await s.request(`/campaigns/${s.id}/levels/${card.proposalId}/accept`, {}, s.cookie);
+  expect(duplicate.status).toBe(409);
+});
+
+test("GM level corrections have an Undo and XP awards advance Levels through the real tool loop", async () => {
+  const gm = await setup([
+    {
+      role: "gm",
+      match: (req) => toolResults(req) === 0,
+      reply: call("set_level", { level: "infinite", reason: "Player correction" }),
+    },
+    { role: "gm", reply: { text: "Your sovereignty is restored." } },
+  ]);
+  await gm.turn("/gm My level is infinite.", "gm-level-1");
+  let view = await gm.view();
+  expect(view.pc.level).toBe("infinite");
+  expect(view.powerRating).toBe("∞");
+  const retcon = view.turns.at(-1)!.retcon!;
+  const undone = await gm.request(`/campaigns/${gm.id}/retcons/${retcon.retconId}/undo`, {}, gm.cookie);
+  expect(undone.status).toBe(200);
+  expect(GameView.parse(await undone.json()).pc.level).toBe(1);
+  const xp = await setup([
+    {
+      role: "gm",
+      match: (req) => toolResults(req) === 0,
+      reply: call("change_state", { changes: [{ kind: "xp", actorId: "pc", amount: 100 }] }),
+    },
+    { role: "gm", reply: { text: "The journey taught you much." } },
+  ]);
+  await xp.turn("Award the quest XP.", "xp-level-1");
+  view = await xp.view();
+  expect(view.pc.level).toBe(4);
+  expect(view.pc.progression.xpEarned).toBe(100);
+});

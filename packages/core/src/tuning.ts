@@ -33,6 +33,20 @@ export type WoundEffect = {
  * Spec numbers are defaults, not constants: rules code reads them from a Tuning value.
  */
 export type Tuning = {
+  levels: {
+    start: number;
+    step: number;
+    minRank: number;
+    maxRank: number;
+    oneStepBonus: number;
+    autoGap: number;
+    rankBonus: { divisor: number };
+    bands: { from: number; through?: number; name: string }[];
+    powerRating: { base: number; exponent: number; rankDivisor: number };
+    xpThresholds: Record<number, number>;
+    xpCurve: { base: number; exponent: number };
+    breakthroughDifficulty: Difficulty;
+  };
   lore: {
     requestIntervalMs: number;
     requestTimeoutMs: number;
@@ -408,6 +422,27 @@ export type Tuning = {
 };
 
 export const defaultTuning: Tuning = {
+  levels: {
+    start: 1,
+    step: 1,
+    minRank: 1,
+    maxRank: 10,
+    oneStepBonus: 10,
+    autoGap: 2,
+    rankBonus: { divisor: 2 },
+    bands: [
+      { from: 1, through: 4, name: "Human to street" },
+      { from: 5, through: 8, name: "City to country" },
+      { from: 9, through: 12, name: "Planet to star system" },
+      { from: 13, through: 16, name: "Galaxy to universe" },
+      { from: 17, through: 20, name: "Multiversal and beyond" },
+      { from: 21, name: "Open-ended" },
+    ],
+    powerRating: { base: 2, exponent: 1.5, rankDivisor: 20 },
+    xpThresholds: { 1: 0, 2: 10, 3: 40, 4: 90 },
+    xpCurve: { base: 10, exponent: 2 },
+    breakthroughDifficulty: "normal",
+  },
   lore: {
     requestIntervalMs: 1000,
     requestTimeoutMs: 15000,

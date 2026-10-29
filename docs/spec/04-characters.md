@@ -173,3 +173,14 @@ Each companion has **approval** from −100 to +100 toward the PC, driven by the
 ### Companion death
 
 Off by default in normal campaigns (companions are Defeated like the PC). On in hardcore. A settings toggle allows it in normal campaigns too.
+
+
+## Cosmic advancement (W2, D131)
+
+Cosmic Levels sit alongside the original progression modes. `LevelProposed` creates a pending milestone; a `levelUp` card binds to that proposal by ID. Only an explicit player acceptance route grants it. A later gain supersedes pending proposals; stale, repeated and dead-actor acceptance is refused. Proposals and their status rebuild from events.
+
+Lifetime XP crosses cumulative `tuning.levels.xpThresholds` (default 0/10/40/90 for Levels 1–4); later thresholds use the configured open-ended curve, default `10 × (level − 1)^2`. Quest/discovery/combat/chapter awards and GM XP changes emit `LevelGained` for every crossed threshold. These awards do not spend skill-training XP or replace class levels.
+
+The `breakthrough` tool runs an ordinary training check at equal effective level using `tuning.levels.breakthroughDifficulty`; success advances by `tuning.levels.step` and applies its stated HP strain cost. Failure grants no level and no success cost. The cost must leave the actor alive. Training/time-skip workstreams can call the same deterministic engine helper.
+
+Explicit `/gm` mode additionally permits `set_level`, including correction to infinity or a lower level, through the existing Retcon/Undo flow. Ordinary turns cannot use it. `grant_ability` and `rank_ability` validate IDs and rank bounds; ability descriptions include a cost or limit. The sheet shows Levels, power rating and abilities; the strip shows Level, and ability hotbar buttons prefill the composer.

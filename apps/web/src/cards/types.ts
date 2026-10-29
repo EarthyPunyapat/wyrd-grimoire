@@ -8,6 +8,7 @@ export type CardProps<T extends Card["type"] = Card["type"]> = {
   view: GameView;
   mechanics: MechanicsLine[];
   retcon?: RetconView;
+  onAcceptLevel?: (proposalId: string) => void;
   onUndo?: (retconId: string) => void;
 };
 

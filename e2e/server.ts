@@ -46,11 +46,46 @@ const cases = new FakeProvider([
     },
   },
 ]);
+// Levels UI fixture: all other GM calls fail into the existing classic offline path.
+const levelModel = new FakeProvider([
+  {
+    role: "gm",
+    match: (r) => r.messages.some((m) => m.role === "user" && m.content.includes("level workflow")),
+    reply: (r) => {
+      const count = r.messages.filter((m) => m.role === "tool").length;
+      if (count === 0)
+        return {
+          toolCall: {
+            name: "grant_ability",
+            args: {
+              ability: {
+                id: "marshfire",
+                name: "Marshfire",
+                description: "A pale guiding flame.",
+                level: 1,
+                rank: 3,
+                cost: "Once per scene",
+              },
+            },
+          },
+        };
+      if (count === 1)
+        return {
+          toolCall: {
+            name: "propose_level_up",
+            args: { level: 2, reason: "You completed the first journey." },
+          },
+        };
+      return { text: "The first journey is complete. Your next level awaits your choice." };
+    },
+  },
+]);
 const provider: ChatProvider = {
   id: "offline",
   kind: "fake",
   listModels: () => offline.listModels(),
   generate: (request) => {
+    if (request.role === "gm") return levelModel.generate(request);
     const input = request.messages[0];
     const context = input?.role === "user" ? input.content : "";
     const current = /## This turn\n\n(?:[\s\S]*?\n)?Player: (.*)/.exec(context)?.[1] ?? "";
@@ -67,7 +102,7 @@ const router = new RoleRouter({
   usage: { record: (r) => instance.store.recordUsage(r) },
   providers: { offline: provider },
   routing: Object.fromEntries(
-    ["parser", "narrator", "guard", "worldGen"].map((role) => [
+    ["parser", "narrator", "guard", "worldGen", "gm"].map((role) => [
       role,
       { provider: "offline", model: "offline", fallbacks: [] },
     ]),

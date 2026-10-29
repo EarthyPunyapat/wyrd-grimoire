@@ -1,4 +1,4 @@
-import type { GameView } from "@wyrd/core";
+import { defaultTuning, type GameView } from "@wyrd/core";
 
 export type Menu = "sheet" | "inventory" | "party" | "journal" | "codex" | "map" | "timeline";
 
@@ -49,6 +49,7 @@ export function StatusStrip({
         {view.scene?.zone ? ` · ${view.scene.zone}` : ""}
       </span>
       <span className="strip-name">{view.pc.identity.name}</span>
+      <span className="strip-meta">{`Level ${view.pc.level === "infinite" ? "∞" : (view.pc.level ?? defaultTuning.levels.start)}`}</span>
       <span className="strip-meta">
         HP {view.pc.status.hp}/{view.pc.derived.hpMax}
       </span>

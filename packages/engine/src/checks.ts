@@ -15,6 +15,7 @@ import {
 } from "@wyrd/core";
 import { conditionEffects } from "./conditions.ts";
 import { woundModifiers } from "./injury/penalties.ts";
+import { effectiveLevel, levelDelta, resolveLevelCheck } from "./levels.ts";
 import { compareResults, isSuccess, RESOLUTION_MODULES } from "./resolution/index.ts";
 import { fail, ok, type Result } from "./result.ts";
 import { governingAttribute, lookupSkill, skillLabel, skillValue } from "./skills.ts";
@@ -53,6 +54,7 @@ export function prepareCheck(
 ): Result<{ prepared: PreparedCheck; autoFail: string | undefined; consumed: string[] }> {
   const actor = state.actors[req.actorId];
   if (!actor) return fail("ACTOR_UNKNOWN", `No actor ${req.actorId}`);
+  if (actor.dead) return fail("ACTOR_DEAD", "The dead cannot act");
   const sheet = actor.sheet;
 
   let label: string;
@@ -114,6 +116,35 @@ function roll(state: GameState, rng: Rng, req: CheckRequest, ctx: RulesContext):
       prepared,
       result: { degree: "failure", margin: 0, rolls: [], display: { text, degree: "failure" } },
       autoFailed: autoFail,
+      consumed,
+    });
+  }
+  const sheet = state.actors[req.actorId]!.sheet;
+  const d20 = state.campaign.settings.structural.resolution === "d20";
+  const against = req.opposition ?? (req.opposedBy ? { actorId: req.opposedBy.actorId } : undefined);
+  const opposition = against && "actorId" in against ? state.actors[against.actorId]?.sheet : against;
+  if (against && !opposition) return fail("OPPOSITION_UNKNOWN", "Unknown opposition actor");
+  const ability = req.abilityId ? sheet.abilities?.find((a) => a.id === req.abilityId) : undefined;
+  if (req.abilityId && !ability) return fail("ABILITY_UNKNOWN", "Unknown ability");
+  if (
+    d20 ||
+    effectiveLevel(sheet, ctx.tuning) === "infinite" ||
+    (opposition && effectiveLevel(opposition, ctx.tuning) === "infinite")
+  ) {
+    const target = opposition ?? {
+      level:
+        effectiveLevel(sheet, ctx.tuning) === "infinite"
+          ? ctx.tuning.levels.start
+          : effectiveLevel(sheet, ctx.tuning),
+    };
+    const result = resolveLevelCheck(prepared, levelDelta(sheet, target, ctx.tuning), rng, ctx.tuning, {
+      rank: ability?.rank,
+      exploit: req.exploit,
+    });
+    return ok({
+      prepared,
+      result,
+      autoFailed: result.rolls.length === 0 && !isSuccess(result.degree) ? result.display.text : undefined,
       consumed,
     });
   }
@@ -222,6 +253,7 @@ export function resolveOpposedCheck(
     boons: 0,
     banes: 0,
     purpose: `opposing: ${activeReq.purpose}`,
+    opposition: { actorId: activeReq.actorId },
     tags: [],
   };
 

@@ -28,13 +28,18 @@ function run(name: string, args: unknown) {
 }
 const types = (r: Awaited<ReturnType<typeof run>>) => r.effects.drafts.map((d) => d.type);
 
-test("lists the nine GM tools", () => {
+test("lists core and Levels GM tools", () => {
   expect(
     gmToolDefs({ inCombat: false })
       .map((t) => t.name)
       .sort(),
   ).toEqual(
     [
+      "propose_level_up",
+      "grant_ability",
+      "rank_ability",
+      "breakthrough",
+      "set_level",
       "act",
       "change_state",
       "lookup_lore",
