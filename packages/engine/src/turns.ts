@@ -11,12 +11,13 @@ import { companionBeats } from "./companions.ts";
 import { type ExplorationContext, type PlanError, resolvePlan, validatePlan } from "./exploration.ts";
 import { restImprovements, turnAwards, turnMarks } from "./progression.ts";
 import { fail, ok, type Result } from "./result.ts";
+import { type SceneReactionContext, sceneReactions } from "./scene-reactions.ts";
 import type { GameState } from "./state.ts";
 import { Working } from "./working.ts";
 import { afterTurn, type KnowledgeContext } from "./world/knowledge.ts";
 
 /** Everything a turn's rules need, in exploration or combat, plus the world's canon lookups. */
-export type TurnContext = ExplorationContext & CombatContext & KnowledgeContext;
+export type TurnContext = ExplorationContext & CombatContext & KnowledgeContext & SceneReactionContext;
 
 export type TurnPlan = { actorId: ActorId; actions: unknown[] };
 export type TurnPlanError =
@@ -60,9 +61,23 @@ export function resolveTurn(
   if (!r.ok) return r;
   const w = new Working(state);
   w.apply(r.value.events);
-  const after = afterTurn(w.state, r.value.resolution, ctx);
+  const reaction = sceneReactions(
+    w.state,
+    r.value.resolution,
+    ctx,
+    state.combat?.id ?? w.state.combat?.id ?? combatId,
+  );
+  w.apply(reaction.events);
+  const responded = reaction.responses.length
+    ? {
+        ...r.value.resolution,
+        responses: reaction.responses,
+        requiredBeats: [...r.value.resolution.requiredBeats, ...reaction.responses.map((x) => x.summary)],
+      }
+    : r.value.resolution;
+  const after = afterTurn(w.state, responded, ctx);
   w.apply(after.events);
-  const turn = [...r.value.events, ...after.events];
+  const turn = [...r.value.events, ...reaction.events, ...after.events];
   const progress = [
     ...turnMarks(state, turn),
     ...turnAwards(state, w.state, turn, ctx.kindOf ?? (() => undefined), ctx.tuning),
@@ -75,7 +90,7 @@ export function resolveTurn(
   progress.push(...rested, ...owed.events);
   const beats = [...after.beats, ...owed.beats];
   const resolution = beats.length
-    ? { ...r.value.resolution, requiredBeats: [...r.value.resolution.requiredBeats, ...beats] }
-    : r.value.resolution;
+    ? { ...responded, requiredBeats: [...responded.requiredBeats, ...beats] }
+    : responded;
   return ok({ events: [...turn, ...progress], resolution });
 }

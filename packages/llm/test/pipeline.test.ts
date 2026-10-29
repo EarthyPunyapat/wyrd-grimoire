@@ -188,8 +188,8 @@ describe("exploration turn end to end (FakeProvider)", () => {
     expect(t.events.map((e) => e.type)).toEqual(["turn.accepted", "narration.final", "turn.completed"]);
     // One usage record per call: parser, narrator, guard.
     expect(t.usage.records.map((u) => [u.role, u.promptVersion, u.turnId])).toEqual([
-      ["parser", "parser@3", r.turnId],
-      ["narrator", "narrator@3", r.turnId],
+      ["parser", "parser@4", r.turnId],
+      ["narrator", "narrator@4", r.turnId],
       ["guard", "guard@2", r.turnId],
     ]);
     // The parser saw IDs; the narrator saw the required beats; the guard saw the draft.
@@ -311,7 +311,7 @@ describe("exploration turn end to end (FakeProvider)", () => {
     ]);
     const r = await t.pipeline.run({ input: "To the jetty; ask the price.", onEvent: t.onEvent });
     expect(r).toMatchObject({
-      narration: "Wenna names her price.",
+      narration: 'Wenna names her price.\n\n<say who="npc:wenna">I\'m listening.</say>',
       guard: { checked: true, regenerated: true, flagged: [] },
     });
     const second = t.fake.calls("narrator")[1]!;
@@ -433,7 +433,7 @@ describe("exploration turn end to end (FakeProvider)", () => {
       },
     );
     const r = await t.pipeline.run({ input: "To the jetty." });
-    expect(r.narration).toBe("Narrated by DeepSeek.");
+    expect(r.narration).toBe('Narrated by DeepSeek.\n\n<say who="npc:wenna">I\'m listening.</say>');
     expect(t.plan.requests).toHaveLength(1);
     expect(t.usage.records.filter((u) => u.role === "narrator").map((u) => [u.provider, u.ok])).toEqual([
       ["plan", false],

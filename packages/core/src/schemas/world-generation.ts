@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AttributeId, ContentId } from "./common.ts";
+import { ReactionProfile } from "./scene-responses.ts";
 
 const name = z.string().trim().min(1).max(100);
 const description = z.string().trim().min(1).max(1500);
@@ -49,6 +50,7 @@ export const WorldProposal = z
                 description,
                 zone: z.number().int().min(0).max(4),
                 secret: z.string().max(1000).nullable(),
+                reactionProfile: ReactionProfile.optional(),
               })
               .strict(),
           )
@@ -171,6 +173,7 @@ export const WorldBible = z
             site: name,
             want: short,
             secret: short.nullable(),
+            reactionProfile: ReactionProfile.optional(),
           })
           .strict(),
       )
@@ -210,6 +213,7 @@ export const LocationProposal = z
             description: short,
             zone: z.number().int().min(0).max(4),
             secret: short.nullable(),
+            reactionProfile: ReactionProfile.optional(),
           })
           .strict(),
       )

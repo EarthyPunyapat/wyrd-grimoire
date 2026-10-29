@@ -247,3 +247,9 @@ type GuardReport = {
 - Retrieval recall@10 ≥ 0.9 on the campaign memory eval set.
 - Blocking contradictions reaching the player (after regeneration): < 1 per 100 turns.
 - NPC knowledge leaks (an NPC referencing something it never learned): < 1 per 200 NPC lines.
+
+## Incident responses and narrator knowledge
+
+The engine can attach optional structured `response` metadata to an NPC’s witnessed memory: incident, round, acting character, response stage and observable result. This provides replayable reaction history without a wall-clock timer or a new parallel companion-approval system. The first witnessed assault changes applicable ordinary-NPC disposition; repeated warnings do not reset the incident or stack the same initial penalty every round.
+
+An engine-recorded incident observation is not duplicated by the guard for the same turn. Rerolling narration does not add witness memories. The narrator’s selected-speaker context contains relevant shared incidents and things the PC told that NPC, plus public characterization; it does not retrieve private NPC memory namespaces. Private NPC reasoning/disclosures require the isolated, validated dialogue path described above.

@@ -23,6 +23,7 @@ The engine is always in one mode, which decides the action catalog and which rol
 3. GENERATE     if the plan references unknown things → lazy generation (06), committed first
 4. VALIDATE     engine checks legality; on failure → repair loop (max 2) → clarification
 5. RESOLVE      engine executes the plan in order; reactions; AI turns until the player acts again
+                then a bounded scene-response phase (witnesses, speech, legal intervention)
 6. VOICE        narrator (or npcDialogue in dialogue mode) writes the passage
 7. GUARD        canon guard checks it (07); regenerate once if blocking; flag if still blocking
 8. COMMIT       all events in one transaction; projections updated
@@ -115,7 +116,7 @@ type ValidationResult =
 ### Narrator output contract
 
 - **Second person, present tense** ("You shoulder the door…"). A setting allows third person.
-- **Length targets:** exploration 80–200 words; each combat passage 60–150; downtime summaries 60–120.
+- **Length:** follows the significance of resolved events and the configured narration length. Routine exchanges may be a few sentences; do not fill a minimum word count with unchanged ambience. Preserve the player-then-others action order and every essential outcome.
 - **Must** narrate every required beat consistently with the resolution. **Must not** invent outcomes, damage, items, deaths, or the PC's feelings and decisions beyond what the player stated.
 - **No numbers** in prose (they live in the mechanics log).
 - Dialogue is wrapped for voicing: `<say who="npc_harl">Get out of my bar.</say>`. Narration outside tags is the narrator's voice.
@@ -123,6 +124,16 @@ type ValidationResult =
 - Respect content dials, lines and veils, and the narration language.
 
 The narrator has **no state-changing tools**. New named things it mentions are caught by the guard and committed as stubs (or blocked if they contradict canon).
+
+### Incident responses in ordinary turns
+
+Attempted violence is noticed even on a miss. Combat steps capture eligible witnesses before later movement. The engine's bounded scene-response policy uses established reaction profiles, perception, capabilities and previous responses in the incident; active companions retain their M6 control and approval systems. Eligible targets and salient witnesses can protest, request help, retreat or intervene. Scene reactions are separate from occasional companion banter.
+
+A neutral witness's retreat uses a legal adjacent move and normal movement/AP costs. A protector who joins an ongoing fight rolls initiative and acts at their next normal slot; joining grants no attack. A civilian target's escape intent is attempted on their existing turn. A shout cannot create guards or claim their arrival. The policy emits optional `Resolution.responses`, with actual results and speech intents; the narrator has no new state-changing tools.
+
+Incident/round/actor keys persist in optional response metadata on NPC memories. They work while combat advances no game minutes. Repeated identical warnings are suppressed. Narration rerolls do not record the same incident or witness observation again. The voice layer supplies a safe fallback for a selected, speakable NPC if model prose omits a valid spoken line; the guard checks the combined text.
+
+The narrator receives relevant shared history and public characterization for selected responders and `talk`/`speak` targets. Private NPC retrieval namespaces remain outside narrator context. Nonverbal responses do not authorize dialogue. Full isolated private NPC dialogue tools below remain a later capability.
 
 ### Dialogue mode (npcDialogue)
 

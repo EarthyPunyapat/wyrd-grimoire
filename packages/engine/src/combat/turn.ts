@@ -10,10 +10,11 @@ import {
 } from "@wyrd/core";
 import { applyCondition, removeCondition } from "../conditions.ts";
 import { fail, ok, type Result } from "../result.ts";
+import { sceneWitnesses } from "../scene-perception.ts";
+import { sceneActions } from "../scene-tactics.ts";
 import type { GameState } from "../state.ts";
 import { Working } from "../working.ts";
 import { type ActionError, apCost, resolveCombatAction, validateCombatAction } from "./actions.ts";
-import { chooseActions } from "./ai.ts";
 import {
   type CombatContext,
   type CombatStep,
@@ -168,6 +169,10 @@ function runActions(
   ran: Ran,
 ) {
   for (const [i, a] of actions.entries()) {
+    const witnessIds =
+      HOSTILE.has(a.type) && "targetId" in a && a.targetId
+        ? sceneWitnesses(w.state, actorId, a.targetId, ctx)
+        : undefined;
     const me = combatant(w.state, actorId);
     if (!me) return;
     const e = validateCombatAction(w.state, actorId, a, me.ap, ctx);
@@ -180,6 +185,7 @@ function runActions(
           outcome: "failure",
           summary: `${ctx.nameOf(actorId)} couldn't go on: ${e.message}.`,
           lines: [],
+          ...(witnessIds ? { witnessIds } : {}),
           phase,
         });
       }
@@ -228,7 +234,7 @@ function runActions(
       });
       return;
     }
-    ran.steps.push(...r.value.map((s) => ({ ...s, phase })));
+    ran.steps.push(...r.value.map((s) => ({ ...s, phase, ...(witnessIds ? { witnessIds } : {}) })));
     ran.steps.push(...checkMorale(w, ctx).map((s) => ({ ...s, phase })));
     ran.outcome = combatOutcome(w.state, ctx);
     if (ran.outcome || !canAct(w.state, actorId)) return;
@@ -243,7 +249,7 @@ function runOthers(w: Working, ctx: CombatContext, ran: Ran, stopAtPlayer: boole
     const c = combatant(w.state, id)!;
     if (stopAtPlayer && c.controlled && canAct(w.state, id) && c.ap > 0) return;
     if (canAct(w.state, id) && !c.controlled)
-      runActions(w, id, chooseActions(w.state, id, ctx), "others", ctx, ran);
+      runActions(w, id, sceneActions(w.state, id, ctx), "others", ctx, ran);
     if (ran.outcome) return;
     ran.steps.push(...endTurn(w, ctx).map((s) => ({ ...s, phase: "others" as const })));
     ran.outcome = combatOutcome(w.state, ctx);
@@ -270,6 +276,7 @@ function toResolution(
     lines: s.lines,
     actorId: s.actorId,
     phase: s.phase,
+    ...(s.witnessIds ? { witnessIds: s.witnessIds } : {}),
   }));
   const beats = ran.steps.map((s) => s.summary);
   if (ended) beats.push(ended.summary);

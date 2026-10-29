@@ -15,10 +15,12 @@ import {
 import {
   actingActor,
   approvalEvents,
+  awake,
   type CombatInfo,
   combatView,
   type GameState,
   mechanicalSummary,
+  perceives,
   type RulesContext,
   resolveTurn,
   type TurnContext,
@@ -41,6 +43,8 @@ import {
   PARSER_VERSION,
 } from "./prompts/index.ts";
 import type { RoleRouter } from "./router.ts";
+import { sceneProfile } from "./scene-profiles.ts";
+import { withSceneSpeech } from "./scene-voice.ts";
 import {
   AnswerOoc,
   AskClarification,
@@ -141,6 +145,7 @@ export function makeTurnContext(
     ...rules,
     ...c,
     ...(opts.recruitSheet ? { recruitSheet: opts.recruitSheet } : {}),
+    reactionInfo: (id) => sceneProfile(state, canon.entity(id), id),
     nameOf: (id) =>
       state.actors[id]?.sheet.identity.name ??
       canon.entity(id)?.name ??
@@ -582,14 +587,21 @@ export class TurnPipeline {
         repairs,
       );
     const { events: ruleEvents, resolution } = resolved.value;
-    const mechanics = resolution.steps.flatMap((s) => (s.mechanics ? [s.mechanics] : []));
+    const mechanics = resolution.steps.flatMap((s) =>
+      s.lines?.length ? s.lines : s.mechanics ? [s.mechanics] : [],
+    );
     for (const line of mechanics) emit({ type: "mechanics.line", line });
 
     // ── Narrate and guard ──────────────────────────────────────────────────
     // In a fight the narrator and guard see the state after it (who's down, who's new to the scene).
     const narrState = resolution.combat ? afterEvents(state, ruleEvents) : state;
     const voiced = await this.voice(narrState, t.input, resolution, call, emit);
-    const canonDrafts = this.canonFromGuard(narrState, voiced.report);
+    const observedIds = new Set(
+      ruleEvents.flatMap((e) =>
+        e.type === "MemoryRecorded" && e.payload.memory.kind === "witnessed" ? [e.payload.memory.npcId] : [],
+      ),
+    );
+    const canonDrafts = this.canonFromGuard(narrState, voiced.report, { observedIds });
     canonDrafts.push(...this.afterGuard(state, ruleEvents, canonDrafts, voiced.report, ctx));
 
     const completed = draft("TurnCompleted", {
@@ -639,7 +651,7 @@ export class TurnPipeline {
         ...(corrections ? { corrections } : {}),
         ...(excludeTurnId ? { excludeTurnId } : {}),
       });
-      return this.d.router.complete(
+      const completion = await this.d.router.complete(
         "narrator",
         { instructions: p.instructions, messages: [{ role: "user", content: p.context }] },
         {
@@ -649,6 +661,14 @@ export class TurnPipeline {
           ...(showFirst ? { onText: (delta: string) => emit({ type: "narration.delta", delta }) } : {}),
         },
       );
+      return {
+        ...completion,
+        text: withSceneSpeech(
+          completion.text,
+          resolution.responses,
+          (id) => state.actors[id]?.sheet.identity.name ?? this.d.canon.entity(id)?.name ?? id,
+        ),
+      };
     };
     const check = async (text: string): Promise<GuardReportV1 | null> => {
       const p = this.prompt("guard", state, { input, resolution, draft: text });
@@ -681,7 +701,11 @@ export class TurnPipeline {
       return {
         report: null,
         narration: {
-          text: mechanicalSummary(resolution),
+          text: withSceneSpeech(
+            mechanicalSummary(resolution),
+            resolution.responses,
+            (id) => state.actors[id]?.sheet.identity.name ?? this.d.canon.entity(id)?.name ?? id,
+          ),
           provider: "engine",
           model: "mechanical",
           promptVersion: NARRATOR_VERSION,
@@ -743,14 +767,23 @@ export class TurnPipeline {
   }
 
   /** New named entities become canon stubs at the current location; new facts attach to known entities. */
-  private canonFromGuard(state: GameState, report: GuardReportV1 | null): EventDraft[] {
+  private canonFromGuard(
+    state: GameState,
+    report: GuardReportV1 | null,
+    options: { recordWitnesses?: boolean; observedIds?: ReadonlySet<string> } = {},
+  ): EventDraft[] {
     if (!report) return [];
     const drafts: EventDraft[] = [];
     // Witnesses (spec 07): only people actually present get the memory.
     const present = new Set(Object.keys(state.scene?.positions ?? {}));
     report.witnessObservations.forEach((w, i) => {
+      if (options.recordWitnesses === false) return;
       for (const id of w.witnessIds) {
+        if (options.observedIds?.has(id)) continue;
         if (!present.has(id) || id === state.party.pcId || state.actors[id]?.dead) continue;
+        if (!awake(state, id) || (state.party.pcId && !perceives(state, id, state.party.pcId))) continue;
+        const kind = this.d.canon.entity(id)?.kind;
+        if (kind && kind !== "npc" && kind !== "creature") continue;
         drafts.push(
           draft(
             "MemoryRecorded",
@@ -992,7 +1025,10 @@ export class TurnPipeline {
       const call = { campaignId: this.d.campaignId, turnId };
       const voiced = await this.voice(before, turn.input, record.resolution, call, emit, turnId);
       this.d.store.append(
-        [...this.canonFromGuard(before, voiced.report), draft("NarrationRerolled", voiced.narration)],
+        [
+          ...this.canonFromGuard(before, voiced.report, { recordWitnesses: false }),
+          draft("NarrationRerolled", voiced.narration),
+        ],
         {
           turnId,
         },

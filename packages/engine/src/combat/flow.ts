@@ -231,7 +231,7 @@ export function startCombat(state: GameState, input: StartInput, ctx: CombatCont
       }),
     ),
     engaged: [],
-    intent: enemyIntent ?? "kill",
+    intent: enemyIntent ?? COMMONER.intent,
     props: {},
     morale: [],
   };

@@ -3,6 +3,18 @@
 Working notes for whichever agent picks this up next. Read `AGENTS.md` first, then this file.
 Delete this file once its notes are no longer useful.
 
+## NPC reactivity repair — `fix/npc-reactions` on M6
+
+Built on M6 commit `7747c38`; M6's source branch is preserved. See
+[`docs/superpowers/plans/2026-10-29-npc-reactivity.md`](docs/superpowers/plans/2026-10-29-npc-reactivity.md).
+New scene-response modules add target/witness speech, incident memories, legal retreat/intervention,
+profile-sensitive civilian escape, safe speaker context and fallback dialogue. Shared turn/pipeline
+hooks retain progression awards, recruitment, approval caps, manual companion control and directives.
+D110–D112 explain the policy, pacing and opposed-check corrections. No character stats were changed.
+Validated: 463 tests, typecheck, lint, pack validation, build, and 25 browser cases (one existing skip).
+
+Real-provider prose quality is still an owner playtest; automated/scripted checks do not establish it.
+
 ## Status (2026-10-28)
 
 **M1 — Engine core is done** on branch `m1-engine-core` (PR #1). Every acceptance box is ticked,

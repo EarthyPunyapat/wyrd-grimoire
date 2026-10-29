@@ -15,6 +15,7 @@ export * from "./resolution/d20.ts";
 export * from "./resolution/d100.ts";
 export * from "./resolution/index.ts";
 export * from "./result.ts";
+export { awake, perceives } from "./scene-perception.ts";
 export * from "./settings.ts";
 export * from "./skills.ts";
 export * from "./state.ts";

@@ -613,7 +613,10 @@ function contest(
   const r = opposed(w, actorId, skill, targetId, against, `${kind} ${name(targetId)}`, ctx);
   if (!r) return fail("CHECK_FAILED", `${kind} couldn't be attempted`);
   const lines = [r.active.display, { ...r.defender.display, text: `Resist: ${r.defender.display.text}` }];
-  if (r.winner === "defender")
+  const won = r.winner !== "defender";
+  const outcome = won ? (isSuccess(r.active.degree) ? r.active.degree : "success") : "failure";
+  lines.push({ text: `${name(won ? actorId : targetId)} wins the ${kind} contest.`, degree: outcome });
+  if (!won)
     return ok([
       step(
         actorId,
@@ -626,20 +629,12 @@ function contest(
   if (kind === "trip") {
     apply(w, applyCondition(w.state, targetId, { id: "core:prone" }));
     return ok([
-      step(
-        actorId,
-        a,
-        r.active.degree,
-        `${name(actorId)} tripped ${name(targetId)}, who went sprawling.`,
-        lines,
-      ),
+      step(actorId, a, outcome, `${name(actorId)} tripped ${name(targetId)}, who went sprawling.`, lines),
     ]);
   }
   if (kind === "grapple") {
     apply(w, applyCondition(w.state, targetId, { id: "core:grappled" }));
-    return ok([
-      step(actorId, a, r.active.degree, `${name(actorId)} seized ${name(targetId)} in a grapple.`, lines),
-    ]);
+    return ok([step(actorId, a, outcome, `${name(actorId)} seized ${name(targetId)} in a grapple.`, lines)]);
   }
   const tz = zoneOf(w.state, targetId)!;
   const to = toZoneId ?? neighbours(w.state, tz)[0]?.zoneId;
@@ -649,7 +644,7 @@ function contest(
     step(
       actorId,
       a,
-      r.active.degree,
+      outcome,
       `${name(actorId)} shoved ${name(targetId)}${to ? ` back into ${name(to)}` : ""}.`,
       lines,
     ),

@@ -1,4 +1,5 @@
 import type { Difficulty, PenaltyScope } from "./schemas/common.ts";
+import { defaultSceneReactionTuning, type SceneReactionTuning } from "./schemas/scene-responses.ts";
 
 export type LocationKind = "head" | "torso" | "arm" | "leg";
 
@@ -198,9 +199,11 @@ export type Tuning = {
     thresholds: { confront: number; leave: number; quest: number; loyal: number };
   };
   snapshotEvery: number;
+  sceneReactions?: SceneReactionTuning;
 };
 
 export const defaultTuning: Tuning = {
+  sceneReactions: defaultSceneReactionTuning,
   version: 1,
   difficultyShift: { easy: 20, normal: 0, hard: -20, extreme: -40, heroic: -60 },
   difficultyDc: { easy: 7, normal: 11, hard: 15, extreme: 19, heroic: 23 },
