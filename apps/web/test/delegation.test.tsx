@@ -12,6 +12,7 @@ test("a loyal Ari adds a delegation hotbar action; absent or nonloyal companions
     renderToStaticMarkup(
       <Hotbar
         companions={companions}
+        level="infinite"
         busy={false}
         inCombat={false}
         onFill={noop}
@@ -20,6 +21,7 @@ test("a loyal Ari adds a delegation hotbar action; absent or nonloyal companions
       />,
     );
   expect(render([{ id: "ari", name: "Ari", loyal: true }])).toContain("Delegate to Ari");
+  expect(render([{ id: "ari", name: "Ari", loyal: true }])).toContain("Send avatar");
   expect(render([])).not.toContain("Delegate to");
   expect(render([{ id: "ari", name: "Ari", loyal: false }])).not.toContain("Delegate to");
 });

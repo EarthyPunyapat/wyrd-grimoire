@@ -4,13 +4,14 @@ import {
   CreatedCampaign,
   CreationReview,
   CreationView,
+  DraftResume,
   GeneratedWorldPreview,
   presetSelection,
   StartGeneratedCampaign,
   type SuggestField,
   WorldPitch,
 } from "@wyrd/core";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, streamApi } from "./api.ts";
 import { CreationReviewEditor } from "./CreationReview.tsx";
 import { Interview } from "./Interview.tsx";
@@ -49,14 +50,40 @@ const STEP_ICON: Record<DraftProgressStep["status"], string> = {
 function loadSavedDraft(): Record<string, unknown> | null {
   try {
     const raw = localStorage.getItem(DRAFT_KEY);
-    return raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
+    if (!raw) return null;
+    const saved = JSON.parse(raw) as Record<string, unknown>;
+    // A drafted world already lives in the server's draft library; do not silently revive it here.
+    return saved.draftId ? null : saved;
   } catch {
     return null;
   }
 }
 
-export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => void; offline: boolean }) {
-  const [saved] = useState(loadSavedDraft);
+/** Elapsed seconds for the job in flight; progress has to be visible, not a frozen sentence. */
+function Elapsed({ active }: { active: boolean }) {
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    setSeconds(0);
+    const timer = setInterval(() => setSeconds((s) => s + 1), 1000);
+    return () => clearInterval(timer);
+  }, [active]);
+  if (!active || seconds < 1) return null;
+  return <span className="creation-elapsed">{seconds}s</span>;
+}
+
+export function NewCampaign({
+  onCreate,
+  offline,
+  draftId,
+  onOpenSettings,
+}: {
+  onCreate: (id: string) => void;
+  offline: boolean;
+  draftId?: string;
+  onOpenSettings?: () => void;
+}) {
+  const [saved] = useState(() => (draftId ? null : loadSavedDraft()));
   const restoredWorld = saved?.world ? GeneratedWorldPreview.safeParse(saved.world) : null;
   const [name, setName] = useState(typeof saved?.name === "string" ? saved.name : "");
   const [characterName, setCharacterName] = useState(
@@ -64,6 +91,9 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
   );
   const [sourceTitle, setSourceTitle] = useState(
     typeof saved?.sourceTitle === "string" ? saved.sourceTitle : "",
+  );
+  const [sourceMode, setSourceMode] = useState(
+    Boolean(typeof saved?.sourceTitle === "string" && saved.sourceTitle),
   );
   const [sourceWiki, setSourceWiki] = useState(
     typeof saved?.sourceWiki === "string" ? saved.sourceWiki : "en.wikipedia.org",
@@ -85,6 +115,9 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
   const [error, setError] = useState("");
   const [detail, setDetail] = useState("");
   const [busy, setBusy] = useState(false);
+  const [busyNote, setBusyNote] = useState("");
+  const [revising, setRevising] = useState(false);
+  const [resuming, setResuming] = useState(Boolean(draftId));
   const [mode, setMode] = useState<Mode>(
     saved?.mode === "editor" || saved?.mode === "wizard" || saved?.mode === "interview"
       ? saved.mode
@@ -103,6 +136,54 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
   const [steps, setSteps] = useState<DraftProgressStep[]>(
     Array.isArray(saved?.steps) ? (saved.steps as DraftProgressStep[]) : [],
   );
+  const errorBox = useRef<HTMLDivElement>(null);
+
+  // A long review can hide a failure below the fold; bring the message into view when it lands.
+  useEffect(() => {
+    if (!error) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    errorBox.current?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "nearest" });
+  }, [error]);
+
+  // Resume a draft from the server-side library: world, review and sheet all come back together.
+  useEffect(() => {
+    if (!draftId) return;
+    let cancelled = false;
+    setResuming(true);
+    setError("");
+    void api(`/world-drafts/${draftId}`, DraftResume.parse)
+      .then((resumed) => {
+        if (cancelled) return;
+        setWorld(resumed.preview);
+        setReview(resumed.review ?? resumed.preview.review);
+        setName(resumed.preview.name);
+        setPitch(resumed.pitch);
+        setCharacterName(resumed.characterName);
+        setSourceMode(Boolean(resumed.preview.source?.title));
+        setSourceTitle(resumed.preview.source?.title ?? "");
+        setSourceWiki(resumed.preview.source?.wiki ?? "en.wikipedia.org");
+        setAncestry(resumed.preview.origins[0]?.id ?? "");
+        setArchetype(resumed.preview.backgrounds[0]?.id ?? "");
+        setProgression(resumed.preview.progressions[0] ?? "classless");
+        setCustomSheet(resumed.hasSheet);
+        if (resumed.review) {
+          setResolution(resumed.review.resolution);
+          setHardcore(resumed.review.hardcore);
+          setPreset("custom");
+        }
+        setMode("review");
+        setSteps([]);
+      })
+      .catch((e) => {
+        if (!cancelled) setError((e as Error).message);
+      })
+      .finally(() => {
+        if (!cancelled) setResuming(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [draftId]);
 
   // Keep the unfinished creation on this device, so closing the dialog or the tab loses nothing.
   useEffect(() => {
@@ -128,6 +209,7 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
           mode,
           step,
           steps,
+          draftId: world?.id ?? null,
         }),
       );
     } catch {
@@ -157,11 +239,13 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
   const editing = mode !== "review";
   const blocked =
     mode === "editor" && (!creation.view || creation.view.issues.some((i) => i.severity === "error"));
+  const doneSteps = steps.filter((s) => s.status === "done").length;
 
   /** Opens the sheet (editor or wizard) on the saved draft, carrying over the quick picks and name. */
   async function customise(next: Mode) {
     if (!world) return;
     setBusy(true);
+    setBusyNote("Opening your character sheet…");
     try {
       const view = await api(`/world-drafts/${world.id}/creation`, CreationView.parse);
       let draft =
@@ -176,12 +260,14 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
       setError((e as Error).message);
     } finally {
       setBusy(false);
+      setBusyNote("");
     }
   }
 
   async function suggest(field: SuggestField) {
     if (!world) return;
     setBusy(true);
+    setBusyNote("Asking for a suggestion…");
     try {
       await creation.flush();
       creation.setView(await api(`/world-drafts/${world.id}/suggest`, CreationView.parse, { field }));
@@ -189,27 +275,48 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
       setError((e as Error).message);
     } finally {
       setBusy(false);
+      setBusyNote("");
+    }
+  }
+
+  /** The style sample's “More like…” loop: one model revision, with its own progress and error. */
+  async function reviseSample() {
+    if (!world || !review) return;
+    setRevising(true);
+    setError("");
+    setDetail("");
+    try {
+      const next = await api(`/world-drafts/${world.id}/style`, CreationReview.parse, review.style);
+      setReview((previous) => (previous ? { ...previous, style: next.style } : next));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setRevising(false);
     }
   }
 
   return (
     <form
-      aria-busy={busy}
+      className="creation-form"
+      aria-busy={busy || revising || resuming}
       onSubmit={async (e) => {
         e.preventDefault();
         setBusy(true);
+        setBusyNote(world ? "Preparing your campaign…" : "");
         setError("");
+        setDetail("");
         try {
           if (!world) {
             setSteps(INITIAL_STEPS);
-            setDetail("");
             const draft = await streamApi(
               "/world-drafts/stream",
               WorldPitch.parse({
                 name,
                 characterName,
                 pitch,
-                ...(sourceTitle.trim() ? { source: { title: sourceTitle, wiki: sourceWiki } } : {}),
+                ...(sourceMode && sourceTitle.trim()
+                  ? { source: { title: sourceTitle.trim(), wiki: sourceWiki.trim() } }
+                  : {}),
               }),
               GeneratedWorldPreview.parse,
               (data) => {
@@ -221,7 +328,10 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
             // Write it even if the dialog was closed mid-generation, so reopening resumes here.
             try {
               const previous = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "{}") as Record<string, unknown>;
-              localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...previous, world: draft }));
+              localStorage.setItem(
+                DRAFT_KEY,
+                JSON.stringify({ ...previous, world: draft, draftId: draft.id }),
+              );
             } catch {
               // Storage unavailable; the in-memory copy still works for this visit.
             }
@@ -281,86 +391,141 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
           setDetail((e as Error & { detail?: string }).detail ?? "");
         } finally {
           setBusy(false);
+          setBusyNote("");
         }
       }}
     >
       {offline && (
-        <p className="connection-banner">
+        <p className="connection-banner creation-banner">
           Offline preview uses a fixed sci-fi example. Connect models to generate a world from your
           description.
         </p>
       )}
-      <label>
-        Campaign name
-        <input
-          name="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          disabled={busy || Boolean(world)}
-          required
-          maxLength={100}
-          placeholder="Give this story a name"
-        />
-      </label>
-      {!editing && (
-        <label>
-          Character name <span className="muted">(optional)</span>
-          <input
-            name="characterName"
-            value={characterName}
-            onChange={(e) => {
-              setCharacterName(e.target.value);
-              if (customSheet && creation.view)
-                creation.edit({ ...creation.view.draft, name: e.target.value });
-            }}
-            disabled={busy}
-            maxLength={80}
-            placeholder={world ? world.suggestedCharacterName : "Choose now or let the world suggest one"}
-          />
-        </label>
-      )}
+      {resuming ? (
+        <p role="status" className="creation-busy">
+          Opening your unfinished story… <Elapsed active />
+        </p>
+      ) : null}
       {!world && (
-        <fieldset disabled={busy}>
-          <legend>Campaign source</legend>
+        <section className="creation-stage" aria-labelledby="pitch-heading">
+          <div className="creation-stage-head">
+            <span className="creation-stage-number" aria-hidden="true">
+              1
+            </span>
+            <div>
+              <h3 id="pitch-heading">The pitch</h3>
+              <p className="creation-stage-note">
+                Name the story and describe the world you want to step into.
+              </p>
+            </div>
+          </div>
           <label>
-            Inside a source <span className="muted">(optional; blank creates an original world)</span>
+            Campaign name
             <input
-              value={sourceTitle}
+              name="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={busy || Boolean(world)}
+              required
               maxLength={100}
-              onChange={(e) => setSourceTitle(e.target.value)}
-              placeholder="A novel, comic, or setting…"
+              placeholder="Give this story a name"
             />
           </label>
-          {sourceTitle && (
+          {!editing && (
             <label>
-              Source wiki
+              <span>
+                Character name <span className="muted">(optional)</span>
+              </span>
               <input
-                value={sourceWiki}
-                required
-                maxLength={200}
-                onChange={(e) => setSourceWiki(e.target.value)}
-                placeholder="en.wikipedia.org or dc.fandom.com"
+                name="characterName"
+                value={characterName}
+                onChange={(e) => {
+                  setCharacterName(e.target.value);
+                  if (customSheet && creation.view)
+                    creation.edit({ ...creation.view.draft, name: e.target.value });
+                }}
+                disabled={busy}
+                maxLength={80}
+                placeholder="Choose now or let the world suggest one"
               />
             </label>
           )}
-        </fieldset>
+          {!world && (
+            <fieldset className="source-choice">
+              <legend>Where does this story live?</legend>
+              <div className="source-options">
+                <label className={sourceMode ? "" : "source-option-active"}>
+                  <input
+                    type="radio"
+                    name="source-mode"
+                    checked={!sourceMode}
+                    disabled={busy}
+                    onChange={() => setSourceMode(false)}
+                  />
+                  An original world
+                  <span>Built from your pitch alone.</span>
+                </label>
+                <label className={sourceMode ? "source-option-active" : ""}>
+                  <input
+                    type="radio"
+                    name="source-mode"
+                    checked={sourceMode}
+                    disabled={busy}
+                    onChange={() => setSourceMode(true)}
+                  />
+                  Inside a source
+                  <span>Research a novel, comic or setting into the world bible.</span>
+                </label>
+              </div>
+              {sourceMode && (
+                <div className="source-fields">
+                  <label>
+                    Source title
+                    <input
+                      value={sourceTitle}
+                      maxLength={100}
+                      required
+                      disabled={busy}
+                      onChange={(e) => setSourceTitle(e.target.value)}
+                      placeholder="A novel, comic, or setting…"
+                    />
+                  </label>
+                  <label>
+                    Source wiki
+                    <input
+                      value={sourceWiki}
+                      required
+                      maxLength={200}
+                      disabled={busy}
+                      onChange={(e) => setSourceWiki(e.target.value)}
+                      placeholder="en.wikipedia.org or dc.fandom.com"
+                    />
+                  </label>
+                  <p className="creation-hint">
+                    Lore is read through the wiki's official API at one page per second; only summaries become
+                    canon.
+                  </p>
+                </div>
+              )}
+            </fieldset>
+          )}
+          <label>
+            What kind of adventure or world do you want?
+            <textarea
+              name="pitch"
+              value={pitch}
+              onChange={(e) => setPitch(e.target.value)}
+              disabled={busy}
+              required
+              minLength={10}
+              maxLength={4000}
+              rows={5}
+              placeholder="A hard sci-fi mystery on a failing space station, with a human crew and no magic…"
+            />
+          </label>
+        </section>
       )}
-      {!world ? (
-        <label>
-          What kind of adventure or world do you want?
-          <textarea
-            name="pitch"
-            value={pitch}
-            onChange={(e) => setPitch(e.target.value)}
-            disabled={busy}
-            required
-            minLength={10}
-            maxLength={4000}
-            rows={5}
-            placeholder="A hard sci-fi mystery on a failing space station, with a human crew and no magic…"
-          />
-        </label>
-      ) : mode === "interview" ? (
+      {world && mode === "interview" ? (
         <Interview
           draftId={world.id}
           onView={creation.setView}
@@ -369,10 +534,17 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
             setMode("editor");
           }}
         />
-      ) : mode === "wizard" && creation.view ? (
-        <section aria-label="Build your character step by step">
-          <div className="eyebrow">
-            STEP {step + 1} OF {STEPS.length} · {STEPS[step]!.title.toUpperCase()}
+      ) : world && mode === "wizard" && creation.view ? (
+        <section className="creation-stage" aria-label="Build your character step by step">
+          <div className="creation-wizard-head">
+            <span className="creation-stage-number" aria-hidden="true">
+              {step + 1}
+            </span>
+            <div>
+              <div className="creation-kicker">
+                STEP {step + 1} OF {STEPS.length} · {STEPS[step]!.title.toUpperCase()}
+              </div>
+            </div>
           </div>
           {creation.view.notice && <p className="muted small">{creation.view.notice}</p>}
           <SheetEditor
@@ -405,9 +577,17 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
             </button>
           </div>
         </section>
-      ) : mode === "editor" && creation.view ? (
-        <section aria-label="Build your character">
-          <div className="eyebrow">YOUR CHARACTER</div>
+      ) : world && mode === "editor" && creation.view ? (
+        <section className="creation-stage" aria-label="Build your character">
+          <div className="creation-stage-head">
+            <span className="creation-stage-number" aria-hidden="true">
+              ✦
+            </span>
+            <div>
+              <h3>Your character</h3>
+              <p className="creation-stage-note">Every rule is checked as you change it.</p>
+            </div>
+          </div>
           {creation.view.notice && <p className="muted small">{creation.view.notice}</p>}
           <SheetEditor view={creation.view} onChange={creation.edit} disabled={busy} />
           {creation.error && (
@@ -426,17 +606,43 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
             ← Back to the world
           </button>
         </section>
-      ) : (
-        <section className="world-review" aria-label="Review your world">
-          <div className="eyebrow">{world.offline ? "OFFLINE EXAMPLE" : "YOUR GENERATED WORLD"}</div>
-          <h2>{world.worldName}</h2>
-          <p>{world.premise}</p>
+      ) : world ? (
+        <section className="world-review creation-stage" aria-label="Review your world">
+          <div className="creation-stage-head">
+            <span className="creation-stage-number" aria-hidden="true">
+              2
+            </span>
+            <div>
+              <div className="creation-kicker">
+                {world.offline ? "Offline example" : "Your generated world"}
+              </div>
+              <h2>{world.worldName}</h2>
+            </div>
+          </div>
+          <p className="creation-premise">{world.premise}</p>
+          <label>
+            <span>
+              Character name <span className="muted">(optional)</span>
+            </span>
+            <input
+              name="characterName"
+              value={characterName}
+              onChange={(e) => {
+                setCharacterName(e.target.value);
+                if (customSheet && creation.view)
+                  creation.edit({ ...creation.view.draft, name: e.target.value });
+              }}
+              disabled={busy}
+              maxLength={80}
+              placeholder={world.suggestedCharacterName}
+            />
+          </label>
           {customSheet && (
             <p className="muted small">
               Your customised sheet is kept. Choose “Customise character” again to change it.
             </p>
           )}
-          <div className="form-row">
+          <div className="creation-picks">
             <label>
               {world.originLabel}
               <select
@@ -468,13 +674,15 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
               </select>
             </label>
           </div>
-          <p className="muted">{world.origins.find((o) => o.id === ancestry)?.description}</p>
-          <p className="muted">
+          <p className="creation-hint">{world.origins.find((o) => o.id === ancestry)?.description}</p>
+          <p className="creation-hint">
             {world.backgrounds.find((b) => b.id === archetype)?.description} Your background sets your
             starting training; it is not a permanent class.
           </p>
           {!characterName.trim() && (
-            <p className="muted">Leave the character name blank to use {world.suggestedCharacterName}.</p>
+            <p className="creation-hint">
+              Leave the character name blank to use {world.suggestedCharacterName}.
+            </p>
           )}
           <fieldset className="paths">
             <legend>How would you like to make your character?</legend>
@@ -501,7 +709,7 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
             <p className="muted small">
               These shape the whole campaign. Dice and character growth are fixed once the story starts.
             </p>
-            <div className="form-row">
+            <div className="creation-picks">
               <label>
                 Preset
                 <select
@@ -534,7 +742,7 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
                 </select>
               </label>
             </div>
-            <div className="form-row">
+            <div className="creation-picks">
               <label>
                 Dice
                 <select
@@ -548,7 +756,9 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
                 </select>
               </label>
               <label>
-                How characters grow <span className="muted">(fixed once the story starts)</span>
+                <span>
+                  How characters grow <span className="muted">(fixed once the story starts)</span>
+                </span>
                 <select
                   aria-label="How characters grow"
                   value={progression}
@@ -585,70 +795,81 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
             <CreationReviewEditor
               value={review}
               onChange={setReview}
-              disabled={busy}
-              onRevise={() => {
-                setBusy(true);
-                setError("");
-                void api(`/world-drafts/${world.id}/style`, CreationReview.parse, review.style)
-                  .then((next) =>
-                    setReview((previous) => (previous ? { ...previous, style: next.style } : next)),
-                  )
-                  .catch((e) => setError((e as Error).message))
-                  .finally(() => setBusy(false));
-              }}
+              disabled={busy || revising}
+              revising={revising}
+              onRevise={() => void reviseSample()}
             />
           )}
           <h3>Your opening</h3>
           <p>{world.opening}</p>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              setWorld(undefined);
-              setCustomSheet(false);
-              setError("");
-              setDetail("");
-              setMode("review");
-              setSteps([]);
-            }}
-          >
-            Edit adventure description
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              localStorage.removeItem(DRAFT_KEY);
-              setWorld(undefined);
-              setName("");
-              setCharacterName("");
-              setPitch("");
-              setAncestry("");
-              setArchetype("");
-              setCustomSheet(false);
-              setMode("review");
-              setStep(0);
-              setSteps([]);
-              setError("");
-              setDetail("");
-            }}
-          >
-            Start over
-          </button>
+          <div className="creation-secondary-actions">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setWorld(undefined);
+                setCustomSheet(false);
+                setError("");
+                setDetail("");
+                setMode("review");
+                setSteps([]);
+              }}
+            >
+              Edit adventure description
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                localStorage.removeItem(DRAFT_KEY);
+                setWorld(undefined);
+                setName("");
+                setCharacterName("");
+                setPitch("");
+                setAncestry("");
+                setArchetype("");
+                setCustomSheet(false);
+                setMode("review");
+                setStep(0);
+                setSteps([]);
+                setError("");
+                setDetail("");
+              }}
+            >
+              Start over
+            </button>
+          </div>
+        </section>
+      ) : null}
+      {!world && steps.length > 0 && (
+        <section className="creation-progress" aria-label="World generation progress">
+          <div className="creation-progress-head">
+            <span>Weaving your world</span>
+            <span className="creation-progress-count">
+              {doneSteps}/{steps.length} <Elapsed active={busy} />
+            </span>
+          </div>
+          <progress value={doneSteps} max={steps.length} aria-label="World generation progress" />
+          <ol className="generation-steps" aria-live="polite">
+            {steps.map((s) => (
+              <li key={s.key} className={s.status}>
+                <span aria-hidden="true">{STEP_ICON[s.status]}</span> {s.label}
+              </li>
+            ))}
+          </ol>
         </section>
       )}
-      {!world && steps.length > 0 && (
-        <ol className="generation-steps" aria-live="polite" aria-label="World generation progress">
-          {steps.map((s) => (
-            <li key={s.key} className={s.status}>
-              <span aria-hidden="true">{STEP_ICON[s.status]}</span> {s.label}
-            </li>
-          ))}
-        </ol>
+      {busy && busyNote && (
+        <p role="status" className="creation-busy">
+          {busyNote} <Elapsed active={busy} />
+        </p>
       )}
-      {busy && world && <p role="status">Preparing your campaign…</p>}
       {error && (
-        <div role="alert" className="error">
+        <div role="alert" className="creation-error" ref={errorBox}>
+          <div className="creation-error-head">
+            <span aria-hidden="true">✗</span>
+            <h3>The storyteller couldn't finish</h3>
+          </div>
           <p>{error}</p>
           {detail && (
             <details>
@@ -656,10 +877,30 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
               <pre>{detail}</pre>
             </details>
           )}
+          <div className="creation-error-actions">
+            <button
+              type="button"
+              onClick={() => {
+                setError("");
+                setDetail("");
+              }}
+            >
+              Dismiss
+            </button>
+            {onOpenSettings && (
+              <button type="button" onClick={onOpenSettings}>
+                Check model settings
+              </button>
+            )}
+          </div>
         </div>
       )}
-      {(mode === "review" || mode === "editor") && (
-        <button type="submit" className="primary" disabled={busy || blocked}>
+      {(mode === "review" || mode === "editor") && !resuming && (
+        <button
+          type="submit"
+          className="primary creation-submit"
+          disabled={busy || revising || blocked || resuming}
+        >
           {busy
             ? "Working…"
             : world

@@ -68,7 +68,7 @@ export function sourceEvents(
   const profiles = [...source.characters];
   for (const entity of entities.filter((e) => e.kind === "npc")) {
     if (profiles.some((p) => p.name.toLowerCase() === entity.name.toLowerCase())) continue;
-    const npc = source.bible.npcs.find((n) => n.name.toLowerCase() === entity.name.toLowerCase());
+    const npc = source.bible?.npcs.find((n) => n.name.toLowerCase() === entity.name.toLowerCase());
     profiles.push({
       name: entity.name,
       motivation: npc?.want ?? entity.summary,

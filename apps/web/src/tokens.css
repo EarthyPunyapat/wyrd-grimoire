@@ -42,6 +42,11 @@
   --space-7: 40px;
   --space-8: 56px;
 
+  /* Reader dials (U6). A device preference scales a preset; the chrome stays put. */
+  --text-scale: 1;
+  --measure-scale: 1;
+  --density-scale: 1;
+
   /* Chrome mechanics. */
   --line-width: 1px;
   --focus-width: 2px;
@@ -62,6 +67,26 @@
   --motion-big: 600ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-dice: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* The four dials (U6). Text and column scale the preset's reading measure; density tightens the
+   rhythm; motion is off for reduced or none, and always off when the system asks for it. */
+:root[data-text-size="small"] { --text-scale: 0.9; }
+:root[data-text-size="large"] { --text-scale: 1.12; }
+:root[data-column="narrow"] { --measure-scale: 0.84; }
+:root[data-column="wide"] { --measure-scale: 1.16; }
+:root[data-density="compact"] { --density-scale: 0.8; }
+:root[data-motion="reduced"] { --motion-fast: 80ms; --motion-base: 120ms; --motion-big: 0ms; }
+:root[data-motion="reduced"] .pulse { animation: none; }
+:root[data-motion="none"] *,
+:root[data-motion="none"] *::before,
+:root[data-motion="none"] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  html { --motion-fast: 0ms; --motion-base: 0ms; --motion-big: 0ms; }
+  .pulse { animation: none; }
 }
 
 [data-preset="reader"],
@@ -120,20 +145,20 @@
   --font-mono: var(--font-chrome);
 
   --text-chapter-numeral: 56px;
-  --text-title: 34px;
+  --text-title: calc(34px * var(--text-scale));
   --text-prose: 20px;
   --leading-prose: 1.7;
-  --story-size: var(--text-prose);
+  --story-size: calc(var(--text-prose) * var(--text-scale));
   --story-leading: var(--leading-prose);
-  --text-choice: 18px;
-  --text-input: 19px;
+  --text-choice: calc(18px * var(--text-scale));
+  --text-input: calc(19px * var(--text-scale));
   --text-meta: 12px;
   --leading-meta: 1.6;
 
-  --measure: 660px;
+  --measure: calc(660px * var(--measure-scale));
   --rail: 240px;
-  --gutter: var(--space-7);
-  --rhythm: var(--space-5);
+  --gutter: calc(var(--space-7) * var(--density-scale));
+  --rhythm: calc(var(--space-5) * var(--density-scale));
   --status-height: 44px;
   --hotbar-height: 64px;
 
@@ -153,7 +178,7 @@
 
   --ink: #f2f4f3;
   --ink-muted: #8b9396;
-  --ink-faint: #6d7477;
+  --ink-faint: #7c8487;
 
   --accent: var(--hue);
   --accent-soft: color-mix(in srgb, var(--hue) 14%, transparent);
@@ -177,20 +202,20 @@
   --font-mono: var(--font-chrome);
 
   --text-chapter-numeral: 12px;
-  --text-title: 20px;
+  --text-title: calc(20px * var(--text-scale));
   --text-prose: 16px;
   --leading-prose: 1.65;
-  --story-size: var(--text-prose);
+  --story-size: calc(var(--text-prose) * var(--text-scale));
   --story-leading: var(--leading-prose);
-  --text-choice: 14px;
-  --text-input: 15px;
+  --text-choice: calc(14px * var(--text-scale));
+  --text-input: calc(15px * var(--text-scale));
   --text-meta: 12px;
   --leading-meta: 1.55;
 
-  --measure: 720px;
+  --measure: calc(720px * var(--measure-scale));
   --rail: 300px;
-  --gutter: var(--space-6);
-  --rhythm: var(--space-4);
+  --gutter: calc(var(--space-6) * var(--density-scale));
+  --rhythm: calc(var(--space-4) * var(--density-scale));
   --status-height: 40px;
   --hotbar-height: 64px;
 
@@ -234,20 +259,20 @@
   --font-mono: var(--font-chrome);
 
   --text-chapter-numeral: 13px;
-  --text-title: 28px;
+  --text-title: calc(28px * var(--text-scale));
   --text-prose: 16px;
   --leading-prose: 1.7;
-  --story-size: var(--text-prose);
+  --story-size: calc(var(--text-prose) * var(--text-scale));
   --story-leading: var(--leading-prose);
-  --text-choice: 15px;
-  --text-input: 15px;
+  --text-choice: calc(15px * var(--text-scale));
+  --text-input: calc(15px * var(--text-scale));
   --text-meta: 13px;
   --leading-meta: 1.5;
 
-  --measure: 720px;
+  --measure: calc(720px * var(--measure-scale));
   --rail: 0px;
-  --gutter: var(--space-6);
-  --rhythm: var(--space-4);
+  --gutter: calc(var(--space-6) * var(--density-scale));
+  --rhythm: calc(var(--space-4) * var(--density-scale));
   --status-height: 48px;
   --hotbar-height: 64px;
 

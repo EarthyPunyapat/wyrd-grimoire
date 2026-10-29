@@ -79,9 +79,9 @@ test("quick start, live turn, reroll, reload and character sheet", async ({ page
   await page.screenshot({ path: info.outputPath("m3.png"), fullPage: true });
   await page.reload();
   await expect(page.locator(".prose")).toContainText("offline narrator");
-  await page.getByRole("button", { name: "Sheet", exact: true }).click();
+  await page.getByRole("button", { name: "Character", exact: true }).click();
   await expect(page.getByRole("dialog").getByRole("heading", { name: "Wren" })).toBeVisible();
-  await page.getByRole("button", { name: "Close character sheet" }).click();
+  await page.getByRole("button", { name: "Close status screen" }).click();
   const viewport = page.viewportSize()!;
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
   expect(errors).toEqual([]);
@@ -117,7 +117,7 @@ test("J, M, I and C open their panels without stealing typed keys", async ({ pag
 
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await page.keyboard.press("c");
-  await expect(page.getByRole("dialog", { name: "Character sheet" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Character" })).toBeVisible();
 });
 
 test("browser back reaches the campaign list and the skip link stays in the story", async ({ page }) => {

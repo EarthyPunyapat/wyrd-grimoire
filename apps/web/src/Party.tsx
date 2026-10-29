@@ -161,7 +161,7 @@ export function CompanionCard({
 }
 
 /** One member's spend screen (spec 04): every option priced by the engine, with the reason when blocked. */
-function Advance({
+export function Advance({
   m,
   busy,
   buy,
@@ -176,6 +176,9 @@ function Advance({
   const [specialisation, setSpecialisation] = useState("");
   const talents = m.talents.filter((t) => t.cost !== null);
   const fieldOption = m.fieldSkills.find((f) => f.id === field);
+  const canSpend = m.xp.available > 0 || m.pending.attributes + m.pending.talents > 0;
+  // Opens when there is something to spend and stays open after spending, until the player folds it.
+  const [planOpen, setPlanOpen] = useState(canSpend);
   return (
     <>
       <p className="xp-line">
@@ -190,102 +193,110 @@ function Advance({
         )}
       </p>
       {m.marks.length > 0 && <p className="muted small">Marked to improve: {m.marks.join(", ")}</p>}
-      <div className="sheet-section">
-        <h3>Attributes</h3>
-        <ul className="advance-list">
-          {m.attributes.map((a) => (
-            <li key={a.id}>
-              <span>{a.name}</span>
-              <span className="advance-value">{a.value}</span>
-              <Buy
-                label={`Raise ${a.name}`}
-                cost={a.cost}
-                why={a.why}
-                busy={busy}
-                onBuy={() => buy("attribute", a.id)}
-              />
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="sheet-section">
-        <h3>
-          Skills (+5) <DiceBadge resolution={resolution} />
-        </h3>
-        <ul className="advance-list">
-          {m.skills.map((s) => (
-            <li key={s.id}>
-              <span>{s.name}</span>
-              <span className="advance-value">{skillDisplay(s)}</span>
-              <Buy
-                label={`Raise ${s.name}`}
-                cost={s.cost}
-                why={s.why}
-                busy={busy}
-                onBuy={() => buy("skill", s.id)}
-              />
-            </li>
-          ))}
-        </ul>
-        {fieldOption && fieldOption.cost !== null && (
-          <div className="field-skill">
-            <select aria-label="Field skill" value={field} onChange={(e) => setField(e.target.value)}>
-              {m.fieldSkills.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
-            <input
-              aria-label="Specialisation"
-              placeholder="specialisation"
-              maxLength={30}
-              value={specialisation}
-              onChange={(e) => setSpecialisation(e.target.value)}
-            />
-            <button
-              type="button"
-              disabled={busy || !specialisation.trim()}
-              onClick={() => {
-                buy(
-                  "fieldSkill",
-                  `${field}/${specialisation
-                    .trim()
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, "-")}`,
-                );
-                setSpecialisation("");
-              }}
-            >
-              Learn ({fieldOption.cost} XP)
-            </button>
-          </div>
-        )}
-      </div>
-      <div className="sheet-section">
-        <h3>Talents</h3>
-        {talents.length ? (
-          <ul className="advance-list talents">
-            {talents.map((t) => (
-              <li key={t.id}>
-                <span>
-                  {t.name} <span className="muted">tier {t.tier}</span>
-                  <span className="muted small talent-desc">{t.description}</span>
-                </span>
+      {/* With nothing to spend, these lists only repeat the sheet beside them, so they fold away. */}
+      <details
+        className="advance-plan"
+        open={planOpen || undefined}
+        onToggle={(e) => setPlanOpen(e.currentTarget.open)}
+      >
+        <summary>What XP will buy</summary>
+        <div className="sheet-section">
+          <h3>Attributes</h3>
+          <ul className="advance-list">
+            {m.attributes.map((a) => (
+              <li key={a.id}>
+                <span>{a.name}</span>
+                <span className="advance-value">{a.value}</span>
                 <Buy
-                  label={`Learn ${t.name}`}
-                  cost={t.cost}
-                  why={t.why}
+                  label={`Raise ${a.name}`}
+                  cost={a.cost}
+                  why={a.why}
                   busy={busy}
-                  onBuy={() => buy("talent", t.id)}
+                  onBuy={() => buy("attribute", a.id)}
                 />
               </li>
             ))}
           </ul>
-        ) : (
-          <p className="muted">No talent is within reach yet.</p>
-        )}
-      </div>
+        </div>
+        <div className="sheet-section">
+          <h3>
+            Skills (+5) <DiceBadge resolution={resolution} />
+          </h3>
+          <ul className="advance-list">
+            {m.skills.map((s) => (
+              <li key={s.id}>
+                <span>{s.name}</span>
+                <span className="advance-value">{skillDisplay(s)}</span>
+                <Buy
+                  label={`Raise ${s.name}`}
+                  cost={s.cost}
+                  why={s.why}
+                  busy={busy}
+                  onBuy={() => buy("skill", s.id)}
+                />
+              </li>
+            ))}
+          </ul>
+          {fieldOption && fieldOption.cost !== null && (
+            <div className="field-skill">
+              <select aria-label="Field skill" value={field} onChange={(e) => setField(e.target.value)}>
+                {m.fieldSkills.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                aria-label="Specialisation"
+                placeholder="specialisation"
+                maxLength={30}
+                value={specialisation}
+                onChange={(e) => setSpecialisation(e.target.value)}
+              />
+              <button
+                type="button"
+                disabled={busy || !specialisation.trim()}
+                onClick={() => {
+                  buy(
+                    "fieldSkill",
+                    `${field}/${specialisation
+                      .trim()
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]+/g, "-")}`,
+                  );
+                  setSpecialisation("");
+                }}
+              >
+                Learn ({fieldOption.cost} XP)
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="sheet-section">
+          <h3>Talents</h3>
+          {talents.length ? (
+            <ul className="advance-list talents">
+              {talents.map((t) => (
+                <li key={t.id}>
+                  <span>
+                    {t.name} <span className="muted">tier {t.tier}</span>
+                    <span className="muted small talent-desc">{t.description}</span>
+                  </span>
+                  <Buy
+                    label={`Learn ${t.name}`}
+                    cost={t.cost}
+                    why={t.why}
+                    busy={busy}
+                    onBuy={() => buy("talent", t.id)}
+                  />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">No talent is within reach yet.</p>
+          )}
+        </div>
+      </details>
     </>
   );
 }
@@ -365,7 +376,7 @@ export function Party({
   };
   return (
     <section className="sheet-content party" aria-label="Party">
-      <div className="eyebrow">THE PARTY</div>
+      <div className="eyebrow">The party</div>
       <p className="muted small">{MODE[data.mode]}</p>
       {data.members.length > 1 && (
         <fieldset className="member-tabs">

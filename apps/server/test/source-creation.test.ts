@@ -42,17 +42,28 @@ test("source review, sample revision and player overrides survive creation and s
       reply: { toolCall: { name: "propose_lore", args: { facts: ["Marsh lights lure travellers."] } } },
     },
     {
-      match: (r) => r.tools?.[0]?.name === "propose_source",
+      match: (r) => r.tools?.[0]?.name === "propose_world",
+      reply: { toolCall: { name: "propose_world", args: EXAMPLE_WORLD } },
+    },
+    {
+      match: (r) => r.tools?.[0]?.name === "propose_source_bible",
       reply: {
         toolCall: {
-          name: "propose_source",
+          name: "propose_source_bible",
+          args: offlineBible({
+            worldName: "Lights",
+            openingSite: EXAMPLE_WORLD.location.name,
+            threat: false,
+          }),
+        },
+      },
+    },
+    {
+      match: (r) => r.tools?.[0]?.name === "propose_source_extras",
+      reply: {
+        toolCall: {
+          name: "propose_source_extras",
           args: {
-            proposal: EXAMPLE_WORLD,
-            bible: offlineBible({
-              worldName: "Lights",
-              openingSite: EXAMPLE_WORLD.location.name,
-              threat: false,
-            }),
             abilities: [
               { id: "light", name: "Light", description: "Shape light", level: 9, cost: "Will", rank: 1 },
             ],

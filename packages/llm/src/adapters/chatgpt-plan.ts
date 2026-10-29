@@ -8,6 +8,7 @@ import type {
   ModelInfo,
 } from "../types.ts";
 import { parseSse } from "./sse.ts";
+import { parseToolArgs } from "./tool-json.ts";
 
 /**
  * ChatGPT plan adapter: the public Responses API with a "Sign in with ChatGPT" access token
@@ -281,7 +282,7 @@ export class ChatGptPlanProvider implements ChatProvider {
               if (e.item.type === "function_call") {
                 let args: unknown;
                 try {
-                  args = e.item.arguments ? JSON.parse(e.item.arguments) : {};
+                  args = parseToolArgs(e.item.arguments ?? "");
                 } catch {
                   yield {
                     type: "error",

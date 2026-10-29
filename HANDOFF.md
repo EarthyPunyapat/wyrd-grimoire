@@ -2,13 +2,13 @@
 
 Working notes for whoever picks this up next. Read `AGENTS.md` first, then this file.
 
-## Status (2026-10-29)
+## Status (2026-10-30)
 
-**M1–M7, W2 step 2 and workstreams A (Levels/abilities), C (wiki lore), D (source creation/style/canon clocks) and F (companions/delegation) are built.** Owner-only and remaining W2 checks stay unticked in `docs/milestones.md`.
+**M1–M7, W2 step 2, workstreams A (Levels/abilities), B (avatars/sealing), C (wiki lore), D (source creation/style/canon clocks) and F (companions/delegation), plus UI 2.0 U3, U4, U5 (home and creation) and U6 (presets and dials), are built.** Owner-only and remaining W2 checks stay unticked in `docs/milestones.md`.
 The GM-with-tools turn (Tasks 1–8 of `docs/superpowers/plans/2026-10-29-w2-step2-gm-turn.md`) is on
 `w2-gm-ui` and merges to `main`: one GM model runs a turn with engine tools, streams prose, shows
 cards and choices, retcons with Undo, marks a backup model and runs a non-blocking structural check
-with Fix/Dismiss. `bun run check` is green: typecheck → lint (warnings only) → **781 tests** →
+with Fix/Dismiss. `bun run check` is green: typecheck → lint (warnings only) → **819 tests** →
 `pack validate packs/fantasy-core`.
 
 Owner-only checks still outstanding (need real hardware or keys):
@@ -20,7 +20,7 @@ Owner-only checks still outstanding (need real hardware or keys):
 
 ## W2 F — Companions, Ari and delegation (2026-10-29)
 
-Built test-first on `w2-delegation`, merged to `main`. Plan: `docs/superpowers/plans/2026-10-29-w2-delegation.md`; defaults: D156.
+Built test-first on `w2-delegation`, merged to `main`. Plan: `docs/superpowers/plans/2026-10-29-w2-delegation.md`; defaults: D160.
 
 - `domains/delegation.ts` owns CompanionBondSet and TaskAssigned/Progressed/Blocked/Ended; only `reduce/delegation.ts` handles them. Existing approval/milestone/departure handlers moved into that pair to enforce permanent loyalty on replay. Ordinary companions retain their approval rules; loyal ones ignore approval and cannot leave/betray (death remains possible).
 - Companion `voiceProfile` is editable through Party and `PUT /api/campaigns/:id/companions/:companionId/bond`. The Party UI hides loyal numeric approval/meter, and GM/narrator prompts use the profile for speaker blocks. API/voice edits cannot turn loyalty off. No stock Ari is inserted into unrelated campaigns.
@@ -29,6 +29,28 @@ Built test-first on `w2-delegation`, merged to `main`. Plan: `docs/superpowers/p
 - Turns/world ticks and downtime advance tasks. The current time_skip splits at task boundaries/legal wait chunks and stops when a task blocks. E can use the exported hooks for its broader watch-list/daily skip. Daily task/world RNG ordering agrees between long and split advances. Downtime previews clone state before folding legacy inventory events to avoid mutating input stacks.
 - Task reports use the existing report card, are sent to the GM as tool results and persist on browser turns. Browser task projections omit opposition/private minds; secret-free output is tested. The hotbar says “Delegate to Ari” for Ari, or another loyal companion's actual name. Active companion IDs map to their known speaker names.
 - Browser verification: dedicated Ari workflow passes desktop and phone; full suite **47 passed, 3 existing skips**, using one worker and sequential browsers. `bun run build` passes. All tests use fixtures/FakeProvider, with no wiki or model network calls.
+
+## W2 UI 2.0 U5 — Home and creation (2026-10-30)
+
+Built on `w2-ui-home`, merged to `main`. Plan: `docs/superpowers/plans/2026-10-30-w2-ui-home.md`; decisions: D159.
+
+- **Night Codex home.** Home and the creation dialog carry `data-preset="reader"`; every new rule lives in `apps/web/src/home.css`. Campaigns are ruled rows with character and last-played chrome, inline rename, archive/restore behind a disclosure, and delete with confirmation. `Play.tsx` was not touched.
+- **Rename and archive.** `PATCH /api/campaigns/:id` takes `{name?, archived?}`. Rename appends the new `CampaignRenamed` event, so the card and the played title stay one truth (and rebuilds replay it). Archive is `web_campaigns.archived` in the app store: archived campaigns are hidden from the active list but still open and play; only Delete removes one. Store schema migrated to v3.
+- **Draft library.** `creation_drafts` (migrated from the old `settings` draft keys) backs `GET /api/world-drafts`, `GET /api/world-drafts/:id` and `DELETE /api/world-drafts/:id`. The home page lists unfinished worlds with Continue and Discard; a started draft drops out of the list. Resume restores the generated world, review, sheet flag, pitch and source.
+- **Creation.** The dialog now asks original world vs inside a source explicitly, shows the source fields and wiki, presents the GM's review (including the palette and style), and the style sample has a "More like…" revision loop with its own progress and error. Generation shows a step list, a progress bar and elapsed seconds; campaign start, sheet opening and suggestions show their own status. Model failures render a plain message, optional technical detail, Dismiss and Check model settings. The import review still ships with step 4's import.
+- **Tests.** `apps/server/test/home.test.ts` covers rename/replay projection, archive/restore and draft list/resume/discard; `packages/storage/test/app-store.test.ts` covers drafts and archive; `packages/engine/test/reduce.test.ts` covers the rename reducer. `e2e/home.e2e.ts` covers management, draft resume, the source choice and a failed model revision on desktop and phone.
+- **Validation.** `bun run check` green: typecheck, lint (existing warnings), **819 tests**, fantasy-core pack validation. Build passed. Full sequential Playwright after rebasing on U4, U6 and avatars: **66 passed, 4 existing skips**.
+
+## W2 U6 — presets and dials (2026-10-29)
+
+Built on `w2-ui-presets`; plan `docs/superpowers/plans/2026-10-29-w2-ui-presets.md`; decision D158.
+
+- Cockpit (Qud Modern) and Chat (Lantern Glass) are CSS presets over the Reader components. `apps/web/src/cockpit.css` adds the dense one-line chrome strip, a right-hand passage log, a watch list of the PC and people present, square cards and 1px selection lines. `apps/web/src/chat.css` adds true black, borderless rounded cards, right-aligned player bubbles and a sticky pill composer.
+- The preset and dials are device preferences (`wyrd-play-preferences`), validated field by field and switched live from the app Settings dialog. Dial attributes on `<html>` scale the shared tokens: text size, column width, density and motion; `prefers-reduced-motion` still wins.
+- `Play.tsx` changes only the preset switch (`usePlayPreset` plus `data-preset`); both presets use the existing strip, story, choices, cards, composer, hotbar and menus.
+- Public Sans, Inter and JetBrains Mono are bundled from npm for offline/LAN use. The server CSP now allows Vite's inlined `data:` font subsets.
+- Validation: `bun run typecheck`, `bun run lint`, **813 tests**, `bun run build`, and the full sequential Playwright suite: **58 passed, 4 existing skips** on desktop/phone. Cockpit and Chat also pass axe WCAG AA on both projects.
+- The watch list currently shows scene data; workstream E's watched entities can replace the source when it lands.
 
 ## W2 A — Levels and abilities (2026-10-29)
 
@@ -44,6 +66,18 @@ Built test-first on `w2-levels`, merged to `main`. Plan: `docs/superpowers/plans
 - Validation: `bun run check` passed: typecheck, lint (existing warnings), **771 tests**, and fantasy-core pack validation. `bun run build` also passed.
 - Browser verification: dedicated Levels workflow passes desktop and phone. Full `bun run test:e2e`: **45 passed, 3 existing skips**, sequential with one worker/browser at a time. Browser install/build outputs are not committed.
 
+## W2 B — Avatars and sealing (2026-10-29)
+
+Built test-first on `w2-avatars`, merged to `main`. Plan: `docs/superpowers/plans/2026-10-29-w2-avatars.md`; implementation defaults: D156.
+
+- `core/schemas/domains/avatars.ts` defines `AvatarCreated`, `AvatarRunEnded`, `SealSet` and `SealBroken` plus the run projection type; `engine/reduce/avatars.ts` alone handles them. `avatarRuns`/`activeAvatarRuns`/`runForSovereign`/`endAvatarRun` in `engine/avatars.ts` read the log.
+- `create_avatar` (infinite sovereign only) builds a finite actor at the chosen Level, joins it under manual control, and starts a run. An infinite avatar is refused so every avatar rolls real dice through A's Level rules.
+- `ActorDied` now lives in the avatars domain: an active avatar run closes with `reason: died` and the avatar is marked dead; a linked sovereign is never marked dead. `AvatarRunEnded {completed|unsealed}` closes other runs.
+- `seal` writes `effectiveLevel` and `unseal` removes it, so A's gap table and infinity rule apply while sealed. Any player-acted GM tool naming the sovereign during an active run appends `AvatarRunEnded{unsealed}`; the play screen asks for confirmation first.
+- GameView carries avatar runs (id/name/Level/status), and an ∞ character's hotbar shows Seal and Send avatar. Finite characters do not see those actions.
+- Offline engine/tool/render tests cover creation, real dice, death, sovereign safety, unsealing, sealing and breaking a seal.
+- Validation: `bun run check` passed (typecheck, lint with existing warnings, **795 tests**, fantasy-core pack validation). `bun run build` passed. Focused Playwright (`play`, `levels`) passed sequentially on desktop and phone with one worker.
+
 ## W2 D — Source creation, style and canon clocks (2026-10-29)
 
 Built test-first on `w2-source`; merged to `main`. Plan: `docs/superpowers/plans/2026-10-29-w2-source.md`.
@@ -57,6 +91,17 @@ Built test-first on `w2-source`; merged to `main`. Plan: `docs/superpowers/plans
 - UI remains functional in the current layout for U5. Theme overrides use a validated JSON palette editor for now. Missing review/sample generation is labelled and recoverable; offline preview permits direct style edits and requires a connected model for source research or sample revision.
 - Offline tests use FakeProvider plus C's recorded wiki fixture. Coverage includes clocks/interventions/world isolation/replay, NPC actions, source research, apocalypse/cosmic review proposals, style instructions, same-turn evidence, creation/settings/downtime/rebuild and desktop/phone creation flows.
 - Validation: `bun run check` passed: typecheck, lint (existing warnings), **781 tests**, and fantasy-core pack validation. Build passed; full sequential Playwright: **47 passed, 3 existing skips** on desktop/phone. Combat goldens changed only the `CampaignCreated` hashes for the new default settings fields; combat outcomes are unchanged.
+
+## W2 UI U4 — the status screen (2026-10-30)
+
+Built on `w2-ui-menus`; plan `docs/superpowers/plans/2026-10-29-w2-ui-menus.md`, decision D157.
+
+- One full-screen status screen replaces the separate panels: Character, Inventory, Quests, Journal, Codex, Map, Timeline and Settings. C/I/Q/J/M open it on that tab; Esc, the close control and a Back to the story button return. The tablist supports arrows, Home and End, and keeps key hints as hints rather than names.
+- Inventory is a paper doll (main hand, off hand, worn armour) plus a sortable bag grid. Every item opens the same `ItemCard` the story uses. Equip, stow and sort are instant; Use, Give, Throw and Drop compose one story turn. Selling stays a shop action.
+- `moveEquipment` is the new engine rule: one validated `EquipmentChanged`, with carried quantities synced from the item stacks. `POST /api/campaigns/:id/inventory/move` serves the instant actions, and GameView derives each item's location from the sheet so the bag and card agree.
+- Styles are in `apps/web/src/menus.css`; item and chrome icons come from game-icons.net (CC BY 3.0), credited per icon in `NOTICE`.
+- Validation: `bun run check` passed (typecheck, lint warnings only, **803 tests**, fantasy-core pack validation). Build passed. Full sequential Playwright with one worker: **54 passed, 4 existing skips**; the new menus workflow passes desktop and phone including axe WCAG A/AA.
+- U5 (home and creation) remains; U6 (Cockpit/Chat presets and dials) is done below.
 
 ## W2 C — Lore from wikis (2026-10-29)
 
@@ -138,13 +183,13 @@ Built test-first on `w2-lore`; merged to `main`. Plan: `docs/superpowers/plans/2
 - Only the pack's first shop opens (at campaign start); per-settlement shop generation is future
   work (D118).
 - Themes exist for fantasy-core; other packs still use the app default palette (D119).
-- The Playwright e2e suite (`bun run test:e2e`) is not part of `bun run check`; run it separately after UI changes. The current F run passes 47 tests with 3 existing skips (one worker, sequential browsers).
+- The Playwright e2e suite (`bun run test:e2e`) is not part of `bun run check`; run it separately after UI changes. The current full run passes 66 tests with 4 existing skips (one worker; desktop then phone).
 
 ## Next milestone
 
 **W2 — Wyrd 2.0** (before M8). The owner played M7 and found it lacking next to their own ChatGPT RPG sessions, and a 72-question interview on 2026-10-29 redesigned the game.
 
-Step 2 and step 3 A/C/D/F are done. Next: B avatars/sealing and E full time skips/watch list. A exports level/check/breakthrough helpers, C exports `LoreResearch`, D exports canon-clock advancement, and F exports delegation advancement/boundary/blocked-task helpers. Infinite observe scope remains in E.
+Step 2 and step 3 A/B/C/D/F are done, and UI 2.0 U3–U6 are built. Next: E full time skips/watch list. A exports level/check/breakthrough helpers, C exports `LoreResearch`, D exports canon-clock advancement, and F exports delegation advancement/boundary/blocked-task helpers. Infinite observe scope remains in E.
 
 Read these first:
 - the spec: `docs/superpowers/specs/2026-10-29-wyrd-2-design.md`

@@ -1,3 +1,4 @@
+export * from "./avatars.ts";
 export * from "./campaign.ts";
 export * from "./catalog.ts";
 export * from "./checks.ts";

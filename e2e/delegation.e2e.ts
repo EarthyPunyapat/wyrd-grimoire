@@ -37,7 +37,7 @@ test("loyal Ari delegates, speaks and reports; her voice persists without an app
   await expect(page.locator(".gm-card")).toContainText("Delegation report");
   await expect(page.locator(".gm-card")).toContainText("Completed.");
   await expect(page.locator(".speaker")).toHaveText("Ari");
-  await page.getByRole("button", { name: "Party", exact: true }).click();
+  await page.getByRole("button", { name: "Character", exact: true }).click();
   const party = page.getByRole("dialog");
   await party.getByRole("button", { name: "Ari", exact: true }).click();
   await expect(party.getByRole("meter")).toHaveCount(0);
@@ -46,7 +46,7 @@ test("loyal Ari delegates, speaks and reports; her voice persists without an app
   await party.getByRole("button", { name: "Save voice profile", exact: true }).click();
   await expect(party).toContainText("Voice: Warm, precise, and wry.");
   await page.screenshot({ path: info.outputPath("ari-party.png"), fullPage: true });
-  await party.getByRole("button", { name: "Close panel" }).click();
+  await party.getByRole("button", { name: "Close status screen" }).click();
   await page.reload();
   await expect(page.getByRole("button", { name: "Delegate to Ari", exact: true })).toBeVisible();
   await expect(page.locator(".gm-card")).toContainText("Completed.");

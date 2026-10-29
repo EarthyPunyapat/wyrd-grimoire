@@ -1,5 +1,6 @@
 import type { ChatProvider, GenerateEvent, GenerateRequest, Message, ModelInfo } from "../types.ts";
 import { codeForStatus, errorMessage, parseSse } from "./sse.ts";
+import { parseToolArgs } from "./tool-json.ts";
 
 /**
  * OpenAI-compatible Chat Completions adapter (spec 09): DeepSeek, OpenRouter, Ollama, LM Studio,
@@ -230,7 +231,7 @@ export class OpenAICompatibleProvider implements ChatProvider {
     for (const [index, c] of [...calls.entries()].sort((a, b) => a[0] - b[0])) {
       let args: unknown;
       try {
-        args = c.args ? JSON.parse(c.args) : {};
+        args = parseToolArgs(c.args);
       } catch {
         const cutOff = finish === "length" || finish === "max_tokens";
         yield {

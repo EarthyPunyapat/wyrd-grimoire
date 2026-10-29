@@ -1,27 +1,77 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { AuthStatus, CampaignCard, GameView } from "@wyrd/core";
+import { AuthStatus, CampaignCard, DraftCard, GameView } from "@wyrd/core";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api.ts";
+import { Home } from "./Home.tsx";
 import { ModelSettings } from "./ModelSettings.tsx";
 import { NewCampaign } from "./NewCampaign.tsx";
 import { Play } from "./Play.tsx";
+import { PlayPreferencesPanel } from "./PlayPreferences.tsx";
+import { usePlayPreferences } from "./presets.ts";
 
 export function App() {
   const [auth, setAuth] = useState<ReturnType<typeof AuthStatus.parse>>();
   const [cards, setCards] = useState<CampaignCard[]>([]);
+  const [drafts, setDrafts] = useState<DraftCard[]>([]);
   const [view, setView] = useState<GameView>();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [resumeDraftId, setResumeDraftId] = useState<string>();
   const [settings, setSettings] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem("wyrd-theme") ?? "system");
   const [font, setFont] = useState(localStorage.getItem("wyrd-font") ?? "normal");
+  // UI 2.0 presets and dials are device preferences, applied live while a campaign is open (D150, U6).
+  const [playPreferences, setPlayPreferences] = usePlayPreferences();
   const refreshAuth = useCallback(async () => {
     setAuth(await api("/auth/status", AuthStatus.parse));
   }, []);
   const refreshCards = useCallback(async () => {
     setCards(await api("/campaigns", CampaignCard.array().parse));
   }, []);
+  const refreshDrafts = useCallback(async () => {
+    setDrafts(await api("/world-drafts", DraftCard.array().parse));
+  }, []);
+  const renameCampaign = useCallback(async (card: CampaignCard, name: string) => {
+    setLoading(true);
+    setError("");
+    try {
+      const updated = await api(`/campaigns/${card.id}`, CampaignCard.parse, { name }, "PATCH");
+      setCards((current) => current.map((c) => (c.id === updated.id ? updated : c)));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  const archiveCampaign = useCallback(async (card: CampaignCard, archived: boolean) => {
+    setLoading(true);
+    setError("");
+    try {
+      const updated = await api(`/campaigns/${card.id}`, CampaignCard.parse, { archived }, "PATCH");
+      setCards((current) => current.map((c) => (c.id === updated.id ? updated : c)));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  const discardDraft = useCallback(
+    async (draft: DraftCard) => {
+      if (!window.confirm(`Discard the unfinished draft “${draft.name}”? This cannot be undone.`)) return;
+      setLoading(true);
+      setError("");
+      try {
+        await api(`/world-drafts/${draft.id}`, () => undefined, undefined, "DELETE");
+        await refreshDrafts();
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [refreshDrafts],
+  );
   const removeCampaign = useCallback(
     async (card: CampaignCard) => {
       if (
@@ -64,10 +114,11 @@ export function App() {
   useEffect(() => {
     if (auth?.authenticated) {
       void refreshCards().catch((e) => setError(e.message));
+      void refreshDrafts().catch((e) => setError(e.message));
       const id = new URLSearchParams(location.hash.slice(1)).get("campaign");
       if (id) void openCampaign(id);
     }
-  }, [auth, refreshCards, openCampaign]);
+  }, [auth, refreshCards, refreshDrafts, openCampaign]);
   // The hash can change without a reload — history, a pasted link, another tab. Open
   // whatever campaign it now names, so deep links work after the first load too; back to a
   // hash with no campaign is a return to the list. In-page anchors (the "Skip to story"
@@ -83,10 +134,11 @@ export function App() {
       if (location.hash && location.hash !== "#") return;
       setView(undefined);
       void refreshCards().catch((e) => setError(e.message));
+      void refreshDrafts().catch((e) => setError(e.message));
     };
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
-  }, [auth?.authenticated, openCampaign, refreshCards, view?.id]);
+  }, [auth?.authenticated, openCampaign, refreshCards, refreshDrafts, view?.id]);
   useEffect(() => {
     const lock = () => {
       setAuth((a) => (a ? { ...a, authenticated: false } : a));
@@ -102,7 +154,7 @@ export function App() {
     localStorage.setItem("wyrd-font", font);
   }, [theme, font]);
   return (
-    <div className={view ? "frame" : "home-frame"}>
+    <div className={view ? "frame" : "home-frame"} data-preset={view ? undefined : "reader"}>
       <a className="skip-link" href="#main">
         Skip to story
       </a>
@@ -114,6 +166,7 @@ export function App() {
             setView(undefined);
             history.replaceState(null, "", location.pathname);
             void refreshCards().catch((e) => setError(e.message));
+            void refreshDrafts().catch((e) => setError(e.message));
           }}
           aria-label="Wyrd Grimoire home"
         >
@@ -158,79 +211,44 @@ export function App() {
             setView(undefined);
             history.replaceState(null, "", location.pathname);
             void refreshCards().catch((e) => setError(e.message));
+            void refreshDrafts().catch((e) => setError(e.message));
           }}
           {...(auth?.authenticated ? { onAppSettings: () => setSettings(true) } : {})}
           offline={Boolean(auth?.offline)}
         />
       ) : (
-        <main id="main" className="home">
-          <div className="eyebrow">A GRIMOIRE OF FATE</div>
-          <h1>
-            Your next chapter
-            <br />
-            <em>is unwritten.</em>
-          </h1>
-          <p className="lead">
-            A world that remembers. Dice that decide.
-            <br />
-            The rest is yours to discover.
-          </p>
-          <div className="section-heading">
-            <h2>Your campaigns</h2>
-            <button type="button" className="primary" onClick={() => setCreating(true)}>
-              + New campaign
-            </button>
-          </div>
-          {cards.length ? (
-            <div className="campaign-list">
-              {cards.map((card) => (
-                <div className="campaign-row" key={card.id}>
-                  <button
-                    type="button"
-                    className="campaign-card"
-                    disabled={loading}
-                    onClick={() => void openCampaign(card.id)}
-                  >
-                    <span className="card-sigil" aria-hidden="true">
-                      ᚹ
-                    </span>
-                    <span>
-                      <strong>{card.name}</strong>
-                      <span>{card.characterName}</span>
-                    </span>
-                    <span className="card-arrow" aria-hidden="true">
-                      ↗
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className="campaign-delete"
-                    disabled={loading}
-                    aria-label={`Delete ${card.name}`}
-                    onClick={() => void removeCampaign(card)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-campaigns">
-              <span aria-hidden="true">✧</span>
-              <h3>Every story begins somewhere.</h3>
-              <p>Describe a world. Discover who you could be within it.</p>
-              <button type="button" onClick={() => setCreating(true)}>
-                Begin a new story →
-              </button>
-            </div>
-          )}
-          <p className="home-note">Code keeps the rules. The storyteller gives them a voice.</p>
-        </main>
+        <Home
+          cards={cards}
+          drafts={drafts}
+          busy={loading}
+          onNew={() => {
+            setResumeDraftId(undefined);
+            setCreating(true);
+          }}
+          onOpen={(id) => void openCampaign(id)}
+          onRename={renameCampaign}
+          onArchive={archiveCampaign}
+          onDelete={removeCampaign}
+          onResume={(draft) => {
+            setResumeDraftId(draft.id);
+            setCreating(true);
+          }}
+          onDiscard={discardDraft}
+        />
       )}
-      <Dialog.Root open={creating} onOpenChange={setCreating}>
+      <Dialog.Root
+        open={creating}
+        onOpenChange={(open) => {
+          setCreating(open);
+          if (!open) {
+            setResumeDraftId(undefined);
+            void refreshDrafts().catch((e) => setError(e.message));
+          }
+        }}
+      >
         <Dialog.Portal>
-          <Dialog.Overlay className="overlay" />
-          <Dialog.Content className="dialog">
+          <Dialog.Overlay className="overlay home-overlay" data-preset="reader" />
+          <Dialog.Content className="dialog home-dialog creation-dialog" data-preset="reader">
             <Dialog.Title>Begin a new story</Dialog.Title>
             <Dialog.Description>
               Tell us what you want to play. Review your world and character options before the adventure
@@ -238,8 +256,13 @@ export function App() {
             </Dialog.Description>
             <NewCampaign
               offline={auth?.offline ?? false}
+              {...(resumeDraftId ? { draftId: resumeDraftId } : {})}
+              onOpenSettings={() => setSettings(true)}
               onCreate={(id) => {
                 setCreating(false);
+                setResumeDraftId(undefined);
+                void refreshCards().catch((e) => setError(e.message));
+                void refreshDrafts().catch((e) => setError(e.message));
                 void openCampaign(id);
               }}
             />
@@ -255,6 +278,7 @@ export function App() {
           <Dialog.Content className="dialog">
             <Dialog.Title>Make yourself at home</Dialog.Title>
             <Dialog.Description>Reading and connection preferences for this device.</Dialog.Description>
+            <PlayPreferencesPanel value={playPreferences} onChange={setPlayPreferences} />
             <label>
               Appearance
               <select value={theme} onChange={(e) => setTheme(e.target.value)}>

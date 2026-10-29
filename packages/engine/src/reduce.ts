@@ -51,6 +51,7 @@ type DomainKey =
 /** One handler per event type; the mapped type makes a missing handler a compile error. */
 const baseHandlers: Omit<Handlers, DomainKey> = {
   SettingsChanged: (s, e) => ({ ...s, campaign: { ...s.campaign, settings: e.payload.settings } }),
+  CampaignRenamed: (s, e) => ({ ...s, campaign: { ...s.campaign, name: e.payload.name } }),
 
   // Branch structure lives in storage; the event marks the fork point in the log.
   BranchForked: (s) => s,
@@ -283,22 +284,6 @@ const baseHandlers: Omit<Handlers, DomainKey> = {
     combat: null,
     campaign: e.payload.rngAfter ? { ...s.campaign, rngState: e.payload.rngAfter } : s.campaign,
   }),
-  ActorDied: (s, e) => {
-    const actor = s.actors[e.payload.actorId];
-    if (!actor) throw new Error(`No actor ${e.payload.actorId}`);
-    const id = e.payload.actorId;
-    const fallen = s.companions?.[id];
-    return {
-      ...s,
-      actors: { ...s.actors, [id]: { ...actor, dead: true } },
-      ...(fallen
-        ? {
-            companions: { ...s.companions, [id]: { ...fallen, status: "dead" as const } },
-            party: { ...s.party, companionIds: s.party.companionIds.filter((c) => c !== id) },
-          }
-        : {}),
-    };
-  },
   EntityLeftScene: (s, e) => {
     if (!s.scene) return s;
     const { [e.payload.entityId]: _gone, ...positions } = s.scene.positions;

@@ -2,33 +2,17 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { type GameView, ThemeSpec } from "@wyrd/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.ts";
-import { CampaignSettingsPanel } from "./CampaignSettings.tsx";
 import { Cards } from "./Cards.tsx";
 import { CombatPanel, CombatStrip } from "./Combat.tsx";
 import { Hotbar } from "./Hotbar.tsx";
-import { Inventory } from "./Inventory.tsx";
+import { MENU_LABEL, Menus, type MenuTab } from "./Menus.tsx";
 import { NarrativeText, narrationContext, RefContext } from "./Narration.tsx";
-import { Party } from "./Party.tsx";
 import { Passage, RollNotes } from "./Passage.tsx";
-import { Sheet } from "./Sheet.tsx";
+import { usePlayPreset } from "./presets.ts";
 import { type Menu, StatusStrip } from "./StatusStrip.tsx";
-import { Timeline } from "./Timeline.tsx";
 import { clearThemeVars, themeVars } from "./theme.ts";
 import { useCampaignSettings } from "./use-campaign-settings.ts";
 import { usePlay } from "./use-play.ts";
-import { Codex, Journal, WorldMap } from "./World.tsx";
-
-type Tab = "combat" | "sheet" | "inventory" | "party" | "journal" | "codex" | "map" | "timeline";
-const TAB_LABEL: Record<Tab, string> = {
-  combat: "Combat",
-  sheet: "Sheet",
-  inventory: "Inventory",
-  party: "Party",
-  journal: "Journal",
-  codex: "Codex",
-  map: "Map",
-  timeline: "Timeline",
-};
 
 export function Play({
   view,
@@ -56,21 +40,20 @@ export function Play({
     for (const [name, value] of Object.entries(vars)) document.documentElement.style.setProperty(name, value);
     return () => clearThemeVars(document.documentElement.style, vars);
   }, [view.theme]);
-  // Reader themes the whole page while playing: the app bar and the menus that open over the story (D150).
+  // The chosen preset themes the whole page while playing: the app bar and the menus that open over the story (D150).
+  const preset = usePlayPreset();
   useEffect(() => {
-    document.documentElement.dataset.preset = "reader";
+    document.documentElement.dataset.preset = preset;
     return () => {
       delete document.documentElement.dataset.preset;
     };
-  }, []);
+  }, [preset]);
   const [input, setInput] = useState("");
-  const [sheet, setSheet] = useState(false);
   const [combatOpen, setCombatOpen] = useState(false);
-  const [panelOpen, setPanelOpen] = useState<Tab | null>(null);
+  const [panelOpen, setPanelOpen] = useState<MenuTab | null>(null);
   const [codexFocus, setCodexFocus] = useState<string | null>(null);
   const [legacyName, setLegacyName] = useState("");
   const [legacyError, setLegacyError] = useState("");
-  const [campaignSettings, setCampaignSettings] = useState(false);
   // The campaign's setting seeds the device once; after that the checkbox owns this device.
   const [mathChoice, setMathChoice] = useState<boolean | null>(() => {
     const stored = localStorage.getItem("wyrd-math");
@@ -82,15 +65,16 @@ export function Play({
   const textarea = useRef<HTMLTextAreaElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const play = usePlay(view, onView);
+  const activeAvatar = view.avatars.find((run) => run.status === "active");
+  const [unseal, setUnseal] = useState<{ text: string; option?: number } | null>(null);
   const fill = (text: string) => {
     setInput(text);
     setCombatOpen(false);
     textarea.current?.focus();
   };
   const inCombat = !!view.combat && !view.ended;
-  const stamp = view.turns.length;
   // Reader keeps one reading column: every menu opens over the story, never beside it (DESIGN.md).
-  const openMenu = (menu: Menu) => (menu === "sheet" ? setSheet(true) : setPanelOpen(menu));
+  const openMenu = (menu: Menu) => setPanelOpen(menu);
   const openCodex = (id: string) => {
     setCodexFocus(id);
     setPanelOpen("codex");
@@ -99,39 +83,8 @@ export function Play({
     fill(text);
     setPanelOpen(null);
   };
-  const panel = (t: Tab) => {
-    switch (t) {
-      case "combat":
-        return view.combat ? (
-          <CombatPanel combat={view.combat} busy={play.busy} onFill={fill} resolution={view.resolution} />
-        ) : null;
-      case "party":
-        return <Party campaignId={view.id} stamp={stamp} onChanged={() => void play.refresh()} />;
-      case "journal":
-        return <Journal campaignId={view.id} stamp={stamp} />;
-      case "codex":
-        return <Codex campaignId={view.id} stamp={stamp} focus={codexFocus} />;
-      case "map":
-        return <WorldMap campaignId={view.id} stamp={stamp} onTravel={travel} onCodex={openCodex} />;
-      case "timeline":
-        return (
-          <Timeline
-            campaignId={view.id}
-            stamp={stamp}
-            onChanged={() => {
-              void play.refresh();
-            }}
-            onOpenCampaign={onOpenCampaign}
-          />
-        );
-      case "inventory":
-        return <Inventory view={view} onChanged={() => void play.refresh()} />;
-      default:
-        return <Sheet view={view} />;
-    }
-  };
   const last = view.turns.at(-1);
-  const send = useCallback(
+  const submit = useCallback(
     async (text: string, option?: number) => {
       if (!text.trim()) return;
       const accepted = await play.send(
@@ -142,6 +95,22 @@ export function Play({
     },
     [play.send, last],
   );
+  // D134: stepping in as the sovereign during an avatar's run unseals it, so ask first.
+  const send = useCallback(
+    async (text: string, option?: number) => {
+      if (!text.trim()) return;
+      if (activeAvatar && view.pc.level === "infinite") {
+        setUnseal(option === undefined ? { text } : { text, option });
+        return;
+      }
+      await submit(text, option);
+    },
+    [activeAvatar, view.pc.level, submit],
+  );
+  const menuTurn = (text: string) => {
+    setPanelOpen(null);
+    void send(text);
+  };
   useEffect(() => {
     if (!play.busy) textarea.current?.focus();
     bottom.current?.scrollIntoView({ behavior: "instant", block: "end" });
@@ -153,11 +122,16 @@ export function Play({
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const key = e.key.toLowerCase();
       if (key === "c") {
-        setSheet(true);
+        setPanelOpen("character");
         return;
       }
-      // Spec 13 keyboard: J journal (Q quests live there too), M map, I inventory.
-      const destinations = { j: "journal", q: "journal", m: "map", i: "inventory" } as const;
+      // Spec 12 keyboard: C/I/Q/J/M open the status screen on that tab.
+      const destinations = {
+        i: "inventory",
+        q: "quests",
+        j: "journal",
+        m: "map",
+      } as const;
       if (key in destinations) {
         e.preventDefault();
         setPanelOpen(destinations[key as keyof typeof destinations]);
@@ -196,13 +170,13 @@ export function Play({
   }, [last, play.busy, send, inCombat]);
   return (
     <RefContext.Provider value={{ known: view.known, campaignId: view.id, open: openCodex }}>
-      <main id="main" className="play-layout play-reader" data-preset="reader">
+      <main id="main" className="play-layout play-reader" data-preset={preset}>
         <h1 className="sr-only">{view.name}</h1>
         <StatusStrip
           view={view}
-          active={panelOpen === "combat" ? null : panelOpen}
+          active={panelOpen}
           onMenu={openMenu}
-          onSettings={() => setCampaignSettings(true)}
+          onSettings={() => setPanelOpen("settings")}
           {...(onHome ? { onHome } : {})}
           {...(onAppSettings ? { onAppSettings } : {})}
           offline={Boolean(offline)}
@@ -435,6 +409,7 @@ export function Play({
         <Hotbar
           abilities={view.pc.abilities}
           companions={view.companions}
+          level={view.pc.level}
           busy={play.busy}
           inCombat={inCombat}
           onFill={fill}
@@ -443,12 +418,36 @@ export function Play({
         />
         <Dialog.Root open={panelOpen !== null} onOpenChange={(o) => !o && setPanelOpen(null)}>
           <Dialog.Portal>
-            <Dialog.Overlay className="overlay" />
-            <Dialog.Content className="dialog sheet-dialog menu-screen" data-preset="reader">
-              <Dialog.Title>{panelOpen ? TAB_LABEL[panelOpen] : ""}</Dialog.Title>
-              <Dialog.Description className="sr-only">Your party, journal, codex and map.</Dialog.Description>
-              {panelOpen && panel(panelOpen)}
-              <Dialog.Close className="dialog-close" aria-label="Close panel">
+            <Dialog.Overlay className="overlay menu-overlay" />
+            <Dialog.Content className="dialog menu-screen" data-preset={preset}>
+              <Dialog.Title>
+                {panelOpen === "settings"
+                  ? "Campaign settings"
+                  : panelOpen
+                    ? MENU_LABEL[panelOpen]
+                    : "Status"}
+              </Dialog.Title>
+              <Dialog.Description className="sr-only">
+                A full-screen status screen with tabs for your character, inventory, quests, journal, codex,
+                map, timeline and settings. Escape returns to the story.
+              </Dialog.Description>
+              {panelOpen && (
+                <Menus
+                  view={view}
+                  tab={panelOpen}
+                  onTab={setPanelOpen}
+                  onRefresh={async () => {
+                    await play.refresh();
+                  }}
+                  onSend={menuTurn}
+                  onTravel={travel}
+                  onOpenCodex={openCodex}
+                  onClose={() => setPanelOpen(null)}
+                  {...(onOpenCampaign ? { onOpenCampaign } : {})}
+                  codexFocus={codexFocus}
+                />
+              )}
+              <Dialog.Close className="dialog-close menu-close" aria-label="Close status screen">
                 ×
               </Dialog.Close>
             </Dialog.Content>
@@ -476,32 +475,28 @@ export function Play({
             </Dialog.Content>
           </Dialog.Portal>
         </Dialog.Root>
-        <Dialog.Root open={campaignSettings} onOpenChange={setCampaignSettings}>
+        <Dialog.Root open={unseal !== null} onOpenChange={(o) => !o && setUnseal(null)}>
           <Dialog.Portal>
             <Dialog.Overlay className="overlay" />
-            <Dialog.Content className="dialog campaign-settings-dialog">
-              <Dialog.Title>Campaign settings</Dialog.Title>
-              <Dialog.Description className="sr-only">
-                Presets, rules, subsystems, content dials and narration for this campaign.
+            <Dialog.Content className="dialog">
+              <Dialog.Title>Act as the sovereign?</Dialog.Title>
+              <Dialog.Description>
+                {activeAvatar ? `${activeAvatar.name}'s run is still active.` : "An avatar run is active."}{" "}
+                Stepping in as the sovereign will mark the run unsealed. Its record will show it.
               </Dialog.Description>
-              <CampaignSettingsPanel campaignId={view.id} />
-              <Dialog.Close className="dialog-close" aria-label="Close campaign settings">
-                ×
-              </Dialog.Close>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
-        <Dialog.Root open={sheet} onOpenChange={setSheet}>
-          <Dialog.Portal>
-            <Dialog.Overlay className="overlay" />
-            <Dialog.Content className="dialog sheet-dialog">
-              <Dialog.Title>Character sheet</Dialog.Title>
-              <Dialog.Description className="sr-only">
-                Attributes, skills, wounds, and nearby people.
-              </Dialog.Description>
-              <Sheet view={view} />
-              <Dialog.Close className="dialog-close" aria-label="Close character sheet">
-                ×
+              <button
+                type="button"
+                className="primary"
+                onClick={() => {
+                  const pending = unseal;
+                  setUnseal(null);
+                  if (pending) void submit(pending.text, pending.option);
+                }}
+              >
+                Act as the sovereign
+              </button>
+              <Dialog.Close className="dialog-close" aria-label="Stay with the avatar">
+                Cancel
               </Dialog.Close>
             </Dialog.Content>
           </Dialog.Portal>

@@ -4,8 +4,11 @@ import {
   type CompiledPack,
   CreationReview,
   CreationView,
+  DraftCard,
+  DraftResume,
   DraftSheet,
   defaultTuning,
+  GeneratedWorldPreview,
   InterviewAnswer,
   InterviewState,
   InterviewView,
@@ -37,7 +40,7 @@ import {
   type SessionZeroContext,
   suggestField,
 } from "@wyrd/llm";
-import { compileGeneratedWorld, creationContent } from "@wyrd/packs";
+import { compileGeneratedWorld, creationContent, generatedWorldPreview } from "@wyrd/packs";
 import type { AppStore } from "@wyrd/storage";
 import type { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
@@ -236,6 +239,55 @@ export function mountCreation(app: Hono<AppEnvironment>, d: Deps) {
       message: "The interviewer couldn't answer. Try again, or check model settings.",
     });
 
+  app.get("/api/world-drafts", (c) => {
+    const cards: DraftCard[] = [];
+    for (const entry of d.store.creationDrafts()) {
+      const saved = StoredDraft.safeParse(entry.value);
+      // A draft whose campaign already exists is finished work, not a resumable draft.
+      if (!saved.success || saved.data.campaignId) continue;
+      cards.push(
+        DraftCard.parse({
+          id: entry.id,
+          name: saved.data.input.name,
+          worldName: saved.data.proposal.worldName,
+          characterName:
+            saved.data.sheet?.name ||
+            saved.data.input.characterName ||
+            saved.data.proposal.suggestedCharacterName,
+          pitch: saved.data.input.pitch,
+          ...(saved.data.input.source ? { sourceTitle: saved.data.input.source.title } : {}),
+          updatedAt: entry.updatedAt,
+        }),
+      );
+    }
+    return c.json(cards);
+  });
+  app.get("/api/world-drafts/:id", (c) => {
+    const id = c.req.param("id");
+    const { saved, pack } = load(id);
+    if (saved.campaignId)
+      throw new HTTPException(404, { message: "This draft has already become a campaign." });
+    return c.json(
+      DraftResume.parse({
+        id,
+        preview: GeneratedWorldPreview.parse({
+          ...generatedWorldPreview(id, saved.input.name, saved.proposal, pack, saved.offline),
+          ...(saved.review ? { review: saved.review } : {}),
+        }),
+        ...(saved.review ? { review: saved.review } : {}),
+        hasSheet: Boolean(saved.sheet),
+        pitch: saved.input.pitch,
+        characterName:
+          saved.sheet?.name || saved.input.characterName || saved.proposal.suggestedCharacterName,
+      }),
+    );
+  });
+  app.delete("/api/world-drafts/:id", (c) => {
+    const id = c.req.param("id");
+    load(id);
+    d.store.removeCreationDraft(id);
+    return c.body(null, 204);
+  });
   app.get("/api/world-drafts/:id/review", (c) =>
     c.json(load(c.req.param("id")).saved.review ?? defaultCreationReview()),
   );

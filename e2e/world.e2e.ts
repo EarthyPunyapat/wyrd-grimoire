@@ -89,9 +89,11 @@ test("map, travel, journal and codex: the world beyond the opening site", async 
     await expect(codex).toContainText("Greywater Market");
     await expect(codex).not.toContainText("nearly bankrupt");
     await page.screenshot({ path: info.outputPath("m5-codex.png") });
-    await page.getByRole("button", { name: "Close panel" }).click();
+    await page.getByRole("button", { name: "Close status screen" }).click();
     await open(page, "Journal", phone);
-    await expect(page.getByRole("dialog").getByRole("region", { name: "Journal" })).toContainText("Quests");
+    await expect(page.getByRole("dialog").getByRole("region", { name: "Journal" })).toContainText(
+      "Your notes",
+    );
     const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
     expect(accessibility.violations).toEqual([]);
   }

@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
+  CampaignPatch,
   type CampaignPreset,
   type CampaignSettingsInput,
   type CompiledPack,
@@ -30,6 +31,7 @@ import {
 import {
   acceptLevelUp,
   actingActor,
+  avatarRuns,
   buy,
   capacityKg,
   carriedKg,
@@ -47,6 +49,7 @@ import {
   isKnownSkill,
   legacyEvents,
   levelProposals,
+  moveEquipment,
   obituary,
   playerCanonEvents,
   powerRating,
@@ -209,6 +212,8 @@ export function createApp(options: Options) {
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", NONCE],
         imgSrc: ["'self'", "data:"],
+        // Vite inlines the smallest bundled font subsets; they are still local app assets.
+        fontSrc: ["'self'", "data:"],
         connectSrc: ["'self'"],
         frameAncestors: ["'none'"],
         baseUri: ["'none'"],
@@ -348,6 +353,27 @@ export function createApp(options: Options) {
     return opened;
   }
   app.get("/api/campaigns", (c) => c.json(store.campaigns()));
+
+  // Home management: rename through the event log, archive as app-store metadata. Neither is deletion.
+  app.patch("/api/campaigns/:id", async (c) => {
+    const id = c.req.param("id");
+    const patch = await body(c, CampaignPatch);
+    const entry = store.campaigns().find((row) => row.id === id);
+    if (!entry) throw new HTTPException(404, { message: "Campaign not found" });
+    if (patch.name !== undefined) {
+      if (store.running(id))
+        throw new HTTPException(409, {
+          message: "A turn is running. Wait for it to finish, then rename.",
+        });
+      const game = campaign(id);
+      if (game.state().campaign.name !== patch.name)
+        game.append([draft("CampaignRenamed", { name: patch.name }, "player")]);
+      store.renameCampaign(id, patch.name);
+    }
+    if (patch.archived !== undefined) store.setCampaignArchived(id, patch.archived);
+    const updated = store.campaigns().find((row) => row.id === id)!;
+    return c.json(updated);
+  });
 
   app.delete("/api/campaigns/:id", (c) => {
     const id = c.req.param("id");
@@ -812,6 +838,7 @@ export function createApp(options: Options) {
         name,
         characterName: sheet.identity.name,
         updatedAt: new Date(now()).toISOString(),
+        archived: false,
       });
       campaigns.set(id, game);
     } catch (error) {
@@ -921,6 +948,10 @@ export function createApp(options: Options) {
       levelProposals: levelProposals(state).filter(
         (p) => p.actorId === pc.id || state.party.companionIds.includes(p.actorId),
       ),
+      avatars: avatarRuns(state).map((run) => ({
+        ...run,
+        name: state.actors[run.avatarId]?.sheet.identity.name ?? run.avatarId,
+      })),
       resolution,
       theme: state.campaign.settings.theme ?? gamePack.theme ?? null,
       shop: (() => {
@@ -971,16 +1002,23 @@ export function createApp(options: Options) {
         items: (state.inventory?.actors[pc.id]?.stacks ?? []).map((stack) => {
           const item =
             gameItems.weapons[stack.itemId] ?? gameItems.armor[stack.itemId] ?? gameItems.gear[stack.itemId];
+          // The sheet's equipment is the combat-facing truth; show it on the item so the bag and
+          // the shared item card agree after an instant equip or stow (U4).
+          const location =
+            pc.equipment.held.main === stack.itemId
+              ? "main hand"
+              : pc.equipment.held.off === stack.itemId
+                ? "off hand"
+                : pc.equipment.worn.includes(stack.itemId)
+                  ? "worn"
+                  : stack.location.kind === "container"
+                    ? "pack"
+                    : "carried";
           return {
             id: stack.itemId,
             name: item?.name ?? stack.itemId,
             qty: stack.qty,
-            location:
-              stack.location.kind === "worn"
-                ? stack.location.slot
-                : stack.location.kind === "held"
-                  ? `${stack.location.hand} hand`
-                  : stack.location.kind,
+            location,
             condition: stack.condition,
             quality: stack.quality,
             kind: gameItems.weapons[stack.itemId]
@@ -1431,6 +1469,29 @@ export function createApp(options: Options) {
       );
     }
     return c.json(out.value.result);
+  });
+  app.post("/api/campaigns/:id/inventory/move", async (c) => {
+    const id = c.req.param("id");
+    const game = campaign(id);
+    if (store.running(id))
+      throw new HTTPException(409, { message: "A turn is running. Wait for it to finish." });
+    const state = game.state();
+    const pcId = state.party.pcId;
+    if (!pcId) throw new HTTPException(409, { message: "This campaign has no player character" });
+    const input = await body(
+      c,
+      z
+        .object({
+          itemId: z.string().min(1).max(200),
+          to: z.enum(["main", "off", "worn", "carried"]),
+        })
+        .strict(),
+    );
+    const pack = game.packSnapshot()!.content as CompiledPack;
+    const out = moveEquipment(state, pcId, input.itemId, input.to, catalogWith(state, pack.items));
+    if (!out.ok) throw new HTTPException(409, { message: out.errors.map((e) => e.message).join("; ") });
+    game.append(out.value);
+    return c.json({ ok: true });
   });
   app.post("/api/campaigns/:id/shop/:verb", async (c) => {
     const id = c.req.param("id");

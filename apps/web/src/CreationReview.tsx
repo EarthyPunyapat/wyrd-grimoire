@@ -20,19 +20,24 @@ export function CreationReviewEditor({
   value,
   onChange,
   disabled,
+  revising,
   onRevise,
 }: {
   value: Review;
   onChange: (review: Review) => void;
   disabled: boolean;
+  revising: boolean;
   onRevise: () => void;
 }) {
   const [levelText, setLevelText] = useState(String(value.startingLevel));
   useEffect(() => setLevelText(String(value.startingLevel)), [value.startingLevel]);
   return (
-    <fieldset disabled={disabled}>
+    <fieldset className="creation-review" disabled={disabled}>
       <legend>GM's proposed settings — change any choice</legend>
-      <div className="form-row">
+      <p className="creation-hint">
+        These come from the world and pitch. Nothing is locked until the story begins.
+      </p>
+      <div className="creation-picks">
         <label>
           Starting Level
           <input
@@ -117,9 +122,16 @@ export function CreationReviewEditor({
         onChange={(style) => onChange({ ...value, style })}
         disabled={disabled}
       />
-      <button type="button" disabled={disabled} onClick={onRevise}>
-        More like… Revise sample
-      </button>
+      <div className="creation-style-actions">
+        <button type="button" disabled={disabled} onClick={onRevise}>
+          {revising ? "Revising the sample…" : "More like… Revise sample"}
+        </button>
+        {revising && (
+          <span role="status" className="creation-style-status">
+            Reading your words and rewriting the sample…
+          </span>
+        )}
+      </div>
     </fieldset>
   );
 }
