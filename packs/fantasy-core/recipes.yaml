@@ -1,0 +1,70 @@
+# Crafting recipes (spec 11, Crafting). Inputs and outputs are pack item ids; the engine checks
+# tools, time and the skill, and grades the result by degree.
+- id: torch-bundle
+  name: Bundle of Torches
+  description: Six pitch-soaked torches bound with twine.
+  output: { item: torch, qty: 6 }
+  inputs:
+    - { item: torch, qty: 1 }
+  skill: core:mechanics
+  difficulty: easy
+  minutes: 30
+  tags: [light]
+
+- id: healing-salve
+  name: Healing Salve
+  description: A sharp-smelling green paste for cuts and burns.
+  output: { item: healers-kit, qty: 1 }
+  inputs:
+    - { item: bandages, qty: 2 }
+    - { item: waterskin, qty: 1 }
+  skill: core:medicine
+  difficulty: normal
+  minutes: 120
+  complex: true
+  tags: [medical]
+
+- id: iron-dagger
+  name: Iron Dagger
+  description: A short blade ground from a bar of iron.
+  output: { item: dagger, qty: 1 }
+  inputs:
+    - { item: dagger, qty: 1 }
+  skill: core:mechanics
+  difficulty: normal
+  minutes: 180
+  complex: true
+  tags: [weapon]
+
+- id: trail-bread
+  name: Trail Bread
+  description: Dense loaves that keep for a week on the road.
+  output: { item: rations, qty: 3 }
+  inputs:
+    - { item: rations, qty: 1 }
+  skill: core:mechanics
+  difficulty: easy
+  minutes: 60
+  tags: [food]
+
+- id: leather-satchel
+  name: Leather Satchel
+  description: A sturdy bag with a buckled flap.
+  output: { item: backpack, qty: 1 }
+  inputs:
+    - { item: backpack, qty: 1 }
+  skill: core:mechanics
+  difficulty: easy
+  minutes: 90
+  tags: [container]
+
+- id: arrow-bundle
+  name: Bundle of Arrows
+  description: Twelve shafts fletched and tipped.
+  output: { item: arrows, qty: 12 }
+  inputs:
+    - { item: arrows, qty: 1 }
+  skill: core:mechanics
+  difficulty: easy
+  minutes: 45
+  tags: [ammo]

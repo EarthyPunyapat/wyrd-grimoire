@@ -142,3 +142,28 @@ test("locked settings are refused by the API and listed for greying out", async 
   );
   expect(ok.status).toBe(200);
 });
+
+test("downtime activities resolve through the API and advance game time", async () => {
+  const server = setup();
+  const cookie = await login(server);
+  const id = await quickStart(server, cookie, "Downtime");
+  const before = GameView.parse(
+    await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json(),
+  ).gameTime;
+  const worked = await request(server, `/campaigns/${id}/downtime`, { action: { type: "work" } }, cookie);
+  expect(worked.status).toBe(200);
+  const result = (await worked.json()) as { action: string; summary: string; minutes: number };
+  expect(result.action).toBe("work");
+  expect(result.summary.length).toBeGreaterThan(0);
+  const after = GameView.parse(
+    await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json(),
+  ).gameTime;
+  expect(after).toBeGreaterThan(before);
+  const research = await request(
+    server,
+    `/campaigns/${id}/downtime`,
+    { action: { type: "research", topic: "the river gate" } },
+    cookie,
+  );
+  expect(research.status).toBe(200);
+});

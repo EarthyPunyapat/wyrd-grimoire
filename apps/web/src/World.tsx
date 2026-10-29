@@ -1,4 +1,4 @@
-import { CodexView, JournalView, MapView } from "@wyrd/core";
+import { CodexView, DowntimeResult, JournalView, MapView } from "@wyrd/core";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api.ts";
 
@@ -27,7 +27,7 @@ const parseMap = (d: unknown) => MapView.parse(d);
 
 /** Journal (spec 07): recap, quests, leads, clocks, rumours, the summary pyramid and notes. */
 export function Journal({ campaignId, stamp }: { campaignId: string; stamp: number }) {
-  const { data, setData, error } = usePanel(`/campaigns/${campaignId}/journal`, parseJournal, stamp);
+  const { data, setData, error, reload } = usePanel(`/campaigns/${campaignId}/journal`, parseJournal, stamp);
   const [notes, setNotes] = useState<string | null>(null);
   if (error)
     return (
@@ -142,6 +142,7 @@ export function Journal({ campaignId, stamp }: { campaignId: string; stamp: numb
       >
         End session
       </button>
+      <Downtime campaignId={campaignId} onDone={reload} />
     </section>
   );
 }
@@ -381,5 +382,76 @@ export function WorldMap({
           })}
       </ul>
     </section>
+  );
+}
+
+/** Downtime (spec 06): the safe-place activities the engine resolves between adventures. */
+function Downtime({ campaignId, onDone }: { campaignId: string; onDone: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+  const [error, setError] = useState("");
+  const [research, setResearch] = useState("");
+  const [train, setTrain] = useState("");
+  const run = async (body: Record<string, unknown>) => {
+    setBusy(true);
+    setError("");
+    try {
+      const result = await api(`/campaigns/${campaignId}/downtime`, DowntimeResult.parse, body, "POST");
+      setNote(result.summary);
+      onDone();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="downtime">
+      <h3>Downtime</h3>
+      <p className="small muted">Time passes in a safe place. Choose how to spend it.</p>
+      <div className="downtime-actions">
+        <button type="button" disabled={busy} onClick={() => run({ action: { type: "work" } })}>
+          Work a day
+        </button>
+        <button type="button" disabled={busy} onClick={() => run({ action: { type: "carouse" } })}>
+          Carouse
+        </button>
+        <button type="button" disabled={busy} onClick={() => run({ action: { type: "recover" } })}>
+          Recover
+        </button>
+      </div>
+      <div className="downtime-actions">
+        <label>
+          Train a skill
+          <input value={train} onChange={(e) => setTrain(e.target.value)} placeholder="core:melee" />
+        </label>
+        <button
+          type="button"
+          disabled={busy || !train.trim()}
+          onClick={() => run({ action: { type: "train", skill: train.trim() } })}
+        >
+          Train
+        </button>
+      </div>
+      <div className="downtime-actions">
+        <label>
+          Research a topic
+          <input value={research} onChange={(e) => setResearch(e.target.value)} placeholder="the old well" />
+        </label>
+        <button
+          type="button"
+          disabled={busy || !research.trim()}
+          onClick={() => run({ action: { type: "research", topic: research.trim() } })}
+        >
+          Research
+        </button>
+      </div>
+      {note && <p className="small">{note}</p>}
+      {error && (
+        <p role="alert" className="error small">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }

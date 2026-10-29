@@ -133,6 +133,25 @@ export const GameView = z.object({
     .object({ reason: z.literal("death"), obituary: z.string() })
     .nullable()
     .default(null),
+  /** The PC's pack, weight and money (spec 11, spec 13 Inventory). */
+  inventory: z
+    .object({
+      capacityKg: z.number().nonnegative(),
+      weightKg: z.number().nonnegative(),
+      band: z.enum(["none", "burdened", "heavilyBurdened", "overloaded"]),
+      coins: z.number().int().nonnegative(),
+      items: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          qty: z.number().int().positive(),
+          location: z.string(),
+          condition: z.string(),
+          quality: z.string(),
+        }),
+      ),
+    })
+    .default({ capacityKg: 0, weightKg: 0, band: "none", coins: 0, items: [] }),
   /** Known spells from the frozen pack (spec 05, the spellcasting plugin). */
   spells: z
     .array(

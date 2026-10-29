@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.ts";
 import { CampaignSettingsPanel } from "./CampaignSettings.tsx";
 import { CombatPanel, CombatStrip } from "./Combat.tsx";
+import { Inventory } from "./Inventory.tsx";
 import { NarrativeText, narrationContext, RefContext } from "./Narration.tsx";
 import { Party } from "./Party.tsx";
 import { Mechanics, Passage } from "./Passage.tsx";
@@ -12,10 +13,11 @@ import { Timeline } from "./Timeline.tsx";
 import { usePlay } from "./use-play.ts";
 import { Codex, Journal, WorldMap } from "./World.tsx";
 
-type Tab = "combat" | "sheet" | "party" | "journal" | "codex" | "map" | "timeline";
+type Tab = "combat" | "sheet" | "inventory" | "party" | "journal" | "codex" | "map" | "timeline";
 const TAB_LABEL: Record<Tab, string> = {
   combat: "Combat",
   sheet: "Sheet",
+  inventory: "Inventory",
   party: "Party",
   journal: "Journal",
   codex: "Codex",
@@ -93,6 +95,8 @@ export function Play({
             onOpenCampaign={onOpenCampaign}
           />
         );
+      case "inventory":
+        return <Inventory view={view} />;
       default:
         return <Sheet view={view} />;
     }

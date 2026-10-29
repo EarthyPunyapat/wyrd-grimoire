@@ -5,6 +5,7 @@ import {
   type CampaignPreset,
   type CampaignSettingsInput,
   type CompiledPack,
+  DowntimeRequest,
   type DraftSheet,
   defaultTuning,
   draft,
@@ -24,16 +25,20 @@ import {
 } from "@wyrd/core";
 import {
   actingActor,
+  capacityKg,
+  carriedKg,
   closeEvents,
   combatView,
   createActor,
   createCampaign,
   draftFromArchetype,
+  encumbranceBand,
   type GameState,
   legacyEvents,
   obituary,
   RESOLUTION_MODULES,
   reduce,
+  resolveDowntime,
   skillLabel,
   skillValue,
   unwrap,
@@ -574,6 +579,31 @@ export function createApp(options: Options) {
         pc,
         speakers,
         resolution,
+        inventory: {
+          capacityKg: capacityKg(pc, defaultTuning),
+          weightKg: carriedKg(state, pc.id, { items: gamePack.items, tuning: defaultTuning }),
+          band: encumbranceBand(state, pc.id, { items: gamePack.items, tuning: defaultTuning }),
+          coins: state.economy?.wallets[pc.id]?.coins ?? 0,
+          items: (state.inventory?.actors[pc.id]?.stacks ?? []).map((stack) => {
+            const item =
+              gamePack.items.weapons[stack.itemId] ??
+              gamePack.items.armor[stack.itemId] ??
+              gamePack.items.gear[stack.itemId];
+            return {
+              id: stack.itemId,
+              name: item?.name ?? stack.itemId,
+              qty: stack.qty,
+              location:
+                stack.location.kind === "worn"
+                  ? stack.location.slot
+                  : stack.location.kind === "held"
+                    ? `${stack.location.hand} hand`
+                    : stack.location.kind,
+              condition: stack.condition,
+              quality: stack.quality,
+            };
+          }),
+        },
         spells: Object.values(gamePack.spells ?? {})
           .filter((spell) => {
             const known = (state.flags.spellcasting as { known?: Record<string, string[]> } | undefined)
@@ -895,6 +925,29 @@ export function createApp(options: Options) {
     });
     launch(id, jobId, "", target);
     return c.json({ turnId: jobId }, 202);
+  });
+  app.post("/api/campaigns/:id/downtime", async (c) => {
+    const id = c.req.param("id");
+    const game = campaign(id);
+    const input = await body(c, DowntimeRequest);
+    if (!input.action) throw new HTTPException(422, { message: "Choose a downtime activity from the list" });
+    const state = game.state();
+    const pcId = state.party.pcId;
+    if (!pcId) throw new HTTPException(409, { message: "This campaign has no player character" });
+    const pack = game.packSnapshot()!.content as CompiledPack;
+    const canon = new CanonQueries(game);
+    const out = resolveDowntime(state, pcId, input.action, {
+      skills: skillCatalog([pack]),
+      tuning: defaultTuning,
+      nameOf: (eid: string) => state.actors[eid]?.sheet.identity.name ?? canon.entity(eid)?.name ?? eid,
+      recipes: pack.recipes ?? {},
+    });
+    if (!out.ok)
+      throw new HTTPException(422, {
+        message: out.errors.map((e) => e.message).join("; ") || "That downtime activity can't be done",
+      });
+    game.append(out.value.events);
+    return c.json(out.value.result);
   });
   app.get("/api/campaigns/:id/turns/:turnId/stream", (c) => {
     const jobId = c.req.param("turnId");
