@@ -172,10 +172,13 @@ export function Codex({
       </p>
     );
   if (!data) return <p className="panel-pad muted">Opening the codex…</p>;
-  const act = async (path: string, body: unknown) => {
+  // The fact id is one path segment; the verb after it is literal path, not part of the id.
+  const act = async (factId: string, verb: "pin" | "retcon", body: unknown) => {
     setProblem("");
     try {
-      setData(await api(`/campaigns/${campaignId}/facts/${encodeURIComponent(path)}`, parseCodex, body));
+      setData(
+        await api(`/campaigns/${campaignId}/facts/${encodeURIComponent(factId)}/${verb}`, parseCodex, body),
+      );
     } catch (e) {
       setProblem((e as Error).message);
     }
@@ -244,7 +247,7 @@ export function Codex({
                           className="inline-form"
                           onSubmit={(ev) => {
                             ev.preventDefault();
-                            void act(`${f.id}/retcon`, { value: editing.value }).then(() => setEditing(null));
+                            void act(f.id, "retcon", { value: editing.value }).then(() => setEditing(null));
                           }}
                         >
                           <input
@@ -267,7 +270,7 @@ export function Codex({
                               type="button"
                               aria-pressed={f.pinned}
                               aria-label={`${f.pinned ? "Unpin" : "Pin"} ${f.predicate} of ${e.name}`}
-                              onClick={() => void act(`${f.id}/pin`, { pinned: !f.pinned })}
+                              onClick={() => void act(f.id, "pin", { pinned: !f.pinned })}
                             >
                               {f.pinned ? "★" : "☆"}
                             </button>
