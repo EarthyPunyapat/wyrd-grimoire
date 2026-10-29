@@ -12,6 +12,7 @@ import {
   type Rumor,
   type Tuning,
 } from "@wyrd/core";
+import { advanceDelegations } from "../delegation.ts";
 import { healingDaily } from "../injury/healing.ts";
 import type { GameState, RulesContext } from "../state.ts";
 import { survivalDaily } from "../survival.ts";
@@ -706,6 +707,7 @@ export function runTicks(state: GameState, ctx: WorldContext): EventDraft[] {
   if (days > 0) {
     const first = Math.floor(now / MINUTES.day) - Math.min(days, ctx.tuning.world.maxDailyTicks) + 1;
     for (let d = first; d <= Math.floor(now / MINUTES.day); d++) {
+      w.apply(advanceDelegations(w.state, ctx, d * MINUTES.day));
       const rng = new Rng(w.state.campaign.rngState);
       spreadRumours(w, rng, ctx);
       factionGoals(w, rng, ctx);
@@ -725,6 +727,7 @@ export function runTicks(state: GameState, ctx: WorldContext): EventDraft[] {
       }
     }
   }
+  w.apply(advanceDelegations(w.state, ctx));
   if (Math.floor(now / MINUTES.hour) > Math.floor(w.state.calendar.lastTick.hour / MINUTES.hour))
     w.apply([draft("TickCompleted", { kind: "hour", at: now }, "engine")]);
   return w.events;

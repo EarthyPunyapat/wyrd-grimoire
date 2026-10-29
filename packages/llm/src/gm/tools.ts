@@ -1,3 +1,4 @@
+import { delegationReportCards } from "@wyrd/engine";
 import { z } from "zod";
 import type { ToolCall, ToolDef } from "../types.ts";
 import { gmTool, gmTools } from "./registry.ts";
@@ -32,10 +33,11 @@ export async function executeTool(call: ToolCall, x: ToolContext): Promise<ToolO
   if (!parsed.success) return fail(z.prettifyError(parsed.error));
   try {
     const run = await tool.run(parsed.data, x);
+    const reports = delegationReportCards(run.effects?.drafts ?? []);
     return {
       ok: run.ok,
-      result: JSON.stringify({ ok: run.ok, ...run.body }),
-      effects: { ...none(), ...run.effects },
+      result: JSON.stringify({ ok: run.ok, ...run.body, ...(reports.length ? { reports } : {}) }),
+      effects: { ...none(), ...run.effects, cards: [...(run.effects?.cards ?? []), ...reports] },
     };
   } catch (e) {
     return fail(e instanceof Error ? e.message : String(e));

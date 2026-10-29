@@ -33,6 +33,14 @@ export type WoundEffect = {
  * Spec numbers are defaults, not constants: rules code reads them from a Tuning value.
  */
 export type Tuning = {
+  delegation: {
+    durationMinutes: number;
+    skill: string;
+    difficulty: Difficulty;
+    goalChars: number;
+    reportChars: number;
+    voiceChars: number;
+  };
   levels: {
     start: number;
     step: number;
@@ -167,6 +175,7 @@ export type Tuning = {
   };
   /** World simulation (spec 06): calendar defaults, tick rates, rumour spread. Packs may override the calendar. */
   world: {
+    maxWaitMinutes: number;
     monthNames: string[];
     daysPerMonth: number;
     seasons: string[];
@@ -422,6 +431,14 @@ export type Tuning = {
 };
 
 export const defaultTuning: Tuning = {
+  delegation: {
+    durationMinutes: 1440,
+    skill: "core:insight",
+    difficulty: "normal",
+    goalChars: 400,
+    reportChars: 1000,
+    voiceChars: 1200,
+  },
   levels: {
     start: 1,
     step: 1,
@@ -622,6 +639,7 @@ export const defaultTuning: Tuning = {
     maxRounds: 30,
   },
   world: {
+    maxWaitMinutes: 480,
     monthNames: [
       "Thaw",
       "Seedtime",

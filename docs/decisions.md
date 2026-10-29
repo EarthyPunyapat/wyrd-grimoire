@@ -215,3 +215,10 @@ After playing M7 on deepseek-flash, the owner judged the game "so lacking" next 
 | ID | Decision | Why |
 |---|---|---|
 | D155 | Cosmic Levels default old sheets to Level 1 and no abilities; they coexist with M7 class levels. Native d20 adjustments wrap the existing resolver. Unopposed challenges default to equal level; infinity never rolls in either dice system, and two infinite sides stalemate. Default XP thresholds are cumulative `10 × (level − 1)^2` with table overrides. A breakthrough uses an equal-level training check and an explicit nonlethal HP success cost; failure keeps the level. All parameters live in `tuning.levels`. Extremely large finite power ratings use magnitude notation when numeric arithmetic overflows. | D130/D131 specify the gap rules and advancement routes, but leave these defaults and infinity-vs-infinity unspecified. Explicit defaults keep existing saves usable, training fallible, and open-ended Levels serializable. Milestones require player acceptance; explicit `/gm` corrections use Retcon Undo. |
+
+
+### W2 delegation implementation (2026-10-29)
+
+| ID | Decision | Why |
+|---|---|---|
+| D156 | Loyal companions ignore approval and departure events during replay as well as normal rules; the affected existing handlers move into `reduce/delegation.ts`. `CompanionBondSet` establishes persistent loyalty and/or an editable text voice profile. Delegation defaults to one day, Insight against the assignee's effective level, and uses A's d20 rules in every campaign. Due is an absolute game minute. An impossible gap or unavailable actor blocks and asks for help; rolled failure ends the task. Retry explicitly reassigns a blocked task. Defaults and text bounds live in `tuning.delegation`; the old fixed wait cap moves to `tuning.world.maxWaitMinutes` so skips can advance in legal chunks. | D138 specifies loyalty, voice and delegated task outcomes, while leaving scheduling and failure defaults open. Recording task results/RNG under the registered F domain preserves replay and gives E task-boundary/interruption hooks. Voice profiles and reports never borrow NPC secrets. |

@@ -10,7 +10,16 @@ import {
   ShowCardArgs,
   TimeSkipArgs,
 } from "@wyrd/core";
-import { applyChanges, knownEntities, resolveTurn, validateTurn } from "@wyrd/engine";
+import {
+  advanceDelegations,
+  applyChanges,
+  blockedTasks,
+  knownEntities,
+  nextDelegationBoundary,
+  resolveTurn,
+  validateTurn,
+  Working,
+} from "@wyrd/engine";
 import { registerGmTool } from "../registry.ts";
 import type { ToolContext, ToolProgress, ToolRun } from "../tool-types.ts";
 
@@ -113,8 +122,46 @@ registerGmTool({
   name: "time_skip",
   description: "Let time pass; the world moves on.",
   schema: TimeSkipArgs,
-  run: (a, x) =>
-    act(x.pcId, [{ type: "wait", minutes: a.minutes }], x, { phase: "simulating", detail: a.reason }),
+  run: (a, x) => {
+    const working = new Working(x.state);
+    const until = x.state.campaign.gameTime + a.minutes;
+    const mechanics: NonNullable<ToolRun["effects"]>["mechanics"] = [];
+    let interrupted = blockedTasks(working.state).length > 0;
+    while (working.state.campaign.gameTime < until && !interrupted) {
+      const now = working.state.campaign.gameTime;
+      const boundary = nextDelegationBoundary(working.state);
+      if (boundary !== undefined && boundary <= now) {
+        const pending = advanceDelegations(working.state, x.ctx);
+        if (!pending.length)
+          return {
+            ok: false,
+            body: { errors: "An overdue task needs a revised plan" },
+            effects: { drafts: working.events },
+          };
+        working.apply(pending);
+      } else {
+        const end = Math.min(until, boundary ?? until, now + x.ctx.tuning.world.maxWaitMinutes);
+        const step = act(x.pcId, [{ type: "wait", minutes: end - now }], { ...x, state: working.state });
+        if (!step.ok)
+          return {
+            ...step,
+            effects: { ...step.effects, drafts: [...working.events, ...(step.effects?.drafts ?? [])] },
+          };
+        working.apply(step.effects?.drafts ?? []);
+        mechanics.push(...(step.effects?.mechanics ?? []));
+      }
+      interrupted = blockedTasks(working.state).length > 0;
+    }
+    return {
+      ok: true,
+      body: {
+        minutes: working.state.campaign.gameTime - x.state.campaign.gameTime,
+        interrupted,
+        blocked: blockedTasks(working.state).map((t) => ({ taskId: t.id, report: t.report })),
+      },
+      effects: { drafts: working.events, mechanics, progress: { phase: "simulating", detail: a.reason } },
+    };
+  },
 });
 
 registerGmTool({

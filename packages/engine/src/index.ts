@@ -6,6 +6,7 @@ export * from "./combat/index.ts";
 export * from "./companions.ts";
 export * from "./conditions.ts";
 export * from "./creation.ts";
+export * from "./delegation.ts";
 export * from "./derived.ts";
 export * from "./downtime.ts";
 export * from "./economy.ts";

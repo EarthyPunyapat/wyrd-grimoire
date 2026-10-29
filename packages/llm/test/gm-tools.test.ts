@@ -40,6 +40,7 @@ test("lists core and Levels GM tools", () => {
       "rank_ability",
       "breakthrough",
       "set_level",
+      "delegate",
       "act",
       "change_state",
       "lookup_lore",

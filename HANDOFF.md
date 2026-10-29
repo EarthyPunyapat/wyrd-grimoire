@@ -4,7 +4,7 @@ Working notes for whoever picks this up next. Read `AGENTS.md` first, then this 
 
 ## Status (2026-10-29)
 
-**M1–M7, W2 step 2 and workstreams A (Levels/abilities) and C (wiki lore) are built.** Owner-only and remaining W2 checks stay unticked in `docs/milestones.md`.
+**M1–M7, W2 step 2 and workstreams A (Levels/abilities), C (wiki lore) and F (companions/delegation) are built.** Owner-only and remaining W2 checks stay unticked in `docs/milestones.md`.
 The GM-with-tools turn (Tasks 1–8 of `docs/superpowers/plans/2026-10-29-w2-step2-gm-turn.md`) is on
 `w2-gm-ui` and merges to `main`: one GM model runs a turn with engine tools, streams prose, shows
 cards and choices, retcons with Undo, marks a backup model and runs a non-blocking structural check
@@ -17,6 +17,18 @@ Owner-only checks still outstanding (need real hardware or keys):
 - M3: LAN/phone playtest from the Arch laptop and a phone.
 - M5: a real-model world run and the NPC-knowledge eval.
 - M8: media (images, TTS) has not been built.
+
+## W2 F — Companions, Ari and delegation (2026-10-29)
+
+Built test-first on `w2-delegation`, merged to `main`. Plan: `docs/superpowers/plans/2026-10-29-w2-delegation.md`; defaults: D156.
+
+- `domains/delegation.ts` owns CompanionBondSet and TaskAssigned/Progressed/Blocked/Ended; only `reduce/delegation.ts` handles them. Existing approval/milestone/departure handlers moved into that pair to enforce permanent loyalty on replay. Ordinary companions retain their approval rules; loyal ones ignore approval and cannot leave/betray (death remains possible).
+- Companion `voiceProfile` is editable through Party and `PUT /api/campaigns/:id/companions/:companionId/bond`. The Party UI hides loyal numeric approval/meter, and GM/narrator prompts use the profile for speaker blocks. API/voice edits cannot turn loyalty off. No stock Ari is inserted into unrelated campaigns.
+- `engine/delegation.ts` exports `assignTask`, `advanceDelegations(state, ctx, at?)`, `delegationTasks`, `nextDelegationBoundary`, `blockedTasks` and report-card helpers. Tasks live under `flags.delegation` and replay from their events. Due is an absolute future game minute; default duration is one day. Defaults live in `tuning.delegation`.
+- `delegate` registers in `gm/tools/delegation.ts` with one index import. It accepts an active living companion ID, goal, optional due/opposition/skill/owned ability/exploit and taskId for retrying a blocked task. Task checks use A's seeded d20 level-gap rules even in d100 campaigns; results/RNG are recorded. Rolled outcomes end the task; impossible gaps/unavailable actors block and ask for help.
+- Turns/world ticks and downtime advance tasks. The current time_skip splits at task boundaries/legal wait chunks and stops when a task blocks. E can use the exported hooks for its broader watch-list/daily skip. Daily task/world RNG ordering agrees between long and split advances. Downtime previews clone state before folding legacy inventory events to avoid mutating input stacks.
+- Task reports use the existing report card, are sent to the GM as tool results and persist on browser turns. Browser task projections omit opposition/private minds; secret-free output is tested. The hotbar says “Delegate to Ari” for Ari, or another loyal companion's actual name. Active companion IDs map to their known speaker names.
+- Browser verification: dedicated Ari workflow passes desktop and phone; full suite **47 passed, 3 existing skips**, using one worker and sequential browsers. `bun run build` passes. All tests use fixtures/FakeProvider, with no wiki or model network calls.
 
 ## W2 A — Levels and abilities (2026-10-29)
 
@@ -112,13 +124,13 @@ Built test-first on `w2-lore`; merged to `main`. Plan: `docs/superpowers/plans/2
 - Only the pack's first shop opens (at campaign start); per-settlement shop generation is future
   work (D118).
 - Themes exist for fantasy-core; other packs still use the app default palette (D119).
-- The Playwright e2e suite (`bun run test:e2e`) is not part of `bun run check`; run it separately after UI changes. The current A run passes 45 tests with 3 existing skips (one worker, sequential browsers).
+- The Playwright e2e suite (`bun run test:e2e`) is not part of `bun run check`; run it separately after UI changes. The current F run passes 47 tests with 3 existing skips (one worker, sequential browsers).
 
 ## Next milestone
 
 **W2 — Wyrd 2.0** (before M8). The owner played M7 and found it lacking next to their own ChatGPT RPG sessions, and a 72-question interview on 2026-10-29 redesigned the game.
 
-Step 2 and step 3 A/C are done. Next: B avatars/sealing, D source creation, F delegation, and E full time skips/watch list (after F). A exports the level/check/breakthrough helpers; C exports `LoreResearch`. Infinite observe scope remains in E.
+Step 2 and step 3 A/C/F are done. Next: B avatars/sealing, D source creation, and E full time skips/watch list. A exports level/check/breakthrough helpers, C exports `LoreResearch`, and F exports delegation advancement/boundary/blocked-task helpers. Infinite observe scope remains in E.
 
 Read these first:
 - the spec: `docs/superpowers/specs/2026-10-29-wyrd-2-design.md`

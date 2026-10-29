@@ -49,34 +49,64 @@ const DIRECTIVES = {
 } as const;
 
 /** A companion's standing with the PC and how they act in a fight (spec 04 approval and control). */
-function CompanionCard({
+export function CompanionCard({
   m,
   busy,
   onControl,
+  onBond,
 }: {
   m: ProgressionMember;
   busy: boolean;
+  onBond?: (bond: { loyal?: true; voiceProfile?: string }) => void;
   onControl: (control: "ai" | "manual", directive: keyof typeof DIRECTIVES) => void;
 }) {
   const c = m.companion!;
-  const math = localStorage.getItem("wyrd-math") === "true";
+  const math = typeof localStorage !== "undefined" && localStorage.getItem("wyrd-math") === "true";
+  const [voice, setVoice] = useState(c.voiceProfile ?? "");
   return (
     <div className="sheet-section companion-card">
       <h3>How {m.name} feels about you</h3>
-      <p className="approval-word">
-        {c.mood}
-        {math && <span className="muted"> ({c.approval})</span>}
-      </p>
-      <meter
-        className="approval"
-        aria-label={`Approval: ${c.mood}`}
-        min={-100}
-        max={100}
-        low={-50}
-        high={50}
-        optimum={100}
-        value={c.approval}
-      />
+      {c.loyal ? (
+        <p className="approval-word">Loyal — stays by your side.</p>
+      ) : (
+        <>
+          <p className="approval-word">
+            {c.mood}
+            {math && <span className="muted"> ({c.approval})</span>}
+          </p>
+          <meter
+            className="approval"
+            aria-label={`Approval: ${c.mood}`}
+            min={-100}
+            max={100}
+            low={-50}
+            high={50}
+            optimum={100}
+            value={c.approval ?? 0}
+          />
+        </>
+      )}
+      {c.voiceProfile && <p className="small">Voice: {c.voiceProfile}</p>}
+      {onBond && (
+        <div className="sheet-section">
+          {!c.loyal && (
+            <button type="button" disabled={busy} onClick={() => onBond({ loyal: true })}>
+              Make permanently loyal
+            </button>
+          )}
+          <label>
+            Voice profile
+            <textarea value={voice} disabled={busy} onChange={(e) => setVoice(e.target.value)} />
+          </label>
+          <button
+            type="button"
+            disabled={busy || !voice.trim()}
+            onClick={() => onBond({ voiceProfile: voice })}
+          >
+            Save voice profile
+          </button>
+        </div>
+      )}
       {c.values.length > 0 && (
         <p className="small">
           <strong>Values</strong> {c.values.join(", ")}
@@ -295,6 +325,25 @@ export function Party({
       setBusy(false);
     }
   };
+  const bond = async (input: { loyal?: true; voiceProfile?: string }) => {
+    if (!member) return;
+    setBusy(true);
+    setProblem("");
+    try {
+      setData(
+        await api(
+          `/campaigns/${campaignId}/companions/${encodeURIComponent(member.actorId)}/bond`,
+          parseProgression,
+          input,
+          "PUT",
+        ),
+      );
+    } catch (e) {
+      setProblem((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
   const buy = async (kind: "skill" | "attribute" | "talent" | "fieldSkill", id: string) => {
     if (!member) return;
     setBusy(true);
@@ -338,7 +387,15 @@ export function Party({
           {problem}
         </p>
       )}
-      {member?.companion && <CompanionCard m={member} busy={busy} onControl={(c, d) => void control(c, d)} />}
+      {member?.companion && (
+        <CompanionCard
+          key={member.actorId}
+          m={member}
+          busy={busy}
+          onControl={(c, d) => void control(c, d)}
+          onBond={(input) => void bond(input)}
+        />
+      )}
       {member && (
         <Advance
           key={member.actorId}

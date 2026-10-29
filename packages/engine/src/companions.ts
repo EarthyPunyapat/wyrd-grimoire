@@ -35,7 +35,7 @@ export function approvalEvents(
   const sceneId = state.scene?.id;
   for (const p of proposals) {
     const c = w.state.companions?.[p.companionId];
-    if (c?.status !== "active" || !p.delta) continue;
+    if (c?.status !== "active" || c.loyal || !p.delta) continue;
     if (!state.scene || !(p.companionId in state.scene.positions)) continue;
     const capped = Math.max(-t.approvalPerEvent, Math.min(t.approvalPerEvent, p.delta));
     const spent = c.scene && c.scene.id === sceneId ? c.scene.total : 0;
@@ -62,7 +62,7 @@ export function milestones(
   tuning: Tuning,
 ): EventDraft[] {
   const c = state.companions?.[id];
-  if (c?.status !== "active") return [];
+  if (c?.status !== "active" || c.loyal) return [];
   const th = tuning.companions.thresholds;
   const name = nameOf(id);
   const pc = state.party.pcId ? nameOf(state.party.pcId) : "the party";

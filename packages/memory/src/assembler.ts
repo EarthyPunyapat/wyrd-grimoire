@@ -236,7 +236,18 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
 
   // 6. PC and party, compact.
   const companionLine = (c: GameState["companions"][string] | undefined, r: string) => {
-    if (!c?.profile) return null;
+    if (!c) return null;
+    const voice = c.voiceProfile
+      ? `Voice profile for <say who="${c.id}"> speaker blocks: ${c.voiceProfile}`
+      : "";
+    if (c.loyal)
+      return [
+        "  loyal companion: no approval meter; never leaves or betrays. May disagree and advise.",
+        voice,
+      ]
+        .filter(Boolean)
+        .join("\n");
+    if (!c.profile) return voice || null;
     const mood =
       c.approval >= 50
         ? "warm"
@@ -246,9 +257,12 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
             ? "uneasy"
             : "steady";
     const cares = `values ${c.profile.values.join(", ")}; likes ${c.profile.likes.join(", ") || "—"}; dislikes ${c.profile.dislikes.join(", ") || "—"}`;
-    return r === "guard"
-      ? `  ${cares}; approval ${c.approval}`
-      : `  ${cares}; feeling toward the PC: ${mood}`;
+    return [
+      r === "guard" ? `  ${cares}; approval ${c.approval}` : `  ${cares}; feeling toward the PC: ${mood}`,
+      voice,
+    ]
+      .filter(Boolean)
+      .join("\n");
   };
   const party = [state.party.pcId, ...state.party.companionIds].filter((x): x is string => !!x);
   const partyText = party

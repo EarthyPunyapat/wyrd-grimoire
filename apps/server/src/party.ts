@@ -3,6 +3,7 @@ import {
   ATTRIBUTE_IDS,
   ATTRIBUTE_NAMES,
   type CharacterSheet,
+  CompanionBondInput,
   CompanionControlInput,
   type CompiledPack,
   defaultTuning,
@@ -15,6 +16,7 @@ import {
   buyAdvancement,
   type CreationContent,
   classProgress,
+  companionBond,
   draftFromArchetype,
   type GameState,
   isClassSkill,
@@ -62,8 +64,9 @@ export const approvalWord = (approval: number) =>
 
 function companionSummary(c: GameState["companions"][string]) {
   return {
-    approval: c.approval,
-    mood: approvalWord(c.approval),
+    approval: c.loyal ? null : c.approval,
+    mood: c.loyal ? "Loyal" : approvalWord(c.approval),
+    voiceProfile: c.voiceProfile,
     control: c.control,
     directive: c.directive,
     values: c.profile?.values ?? [],
@@ -255,6 +258,16 @@ export function mountParty(app: Hono<AppEnvironment>, d: Deps) {
     creationContent([game.packSnapshot()!.content as CompiledPack]);
   app.get("/api/campaigns/:id/progression", (c) => {
     const game = d.campaign(c.req.param("id"));
+    return c.json(progressionView(game.state(), content(game)));
+  });
+  app.put("/api/campaigns/:id/companions/:companionId/bond", async (c) => {
+    const id = c.req.param("id");
+    const game = d.campaign(id);
+    const input = await d.body(c, CompanionBondInput);
+    if (d.running(id)) throw new HTTPException(409, { message: "Wait for the current turn to finish" });
+    const events = companionBond(game.state(), c.req.param("companionId"), input);
+    if (!events.ok) throw new HTTPException(422, { message: events.errors[0]!.message });
+    game.append(events.value);
     return c.json(progressionView(game.state(), content(game)));
   });
   // Spending XP (spec 04): the engine prices and validates; the purchase is one event.

@@ -95,7 +95,6 @@ const DEFAULT_MINUTES: Record<ExplorationAction["type"], number> = {
 
 /** Difficulty range the parser may propose for a free-form check; harder steps need rule tables. */
 const PARSER_DIFFICULTIES: readonly Difficulty[] = ["easy", "normal", "hard", "extreme"];
-const MAX_WAIT_MINUTES = 8 * 60;
 
 export type PlanError = {
   actionIndex: number;
@@ -289,10 +288,12 @@ function validateOne(
       return null;
     }
     case "wait":
-      if (a.minutes > MAX_WAIT_MINUTES) {
-        return err("WAIT_TOO_LONG", `Waiting is at most ${MAX_WAIT_MINUTES} minutes; longer is a rest`, [
-          { type: "wait", minutes: MAX_WAIT_MINUTES },
-        ]);
+      if (a.minutes > ctx.tuning.world.maxWaitMinutes) {
+        return err(
+          "WAIT_TOO_LONG",
+          `Waiting is at most ${ctx.tuning.world.maxWaitMinutes} minutes; longer is a rest`,
+          [{ type: "wait", minutes: ctx.tuning.world.maxWaitMinutes }],
+        );
       }
       return null;
     case "travel": {

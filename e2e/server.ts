@@ -4,7 +4,10 @@ import { join, resolve } from "node:path";
 import { createApp } from "../apps/server/src/app.ts";
 import { EXAMPLE_WORLD } from "../apps/server/src/example-world.ts";
 import { webAssets } from "../apps/server/src/web.ts";
+import { CharacterSheet, draft, Entity } from "../packages/core/src/index.ts";
+import { companionBond, type GameState, reduce, unwrap } from "../packages/engine/src/index.ts";
 import { type ChatProvider, FakeProvider, offlineProvider, RoleRouter } from "../packages/llm/src/index.ts";
+import { CampaignStore } from "../packages/storage/src/index.ts";
 
 const offline = offlineProvider();
 const cases = new FakeProvider([
@@ -48,6 +51,23 @@ const cases = new FakeProvider([
 ]);
 // Levels UI fixture: all other GM calls fail into the existing classic offline path.
 const levelModel = new FakeProvider([
+  {
+    role: "gm",
+    match: (r) => r.messages.some((m) => m.role === "user" && m.content.includes("delegation workflow")),
+    reply: (r) => {
+      const count = r.messages.filter((m) => m.role === "tool").length;
+      if (count === 0)
+        return {
+          toolCall: {
+            name: "delegate",
+            args: { assignee: "ari", goal: "Inspect the beacon", opposition: { level: 18 } },
+          },
+        };
+      if (count === 1)
+        return { toolCall: { name: "time_skip", args: { minutes: 1440, reason: "Wait for Ari" } } };
+      return { text: '<say who="ari">The beacon is secure.</say>' };
+    },
+  },
   {
     role: "gm",
     match: (r) => r.messages.some((m) => m.role === "user" && m.content.includes("level workflow")),
@@ -110,6 +130,33 @@ const router = new RoleRouter({
 });
 const home = mkdtempSync(join(tmpdir(), "wyrd-e2e-"));
 const instance = createApp({ home, offline: true, router, seed: "e2e-combat" });
+// Authenticated test-only fixture; never mounted by the production server.
+instance.app.post("/api/testing/:id/ari", (c) => {
+  const id = c.req.param("id");
+  if (!instance.store.campaigns().some((campaign) => campaign.id === id))
+    return c.json({ error: "Unknown fixture campaign" }, 404);
+  const game = CampaignStore.open<GameState>(join(home, "campaigns", id, "campaign.db"), { reduce });
+  try {
+    const sheet = CharacterSheet.parse({
+      ...game.state().actors.pc!.sheet,
+      id: "ari",
+      level: 20,
+      identity: { name: "Ari", ancestry: "fantasy-core:human" },
+    });
+    game.append([
+      draft("EntityCreated", {
+        entity: Entity.parse({ id: "ari", name: "Ari", kind: "npc", detail: "full" }),
+      }),
+      draft("CompanionJoined", { companionId: "ari", sheet, reason: "A lasting bond" }),
+    ]);
+    game.append(
+      unwrap(companionBond(game.state(), "ari", { loyal: true, voiceProfile: "Warm and candid." })),
+    );
+    return c.json({ ready: true });
+  } finally {
+    game.close();
+  }
+});
 instance.app.use("/*", webAssets(resolve("apps/web/dist")));
 // A second checkout (worktree, parallel agent) can pick its own port.
 const port = Number(process.env.WYRD_E2E_PORT ?? 4789);

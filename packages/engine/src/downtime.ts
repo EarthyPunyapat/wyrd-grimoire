@@ -11,9 +11,11 @@ import {
   type RecipeDef,
 } from "@wyrd/core";
 import { resolveCheck } from "./checks.ts";
+import { advanceDelegations } from "./delegation.ts";
 import { fail, ok, type Result } from "./result.ts";
 import { lookupSkill } from "./skills.ts";
 import type { GameState, RulesContext } from "./state.ts";
+import { Working } from "./working.ts";
 
 /**
  * Downtime (spec 06): train, craft, work, research, carouse or recover when time passes in a safe
@@ -259,5 +261,9 @@ export function resolveDowntime(
       "engine",
     ),
   );
-  return ok({ events, result });
+  // Some legacy inventory reducers mutate stack records; isolate this preview before committing it.
+  const working = new Working(structuredClone(state));
+  working.apply(events);
+  working.apply(advanceDelegations(working.state, ctx));
+  return ok({ events: working.events, result });
 }
