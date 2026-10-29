@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+
 // A second checkout (worktree, parallel agent) can pick its own port.
 const port = Number(process.env.WYRD_E2E_PORT ?? 4789);
 const baseURL = `http://127.0.0.1:${port}`;
