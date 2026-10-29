@@ -24,6 +24,15 @@ export const SkillId = ContentId;
 export type SkillId = ContentId;
 
 export const ActorId = z.string().min(1);
+
+/** A world inside a campaign (D141). v1 campaigns have one; everything recorded before W2 lives there. */
+export const MAIN_WORLD = "world:main";
+export const WorldId = z.string().regex(/^world:[a-z0-9-]+$/, "expected world:local-id");
+export type WorldId = z.infer<typeof WorldId>;
+export const World = z.object({ id: WorldId, name: z.string().min(1), source: z.string().optional() });
+export type World = z.infer<typeof World>;
+/** The world a record belongs to; records written before W2 have none and live in the main world. */
+export const worldOf = (record: { worldId?: string | undefined }): string => record.worldId ?? MAIN_WORLD;
 export type ActorId = z.infer<typeof ActorId>;
 
 export const Degree = z.enum(["critSuccess", "success", "failure", "critFailure"]);

@@ -138,6 +138,7 @@ function state(): GameState {
     economy: EconomyState.parse({}),
     customItems: {},
     retcons: [],
+    worlds: [{ id: "world:main", name: "Test" }],
     factions: {},
     quests: {},
     clocks: {},

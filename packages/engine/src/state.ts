@@ -22,6 +22,7 @@ import type {
   SceneState,
   Threat,
   Tuning,
+  World,
 } from "@wyrd/core";
 import type { ClassCatalog } from "./classes.ts";
 import type { SkillCatalog } from "./skills.ts";
@@ -73,6 +74,8 @@ export type GameState = {
   customItems: Record<string, GearDef>;
   /** Player-authorised retcons and their Undo state (D144). */
   retcons: RetconRecord[];
+  /** The worlds this campaign holds (D141); v1 creates `world:main` only. */
+  worlds: World[];
   factions: Record<string, FactionState>;
   quests: Record<string, QuestState>;
   clocks: Record<string, Clock>;

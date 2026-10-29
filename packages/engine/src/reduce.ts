@@ -1,4 +1,11 @@
-import { CompanionState, EconomyState, type EventEnvelope, type EventType, InventoryState } from "@wyrd/core";
+import {
+  CompanionState,
+  EconomyState,
+  type EventEnvelope,
+  type EventType,
+  InventoryState,
+  MAIN_WORLD,
+} from "@wyrd/core";
 import { avatarHandlers } from "./reduce/avatars.ts";
 import { canonHandlers } from "./reduce/canon-clocks.ts";
 import { classHandlers } from "./reduce/classes.ts";
@@ -495,6 +502,7 @@ function initialState(e: EventEnvelope<"CampaignCreated">): GameState {
     economy: EconomyState.parse({}),
     customItems: {},
     retcons: [],
+    worlds: [{ id: MAIN_WORLD, name: p.name }],
     ...EMPTY_WORLD(p.gameTime),
     flags: {},
     lastChecks: {},

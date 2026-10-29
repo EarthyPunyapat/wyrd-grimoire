@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MechanicsLine } from "./common.ts";
+import { MechanicsLine, WorldId } from "./common.ts";
 
 /** Canon entity and fact shapes (spec 07). They live in projections, not in GameState. */
 
@@ -29,6 +29,8 @@ export const Entity = z.object({
   data: z.record(z.string(), z.unknown()).default({}),
   status: z.enum(["active", "destroyed", "dead", "lost", "retconned"]).default("active"),
   importance: z.number().int().min(1).max(5).default(2),
+  /** Missing means the main world (D141); read it with `worldOf`. */
+  worldId: WorldId.optional(),
 });
 export type Entity = z.infer<typeof Entity>;
 export type EntityInput = z.input<typeof Entity>;
@@ -47,6 +49,8 @@ export const Fact = z.object({
   supersededBy: z.string().optional(),
   retracted: z.boolean().optional(),
   pinned: z.boolean().optional(),
+  /** Missing means the main world (D141); read it with `worldOf`. */
+  worldId: WorldId.optional(),
 });
 export type Fact = z.infer<typeof Fact>;
 export type FactInput = z.input<typeof Fact>;

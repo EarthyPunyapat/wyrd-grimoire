@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Entity, Fact } from "./canon.ts";
-import { RngStateSchema } from "./common.ts";
+import { RngStateSchema, WorldId } from "./common.ts";
 import { SceneResponse } from "./scene-responses.ts";
 
 /**
@@ -21,6 +21,8 @@ export const Clock = z.object({
   ownerId: Id.optional(),
   /** Shown to the player (journal); faction goal clocks usually aren't. */
   visible: z.boolean().default(false),
+  /** Missing means the main world (D141); read it with `worldOf`. */
+  worldId: WorldId.optional(),
 });
 export type Clock = z.infer<typeof Clock>;
 
