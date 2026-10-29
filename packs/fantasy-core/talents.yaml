@@ -55,6 +55,62 @@
   description: Fear and charms slide off you. +10 to Willpower checks to resist fear or magic.
   prerequisites:
     attributes: { wil: 6 }
+- id: brawler
+  name: Brawler
+  tier: 1
+  description: You fight best at arm's length. Unarmed strikes deal +1 damage, and grapples you start are one step easier.
+  prerequisites:
+    attributes: { str: 6 }
+- id: fleet-footed
+  name: Fleet-Footed
+  tier: 1
+  description: You are gone before the dust settles. Once per fight, you can move to an adjacent zone without spending AP.
+  prerequisites:
+    attributes: { agi: 6 }
+- id: night-eyes
+  name: Night Eyes
+  tier: 1
+  description: Dim light does not trouble your eyes. In darkness your sight penalty is −20 rather than −40.
+  prerequisites:
+    attributes: { awa: 6 }
+- id: steady-aim
+  name: Steady Aim
+  tier: 1
+  description: You breathe out before you loose. Your first ranged attack after aiming gains an extra +10.
+  prerequisites:
+    attributes: { awa: 6 }
+    skills: { ranged: 30 }
+- id: field-medic
+  name: Field Medic
+  tier: 1
+  description: You have bound wounds in the mud with the arrows still flying. First aid costs 1 AP instead of 2.
+  prerequisites:
+    skills: { medicine: 30 }
+- id: pack-rat
+  name: Pack Rat
+  tier: 1
+  description: You know exactly which strap hides the thing you need. Once per turn, stowing or retrieving a carried item is free.
+- id: gutter-fighter
+  name: Gutter Fighter
+  tier: 1
+  description: A press, a corridor or a crowded room is your kind of battlefield. In tight quarters your melee attacks gain +10.
+  prerequisites:
+    attributes: { agi: 5 }
+    skills: { melee: 30 }
+- id: folk-healer
+  name: Folk Healer
+  tier: 1
+  description: You know the herbs and the signs of sickness. +10 to Medicine checks to diagnose or treat disease and poison.
+  prerequisites:
+    attributes: { int: 6 }
+    skills: { medicine: 30 }
+- id: wary
+  name: Wary
+  tier: 1
+  description: You are hard to take unawares. +10 to Perception checks to avoid surprise, and +10 to Initiative.
+  prerequisites:
+    attributes: { awa: 6 }
+    skills: { perception: 30 }
 # Tier 2
 - id: second-wind
   name: Second Wind
@@ -63,3 +119,165 @@
   prerequisites:
     attributes: { end: 6 }
     talents: [tough-as-roots]
+- id: shield-wall
+  name: Shield Wall
+  tier: 2
+  description: You make a wall of yourself. When you Defend, one ally engaged with you gains +10 to Dodge until your next turn.
+  prerequisites:
+    attributes: { str: 6 }
+    talents: [line-veteran]
+- id: duelist
+  name: Duelist
+  tier: 2
+  description: A free hand is a weapon of its own. With a one-handed weapon and an empty off hand, +10 to Parry and to your first attack each turn.
+  prerequisites:
+    skills: { melee: 50 }
+    talents: [quick-hands]
+- id: marksman
+  name: Marksman
+  tier: 2
+  description: You can hold an aim longer than most. You may aim three times instead of twice, to a maximum of +60.
+  prerequisites:
+    skills: { ranged: 50 }
+    talents: [steady-aim]
+- id: knife-work
+  name: Knife Work
+  tier: 2
+  description: A blade in a crowd is worth a sword on a field. +10 to attacks with a light or concealed weapon, and drawing one is free once per fight.
+  prerequisites:
+    skills: { sleight-of-hand: 40 }
+    talents: [light-fingers]
+- id: cat-footed
+  name: Cat-Footed
+  tier: 2
+  description: You move without sound and land without harm. +10 to Stealth checks to move quietly, and +10 to Acrobatics checks to land safely.
+  prerequisites:
+    skills: { stealth: 50 }
+    talents: [keen-ears]
+- id: battle-prayer
+  name: Battle Prayer
+  tier: 2
+  description: Your words hold a line together. Once per fight, a short prayer gives you or an ally +10 to the next morale or fear check.
+  prerequisites:
+    skills: { faith: 40 }
+    talents: [road-blessed]
+- id: herbalist
+  name: Herbalist
+  tier: 2
+  description: You can brew a poultice or a bitter draught during a rest. It heals 1d6 HP or eases a fever.
+  prerequisites:
+    skills: { medicine: 50 }
+    talents: [folk-healer]
+- id: iron-hide
+  name: Iron Hide
+  tier: 2
+  description: You have taken hits that would fell a door. While you wear any armour, its torso protection is 1 higher.
+  prerequisites:
+    attributes: { end: 7 }
+    talents: [tough-as-roots]
+- id: commanding-presence
+  name: Commanding Presence
+  tier: 2
+  description: People look to you when the shouting starts. Allies who can see you gain +10 to morale checks, and enemies hesitate before striking at you.
+  prerequisites:
+    attributes: { pre: 7 }
+    talents: [silver-tongue]
+- id: beast-tracker
+  name: Beast Tracker
+  tier: 2
+  description: One print tells you the animal, its direction and its mood. +10 to Survival checks to track beasts, and you know their habits.
+  prerequisites:
+    skills: { survival: 50 }
+    talents: [tracker]
+- id: rune-reader
+  name: Rune Reader
+  tier: 2
+  description: Old sigils and ward-marks open to you like a familiar hand. +10 to Arcana checks to identify magic, and you notice a magical trap before you step on it.
+  prerequisites:
+    skills: { arcana: 50 }
+    talents: [well-read]
+- id: quick-draw
+  name: Quick Draw
+  tier: 2
+  description: The first blow is the one that matters. Once per turn, you can draw a weapon and attack with it as the same action.
+  prerequisites:
+    attributes: { agi: 7 }
+    talents: [quick-hands]
+- id: spellbreaker
+  name: Spellbreaker
+  tier: 2
+  description: Magic breaks against you like water on stone. +10 to resist spells, and when you succeed against one the caster loses 1 AP.
+  prerequisites:
+    attributes: { wil: 7 }
+    talents: [iron-will]
+# Tier 3
+- id: undying
+  name: Undying
+  tier: 3
+  description: Death has had its chances and missed. The first lethal check each fight is one step easier, and you stabilise on your own at 0 HP.
+  prerequisites:
+    attributes: { end: 8 }
+    talents: [iron-hide]
+- id: blade-master
+  name: Blade Master
+  tier: 3
+  description: Your first attack each turn ignores the multi-attack penalty, and on a critical hit you choose the location you strike.
+  prerequisites:
+    skills: { melee: 70 }
+    talents: [duelist]
+- id: master-archer
+  name: Master Archer
+  tier: 3
+  description: Cover is a suggestion. Your ranged attacks ignore partial cover and take no penalty for firing into a melee.
+  prerequisites:
+    skills: { ranged: 70 }
+    talents: [marksman]
+- id: shadow-walk
+  name: Shadow Walk
+  tier: 3
+  description: You can hide in dim light without cover, and once per fight you can vanish from plain sight.
+  prerequisites:
+    skills: { stealth: 70 }
+    talents: [cat-footed]
+- id: loremaster
+  name: Loremaster
+  tier: 3
+  description: Once per scene, ask the GM for one true piece of lore about the place or thing before you; the answer is always honest.
+  prerequisites:
+    skills: { lore/history: 70 }
+    talents: [rune-reader]
+- id: saint
+  name: Saint
+  tier: 3
+  description: Once per day, a prayer mends 2d6 HP across those who hear it and removes Frightened from them.
+  prerequisites:
+    skills: { faith: 70 }
+    talents: [battle-prayer]
+- id: warlord
+  name: Warlord
+  tier: 3
+  description: Once per fight, every ally who can hear you gains an extra reaction.
+  prerequisites:
+    attributes: { pre: 8 }
+    talents: [commanding-presence]
+- id: alchemist
+  name: Alchemist
+  tier: 3
+  description: Herbs, salts and patience become medicine. With a day's work you make one dose of a remedy you know, and you can identify any draught by smell.
+  prerequisites:
+    skills: { medicine: 60, craft/alchemy: 40 }
+    talents: [herbalist]
+- id: beast-slayer
+  name: Beast Slayer
+  tier: 3
+  description: You have learned where the great animals are soft. +10 to attacks and +2 damage against beasts and other natural creatures.
+  prerequisites:
+    skills: { survival: 70 }
+    talents: [beast-tracker]
+- id: spellweaver
+  name: Spellweaver
+  tier: 3
+  description: You can hold two small workings in your mind at once and loose them together. Once per fight, a spell you cast costs 1 less AP.
+  prerequisites:
+    skills: { arcana: 70 }
+    talents: [rune-reader]
