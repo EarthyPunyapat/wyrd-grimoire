@@ -108,3 +108,26 @@ test("session zero builds the character from answers with a live sheet beside th
   await page.getByRole("button", { name: "Begin adventure →" }).click();
   await expect(page.getByRole("heading", { name: "Relay Nine" })).toBeVisible();
 });
+
+test("XP from a closed chapter is spent in the Party tab", async ({ page }, info) => {
+  test.skip(info.project.name === "phone", "The desktop panel covers the same screen");
+  await world(page, "Growth Test");
+  await page.getByRole("button", { name: "Begin adventure →" }).click();
+  await expect(page.getByRole("heading", { name: "Relay Nine" })).toBeVisible();
+  await page.getByLabel("What do you do?", { exact: true }).fill("look around");
+  await page.getByLabel("What do you do?", { exact: true }).press("Enter");
+  await expect(page.getByLabel("What do you do?", { exact: true })).toBeEnabled({ timeout: 15000 });
+  await page.getByRole("tab", { name: "Journal" }).click();
+  await page.getByRole("button", { name: /End session/ }).click();
+  await page.getByRole("tab", { name: "Party" }).click();
+  const party = page.getByRole("region", { name: "Party" });
+  await expect(party.getByText("2 XP", { exact: true })).toBeVisible();
+  // Every trained skill here is past 50% (3+ XP a step), so learn a new field skill for 2.
+  await party.getByLabel("Specialisation").fill("station history");
+  await party.getByRole("button", { name: "Learn (2 XP)" }).click();
+  await expect(party.getByText("0 XP", { exact: true })).toBeVisible();
+  await expect(party.getByText(/\(Station.History\)/i)).toBeVisible();
+  await page.screenshot({ path: info.outputPath("m6-party.png") });
+  const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+  expect(accessibility.violations).toEqual([]);
+});

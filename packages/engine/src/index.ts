@@ -8,6 +8,7 @@ export * from "./equipment.ts";
 export * from "./exploration.ts";
 export * from "./injury/index.ts";
 export * from "./luck.ts";
+export * from "./progression.ts";
 export * from "./reduce.ts";
 export * from "./resolution/d20.ts";
 export * from "./resolution/d100.ts";

@@ -1,6 +1,7 @@
 import {
   AddressInput,
   CodexView,
+  type CompiledPack,
   defaultTuning,
   draft,
   type Fact,
@@ -11,8 +12,9 @@ import {
   RetconInput,
   reputationTier,
 } from "@wyrd/core";
-import { describeDate, type GameState } from "@wyrd/engine";
+import { closeEvents, describeDate, type GameState } from "@wyrd/engine";
 import { type RoleRouter, recap, writeSummaries } from "@wyrd/llm";
+import { creationContent } from "@wyrd/packs";
 import { type AppStore, type CampaignStore, CanonQueries } from "@wyrd/storage";
 import type { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
@@ -256,9 +258,12 @@ export function mountWorld(app: Hono<AppEnvironment>, d: Deps) {
     const id = c.req.param("id");
     guard(id);
     const game = d.campaign(id);
+    const pack = game.packSnapshot()!.content as CompiledPack;
     await writeSummaries(game, new CanonQueries(game), d.router(), {
       forceChapter: true,
       gameTime: game.state().campaign.gameTime,
+      onClose: (level) =>
+        game.append(closeEvents(game.state(), level, creationContent([pack]), defaultTuning)),
     });
     return c.json(journalView(game, d.store.notes(id)));
   });

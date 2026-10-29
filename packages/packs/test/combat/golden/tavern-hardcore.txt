@@ -1,6 +1,6 @@
 CampaignCreated 9a96ed79edab
-ActorCreated b5e4ba42d50b
-ActorCreated 56b80f426caf
+ActorCreated c3063bc0c54a
+ActorCreated 646272c8592f
 EntityCreated 5daa6f220987
 EntityCreated d9013f6ff439
 FactAsserted f41459a2fef4
@@ -12,10 +12,10 @@ EntityCreated 518a712a83d3
 FactAsserted 57ed4a6d17cb
 TimeAdvanced e34b2e942fa4
 SceneOpened 04f934f711d5
-ActorCreated 0792c1552526
-ActorCreated 685e98f3617a
-ActorCreated 57ab7f6e0d83
-ActorCreated 3b53427f34d8
+ActorCreated fcd27239c701
+ActorCreated 6175927bdb0b
+ActorCreated d2291e453c1d
+ActorCreated eb6825deffa1
 CheckResolved 14ed84d0d1e7
 CheckResolved 73fbc26ea496
 CheckResolved 4fbc0ee9e0b1

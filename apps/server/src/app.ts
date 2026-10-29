@@ -18,6 +18,7 @@ import {
   WorldPitch,
 } from "@wyrd/core";
 import {
+  closeEvents,
   combatView,
   createActor,
   createCampaign,
@@ -72,6 +73,7 @@ import type { z } from "zod";
 import { evaluateDraft, mountCreation, pregenDraft, StoredDraft } from "./creation.ts";
 import { EXAMPLE_WORLD } from "./example-world.ts";
 import { ModelServices, mountModels } from "./models.ts";
+import { mountParty } from "./party.ts";
 import { addressOf, mountWorld } from "./world-views.ts";
 
 const SESSION_TTL = 30 * 24 * 60 * 60 * 1000;
@@ -222,6 +224,7 @@ export function createApp(options: Options) {
     body,
     router: () => (options.offline ? null : models.router()),
   });
+  mountParty(app, { campaign: (id) => campaign(id), body, running: (id) => !!store.running(id) });
   mountWorld(app, {
     campaign: (id) => campaign(id),
     store,
@@ -323,6 +326,7 @@ export function createApp(options: Options) {
         world,
         bible,
         hooks,
+        input.progression,
       );
       store.saveCreationDraft(input.draftId, { ...saved.data, campaignId: id });
       return c.json({ id }, 201);
@@ -332,7 +336,14 @@ export function createApp(options: Options) {
   });
   // Explicit authored test fixture; the normal web flow never chooses fantasy-core implicitly.
   app.post("/api/campaigns/quick-start", async (c) => {
-    const { world: worldId, pregen, name, characterName, ...input } = await body(c, QuickStartInput);
+    const {
+      world: worldId,
+      pregen,
+      name,
+      characterName,
+      progression,
+      ...input
+    } = await body(c, QuickStartInput);
     const sheet = pregen
       ? pregenDraft(pack, pregen)
       : archetypeDraft(
@@ -343,7 +354,15 @@ export function createApp(options: Options) {
         );
     const world = worlds[worldId]!;
     const hooks = await hookPlan(sheet, worldEvents(world, []), world);
-    const id = createGame(name, { ...sheet, name: characterName || sheet.name }, pack, world, [], hooks);
+    const id = createGame(
+      name,
+      { ...sheet, name: characterName || sheet.name },
+      pack,
+      world,
+      [],
+      hooks,
+      progression,
+    );
     return c.json({ id }, 201);
   });
   /** A draft from an origin and background, with the background's kit (spec 04 quick start). */
@@ -404,10 +423,12 @@ export function createApp(options: Options) {
     world: WorldDef,
     extra: EventDraft[] = [],
     hooks?: { ids: string[]; events: EventDraft[] },
+    progression: "classless" | "useBased" | "hybrid" = "classless",
   ) {
     const created = unwrap(
       createCampaign({
         name,
+        settings: { structural: { progression } },
         packIds: [pack.manifest.id],
         packHash: pack.hash,
         seed: options.seed ?? randomBytes(16).toString("hex"),
@@ -704,6 +725,8 @@ export function createApp(options: Options) {
           // Memory pyramid (spec 07): close scenes, chapters and arcs as their boundaries pass.
           await writeSummaries(game, canon, options.offline ? null : models.router(), {
             gameTime: game.state().campaign.gameTime,
+            onClose: (level) =>
+              game.append(closeEvents(game.state(), level, creationContent([frozen]), defaultTuning)),
           }).catch(() => 0);
         }
         store.touchCampaign(id);

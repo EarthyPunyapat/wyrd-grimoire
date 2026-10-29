@@ -4,15 +4,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.ts";
 import { CombatPanel, CombatStrip } from "./Combat.tsx";
 import { NarrativeText, narrationContext, RefContext } from "./Narration.tsx";
+import { Party } from "./Party.tsx";
 import { Mechanics, Passage } from "./Passage.tsx";
 import { Sheet } from "./Sheet.tsx";
 import { usePlay } from "./use-play.ts";
 import { Codex, Journal, WorldMap } from "./World.tsx";
 
-type Tab = "combat" | "sheet" | "journal" | "codex" | "map";
+type Tab = "combat" | "sheet" | "party" | "journal" | "codex" | "map";
 const TAB_LABEL: Record<Tab, string> = {
   combat: "Combat",
   sheet: "Sheet",
+  party: "Party",
   journal: "Journal",
   codex: "Codex",
   map: "Map",
@@ -38,8 +40,8 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
   };
   const inCombat = !!view.combat && !view.ended;
   const tabs: Tab[] = inCombat
-    ? ["combat", "sheet", "journal", "codex", "map"]
-    : ["sheet", "journal", "codex", "map"];
+    ? ["combat", "sheet", "party", "journal", "codex", "map"]
+    : ["sheet", "party", "journal", "codex", "map"];
   const stamp = view.turns.length;
   useEffect(() => {
     if (inCombat) setTab("combat");
@@ -58,6 +60,8 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
     switch (t) {
       case "combat":
         return view.combat ? <CombatPanel combat={view.combat} busy={play.busy} onFill={fill} /> : null;
+      case "party":
+        return <Party campaignId={view.id} stamp={stamp} onChanged={() => void play.refresh()} />;
       case "journal":
         return <Journal campaignId={view.id} stamp={stamp} />;
       case "codex":
@@ -337,7 +341,7 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
             <Dialog.Overlay className="overlay" />
             <Dialog.Content className="dialog sheet-dialog">
               <Dialog.Title>{panelOpen ? TAB_LABEL[panelOpen] : ""}</Dialog.Title>
-              <Dialog.Description className="sr-only">Your journal, codex and map.</Dialog.Description>
+              <Dialog.Description className="sr-only">Your party, journal, codex and map.</Dialog.Description>
               {panelOpen && panel(panelOpen)}
               <Dialog.Close className="dialog-close" aria-label="Close panel">
                 ×
@@ -370,6 +374,9 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
                 Combat ↗
               </button>
             )}
+            <button type="button" onClick={() => setPanelOpen("party")}>
+              Party
+            </button>
             <button type="button" onClick={() => setPanelOpen("journal")}>
               Journal
             </button>

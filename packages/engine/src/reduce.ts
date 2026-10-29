@@ -99,6 +99,74 @@ const handlers: { [K in Exclude<EventType, "CampaignCreated">]: Handler<K> } = {
       conditions: st.conditions.filter((c) => c.id !== e.payload.conditionId),
     })),
 
+  // Progression (spec 04). XP is shared by the living party; each member spends their own.
+  XpAwarded: (s, e) =>
+    [s.party.pcId, ...s.party.companionIds]
+      .filter((id): id is string => !!id && !!s.actors[id] && !s.actors[id]!.dead)
+      .reduce(
+        (st, id) =>
+          updateSheet(st, id, (sheet) => ({
+            ...sheet,
+            progression: { ...sheet.progression, xpEarned: sheet.progression.xpEarned + e.payload.amount },
+          })),
+        s,
+      ),
+  AdvancementBought: (s, e) =>
+    updateSheet(s, e.payload.actorId, (sheet) => {
+      const { kind, id, cost, amount, derived } = e.payload;
+      const p = sheet.progression;
+      const progression = {
+        ...p,
+        xpSpent: p.xpSpent + cost,
+        // A free purchase spends a use-based grant.
+        pendingAttributes:
+          kind === "attribute" && cost === 0 ? Math.max(0, p.pendingAttributes - 1) : p.pendingAttributes,
+        pendingTalents:
+          kind === "talent" && cost === 0 ? Math.max(0, p.pendingTalents - 1) : p.pendingTalents,
+      };
+      if (kind === "talent") return { ...sheet, progression, talents: [...sheet.talents, id] };
+      if (kind === "attribute") {
+        const attributes = {
+          ...sheet.attributes,
+          [id]: sheet.attributes[id as keyof typeof sheet.attributes] + amount,
+        };
+        const next = { ...sheet, progression, attributes, derived: derived ?? sheet.derived };
+        // A higher END raises max HP: the new points arrive healed.
+        const gained = next.derived.hpMax - sheet.derived.hpMax;
+        return clampHp({ ...next, status: { ...next.status, hp: next.status.hp + Math.max(0, gained) } });
+      }
+      const trained = (sheet.skills[id]?.trained ?? 0) + amount;
+      return { ...sheet, progression, skills: { ...sheet.skills, [id]: { trained } } };
+    }),
+  SkillMarked: (s, e) =>
+    updateSheet(s, e.payload.actorId, (sheet) =>
+      sheet.progression.marks.includes(e.payload.skillId)
+        ? sheet
+        : {
+            ...sheet,
+            progression: { ...sheet.progression, marks: [...sheet.progression.marks, e.payload.skillId] },
+          },
+    ),
+  SkillsImproved: (s, e) => {
+    const next = updateSheet(s, e.payload.actorId, (sheet) => {
+      const skills = { ...sheet.skills };
+      for (const r of e.payload.results)
+        if (r.gain) skills[r.skillId] = { trained: (skills[r.skillId]?.trained ?? 0) + r.gain };
+      const p = sheet.progression;
+      const chaptersClosed = p.chaptersClosed + (e.payload.reason === "chapter" ? 1 : 0);
+      return { ...sheet, skills, progression: { ...p, marks: [], chaptersClosed } };
+    });
+    return { ...next, campaign: { ...next.campaign, rngState: e.payload.rngAfter } };
+  },
+  AdvancementGranted: (s, e) =>
+    updateSheet(s, e.payload.actorId, (sheet) => ({
+      ...sheet,
+      progression: {
+        ...sheet.progression,
+        pendingAttributes: sheet.progression.pendingAttributes + e.payload.attributes,
+        pendingTalents: sheet.progression.pendingTalents + e.payload.talents,
+      },
+    })),
   EquipmentChanged: (s, e) =>
     updateSheet(s, e.payload.actorId, (sheet) => ({ ...sheet, equipment: e.payload.equipment })),
 

@@ -61,6 +61,10 @@ export const ProgressionState = z.object({
   xpSpent: z.number().int().nonnegative().default(0),
   marks: z.array(SkillId).default([]),
   classLevels: z.record(z.string(), z.number().int().min(1)).default({}),
+  /** Use-based grants waiting to be chosen: attribute points (arc closes) and talents (chapters). */
+  pendingAttributes: z.number().int().nonnegative().default(0),
+  pendingTalents: z.number().int().nonnegative().default(0),
+  chaptersClosed: z.number().int().nonnegative().default(0),
 });
 
 export const DerivedStats = z.object({

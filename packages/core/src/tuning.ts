@@ -161,6 +161,33 @@ export type Tuning = {
     weights: { relevance: number; recency: number; importance: number; pinned: number };
     maxPins: number;
   };
+  /** Progression (spec 04): XP awards, classless costs, use-based improvement. */
+  progression: {
+    xp: {
+      questStage: Record<"main" | "major" | "minor", number>;
+      encounter: { min: number; max: number };
+      discovery: { region: number; site: number };
+      bond: number;
+      chapter: number;
+      cleverPerScene: number;
+    };
+    /** Hybrid campaigns earn this share of every award, rounded half up. */
+    hybridShare: number;
+    /** Skill +step costs by current trained value: up to each `below`, that many XP. */
+    skillStep: number;
+    skillCosts: { below: number; cost: number }[];
+    /** Past this value a skill needs a Mastery talent. */
+    skillMasteryAt: number;
+    /** Attribute +1 costs this × the new value; attributes stop at `attributeMax` without a pack ability. */
+    attributeCostPerPoint: number;
+    attributeMax: number;
+    talentCost: Record<1 | 2 | 3, number>;
+    fieldSkill: { cost: number; trained: number };
+    /** Use-based: an improvement roll above the value (or at least `alwaysAt`) adds 1d`gainDie`. */
+    improvement: { alwaysAt: number; gainDie: number; restMinutes: number };
+    /** Use-based: a new talent every N chapter closes. */
+    talentEveryChapters: number;
+  };
   snapshotEvery: number;
 };
 
@@ -383,6 +410,31 @@ export const defaultTuning: Tuning = {
     candidatePool: 300,
     weights: { relevance: 0.5, recency: 0.25, importance: 0.2, pinned: 1 },
     maxPins: 20,
+  },
+  progression: {
+    xp: {
+      questStage: { main: 8, major: 5, minor: 2 },
+      encounter: { min: 1, max: 3 },
+      discovery: { region: 2, site: 1 },
+      bond: 2,
+      chapter: 2,
+      cleverPerScene: 1,
+    },
+    hybridShare: 0.5,
+    skillStep: 5,
+    skillCosts: [
+      { below: 25, cost: 1 },
+      { below: 50, cost: 2 },
+      { below: 75, cost: 3 },
+      { below: 90, cost: 4 },
+    ],
+    skillMasteryAt: 90,
+    attributeCostPerPoint: 4,
+    attributeMax: 8,
+    talentCost: { 1: 8, 2: 15, 3: 25 },
+    fieldSkill: { cost: 2, trained: 10 },
+    improvement: { alwaysAt: 96, gainDie: 10, restMinutes: 480 },
+    talentEveryChapters: 2,
   },
   snapshotEvery: 200,
 };

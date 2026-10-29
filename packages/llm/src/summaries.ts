@@ -73,7 +73,12 @@ export async function writeSummaries(
   store: SummaryStore,
   canon: SummaryCanon,
   router: RoleRouter | null,
-  opts: { forceChapter?: boolean; gameTime: number } = { gameTime: 0 },
+  opts: {
+    forceChapter?: boolean;
+    gameTime: number;
+    /** Called after a chapter or arc summary is appended (progression rewards, spec 04). */
+    onClose?: (level: "chapter" | "arc") => void;
+  } = { gameTime: 0 },
 ): Promise<number> {
   const events = store.events();
   const head = events.at(-1)?.seq ?? 0;
@@ -135,6 +140,7 @@ export async function writeSummaries(
         },
       }),
     ]);
+    opts.onClose?.("chapter");
     written++;
   }
 
@@ -166,6 +172,7 @@ export async function writeSummaries(
         },
       }),
     ]);
+    opts.onClose?.("arc");
     written++;
   }
   return written;

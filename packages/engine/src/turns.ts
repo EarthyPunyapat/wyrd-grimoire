@@ -8,6 +8,7 @@ import {
   validateCombatPlan,
 } from "./combat/index.ts";
 import { type ExplorationContext, type PlanError, resolvePlan, validatePlan } from "./exploration.ts";
+import { restImprovements, turnAwards, turnMarks } from "./progression.ts";
 import { fail, ok, type Result } from "./result.ts";
 import type { GameState } from "./state.ts";
 import { Working } from "./working.ts";
@@ -41,7 +42,8 @@ const startsFight = (actions: readonly unknown[]) =>
 /**
  * Resolves a validated plan (spec 08 step 5). A hostile action outside combat starts a fight and
  * the rest of the plan runs as the first combat turn; in combat, AI turns run until the player's.
- * Afterwards the PC learns what's around them, witnesses remember, and the world ticks.
+ * Afterwards the PC learns what's around them, witnesses remember, the world ticks, and the party
+ * earns XP, marks skills and (after a long rest) rolls to improve them (spec 04).
  */
 export function resolveTurn(
   state: GameState,
@@ -58,8 +60,16 @@ export function resolveTurn(
   const w = new Working(state);
   w.apply(r.value.events);
   const after = afterTurn(w.state, r.value.resolution, ctx);
+  w.apply(after.events);
+  const turn = [...r.value.events, ...after.events];
+  const progress = [
+    ...turnMarks(state, turn),
+    ...turnAwards(state, w.state, turn, ctx.kindOf ?? (() => undefined), ctx.tuning),
+  ];
+  w.apply(progress);
+  progress.push(...restImprovements(w.state, turn, ctx, ctx.tuning));
   const resolution = after.beats.length
     ? { ...r.value.resolution, requiredBeats: [...r.value.resolution.requiredBeats, ...after.beats] }
     : r.value.resolution;
-  return ok({ events: [...r.value.events, ...after.events], resolution });
+  return ok({ events: [...turn, ...progress], resolution });
 }

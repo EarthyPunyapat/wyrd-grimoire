@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "./api.ts";
 
 /** Loads a world panel and reloads it when the story moves on (`stamp` changes). */
-function usePanel<T>(path: string, parse: (d: unknown) => T, stamp: number) {
+export function usePanel<T>(path: string, parse: (d: unknown) => T, stamp: number) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState("");
   const load = useCallback(() => {

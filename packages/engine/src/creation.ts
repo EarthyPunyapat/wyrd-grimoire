@@ -216,29 +216,8 @@ export function validateCreation(
       err("TALENT_UNKNOWN", "talents", `Unknown talent ${id}`);
       continue;
     }
-    for (const [attr, min] of Object.entries(t.prerequisites.attributes)) {
-      const have = sheet.attributes[attr as keyof Attributes];
-      if (have < (min ?? 0)) {
-        err(
-          "TALENT_PREREQ_UNMET",
-          "talents",
-          `${t.name} needs ${ATTRIBUTE_NAMES[attr as keyof Attributes]} ${min}`,
-        );
-      }
-    }
-    for (const [skill, min] of Object.entries(t.prerequisites.skills)) {
-      let have = 0;
-      try {
-        have = skillValue(sheet, skill, content.skills, tuning);
-      } catch {
-        // An unknown skill in a prerequisite is a pack error, reported by pack validate.
-      }
-      if (have < min) err("TALENT_PREREQ_UNMET", "talents", `${t.name} needs ${skill} ${min}%`);
-    }
-    for (const req of t.prerequisites.talents) {
-      if (!sheet.talents.includes(req))
-        err("TALENT_PREREQ_UNMET", "talents", `${t.name} needs the talent ${req}`);
-    }
+    for (const problem of talentProblems(sheet, t, content, tuning))
+      err("TALENT_PREREQ_UNMET", "talents", problem);
   }
 
   // Derived stats and starting status must match the rules.
@@ -259,6 +238,32 @@ export function validateCreation(
     err("STATUS_LUCK", "status.luck", `A new character starts with full Luck (${luck})`);
 
   return issues;
+}
+
+/** Why a sheet can't take a talent yet: each unmet prerequisite, in words (empty when it can). */
+export function talentProblems(
+  sheet: CharacterSheet,
+  t: CreationContent["talents"][string],
+  content: CreationContent,
+  tuning: Tuning,
+): string[] {
+  const problems: string[] = [];
+  for (const [attr, min] of Object.entries(t.prerequisites.attributes)) {
+    if (sheet.attributes[attr as keyof Attributes] < (min ?? 0))
+      problems.push(`${t.name} needs ${ATTRIBUTE_NAMES[attr as keyof Attributes]} ${min}`);
+  }
+  for (const [skill, min] of Object.entries(t.prerequisites.skills)) {
+    let have = 0;
+    try {
+      have = skillValue(sheet, skill, content.skills, tuning);
+    } catch {
+      // An unknown skill in a prerequisite is a pack error, reported by pack validate.
+    }
+    if (have < min) problems.push(`${t.name} needs ${skill} ${min}%`);
+  }
+  for (const req of t.prerequisites.talents)
+    if (!sheet.talents.includes(req)) problems.push(`${t.name} needs the talent ${req}`);
+  return problems;
 }
 
 export const hasErrors = (issues: CreationIssue[]): boolean => issues.some((i) => i.severity === "error");

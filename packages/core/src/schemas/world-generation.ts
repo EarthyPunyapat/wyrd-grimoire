@@ -66,6 +66,8 @@ export const StartGeneratedCampaign = z
     /** The quick path: an origin and background. Without them the sheet editor's draft is used. */
     ancestry: ContentId.optional(),
     archetype: ContentId.optional(),
+    /** Chosen at creation and locked (spec 04, 12). Class mode needs a pack with classes. */
+    progression: z.enum(["classless", "useBased", "hybrid"]).default("classless"),
   })
   .strict();
 export const GeneratedWorldPreview = z.object({

@@ -2,7 +2,14 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CodexView, CreationView, GameView, GeneratedWorldPreview, InterviewView } from "@wyrd/core";
+import {
+  CodexView,
+  CreationView,
+  GameView,
+  GeneratedWorldPreview,
+  InterviewView,
+  ProgressionView,
+} from "@wyrd/core";
 import { createApp } from "../src/app.ts";
 
 const homes: string[] = [];
@@ -145,4 +152,38 @@ test("the wizard's suggest buttons fill one field through the engine", async () 
   );
   expect(hooked.draft.hooks).toHaveLength(1);
   expect(hooked.draft.attributes).toEqual(before.draft.attributes);
+});
+
+test("closing a chapter awards XP, and the Party tab spends it through the engine", async () => {
+  const { call } = await setup();
+  const { id } = (await (await call("/campaigns/quick-start", { name: "Grow", pregen: "pip" })).json()) as {
+    id: string;
+  };
+  const turn = await call(`/campaigns/${id}/turns`, { input: "look around", clientTurnId: "grow-1" });
+  const { turnId } = (await turn.json()) as { turnId: string };
+  await (await call(`/campaigns/${id}/turns/${turnId}/stream`)).text();
+  expect((await call(`/campaigns/${id}/end-session`, {})).status).toBe(200);
+  let view = ProgressionView.parse(await (await call(`/campaigns/${id}/progression`)).json());
+  expect(view.mode).toBe("classless");
+  const pip = view.members[0]!;
+  expect(pip.xp.available).toBe(2);
+  const cheap = pip.skills.find((s) => s.cost !== null && s.cost <= 2)!;
+  const attribute = pip.attributes[0]!;
+  expect(attribute.cost).toBeNull();
+  expect(attribute.why).toContain("XP");
+  const bought = await call(`/campaigns/${id}/advance`, {
+    actorId: pip.actorId,
+    kind: "skill",
+    id: cheap.id,
+  });
+  expect(bought.status).toBe(200);
+  view = ProgressionView.parse(await bought.json());
+  expect(view.members[0]!.skills.find((s) => s.id === cheap.id)!.value).toBe(cheap.value + 5);
+  expect(view.members[0]!.xp.spent).toBe(cheap.cost!);
+  const refused = await call(`/campaigns/${id}/advance`, {
+    actorId: pip.actorId,
+    kind: "attribute",
+    id: "str",
+  });
+  expect(refused.status).toBe(422);
 });

@@ -35,6 +35,7 @@ export const QuickStartInput = z
       .string()
       .regex(/^[a-z-]+$/)
       .default("human"),
+    progression: z.enum(["classless", "useBased", "hybrid"]).default("classless"),
     /** Which authored test world to start in. */
     world: z.enum(["ashford-ferry", "tavern-brawl"]).default("ashford-ferry"),
   })

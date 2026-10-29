@@ -4,7 +4,7 @@ import { CheckResolvedPayload } from "./check.ts";
 import { combatEventSchemas } from "./combat.ts";
 import { ActorId, ContentId, RngStateSchema } from "./common.ts";
 import { CampaignSettings } from "./settings.ts";
-import { CharacterSheet, ConditionInstance, Equipment, Wound, WoundSeverity } from "./sheet.ts";
+import { CharacterSheet, ConditionInstance, DerivedStats, Equipment, Wound, WoundSeverity } from "./sheet.ts";
 import { worldEventSchemas } from "./world.ts";
 
 /**
@@ -40,6 +40,39 @@ export const eventPayloadSchemas = {
     actorId: ActorId,
     amount: z.number().int().positive(),
     reason: z.enum(["chapterClosed", "arcClosed", "ability", "other"]),
+  }),
+  /** XP for the whole party (spec 04): every PC and companion earns it; each spends their own. */
+  XpAwarded: z.object({
+    amount: z.number().int().positive(),
+    source: z.enum(["quest", "encounter", "discovery", "bond", "chapter", "clever"]),
+    reason: z.string(),
+  }),
+  AdvancementBought: z.object({
+    actorId: ActorId,
+    kind: z.enum(["skill", "attribute", "talent", "fieldSkill"]),
+    id: z.string(),
+    /** XP spent; 0 when a use-based grant pays for it. */
+    cost: z.number().int().nonnegative(),
+    /** Trained points (skills) or points (attributes) gained. */
+    amount: z.number().int().nonnegative(),
+    /** Recomputed derived stats after an attribute rises (the reducer has no tuning). */
+    derived: DerivedStats.optional(),
+  }),
+  SkillMarked: z.object({ actorId: ActorId, skillId: z.string() }),
+  /** A use-based improvement opportunity: each marked skill rolled d100, then the marks clear. */
+  SkillsImproved: z.object({
+    actorId: ActorId,
+    reason: z.enum(["rest", "chapter"]),
+    results: z.array(
+      z.object({ skillId: z.string(), roll: z.number().int(), gain: z.number().int().nonnegative() }),
+    ),
+    rngAfter: RngStateSchema,
+  }),
+  AdvancementGranted: z.object({
+    actorId: ActorId,
+    attributes: z.number().int().nonnegative().default(0),
+    talents: z.number().int().nonnegative().default(0),
+    reason: z.string(),
   }),
   ConditionApplied: z.object({ actorId: ActorId, condition: ConditionInstance }),
   ConditionRemoved: z.object({ actorId: ActorId, conditionId: ContentId, reason: z.string().optional() }),

@@ -33,6 +33,7 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<Mode>("review");
+  const [progression, setProgression] = useState<"classless" | "useBased" | "hybrid">("classless");
   const [step, setStep] = useState(0);
   const creation = useCreation(world?.id);
   const editing = mode !== "review";
@@ -94,14 +95,20 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
             const created = await api(
               "/campaigns",
               CreatedCampaign.parse,
-              StartGeneratedCampaign.parse({ draftId: world.id }),
+              StartGeneratedCampaign.parse({ draftId: world.id, progression }),
             );
             onCreate(created.id);
           } else {
             const created = await api(
               "/campaigns",
               CreatedCampaign.parse,
-              StartGeneratedCampaign.parse({ draftId: world.id, characterName, ancestry, archetype }),
+              StartGeneratedCampaign.parse({
+                draftId: world.id,
+                characterName,
+                ancestry,
+                archetype,
+                progression,
+              }),
             );
             onCreate(created.id);
           }
@@ -280,6 +287,18 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
               </button>
             </div>
           </fieldset>
+          <label>
+            How characters grow <span className="muted">(fixed once the story starts)</span>
+            <select
+              value={progression}
+              onChange={(e) => setProgression(e.target.value as typeof progression)}
+              disabled={busy}
+            >
+              <option value="classless">Spend experience freely</option>
+              <option value="useBased">Improve skills by using them</option>
+              <option value="hybrid">Both, at half experience</option>
+            </select>
+          </label>
           <h3>Your opening</h3>
           <p>{world.opening}</p>
           <button
