@@ -84,7 +84,7 @@ export const QuestState = z.object({
     )
     .min(1),
   stage: z.number().int().nonnegative().default(0),
-  status: z.enum(["active", "completed", "failed", "abandoned"]).default("active"),
+  status: z.enum(["active", "completed", "failed", "abandoned", "retconned"]).default("active"),
   deadlineClockId: Id.optional(),
   pathOf: Id.optional(),
 });
@@ -185,7 +185,7 @@ export const worldEventSchemas = {
   }),
   QuestEnded: z.object({
     questId: Id,
-    status: z.enum(["completed", "failed", "abandoned"]),
+    status: z.enum(["completed", "failed", "abandoned", "retconned"]),
     reason: z.string(),
   }),
   /** The PC learns a fact or that an entity exists (codex), and how. */

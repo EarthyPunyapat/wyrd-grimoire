@@ -64,6 +64,7 @@ export const StateChange = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("xp"), actorId: z.string(), amount: z.number().int().min(1) }),
 ]);
 export type StateChange = z.infer<typeof StateChange>;
+export type StateChangeInput = z.input<typeof StateChange>;
 
 export const RollArgs = z.object({
   actorId: z.string().optional(),
