@@ -66,7 +66,7 @@ Built on `w2-ui-menus`; plan `docs/superpowers/plans/2026-10-29-w2-ui-menus.md`,
 - Inventory is a paper doll (main hand, off hand, worn armour) plus a sortable bag grid. Every item opens the same `ItemCard` the story uses. Equip, stow and sort are instant; Use, Give, Throw and Drop compose one story turn. Selling stays a shop action.
 - `moveEquipment` is the new engine rule: one validated `EquipmentChanged`, with carried quantities synced from the item stacks. `POST /api/campaigns/:id/inventory/move` serves the instant actions, and GameView derives each item's location from the sheet so the bag and card agree.
 - Styles are in `apps/web/src/menus.css`; item and chrome icons come from game-icons.net (CC BY 3.0), credited per icon in `NOTICE`.
-- Validation: `bun run check` passed (typecheck, lint warnings only, **789 tests**, fantasy-core pack validation). Build passed. Full sequential Playwright with one worker: **54 passed, 4 existing skips**; the new menus workflow passes desktop and phone including axe WCAG A/AA.
+- Validation: `bun run check` passed (typecheck, lint warnings only, **803 tests**, fantasy-core pack validation). Build passed. Full sequential Playwright with one worker: **54 passed, 4 existing skips**; the new menus workflow passes desktop and phone including axe WCAG A/AA.
 - U5 (home and creation) and U6 (Cockpit/Chat presets) remain.
 
 ## W2 C — Lore from wikis (2026-10-29)
