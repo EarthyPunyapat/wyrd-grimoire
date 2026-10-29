@@ -1,0 +1,216 @@
+import { afterEach, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { GameView } from "@wyrd/core";
+import { FakeProvider, type FakeReply, type FakeRule, RoleRouter } from "@wyrd/llm";
+import { createApp } from "../src/app.ts";
+
+const homes: string[] = [];
+const servers: ReturnType<typeof createApp>[] = [];
+afterEach(() => {
+  for (const server of servers.splice(0)) server.close();
+  for (const home of homes.splice(0)) rmSync(home, { recursive: true, force: true });
+});
+
+async function setup(rules: FakeRule[], plan?: FakeProvider) {
+  const home = mkdtempSync(join(tmpdir(), "wyrd-gm-turns-"));
+  homes.push(home);
+  const fake = new FakeProvider(rules, "fake");
+  const providers: Record<string, FakeProvider> = { fake };
+  if (plan) providers.plan = plan;
+  const router = new RoleRouter({
+    providers,
+    routing: {
+      gm: plan
+        ? { provider: "plan", model: "sol", fallbacks: [{ provider: "fake", model: "flash" }] }
+        : { provider: "fake", model: "flash", fallbacks: [] },
+      ...(rules.some((r) => r.role === "check")
+        ? { check: { provider: "fake", model: "flash", fallbacks: [] } }
+        : {}),
+    },
+  });
+  const server = createApp({ home, offline: false, router, seed: "gm" });
+  servers.push(server);
+  const request = (
+    path: string,
+    body?: unknown,
+    cookie?: string,
+    method = body === undefined ? "GET" : "POST",
+  ) =>
+    server.app.request(`http://localhost/api${path}`, {
+      method,
+      headers: { "Content-Type": "application/json", "X-Wyrd": "1", ...(cookie ? { Cookie: cookie } : {}) },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+  const auth = await request("/auth/setup", { passcode: "a long gm turn passcode" });
+  const cookie = auth.headers.get("set-cookie")!.split(";")[0]!;
+  const made = await request(
+    "/campaigns/quick-start",
+    { name: "Ford GM", characterName: "Wren", archetype: "cutpurse" },
+    cookie,
+  );
+  expect(made.status).toBe(201);
+  const { id } = (await made.json()) as { id: string };
+  const view = async () =>
+    GameView.parse(await (await request(`/campaigns/${id}/view`, undefined, cookie)).json());
+  const turn = async (input: string, clientTurnId: string) => {
+    const submitted = await request(`/campaigns/${id}/turns`, { input, clientTurnId }, cookie);
+    expect(submitted.status).toBe(202);
+    const { turnId } = (await submitted.json()) as { turnId: string };
+    const stream = await (await request(`/campaigns/${id}/turns/${turnId}/stream`, undefined, cookie)).text();
+    return { turnId, stream };
+  };
+  return { server, fake, plan, id, cookie, request, view, turn };
+}
+
+const toolResults = (req: { messages: { role: string }[] }) =>
+  req.messages.filter((m) => m.role === "tool").length;
+const call = (name: string, args: unknown): FakeReply => ({ toolCall: { name, args } });
+
+const cardsAndChoices = (): FakeRule[] => [
+  {
+    role: "gm",
+    match: (req) => toolResults(req) === 0,
+    reply: call("show_card", {
+      cards: [
+        { type: "chapter", title: "The Ford", subtitle: "Evening" },
+        { type: "report", title: "Ledger", body: "One ferry, one debt." },
+      ],
+    }),
+  },
+  {
+    role: "gm",
+    match: (req) => toolResults(req) === 1,
+    reply: call("offer_choices", {
+      choices: [{ label: "Cross the ford" }, { label: "Ask Wenna" }],
+    }),
+  },
+  { role: "gm", reply: { text: "The ford waits." } },
+];
+
+test("gm turn streams deltas and completes", async () => {
+  const s = await setup(cardsAndChoices());
+  const { stream } = await s.turn("I look at the ford.", "gm-1");
+  expect(stream).toContain("event: narration.delta");
+  expect(stream).toContain("event: card");
+  expect(stream).toContain("event: choices");
+  expect(stream).toContain("event: turn.completed");
+
+  const view = await s.view();
+  const last = view.turns.at(-1)!;
+  expect(last.cards).toEqual([
+    { type: "chapter", title: "The Ford", subtitle: "Evening" },
+    { type: "report", title: "Ledger", body: "One ferry, one debt." },
+  ]);
+  expect(last.choices).toEqual([
+    { label: "Cross the ford", description: "" },
+    { label: "Ask Wenna", description: "" },
+  ]);
+  expect(last.backup).toBe(false);
+  expect(last.checkFlags).toEqual([]);
+});
+
+test("choices become suggestions", async () => {
+  const s = await setup(cardsAndChoices());
+  await s.turn("I look at the ford.", "gm-1");
+  const view = await s.view();
+  expect(view.suggestions).toEqual(["Cross the ford", "Ask Wenna"]);
+});
+
+test("undo restores state", async () => {
+  const s = await setup([
+    {
+      role: "gm",
+      match: (req) => toolResults(req) === 0,
+      reply: call("retcon", {
+        summary: "Wren already owns the lantern ring",
+        changes: [
+          { kind: "item.define", name: "Yellow lantern ring", description: "Brass, scratched." },
+          { kind: "item.give", actorId: "pc", itemId: "campaign:yellow-lantern-ring" },
+        ],
+      }),
+    },
+    { role: "gm", reply: { text: "It has always been yours." } },
+  ]);
+  await s.turn("/gm I have the lantern ring.", "gm-1");
+  let view = await s.view();
+  const retcon = view.turns.at(-1)!.retcon!;
+  expect(retcon.summary).toContain("lantern");
+  expect(retcon.undone).toBe(false);
+  expect(retcon.undoable).toBe(true);
+  expect(view.inventory.items.map((i) => i.name)).toContain("Yellow lantern ring");
+
+  const undone = await s.request(`/campaigns/${s.id}/retcons/${retcon.retconId}/undo`, {}, s.cookie);
+  expect(undone.status).toBe(200);
+  view = GameView.parse(await undone.json());
+  expect(view.inventory.items.map((i) => i.name)).not.toContain("Yellow lantern ring");
+  expect(view.turns.at(-1)!.retcon!.undone).toBe(true);
+  expect(view.turns.at(-1)!.retcon!.undoable).toBe(false);
+});
+
+test("undo refuses after the next turn", async () => {
+  const s = await setup([
+    {
+      role: "gm",
+      match: (req) => toolResults(req) === 0,
+      reply: call("retcon", {
+        summary: "Wren owns a ring",
+        changes: [
+          { kind: "item.define", name: "Copper ring" },
+          { kind: "item.give", actorId: "pc", itemId: "campaign:copper-ring" },
+        ],
+      }),
+    },
+    { role: "gm", reply: { text: "Done." } },
+  ]);
+  await s.turn("/gm I have a copper ring.", "gm-1");
+  const retcon = (await s.view()).turns.at(-1)!.retcon!;
+  await s.turn("I wait.", "gm-2");
+  const refused = await s.request(`/campaigns/${s.id}/retcons/${retcon.retconId}/undo`, {}, s.cookie);
+  expect(refused.status).toBe(409);
+  expect(await refused.json()).toEqual({ error: "Undo is only available until your next turn" });
+  const view = await s.view();
+  expect(view.inventory.items.map((i) => i.name)).toContain("Copper ring");
+});
+
+test("fix queues a reconcile turn", async () => {
+  const s = await setup([
+    { role: "gm", reply: { text: "You pocket the ring." } },
+    {
+      role: "check",
+      reply: call("report_unrecorded", {
+        claims: [{ quote: "You pocket the ring.", claim: "The ring was never recorded." }],
+      }),
+    },
+    { role: "gm", reply: { text: "The ring stays where it was." } },
+  ]);
+  const { turnId } = await s.turn("I take the ring.", "gm-1");
+  // The check runs in the background; wait for its report to reach the view.
+  let flags: { quote: string; claim: string }[] = [];
+  for (let i = 0; i < 100 && !flags.length; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    flags = (await s.view()).turns.at(-1)!.checkFlags;
+  }
+  expect(flags).toEqual([{ quote: "You pocket the ring.", claim: "The ring was never recorded." }]);
+
+  const fixed = await s.request(`/campaigns/${s.id}/turns/${turnId}/fix`, {}, s.cookie);
+  expect(fixed.status).toBe(202);
+  const { turnId: fixJob } = (await fixed.json()) as { turnId: string };
+  await (await s.request(`/campaigns/${s.id}/turns/${fixJob}/stream`, undefined, s.cookie)).text();
+  const view = await s.view();
+  expect(view.turns.at(-1)!.input.startsWith("Reconcile the story")).toBe(true);
+  expect(view.turns.at(-1)!.input).toContain("The ring was never recorded.");
+});
+
+test("backup flag reaches the view", async () => {
+  const plan = new FakeProvider(
+    [{ role: "gm", reply: { error: { code: "usage_limit", retryable: false } } }],
+    "plan",
+  );
+  const s = await setup([{ role: "gm", reply: { text: "The backup speaks." } }], plan);
+  const { stream } = await s.turn("Hello.", "gm-1");
+  expect(stream).toContain("event: model.backup");
+  const view = await s.view();
+  expect(view.turns.at(-1)!.backup).toBe(true);
+});

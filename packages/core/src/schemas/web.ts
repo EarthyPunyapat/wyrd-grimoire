@@ -2,6 +2,7 @@ import { z } from "zod";
 import { GuardSummary } from "./canon.ts";
 import { CombatView } from "./combat.ts";
 import { MechanicsLine, ResolutionId } from "./common.ts";
+import { Card, Choice } from "./gm.ts";
 import { BaseCampaignPreset, CampaignPreset, CampaignSettings, ProgressionMode } from "./settings.ts";
 import { CharacterSheet } from "./sheet.ts";
 export const ConnectionStatus = z.object({
@@ -89,6 +90,22 @@ export const WebTurn = z.object({
     .optional(),
   guard: GuardSummary.optional(),
   answer: z.string().optional(),
+  /** Cards and choices the GM showed on this turn (D144); empty for classic turns. */
+  cards: z.array(Card).default([]),
+  choices: z.array(Choice).default([]),
+  /** The GM turn ran on a fallback model (usage limit or failure). */
+  backup: z.boolean().default(false),
+  /** The structural check's flags for claims the turn did not record. */
+  checkFlags: z.array(z.object({ quote: z.string(), claim: z.string() })).default([]),
+  /** The latest retcon on this turn, with whether it can still be undone. */
+  retcon: z
+    .object({
+      retconId: z.string(),
+      summary: z.string(),
+      undone: z.boolean(),
+      undoable: z.boolean(),
+    })
+    .optional(),
 });
 export const GameView = z.object({
   id: z.string(),
@@ -248,6 +265,19 @@ export const WebStreamEvent = z.discriminatedUnion("type", [
   z.object({ type: z.literal("fallback"), message: z.string() }),
   z.object({ type: z.literal("turn.completed"), turnId: z.string() }),
   z.object({ type: z.literal("error"), message: z.string(), retryable: z.boolean() }),
+  z.object({
+    type: z.literal("progress"),
+    phase: z.enum(["researching", "rolling", "simulating", "writing"]),
+    detail: z.string().optional(),
+  }),
+  z.object({ type: z.literal("card"), card: Card }),
+  z.object({ type: z.literal("choices"), choices: z.array(Choice) }),
+  z.object({ type: z.literal("model.backup"), provider: z.string() }),
+  z.object({
+    type: z.literal("check.flag"),
+    turnId: z.string(),
+    flags: z.array(z.object({ quote: z.string(), claim: z.string() })),
+  }),
 ]);
 
 // ── M5: Journal, Codex and Map (spec 13), all filtered to what the PC knows ─────────────────────

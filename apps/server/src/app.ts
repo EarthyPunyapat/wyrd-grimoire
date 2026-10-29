@@ -15,6 +15,7 @@ import {
   LegacyInput,
   PasscodeInput,
   type ProgressionMode,
+  parseEventPayload,
   presetSelection,
   QuickStartInput,
   type ResolutionId,
@@ -22,7 +23,7 @@ import {
   StartGeneratedCampaign,
   SubmitTurnInput,
   survivalOf,
-  TurnCompletedPayload,
+  TurnCompletedEventPayload,
   WorldPitch,
 } from "@wyrd/core";
 import {
@@ -719,8 +720,7 @@ export function createApp(options: Options) {
     }
     return id;
   }
-  app.get("/api/campaigns/:id/view", (c) => {
-    const id = c.req.param("id");
+  function gameView(id: string) {
     const game = campaign(id);
     const state = game.state();
     const canon = new CanonQueries(game);
@@ -740,6 +740,31 @@ export function createApp(options: Options) {
     const resolutionModule = RESOLUTION_MODULES[resolution];
     const view = combatParts(game, state, gamePack);
     const turns = canon.recentTurns(100);
+    // The GM turn's records live in events, not state: retcon summaries and check flags per turn.
+    const events = game.events();
+    const retconSummaries = new Map(
+      events
+        .filter((e) => e.type === "RetconApplied")
+        .map((e) => {
+          const p = parseEventPayload("RetconApplied", e.payload);
+          return [p.retconId, p.summary] as const;
+        }),
+    );
+    const checkFlags = new Map(
+      events
+        .filter((e) => e.type === "CheckReported")
+        .map((e) => {
+          const p = parseEventPayload("CheckReported", e.payload);
+          return [p.turnId, p.flags] as const;
+        }),
+    );
+    const latestTurnId = turns.at(-1)?.id;
+    // A GM campaign's suggestions are its latest GM turn's choices, not generic filler.
+    let gmChoices: { label: string }[] | null = null;
+    for (let i = turns.length - 1; i >= 0 && !gmChoices; i--) {
+      const record = TurnCompletedEventPayload.safeParse(turns[i]!.record);
+      if (record.success && record.data.gm) gmChoices = record.data.gm.choices;
+    }
     // Resolve only IDs already spoken in player-visible passages, never the full NPC registry.
     // This also keeps older dialogue labelled after its speaker leaves the current room.
     const speakers: Record<string, string> = { [pc.id]: pc.identity.name };
@@ -750,155 +775,169 @@ export function createApp(options: Options) {
         if (entity?.kind === "npc" || entity?.kind === "creature") speakers[who.trim()] = entity.name;
       }
     }
-    return c.json(
-      GameView.parse({
-        id,
-        name: state.campaign.name,
-        gameTime: state.campaign.gameTime,
-        worldName: canon.entity("concept:world-bible")?.name ?? state.campaign.name,
-        opening: scene
-          ? String(
-              canon.factsAbout(scene.locationId).find((f) => f.predicate === "opening")?.value ??
-                "Look around, speak to someone nearby, or follow your curiosity.",
-            )
-          : "Your next chapter awaits.",
-        originName: gamePack.ancestries[pc.identity.ancestry]?.name ?? pc.identity.ancestry,
-        backgroundName: gamePack.archetypes[pc.archetypeId ?? ""]?.name ?? "",
-        // A mark written before downtime validated ids must not break an old campaign's view.
-        pc: {
-          ...pc,
-          progression: {
-            ...pc.progression,
-            marks: pc.progression.marks.filter((id) => isKnownSkill(id, skills)),
-          },
+    return GameView.parse({
+      id,
+      name: state.campaign.name,
+      gameTime: state.campaign.gameTime,
+      worldName: canon.entity("concept:world-bible")?.name ?? state.campaign.name,
+      opening: scene
+        ? String(
+            canon.factsAbout(scene.locationId).find((f) => f.predicate === "opening")?.value ??
+              "Look around, speak to someone nearby, or follow your curiosity.",
+          )
+        : "Your next chapter awaits.",
+      originName: gamePack.ancestries[pc.identity.ancestry]?.name ?? pc.identity.ancestry,
+      backgroundName: gamePack.archetypes[pc.archetypeId ?? ""]?.name ?? "",
+      // A mark written before downtime validated ids must not break an old campaign's view.
+      pc: {
+        ...pc,
+        progression: {
+          ...pc.progression,
+          marks: pc.progression.marks.filter((id) => isKnownSkill(id, skills)),
         },
-        speakers,
-        resolution,
-        theme: gamePack.theme ?? null,
-        shop: (() => {
-          const shopState = Object.values(state.economy?.shops ?? {})[0];
-          if (!shopState) return null;
-          return {
-            id: shopState.id,
-            name: shopState.name,
-            attitude: shopState.attitude,
-            items: shopState.stock.map((line) => {
-              const item =
-                gameItems.weapons[line.itemId] ?? gameItems.armor[line.itemId] ?? gameItems.gear[line.itemId];
-              return {
-                id: line.itemId,
-                name: item?.name ?? line.itemId,
-                basePrice: line.price ?? item?.price ?? 0,
-                price: Math.max(
-                  1,
-                  Math.round(
-                    (line.price ?? item?.price ?? 0) *
-                      shopState.markup *
-                      shopState.priceModifier *
-                      (shopState.bargain?.actorId === pc.id ? shopState.bargain.modifier : 1),
-                  ),
-                ),
-                stock: line.qty,
-              };
-            }),
-          };
-        })(),
-        survival: (() => {
-          const sl = survivalOf(state.flags);
-          const needs = sl.needs[pc.id];
-          return {
-            food: needs?.daysWithoutFood ?? 0,
-            water: needs?.daysWithoutWater ?? 0,
-            sleep: needs?.hoursAwake ?? 0,
-            exposure: needs?.exposure ?? 0,
-            exposureKind: needs?.exposureKind ?? "none",
-            notices: sl.notices.slice(-4).map((n) => ({ id: n.id, kind: n.kind, text: n.text })),
-          };
-        })(),
-        inventory: {
-          capacityKg: capacityKg(pc, defaultTuning),
-          weightKg: carriedKg(state, pc.id, { items: gameItems, tuning: defaultTuning }),
-          band: encumbranceBand(state, pc.id, { items: gameItems, tuning: defaultTuning }),
-          coins: state.economy?.wallets[pc.id]?.coins ?? 0,
-          items: (state.inventory?.actors[pc.id]?.stacks ?? []).map((stack) => {
+      },
+      speakers,
+      resolution,
+      theme: gamePack.theme ?? null,
+      shop: (() => {
+        const shopState = Object.values(state.economy?.shops ?? {})[0];
+        if (!shopState) return null;
+        return {
+          id: shopState.id,
+          name: shopState.name,
+          attitude: shopState.attitude,
+          items: shopState.stock.map((line) => {
             const item =
-              gameItems.weapons[stack.itemId] ??
-              gameItems.armor[stack.itemId] ??
-              gameItems.gear[stack.itemId];
+              gameItems.weapons[line.itemId] ?? gameItems.armor[line.itemId] ?? gameItems.gear[line.itemId];
             return {
-              id: stack.itemId,
-              name: item?.name ?? stack.itemId,
-              qty: stack.qty,
-              location:
-                stack.location.kind === "worn"
-                  ? stack.location.slot
-                  : stack.location.kind === "held"
-                    ? `${stack.location.hand} hand`
-                    : stack.location.kind,
-              condition: stack.condition,
-              quality: stack.quality,
+              id: line.itemId,
+              name: item?.name ?? line.itemId,
+              basePrice: line.price ?? item?.price ?? 0,
+              price: Math.max(
+                1,
+                Math.round(
+                  (line.price ?? item?.price ?? 0) *
+                    shopState.markup *
+                    shopState.priceModifier *
+                    (shopState.bargain?.actorId === pc.id ? shopState.bargain.modifier : 1),
+                ),
+              ),
+              stock: line.qty,
             };
           }),
-        },
-        spells: visibleSpells(state, gamePack, pc.id),
-        skills: Object.keys(pc.skills).map((id) => {
-          const value = skillValue(pc, id, skills, defaultTuning);
+        };
+      })(),
+      survival: (() => {
+        const sl = survivalOf(state.flags);
+        const needs = sl.needs[pc.id];
+        return {
+          food: needs?.daysWithoutFood ?? 0,
+          water: needs?.daysWithoutWater ?? 0,
+          sleep: needs?.hoursAwake ?? 0,
+          exposure: needs?.exposure ?? 0,
+          exposureKind: needs?.exposureKind ?? "none",
+          notices: sl.notices.slice(-4).map((n) => ({ id: n.id, kind: n.kind, text: n.text })),
+        };
+      })(),
+      inventory: {
+        capacityKg: capacityKg(pc, defaultTuning),
+        weightKg: carriedKg(state, pc.id, { items: gameItems, tuning: defaultTuning }),
+        band: encumbranceBand(state, pc.id, { items: gameItems, tuning: defaultTuning }),
+        coins: state.economy?.wallets[pc.id]?.coins ?? 0,
+        items: (state.inventory?.actors[pc.id]?.stacks ?? []).map((stack) => {
+          const item =
+            gameItems.weapons[stack.itemId] ?? gameItems.armor[stack.itemId] ?? gameItems.gear[stack.itemId];
           return {
-            id,
-            name: skillLabel(id, skills),
-            value,
-            display: resolutionModule.displaySkill(value),
+            id: stack.itemId,
+            name: item?.name ?? stack.itemId,
+            qty: stack.qty,
+            location:
+              stack.location.kind === "worn"
+                ? stack.location.slot
+                : stack.location.kind === "held"
+                  ? `${stack.location.hand} hand`
+                  : stack.location.kind,
+            condition: stack.condition,
+            quality: stack.quality,
           };
         }),
-        scene: scene
-          ? {
-              location: canon.entity(scene.locationId)?.name ?? "Unknown place",
-              zone: scene.zones.find((z) => z.id === here)?.name ?? "",
-              weather: scene.weather,
-              present: Object.entries(scene.positions)
-                .filter(([who, zone]) => who !== pc.id && zone === here)
-                .map(([id]) => ({ id, name: canon.entity(id)?.name ?? "Someone" })),
-            }
-          : null,
-        turns: turns.map((t) => {
-          const record = TurnCompletedPayload.parse(t.record);
-          return {
-            id: t.id,
-            input: t.input,
-            status: record.status,
-            narration: t.narration,
-            mechanics: record.mechanics,
-            ...(record.clarification
-              ? {
-                  clarification: {
-                    question: record.clarification.question,
-                    options: record.clarification.options.map((o) => ({ label: o.label })),
-                  },
-                }
-              : {}),
-            ...(record.status === "ooc" ? { answer: record.answer } : {}),
-            ...(snapshots.get(t.id) ? { guard: snapshots.get(t.id)!.guard } : {}),
-          };
-        }),
-        suggestions: state.campaign.settings.narration.suggestions
-          ? view.combat
+      },
+      spells: visibleSpells(state, gamePack, pc.id),
+      skills: Object.keys(pc.skills).map((id) => {
+        const value = skillValue(pc, id, skills, defaultTuning);
+        return {
+          id,
+          name: skillLabel(id, skills),
+          value,
+          display: resolutionModule.displaySkill(value),
+        };
+      }),
+      scene: scene
+        ? {
+            location: canon.entity(scene.locationId)?.name ?? "Unknown place",
+            zone: scene.zones.find((z) => z.id === here)?.name ?? "",
+            weather: scene.weather,
+            present: Object.entries(scene.positions)
+              .filter(([who, zone]) => who !== pc.id && zone === here)
+              .map(([id]) => ({ id, name: canon.entity(id)?.name ?? "Someone" })),
+          }
+        : null,
+      turns: turns.map((t) => {
+        const record = TurnCompletedEventPayload.parse(t.record);
+        const retcon = state.retcons.filter((r) => r.turnId === t.id).at(-1);
+        return {
+          id: t.id,
+          input: t.input,
+          status: record.status,
+          narration: t.narration,
+          mechanics: record.mechanics,
+          ...(record.clarification
+            ? {
+                clarification: {
+                  question: record.clarification.question,
+                  options: record.clarification.options.map((o) => ({ label: o.label })),
+                },
+              }
+            : {}),
+          ...(record.status === "ooc" ? { answer: record.answer } : {}),
+          ...(snapshots.get(t.id) ? { guard: snapshots.get(t.id)!.guard } : {}),
+          cards: record.gm?.cards ?? [],
+          choices: record.gm?.choices ?? [],
+          backup: record.gm?.backup ?? false,
+          checkFlags: checkFlags.get(t.id) ?? [],
+          ...(retcon
+            ? {
+                retcon: {
+                  retconId: retcon.retconId,
+                  summary: retconSummaries.get(retcon.retconId) ?? "",
+                  undone: retcon.undone,
+                  undoable: latestTurnId === t.id && !retcon.undone,
+                },
+              }
+            : {}),
+        };
+      }),
+      suggestions: state.campaign.settings.narration.suggestions
+        ? gmChoices
+          ? gmChoices.map((choice) => choice.label)
+          : view.combat
             ? view.combat.actions
                 .filter((a) => a.legal)
                 .slice(0, 4)
                 .map((a) => a.fill)
             : ["Look around", "Search the area", "Wait 10 minutes"]
-          : [],
-        offline: options.offline,
-        combat: view.combat,
-        ended: view.ended,
-        address: addressOf(canon),
-        known: Object.keys(state.knowledge.entities).flatMap((kid) => {
-          const e = canon.entity(kid);
-          return e && e.kind !== "concept" ? [{ id: kid, name: e.name, kind: e.kind }] : [];
-        }),
+        : [],
+      offline: options.offline,
+      combat: view.combat,
+      ended: view.ended,
+      address: addressOf(canon),
+      known: Object.keys(state.knowledge.entities).flatMap((kid) => {
+        const e = canon.entity(kid);
+        return e && e.kind !== "concept" ? [{ id: kid, name: e.name, kind: e.kind }] : [];
       }),
-    );
-  });
+    });
+  }
+  app.get("/api/campaigns/:id/view", (c) => c.json(gameView(c.req.param("id"))));
   /** Lazy generation for a campaign (spec 06): offline stand-ins, or worldGen calls. */
   function lazyFor(game: CampaignStore<GameState>, canon: CanonQueries) {
     const world = () => canon.entity("concept:world-bible");
@@ -1108,7 +1147,7 @@ export function createApp(options: Options) {
     if (input.clarification) {
       const turns = new CanonQueries(game).recentTurns(1);
       const last = turns[0];
-      const record = last?.record ? TurnCompletedPayload.parse(last.record) : null;
+      const record = last?.record ? TurnCompletedEventPayload.parse(last.record) : null;
       const choice = record?.clarification?.options[input.clarification.option];
       if (last?.id !== input.clarification.turnId || !choice)
         throw new HTTPException(409, { message: "That clarification is no longer current" });
@@ -1146,6 +1185,55 @@ export function createApp(options: Options) {
       target_id: target,
     });
     launch(id, jobId, "", target);
+    return c.json({ turnId: jobId }, 202);
+  });
+  /** Undo a retcon until the player takes another turn (D144). */
+  app.post("/api/campaigns/:id/retcons/:retconId/undo", (c) => {
+    const id = c.req.param("id");
+    const retconId = c.req.param("retconId");
+    const game = campaign(id);
+    const record = game.state().retcons.find((r) => r.retconId === retconId);
+    if (!record) throw new HTTPException(404, { message: "No such retcon" });
+    const latest = new CanonQueries(game).recentTurns(1)[0];
+    if (record.undone || latest?.id !== record.turnId)
+      throw new HTTPException(409, { message: "Undo is only available until your next turn" });
+    const applied = game
+      .events()
+      .filter((e) => e.type === "RetconApplied")
+      .map((e) => parseEventPayload("RetconApplied", e.payload))
+      .find((p) => p.retconId === retconId);
+    if (!applied) throw new HTTPException(404, { message: "No such retcon" });
+    game.append([...(applied.inverse as EventDraft[]), draft("RetconUndone", { retconId })]);
+    return c.json(gameView(id));
+  });
+  /** Fix a structural check's flags by queueing a GM turn that reconciles the story with the record. */
+  app.post("/api/campaigns/:id/turns/:turnId/fix", (c) => {
+    const id = c.req.param("id");
+    const target = c.req.param("turnId");
+    const game = campaign(id);
+    if (store.running(id)) throw new HTTPException(409, { message: "A turn is already running" });
+    const report = game
+      .events()
+      .filter((e) => e.type === "CheckReported")
+      .map((e) => parseEventPayload("CheckReported", e.payload))
+      .filter((p) => p.turnId === target)
+      .at(-1);
+    if (!report?.flags.length)
+      throw new HTTPException(409, { message: "There is nothing to fix on that passage" });
+    const text = `Reconcile the story with the recorded state for these claims: ${report.flags
+      .map((flag) => flag.claim)
+      .join("; ")}`;
+    models.router();
+    const jobId = randomUUID();
+    store.startJob({
+      id: jobId,
+      campaign_id: id,
+      client_id: jobId,
+      input: "fix",
+      status: "running",
+      target_id: null,
+    });
+    launch(id, jobId, text);
     return c.json({ turnId: jobId }, 202);
   });
   app.post("/api/campaigns/:id/downtime", async (c) => {

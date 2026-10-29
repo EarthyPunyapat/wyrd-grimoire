@@ -3,6 +3,7 @@ import { type GameView, ThemeSpec } from "@wyrd/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.ts";
 import { CampaignSettingsPanel } from "./CampaignSettings.tsx";
+import { Cards } from "./Cards.tsx";
 import { CombatPanel, CombatStrip } from "./Combat.tsx";
 import { Inventory } from "./Inventory.tsx";
 import { NarrativeText, narrationContext, RefContext } from "./Narration.tsx";
@@ -160,6 +161,12 @@ export function Play({
       if (choice && !play.busy) {
         e.preventDefault();
         void send(choice.label, Number(e.key) - 1);
+        return;
+      }
+      const gmChoice = last?.choices[Number(e.key) - 1];
+      if (gmChoice && !play.busy) {
+        e.preventDefault();
+        void send(gmChoice.label);
       }
     };
     window.addEventListener("keydown", listener);
@@ -240,6 +247,8 @@ export function Play({
                     busy={play.busy}
                     math={math}
                     onReroll={() => void play.reroll(turn.id)}
+                    onFix={(id) => void play.fix(id)}
+                    onUndo={(id) => void play.undo(id)}
                     {...(turn.id === last?.id
                       ? { onChoice: (i: number, label: string) => void send(label, i) }
                       : {})}
@@ -248,6 +257,49 @@ export function Play({
               </div>
               {play.busy && (
                 <div className="pending" role="status">
+                  {play.progress && (
+                    <p className="progress-line muted small">
+                      {play.progress.phase === "researching"
+                        ? "Researching"
+                        : play.progress.phase === "rolling"
+                          ? "Rolling"
+                          : play.progress.phase === "simulating"
+                            ? "Letting time pass"
+                            : "Writing"}
+                      {play.progress.detail ? `: ${play.progress.detail}` : "…"}
+                    </p>
+                  )}
+                  {play.live && (
+                    <div className="live-passage">
+                      <NarrativeText text={play.live} names={narrationContext(view).names} />
+                    </div>
+                  )}
+                  <Cards cards={play.cards} view={view} mechanics={play.mechanics} />
+                  {play.choices.length > 0 && (
+                    <fieldset className="gm-choices">
+                      <legend className="sr-only">Choices</legend>
+                      {play.choices.map((choice, i) => (
+                        <button
+                          type="button"
+                          key={choice.label}
+                          disabled={play.busy}
+                          onClick={() => void send(choice.label)}
+                        >
+                          <kbd>{i + 1}</kbd> {choice.label}
+                        </button>
+                      ))}
+                    </fieldset>
+                  )}
+                  {play.checkFlags.length > 0 && (
+                    <div className="check-flags">
+                      <h3>Possible unrecorded change</h3>
+                      {play.checkFlags.map((flag) => (
+                        <p key={flag.quote}>
+                          <q>{flag.quote}</q> — {flag.claim}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                   <Mechanics lines={play.mechanics} expanded resolution={view.resolution} />
                   <p>
                     <span className="pulse" aria-hidden="true">

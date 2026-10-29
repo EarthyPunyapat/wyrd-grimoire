@@ -84,7 +84,7 @@ export async function runGmTurn(d: PipelineDeps, t: TurnInput, hooks: GmHooks): 
           ...(d.campaignId ? { campaignId: d.campaignId } : {}),
         },
       );
-    } catch (e) {
+    } catch {
       if (round === 0) {
         emit({ type: "fallback", message: CLASSIC_FALLBACK });
         return hooks.classic(turnId);
