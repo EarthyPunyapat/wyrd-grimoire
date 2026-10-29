@@ -215,3 +215,10 @@ After playing M7 on deepseek-flash, the owner judged the game "so lacking" next 
 | ID | Decision | Why |
 |---|---|---|
 | D155 | Cosmic Levels default old sheets to Level 1 and no abilities; they coexist with M7 class levels. Native d20 adjustments wrap the existing resolver. Unopposed challenges default to equal level; infinity never rolls in either dice system, and two infinite sides stalemate. Default XP thresholds are cumulative `10 × (level − 1)^2` with table overrides. A breakthrough uses an equal-level training check and an explicit nonlethal HP success cost; failure keeps the level. All parameters live in `tuning.levels`. Extremely large finite power ratings use magnitude notation when numeric arithmetic overflows. | D130/D131 specify the gap rules and advancement routes, but leave these defaults and infinity-vs-infinity unspecified. Explicit defaults keep existing saves usable, training fallible, and open-ended Levels serializable. Milestones require player acceptance; explicit `/gm` corrections use Retcon Undo. |
+
+
+### W2 Avatars implementation (2026-10-29)
+
+| ID | Decision | Why |
+|---|---|---|
+| D156 | Avatars are new actors (companions under manual control) built with the creation defaults at a finite chosen Level; an infinite avatar is refused because it could never roll. Runs project into `flags.avatarRuns` with `active/ended` and a reason, so replay recreates them without a second store. The `ActorDied` handler moves to the avatars domain: it closes an active avatar run as `died`, and a linked sovereign is never marked dead. `SealSet`/`SealBroken` write the existing `effectiveLevel`, so workstream A's infinity and gap rules apply unchanged. Any player-acted GM tool call naming the sovereign during a run appends `AvatarRunEnded{unsealed}`; the play screen confirms first. GameView carries avatar runs by id/name/level/status only. | D134 makes avatars the finite, dice-bearing stakes of an omnipotent character. Keeping runs in the event log means exports, branches and rebuilds preserve them; letting the sovereign be killed would invert the design, and an infinite avatar would have no stakes. |

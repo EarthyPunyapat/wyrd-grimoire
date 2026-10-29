@@ -259,3 +259,11 @@ In d20 campaigns the actor's effective level minus the opposition's gives Δ. Eq
 Infinity never rolls, including in legacy d100 campaigns. Finite opposition cannot overcome infinity by citing an exploit; infinite-vs-infinite is a no-roll stalemate (failure/ties retain the defender's position). A seal's finite effective level allows ordinary resolution. Finite d100 resolution is unchanged.
 
 The power rating is `floor(base^(exponent × level) × (1 + sum(ranks)/rankDivisor))`, using `tuning.levels.powerRating`; infinity displays ∞. Beyond JavaScript's numeric range, finite ratings display a magnitude label such as `10^451+`, distinct from infinity.
+
+## Avatars and sealing (W2, D134)
+
+An avatar is a finite actor sent into a world by a Level-∞ sovereign. `create_avatar` creates the actor at the chosen finite Level, joins it to the party under manual control, and records `AvatarCreated {avatarId, sovereignId, level, worldId}`. The run lives in the event log (`flags.avatarRuns`) with `status: active | ended` and a reason. Avatar rolls use the ordinary Level rules, so the avatar can succeed, fail or die.
+
+An avatar's `ActorDied` event ends only its run (`reason: died`); the sovereign's sheet and life are untouched. A tool call that names the sovereign as its actor while a run is active appends `AvatarRunEnded {reason: unsealed}` after the UI asks the player to confirm the intervention. `completed` closes a run without death.
+
+`SealSet {actorId, effectiveLevel}` puts a finite `effectiveLevel` on the sheet and all resolution uses it (including the ∞ rule); `SealBroken {actorId}` removes it. Breaking a seal is always allowed, and the world can notice. An ∞ character's hotbar offers Seal and Send avatar; other characters do not see those sovereign actions.
