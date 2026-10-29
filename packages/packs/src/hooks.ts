@@ -191,7 +191,7 @@ export function hookEvents(
           "ClockCreated",
           {
             clock: {
-              id: `clock:debt-${id.split(":")[1]}`,
+              id: `clock:debt-${id.split(":")[1]}-${i + 1}`,
               name: `What you owe ${h.name}`,
               kind: "deadline",
               segments: 6,
@@ -210,7 +210,7 @@ export function hookEvents(
           "FactAsserted",
           {
             fact: fact({
-              id: `fact:${id}:now`,
+              id: `fact:${id}:now-${i + 1}`,
               entityId: id,
               predicate: "secret",
               value: p.now,

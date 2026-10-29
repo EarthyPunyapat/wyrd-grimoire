@@ -6,6 +6,7 @@ import {
   closeEvents,
   improvementRolls,
   priceOf,
+  restImprovements,
   skillStepCost,
   turnAwards,
   turnMarks,
@@ -205,5 +206,59 @@ describe("use-based improvement", () => {
     s.commit(closeEvents(s.state, "chapter", content, defaultTuning));
     s.commit(closeEvents(s.state, "chapter", content, defaultTuning));
     expect(s.state.actors.pc!.sheet.progression.pendingTalents).toBe(1);
+  });
+});
+
+describe("review fixes", () => {
+  test("attribute checks (shock, morale) are never marked", () => {
+    const s = party("hybrid");
+    const attr = draft("CheckResolved", {
+      actorId: "pc",
+      request: { skill: { attribute: "end" }, difficulty: "normal", purpose: "shock" },
+      module: "d100",
+      prepared: {
+        label: "Endurance",
+        skillValue: 50,
+        difficulty: "normal",
+        modifiers: [],
+        modifierTotal: 0,
+        netBoons: 0,
+      },
+      result: { degree: "success", margin: 0, rolls: [20], display: { text: "x" } },
+      effective: { degree: "success", margin: 0, rolls: [20], display: { text: "x" } },
+      attempt: "initial",
+      inCombat: true,
+      rngAfter: [1, 2, 3, 4],
+    } as never);
+    expect(turnMarks(s.state, [attr])).toEqual([]);
+  });
+  test("a fight won in the turn it started still earns XP", () => {
+    const s = party();
+    const started = draft("CombatStarted", {
+      combat: {
+        combatants: {
+          a: { side: "enemy" },
+          b: { side: "enemy" },
+          c: { side: "enemy" },
+          pc: { side: "party" },
+        },
+      },
+    } as never);
+    const ended = draft("CombatEnded", { combatId: "f1", outcome: "victory", summary: "won" });
+    const awards = turnAwards(s.state, s.state, [started, ended], () => undefined, defaultTuning);
+    expect(awards[0]!.payload).toMatchObject({ amount: 2, source: "encounter" });
+  });
+  test("travel and defeat don't count as rest; a long wait does", () => {
+    const s = party("useBased").commit([draft("SkillMarked", { actorId: "pc", skillId: "core:melee" })]);
+    const time = (reason: string) => [draft("TimeAdvanced", { minutes: 600, reason })];
+    expect(restImprovements(s.state, time("travel"), content, defaultTuning)).toEqual([]);
+    expect(restImprovements(s.state, time("defeat: captured"), content, defaultTuning)).toEqual([]);
+    expect(restImprovements(s.state, time("exploration"), content, defaultTuning)).toHaveLength(1);
+  });
+  test("a skill step stops at the mastery cap", () => {
+    const s = party().commit([xp(20)]);
+    s.state.actors.pc!.sheet.skills["core:melee"] = { trained: 88 - 15 };
+    const price = unwrap(priceOf(s.state, "pc", { kind: "skill", id: "core:melee" }, content, defaultTuning));
+    expect(price.amount).toBe(2);
   });
 });

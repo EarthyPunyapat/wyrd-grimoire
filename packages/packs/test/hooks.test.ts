@@ -94,3 +94,30 @@ test("session-zero proposals that break a creation rule are refused part by part
     ).refused,
   ).toHaveLength(1);
 });
+
+test("two debts to one faction get their own clocks and facts", () => {
+  const faction = draft(
+    "EntityCreated",
+    { entity: entity({ id: "faction:guild", kind: "faction", name: "The Guild" }) },
+    "engine",
+  );
+  const existing = [...worldEvents(world, []), faction];
+  const hooks = [
+    { kind: "debt" as const, name: "Guild dues", description: "" },
+    { kind: "debt" as const, name: "Guild loan", description: "" },
+  ];
+  const placements = {
+    placements: hooks.map((_, i) => ({
+      hook: i,
+      site: null,
+      faction: "The Guild",
+      now: "They want paying.",
+    })),
+  };
+  const { events } = hookEvents(hooks, "pc", existing, placements);
+  const ids = events.flatMap((e) =>
+    e.type === "ClockCreated" ? [e.payload.clock.id] : e.type === "FactAsserted" ? [e.payload.fact.id] : [],
+  );
+  expect(new Set(ids).size).toBe(ids.length);
+  expect(events.filter((e) => e.type === "ClockCreated")).toHaveLength(2);
+});

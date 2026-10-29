@@ -76,8 +76,12 @@ export function turnAwards(
     }
   }
   for (const e of events) {
-    if (e.type === "CombatEnded" && e.payload.outcome === "victory" && before.combat) {
-      const enemies = Object.values(before.combat.combatants).filter((c) => c.side === "enemy").length;
+    if (e.type === "CombatEnded" && e.payload.outcome === "victory") {
+      // A fight that started this turn isn't in `before`; its roster is in CombatStarted.
+      const started = events.find((x) => x.type === "CombatStarted");
+      const combat = before.combat ?? (started?.type === "CombatStarted" ? started.payload.combat : null);
+      if (!combat) continue;
+      const enemies = Object.values(combat.combatants).filter((c) => c.side === "enemy").length;
       const amount = Math.min(x.encounter.max, x.encounter.min + Math.floor(enemies / 3));
       out.push(...award(before, amount, "encounter", "A fight won", tuning));
     }
@@ -108,8 +112,10 @@ export function turnMarks(state: GameState, events: readonly EventDraft[]): Even
   for (const e of events) {
     if (e.type !== "CheckResolved") continue;
     const p = e.payload as CheckResolvedPayload;
-    const skill = (p.request as { skill?: string }).skill;
-    if (!skill || !members.has(p.actorId) || p.attempt === "luck" || p.autoFailed) continue;
+    const skill = p.request.skill;
+    // Attribute checks (shock, morale, bleeding) have no skill to mark.
+    if (typeof skill !== "string" || !members.has(p.actorId) || p.attempt === "luck" || p.autoFailed)
+      continue;
     if (p.effective.degree !== "success" && p.effective.degree !== "critSuccess") continue;
     const difficulty = p.prepared.difficulty;
     if (difficulty === "easy") continue;
@@ -172,8 +178,12 @@ export function restImprovements(
   tuning: Tuning,
 ): EventDraft[] {
   if (after.combat) return [];
+  // Only a long wait counts as rest: not travel, and not lying captured after a defeat.
   const rested = events.some(
-    (e) => e.type === "TimeAdvanced" && e.payload.minutes >= tuning.progression.improvement.restMinutes,
+    (e) =>
+      e.type === "TimeAdvanced" &&
+      e.payload.reason === "exploration" &&
+      e.payload.minutes >= tuning.progression.improvement.restMinutes,
   );
   return rested ? improvementRolls(after, "rest", content, tuning) : [];
 }
@@ -205,7 +215,7 @@ export function closeEvents(
   out.push(...improvementRolls(state, "chapter", content, tuning));
   if (mode(state) === "useBased")
     for (const id of party(state)) {
-      const closed = state.actors[id]!.sheet.progression.chaptersClosed + 1;
+      const closed = (state.actors[id]!.sheet.progression.chaptersClosed ?? 0) + 1;
       if (closed % tuning.progression.talentEveryChapters === 0)
         out.push(
           draft(
@@ -258,7 +268,7 @@ export function priceOf(
       if (step === null)
         return fail("SKILL_MASTERY", `Raising a skill past ${p.skillMasteryAt}% needs a Mastery talent`);
       cost = step;
-      amount = Math.min(p.skillStep, tuning.skillCap - value);
+      amount = Math.min(p.skillStep, p.skillMasteryAt - value, tuning.skillCap - value);
       break;
     }
     case "fieldSkill": {

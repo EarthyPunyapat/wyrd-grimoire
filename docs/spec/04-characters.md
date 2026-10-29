@@ -62,9 +62,9 @@ The validator reports exactly which rule a sheet breaks. A sheet cannot be commi
 A conversation with the `sessionZero` role that builds the character and seeds the world.
 
 1. The interviewer asks 6–10 short questions, adapting as it goes: concept, origin, what they're good at, what they want, what they fear, a person who matters, a rival or enemy, a debt or secret, a distinguishing mark.
-2. As answers arrive it calls tools: `propose_attributes`, `propose_skills`, `propose_talents`, `propose_gear`, `propose_appearance`, and `propose_hooks`.
+2. As answers arrive it proposes changes to attributes, skills, talents, appearance, identity and hooks (one `interview_step` tool per answer, D105; gear comes with the background).
 3. The engine validates every proposal against the budget and the UI shows a **live sheet preview** beside the chat.
-4. `propose_hooks` creates **backstory hooks** as canon entities flagged `backstoryHook`: the rival (an NPC), the missing sibling (an NPC with an unknown location), the debt (a faction or NPC relationship with a clock), the secret (a fact with restricted knowledge). The world generator MUST place every hook in the world ([06](06-world-and-story.md#world-generation)).
+4. `propose_hooks` creates **backstory hooks** as canon entities flagged `backstoryHook`: the rival (an NPC), the missing sibling (an NPC with an unknown location), the debt (a faction or NPC relationship with a clock), the secret (a fact with restricted knowledge). The world generator MUST place every hook in the world ([06](06-world-and-story.md#world-generation)); this happens when the campaign starts (`place_hooks`, D106).
 5. The player can say "change X" at any time. When they approve, they land in the sheet editor for final tweaks.
 
 ### 2. Form / wizard
@@ -143,7 +143,7 @@ Full party members with their own sheets, opinions and agency. **Maximum 3 activ
 
 ### Recruiting
 
-NPCs become companions through play: completing their quest, persuading them, paying them, or a bond from the PC's backstory. Recruitment is an engine event (`CompanionJoined`) proposed by the model and validated (the NPC must exist, be present, and have a reason recorded in canon).
+NPCs become companions through play: completing their quest, persuading them, paying them, or a bond from the PC's backstory. Recruitment is an engine event (`CompanionJoined`) proposed by the model and validated (the NPC must exist, be present, and have a reason recorded in canon). The NPC must also be willing: goodwill, a bond, or a quest that asks for it (D108).
 
 ### Sheets, gear and control
 

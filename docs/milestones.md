@@ -90,8 +90,8 @@ Each milestone lists its scope, the spec sections it implements, and acceptance 
 - Companions: recruiting, sheets, AI/manual control, directives, approval, personal quests, banter.
 
 **Acceptance**
-- [ ] A character can be created through each of the three paths; session-zero hooks appear in the generated world.
-- [ ] A companion can be recruited, fights, gains or loses approval from things they witness, and leaves at the threshold.
+- [x] A character can be created through each of the three paths; session-zero hooks appear in the generated world. *(`apps/server/test/creation.test.ts`, `e2e/creation.e2e.ts`; offline interviewer. Real-model session zero: owner.)*
+- [x] A companion can be recruited, fights, gains or loses approval from things they witness, and leaves at the threshold. *(`packages/packs/test/companions.test.ts`; guard deltas through the pipeline in `packages/llm/test/pipeline.test.ts`. Real-model approval judgement: owner.)*
 
 ## M7 — Breadth
 

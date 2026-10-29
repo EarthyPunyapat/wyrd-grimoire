@@ -323,6 +323,8 @@ function validateOne(
       if (state.party.companionIds.includes(a.targetId))
         return err("ALREADY_COMPANION", `${ctx.nameOf(a.targetId)} already travels with you`);
       if (state.actors[a.targetId]?.dead) return err("TARGET_DEAD", `${ctx.nameOf(a.targetId)} is dead`);
+      if (state.companions?.[a.targetId]?.status === "left")
+        return err("LEFT_PARTY", `${ctx.nameOf(a.targetId)} has left the party and won't come back`);
       if (state.party.companionIds.length >= ctx.tuning.companions.max)
         return err("PARTY_FULL", `At most ${ctx.tuning.companions.max} companions travel with you at once`);
       if (!state.actors[a.targetId] && !ctx.recruitSheet?.(a.targetId))

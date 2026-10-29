@@ -145,6 +145,14 @@ test("a companion is recruited, fights, gains and loses approval from what they 
   expect(f.state.companions["npc:orla"]!.status).toBe("left");
   expect(f.state.actors["npc:orla"]!.role).toBe("npc");
   expect(companionBeats(f.state, nameOf).beats[0]).toContain("leaves the party");
+  // The bond remains, but someone who walked out doesn't rejoin.
+  const again = validateTurn(
+    f.state,
+    "pc",
+    [{ type: "recruit", targetId: "npc:orla", reason: "please" }],
+    f.ctx,
+  );
+  expect(again.ok ? "" : again.planErrors?.[0]?.code).toBe("LEFT_PARTY");
 });
 
 test("approval at +50 unlocks the companion's personal quest", () => {

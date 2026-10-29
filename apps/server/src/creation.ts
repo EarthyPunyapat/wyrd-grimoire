@@ -197,6 +197,17 @@ export function mountCreation(app: Hono<AppEnvironment>, d: Deps) {
       busy.delete(id);
     }
   }
+  /**
+   * Saves what a model call produced, unless the draft changed while it ran: an edit made meanwhile
+   * would be lost, and a campaign started meanwhile must keep its id.
+   */
+  const saveAfterCall = (id: string, before: StoredDraft, patch: Partial<StoredDraft>) => {
+    const now = load(id).saved;
+    if (now.campaignId) throw new HTTPException(409, { message: "This campaign has already started" });
+    if (JSON.stringify(now.sheet) !== JSON.stringify(before.sheet))
+      throw new HTTPException(409, { message: "Your sheet changed while this was thinking. Try again." });
+    d.store.saveCreationDraft(id, { ...now, ...patch });
+  };
   const unavailable = () =>
     new HTTPException(502, {
       message: "The interviewer couldn't answer. Try again, or check model settings.",
@@ -209,9 +220,9 @@ export function mountCreation(app: Hono<AppEnvironment>, d: Deps) {
   });
   app.put("/api/world-drafts/:id/sheet", async (c) => {
     const id = c.req.param("id");
+    const draft = await d.body(c, DraftSheet);
     const { saved, pack } = load(id);
     if (saved.campaignId) throw new HTTPException(409, { message: "This campaign has already started" });
-    const draft = await d.body(c, DraftSheet);
     d.store.saveCreationDraft(id, { ...saved, sheet: draft });
     return c.json(view(saved, pack, draft));
   });
@@ -247,7 +258,7 @@ export function mountCreation(app: Hono<AppEnvironment>, d: Deps) {
         done: step.done,
         refused: applied.refused,
       });
-      d.store.saveCreationDraft(id, { ...saved, sheet: applied.draft, interview: next });
+      saveAfterCall(id, saved, { sheet: applied.draft, interview: next });
       return c.json(InterviewView.parse({ interview: next, creation: view(saved, pack, applied.draft) }));
     });
   });
@@ -269,7 +280,7 @@ export function mountCreation(app: Hono<AppEnvironment>, d: Deps) {
           })
         : offlineSuggestion(ctx, field);
       const applied = apply(pack, draft, proposals);
-      d.store.saveCreationDraft(id, { ...saved, sheet: applied.draft });
+      saveAfterCall(id, saved, { sheet: applied.draft });
       return c.json(view(saved, pack, applied.draft));
     });
   });

@@ -88,8 +88,9 @@ export function progressionView(state: GameState, content: CreationContent) {
           available: xpAvailable(sheet),
         },
         pending: {
-          attributes: sheet.progression.pendingAttributes,
-          talents: sheet.progression.pendingTalents,
+          // Sheets saved before M6 lack the use-based counters.
+          attributes: sheet.progression.pendingAttributes ?? 0,
+          talents: sheet.progression.pendingTalents ?? 0,
         },
         marks: sheet.progression.marks.map((s) => skillLabel(s, content.skills)),
         attributes: ATTRIBUTE_IDS.map((a) => ({
@@ -204,9 +205,10 @@ export function mountParty(app: Hono<AppEnvironment>, d: Deps) {
   // Spending XP (spec 04): the engine prices and validates; the purchase is one event.
   app.post("/api/campaigns/:id/advance", async (c) => {
     const id = c.req.param("id");
-    if (d.running(id)) throw new HTTPException(409, { message: "Wait for the current turn to finish" });
     const game = d.campaign(id);
     const input = await d.body(c, AdvanceInput);
+    // Checked after the body arrives, so a turn can't start in between.
+    if (d.running(id)) throw new HTTPException(409, { message: "Wait for the current turn to finish" });
     if (game.state().combat) throw new HTTPException(409, { message: "Not in the middle of a fight" });
     const result = buyAdvancement(
       game.state(),
@@ -222,10 +224,12 @@ export function mountParty(app: Hono<AppEnvironment>, d: Deps) {
   // Companion control and directives (spec 04): AI with a standing order, or manual.
   app.put("/api/campaigns/:id/companions/:companionId", async (c) => {
     const id = c.req.param("id");
-    if (d.running(id)) throw new HTTPException(409, { message: "Wait for the current turn to finish" });
     const game = d.campaign(id);
     const companionId = c.req.param("companionId");
     const input = await d.body(c, CompanionControlInput);
+    if (d.running(id)) throw new HTTPException(409, { message: "Wait for the current turn to finish" });
+    // Who takes orders is fixed when a fight starts.
+    if (game.state().combat) throw new HTTPException(409, { message: "Change orders between fights" });
     if (game.state().companions?.[companionId]?.status !== "active")
       throw new HTTPException(404, { message: "No such companion in the party" });
     game.append([draft("CompanionControlSet", { companionId, ...input }, "player")]);

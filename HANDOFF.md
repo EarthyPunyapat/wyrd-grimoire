@@ -173,6 +173,29 @@ character), generated from established world/character context, persisted, playe
 updated with identity changes. This remains unimplemented and is recorded in the M5 roadmap and
 spec 13, including cross-genre acceptance and protection against revealing secret identities.
 
+## M6 — Characters and companions (branch `m6-characters`, stacked on `m5-world-memory`)
+
+**Built (steps A–F of `docs/superpowers/plans/2026-10-29-m6-roadmap.md`; decisions D104–D109).**
+
+- **Creation** (`apps/server/src/creation.ts`, engine `creation.ts`):
+  - A `DraftSheet` lives on the creation draft until the campaign starts. `GET /world-drafts/:id/creation` and `PUT /world-drafts/:id/sheet` build and validate it.
+  - Every path ends in the sheet editor (`apps/web/src/SheetEditor.tsx`): quick picks, the six-step wizard with Suggest buttons (`POST /world-drafts/:id/suggest`), and session zero (`POST /world-drafts/:id/interview`, `Interview.tsx`).
+  - Session-zero proposals go through `applyProposals`, part by part. The model calls are in llm `session-zero.ts`; offline stand-ins answer when there's no model.
+  - fantasy-core has four pregens (`pregens.yaml`); quick start takes `pregen`.
+- **Hooks** (packs `hooks.ts`): placed at campaign start by `place_hooks` (worldGen) or `defaultPlacements`. They become `backstoryHook` canon the PC knows: NPCs at sites, a missing person's secret whereabouts, a debt clock, a secret fact.
+- **Progression** (engine `progression.ts`):
+  - `turnAwards`, `turnMarks` and `restImprovements` run in `resolveTurn`; `closeEvents` runs from `writeSummaries`' `onClose`. Numbers are in `tuning.progression`.
+  - Spending is `POST /campaigns/:id/advance` from the Party tab (`apps/web/src/Party.tsx`, server `party.ts`).
+  - The mode is picked when the campaign starts. Class mode waits for class packs (M7).
+- **Companions** (engine `companions.ts`):
+  - The `recruit` action checks willingness (`willingToJoin`). The server's `recruitSheet` builds the sheet; `profileNewCompanions` writes values and the personal quest after the turn.
+  - The guard's `approvalDeltas` go through `approvalEvents` in the pipeline's `afterGuard`.
+  - `companionBeats` adds owed scenes and banter. Manual control sets `controlled` in fights (`actingActor`); directives weight `chooseActions`.
+  - The Party tab handles approval and control (`PUT /campaigns/:id/companions/:id`).
+- **Tests:** `apps/server/test/creation.test.ts`, `packages/packs/test/hooks.test.ts`, `packages/packs/test/companions.test.ts`, `packages/engine/test/progression.test.ts`, `e2e/creation.e2e.ts`.
+
+Still to check with real models (owner): a real session-zero interview, hook placement, and companion profiles; guard approval judgement in play. Deferred: class mode (needs class data, M7); `suggest_xp` for clever play (setting off by default, not built); the Settings "cheat edit" for sheets after the campaign starts; companion gear trading; and companions waiting at a home base.
+
 ## M5 — World and memory (branch `m5-world-memory`, stacked on `m4-combat`)
 
 **Built (steps A–F of `docs/superpowers/plans/2026-10-29-m5-roadmap.md`; decisions D92–D103).**

@@ -126,10 +126,15 @@ const handlers: { [K in Exclude<EventType, "CampaignCreated">]: Handler<K> } = {
         ...p,
         xpSpent: p.xpSpent + cost,
         // A free purchase spends a use-based grant.
+        // Sheets saved before M6 lack the use-based counters.
         pendingAttributes:
-          kind === "attribute" && cost === 0 ? Math.max(0, p.pendingAttributes - 1) : p.pendingAttributes,
+          kind === "attribute" && cost === 0
+            ? Math.max(0, (p.pendingAttributes ?? 0) - 1)
+            : (p.pendingAttributes ?? 0),
         pendingTalents:
-          kind === "talent" && cost === 0 ? Math.max(0, p.pendingTalents - 1) : p.pendingTalents,
+          kind === "talent" && cost === 0
+            ? Math.max(0, (p.pendingTalents ?? 0) - 1)
+            : (p.pendingTalents ?? 0),
       };
       if (kind === "talent") return { ...sheet, progression, talents: [...sheet.talents, id] };
       if (kind === "attribute") {
@@ -160,7 +165,7 @@ const handlers: { [K in Exclude<EventType, "CampaignCreated">]: Handler<K> } = {
       for (const r of e.payload.results)
         if (r.gain) skills[r.skillId] = { trained: (skills[r.skillId]?.trained ?? 0) + r.gain };
       const p = sheet.progression;
-      const chaptersClosed = p.chaptersClosed + (e.payload.reason === "chapter" ? 1 : 0);
+      const chaptersClosed = (p.chaptersClosed ?? 0) + (e.payload.reason === "chapter" ? 1 : 0);
       return { ...sheet, skills, progression: { ...p, marks: [], chaptersClosed } };
     });
     return { ...next, campaign: { ...next.campaign, rngState: e.payload.rngAfter } };
@@ -170,8 +175,8 @@ const handlers: { [K in Exclude<EventType, "CampaignCreated">]: Handler<K> } = {
       ...sheet,
       progression: {
         ...sheet.progression,
-        pendingAttributes: sheet.progression.pendingAttributes + e.payload.attributes,
-        pendingTalents: sheet.progression.pendingTalents + e.payload.talents,
+        pendingAttributes: (sheet.progression.pendingAttributes ?? 0) + e.payload.attributes,
+        pendingTalents: (sheet.progression.pendingTalents ?? 0) + e.payload.talents,
       },
     })),
   // Companions (spec 04).
@@ -212,7 +217,8 @@ const handlers: { [K in Exclude<EventType, "CampaignCreated">]: Handler<K> } = {
     })),
   CompanionLeft: (s, e) => {
     const id = e.payload.companionId;
-    const next = companion(s, id, (c) => ({ ...c, status: "left", beat: e.payload.beat }));
+    // Whoever leaves takes no more orders from the player.
+    const next = companion(s, id, (c) => ({ ...c, status: "left", control: "ai", beat: e.payload.beat }));
     const actor = next.actors[id];
     return {
       ...next,
