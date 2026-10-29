@@ -63,7 +63,7 @@ import {
   type WorldDef,
   worldEvents,
 } from "@wyrd/packs";
-import { AppStore, CampaignStore, CanonQueries } from "@wyrd/storage";
+import { AppStore, backupCampaign, CampaignStore, CanonQueries } from "@wyrd/storage";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
@@ -73,6 +73,7 @@ import { streamSSE } from "hono/streaming";
 import type { z } from "zod";
 import { evaluateDraft, mountCreation, pregenDraft, StoredDraft } from "./creation.ts";
 import { EXAMPLE_WORLD } from "./example-world.ts";
+import { mountHistory } from "./history.ts";
 import { ModelServices, mountModels } from "./models.ts";
 import { mountParty, profileNewCompanions, recruitSheet } from "./party.ts";
 import { addressOf, mountWorld } from "./world-views.ts";
@@ -113,6 +114,9 @@ export function createApp(options: Options) {
   const tasks = new Set<Promise<void>>();
   const attempts = new Map<string, { count: number; until: number }>();
   const models = new ModelServices(store, secrets, options.home, options.offline, options.router);
+  // Daily backups start in the background at boot; a slow disk never delays the server.
+  for (const entry of store.campaigns())
+    void backupCampaign({ home: options.home, campaignId: entry.id, now }).catch(() => {});
   const app = new Hono<AppEnvironment>();
   app.use(
     "*",
@@ -128,7 +132,9 @@ export function createApp(options: Options) {
       },
     }),
   );
-  app.use("/api/*", bodyLimit({ maxSize: 16 * 1024 }));
+  const jsonBodyLimit = bodyLimit({ maxSize: 16 * 1024 });
+  // Campaign archives are binary and may be large; every other JSON route keeps the small limit.
+  app.use("/api/*", (c, next) => (c.req.path === "/api/campaigns/import" ? next() : jsonBodyLimit(c, next)));
   app.use("/api/*", async (c, next) => {
     c.header("Cache-Control", "no-store");
     if (!["GET", "HEAD"].includes(c.req.method)) {
@@ -233,6 +239,14 @@ export function createApp(options: Options) {
     running: (id) => !!store.running(id),
     router: () => (options.offline ? null : models.router()),
   });
+  mountHistory(app, {
+    home: options.home,
+    now,
+    campaign: (id) => campaign(id),
+    store,
+    body,
+    running: (id) => !!store.running(id),
+  });
   function campaign(id: string) {
     // Registry membership authorizes the path. Never construct a path from an arbitrary route value.
     const entry = store.campaigns().find((row) => row.id === id);
@@ -243,6 +257,8 @@ export function createApp(options: Options) {
         reduce,
       });
       campaigns.set(id, opened);
+      // Opening a campaign is a convenient once-a-day backup point (spec 14); play never waits.
+      void backupCampaign({ home: options.home, campaignId: id, now }).catch(() => {});
     }
     return opened;
   }

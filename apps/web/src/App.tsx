@@ -107,7 +107,7 @@ export function App() {
       ) : !auth.authenticated ? (
         <Unlock setupRequired={auth.setupRequired} onUnlock={refreshAuth} />
       ) : view ? (
-        <Play view={view} onView={setView} />
+        <Play view={view} onView={setView} onOpenCampaign={openCampaign} />
       ) : (
         <main id="main" className="home">
           <div className="eyebrow">A GRIMOIRE OF FATE</div>

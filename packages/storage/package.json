@@ -7,7 +7,8 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@wyrd/core": "workspace:*"
+    "@wyrd/core": "workspace:*",
+    "fflate": "^0.8.3"
   },
   "devDependencies": {
     "@wyrd/engine": "workspace:*"
