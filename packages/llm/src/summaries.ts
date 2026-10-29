@@ -1,4 +1,6 @@
 import { defaultTuning, draft, type EventDraft, type EventEnvelope } from "@wyrd/core";
+import type { ContentSettings } from "@wyrd/memory";
+import { proseInstructions } from "./prose.ts";
 import type { RoleRouter } from "./router.ts";
 
 /** What the pyramid needs from storage (CampaignStore + CanonQueries). */
@@ -45,17 +47,19 @@ async function summarise(
   router: RoleRouter | null,
   level: "scene" | "chapter" | "arc",
   material: string[],
+  content?: ContentSettings,
 ): Promise<string> {
   const fallback = clip(material.map((m) => m.split(/(?<=[.!?])\s/)[0] ?? m).join(" "), WORDS[level]);
   if (!router) return fallback;
   try {
+    const base = `Summarise this ${level} of a role-playing campaign in about ${WORDS[level]} words, past tense, third person. Keep names, places, decisions, consequences and open threads. Use only what the text says: no new facts, people or places.`;
     const r = await router.complete(
       "summarizer",
       {
-        instructions: `Summarise this ${level} of a role-playing campaign in about ${WORDS[level]} words, past tense, third person. Keep names, places, decisions, consequences and open threads. Use only what the text says: no new facts, people or places.`,
+        instructions: content ? proseInstructions(base, content) : base,
         messages: [{ role: "user", content: material.join("\n\n") }],
       },
-      { promptVersion: "summarizer@1", maxChars: WORDS[level] * 9 },
+      { promptVersion: "summarizer@2", maxChars: WORDS[level] * 9 },
     );
     return plain(r.text) || fallback;
   } catch {
@@ -76,6 +80,8 @@ export async function writeSummaries(
   opts: {
     forceChapter?: boolean;
     gameTime: number;
+    /** The campaign's content dials (spec 12), injected into the summarizer prompt. */
+    content?: ContentSettings;
     /** Called after a chapter or arc summary is appended (progression rewards, spec 04). */
     onClose?: (level: "chapter" | "arc") => void;
   } = { gameTime: 0 },
@@ -98,7 +104,7 @@ export async function writeSummaries(
   );
   if (turns.length && (boundary || turns.length >= TURNS_PER_SCENE || opts.forceChapter)) {
     const material = turns.map((t) => `${t.input}\n${plain(t.narration ?? "")}`);
-    const text = await summarise(router, "scene", material);
+    const text = await summarise(router, "scene", material, opts.content);
     const combat = since.some((e) => e.type === "CombatEnded" || e.type === "ActorDied");
     store.append([
       draft("SummaryWritten", {
@@ -125,6 +131,7 @@ export async function writeSummaries(
       router,
       "chapter",
       afterChapter.map((s) => s.text),
+      opts.content,
     );
     store.append([
       draft("SummaryWritten", {
@@ -157,6 +164,7 @@ export async function writeSummaries(
       router,
       "arc",
       afterArc.map((c) => c.text),
+      opts.content,
     );
     store.append([
       draft("SummaryWritten", {

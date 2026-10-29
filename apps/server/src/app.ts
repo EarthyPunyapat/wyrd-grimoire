@@ -580,15 +580,19 @@ export function createApp(options: Options) {
         const kind = String((site.data as { kind?: string }).kind ?? "settlement");
         const proposal = options.offline
           ? offlineLocation({ name: site.name, kind })
-          : await generateLocation(models.router(), {
-              world: `${world()?.name ?? ""}: ${world()?.summary ?? ""}`,
-              site: site.name,
-              siteKind: kind,
-              siteSummary: site.summary,
-              region: region?.name ?? "",
-              culture: String((region?.data as { culture?: string } | undefined)?.culture ?? ""),
-              taken: canon.allNames(),
-            });
+          : await generateLocation(
+              models.router(),
+              {
+                world: `${world()?.name ?? ""}: ${world()?.summary ?? ""}`,
+                site: site.name,
+                siteKind: kind,
+                siteSummary: site.summary,
+                region: region?.name ?? "",
+                culture: String((region?.data as { culture?: string } | undefined)?.culture ?? ""),
+                taken: canon.allNames(),
+              },
+              game.state().campaign.settings.content,
+            );
         return locationEvents(
           proposal,
           siteId,
@@ -601,11 +605,15 @@ export function createApp(options: Options) {
         if (!entity) return [];
         const e = options.offline
           ? offlineElaboration(entity)
-          : await elaborateEntity(models.router(), {
-              world: `${world()?.name ?? ""}: ${world()?.summary ?? ""}`,
-              entity,
-              facts: canon.factsAbout(entityId),
-            });
+          : await elaborateEntity(
+              models.router(),
+              {
+                world: `${world()?.name ?? ""}: ${world()?.summary ?? ""}`,
+                entity,
+                facts: canon.factsAbout(entityId),
+              },
+              game.state().campaign.settings.content,
+            );
         const n = canon.factsAbout(entityId, { includeSecret: true, includeHistory: true }).length;
         return [
           draft("EntityUpdated", { entityId, patch: { detail: "sketch", summary: e.summary } }, "engine"),
@@ -730,6 +738,7 @@ export function createApp(options: Options) {
           // Memory pyramid (spec 07): close scenes, chapters and arcs as their boundaries pass.
           await writeSummaries(game, canon, options.offline ? null : models.router(), {
             gameTime: game.state().campaign.gameTime,
+            content: game.state().campaign.settings.content,
             onClose: (level) =>
               game.append(closeEvents(game.state(), level, creationContent([frozen]), defaultTuning)),
           }).catch(() => 0);

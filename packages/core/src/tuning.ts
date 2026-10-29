@@ -197,6 +197,15 @@ export type Tuning = {
     approvalPerScene: number;
     thresholds: { confront: number; leave: number; quest: number; loyal: number };
   };
+  /** Content-dial enforcement (spec 12): deterministic phrase matching for lines and veils. */
+  content: {
+    /** Language glue ignored when matching a line or veil. Never content words. */
+    stopwords: string[];
+    /** A token at least this long matches on its stem ("harm" matches "harming"). */
+    stemMin: number;
+    /** Longest quote kept in a violation report. */
+    quoteMax: number;
+  };
   snapshotEvery: number;
 };
 
@@ -451,6 +460,43 @@ export const defaultTuning: Tuning = {
     approvalPerEvent: 10,
     approvalPerScene: 20,
     thresholds: { confront: -50, leave: -75, quest: 50, loyal: 75 },
+  },
+  content: {
+    stopwords: [
+      "a",
+      "an",
+      "and",
+      "are",
+      "as",
+      "at",
+      "be",
+      "but",
+      "by",
+      "for",
+      "from",
+      "in",
+      "into",
+      "is",
+      "it",
+      "its",
+      "of",
+      "on",
+      "or",
+      "that",
+      "the",
+      "their",
+      "them",
+      "then",
+      "there",
+      "these",
+      "this",
+      "to",
+      "was",
+      "were",
+      "with",
+    ],
+    stemMin: 4,
+    quoteMax: 240,
   },
   snapshotEvery: 200,
 };

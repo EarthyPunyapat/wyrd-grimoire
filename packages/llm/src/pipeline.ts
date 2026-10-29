@@ -27,7 +27,13 @@ import {
   validateTurn,
   Working,
 } from "@wyrd/engine";
-import { type AssembledPrompt, type AssemblerRole, assemble, type CanonSource } from "@wyrd/memory";
+import {
+  type AssembledPrompt,
+  type AssemblerRole,
+  assemble,
+  type CanonSource,
+  contentViolations,
+} from "@wyrd/memory";
 import {
   COMBAT_RULES_DIGEST,
   EXPLORATION_RULES_DIGEST,
@@ -618,6 +624,33 @@ export class TurnPipeline {
   }
 
   /**
+   * Everything that blocks a passage: the guard model's report plus the engine's own deterministic
+   * lines-and-veils check (spec 12). The engine decides even when the guard call fails.
+   */
+  private blockingFor(state: GameState, report: GuardReportV1 | null, text: string) {
+    const issues: Array<{ kind: string; quote: string; detail: string }> = report
+      ? blockingIssues(report)
+      : [];
+    const seen = new Set(issues.map((i) => `${i.kind}|${i.quote}|${i.detail}`));
+    for (const v of contentViolations(state.campaign.settings.content, text, this.d.rules.tuning.content)) {
+      const key = `${v.kind}|${v.quote}|${v.term}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      issues.push({ kind: v.kind, quote: v.quote, detail: v.term });
+    }
+    return issues;
+  }
+
+  /** A corrective note for the narrator's second draft. */
+  private correction(issue: { kind: string; quote: string; detail: string }): string {
+    if (issue.kind === "line")
+      return `"${issue.quote}" crosses the content line "${issue.detail}". Remove it entirely: don't name, describe, quote or imply it.`;
+    if (issue.kind === "veil")
+      return `"${issue.quote}" shows the veiled topic "${issue.detail}". Cut away before it starts; keep it off-screen and describe only its aftermath.`;
+    return `"${issue.quote}" is wrong: ${issue.detail}. Narrate only what the engine resolved.`;
+  }
+
+  /**
    * Narrator then guard. A blocking report regenerates once with corrective notes; if the second
    * draft still blocks, it's kept and flagged for the player. Narration failure falls back to the
    * mechanical summary; guard failure shows the passage unchecked.
@@ -695,15 +728,13 @@ export class TurnPipeline {
     let report = await check(first.text);
     let regenerated = false;
     let flagged: GuardSummary["flagged"] = [];
-    if (report && blockingIssues(report).length) {
-      const issues = blockingIssues(report);
+    const issues = this.blockingFor(state, report, first.text);
+    if (issues.length) {
       regenerated = true;
       try {
-        final = await narrate(
-          issues.map((i) => `"${i.quote}" is wrong: ${i.detail}. Narrate only what the engine resolved.`),
-        );
+        final = await narrate(issues.map((i) => this.correction(i)));
         report = await check(final.text);
-        flagged = report ? blockingIssues(report) : [];
+        flagged = this.blockingFor(state, report, final.text);
       } catch {
         // Keep the first draft, flagged.
         flagged = issues;

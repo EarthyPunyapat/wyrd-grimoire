@@ -1,5 +1,6 @@
-import type { CampaignSettings, Entity, Fact, Resolution } from "@wyrd/core";
+import type { Entity, Fact, Resolution } from "@wyrd/core";
 import { type GameState, type RulesContext, skillLabel, skillValue } from "@wyrd/engine";
+import { contentPolicy, contentRules } from "./content.ts";
 
 /** What the assembler reads from canon. `CanonQueries` from storage satisfies it. */
 export interface CanonSource {
@@ -71,20 +72,6 @@ export type AssembledPrompt = {
 
 const join = (sections: Section[]) => sections.map((s) => `## ${s.title}\n\n${s.text.trim()}`).join("\n\n");
 
-/** Section 1's shared tail: content dials, lines and veils, language. */
-export function contentRules(s: CampaignSettings): string {
-  const c = s.content;
-  const lines = [
-    `Violence: ${c.violence}. Horror: ${c.horror}. Romance: ${c.romance === "off" ? "none" : "fade to black at most"}. Language: ${c.language}.`,
-    c.lines.length ? `Lines (never include, in any form): ${c.lines.join("; ")}.` : "Lines: none set.",
-    c.veils.length
-      ? `Veils (may happen only off-screen; cut away): ${c.veils.join("; ")}.`
-      : "Veils: none set.",
-    `Write in ${s.narration.language}, ${s.narration.person} person, present tense. Length: ${s.narration.length}.`,
-  ];
-  return lines.join("\n");
-}
-
 function clock(gameTime: number): string {
   const day = Math.floor(gameTime / 1440) + 1;
   const m = gameTime % 1440;
@@ -115,12 +102,18 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
   const { state, canon, role } = o;
   const withIds = role !== "narrator";
   const label = (id: string, name: string) => (withIds ? `${name} [${id}]` : name);
+  const policy =
+    role === "parser"
+      ? ""
+      : role === "guard"
+        ? contentPolicy(state.campaign.settings.content)
+        : contentRules(state.campaign.settings);
 
   const instructions = join([
     {
       n: 1,
       title: "Role",
-      text: `${o.stable.roleInstructions.trim()}\n\n${contentRules(state.campaign.settings)}`,
+      text: [o.stable.roleInstructions.trim(), policy].filter(Boolean).join("\n\n"),
     },
     { n: 2, title: "Rules", text: o.stable.rulesDigest },
     { n: 3, title: "Tone", text: o.stable.tone || "(no tone guide)" },

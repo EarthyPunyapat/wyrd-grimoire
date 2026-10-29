@@ -1,4 +1,5 @@
 import { CompanionProfile } from "@wyrd/core";
+import type { ContentSettings } from "@wyrd/memory";
 import type { RoleRouter } from "./router.ts";
 import { propose } from "./world-generation.ts";
 
@@ -16,6 +17,7 @@ export type CompanionBrief = {
 export function generateCompanionProfile(
   router: RoleRouter,
   brief: CompanionBrief,
+  content?: ContentSettings,
 ): Promise<CompanionProfile> {
   return propose(
     router,
@@ -23,7 +25,9 @@ export function generateCompanionProfile(
     CompanionProfile,
     `A character in an original role-playing world has just joined the player's party. From what is known of them, give 1–4 values (what they believe in), up to 4 likes and 4 dislikes the player's choices could touch (concrete behaviour, such as "mercy to the defeated" or "breaking a promise"), whether they would betray the party rather than just leave if pushed too far (canBetray), and a personal quest of 2–4 stages that grows from their own story. Stay consistent with every given fact.`,
     brief,
-    "companion-profile@1",
+    "companion-profile@2",
+    "worldGen",
+    { content },
   );
 }
 

@@ -188,9 +188,9 @@ describe("exploration turn end to end (FakeProvider)", () => {
     expect(t.events.map((e) => e.type)).toEqual(["turn.accepted", "narration.final", "turn.completed"]);
     // One usage record per call: parser, narrator, guard.
     expect(t.usage.records.map((u) => [u.role, u.promptVersion, u.turnId])).toEqual([
-      ["parser", "parser@3", r.turnId],
-      ["narrator", "narrator@3", r.turnId],
-      ["guard", "guard@2", r.turnId],
+      ["parser", "parser@4", r.turnId],
+      ["narrator", "narrator@4", r.turnId],
+      ["guard", "guard@3", r.turnId],
     ]);
     // The parser saw IDs; the narrator saw the required beats; the guard saw the draft.
     expect(lastUser(t.fake.calls("parser")[0]!)).toContain("the jetty [z:jetty]");
