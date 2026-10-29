@@ -51,6 +51,21 @@ test("the sheet editor shows broken rules live and starts the edited character",
   expect(campaigns.map((c: { characterName: string }) => c.characterName)).toContain("Ines Varga");
 });
 
+test("a customised sheet survives returning to the world review", async ({ page }) => {
+  await world(page, "Keep Edits Test");
+  await page.getByRole("button", { name: "Customise character" }).click();
+  const editor = page.getByRole("region", { name: "Build your character" });
+  await editor.getByLabel("Name", { exact: true }).fill("Edited Hero");
+  await page.getByRole("button", { name: "← Back to the world" }).click();
+  // The review shows the sheet's name and no longer offers to rebuild from the archetype.
+  await expect(page.getByLabel("Character name", { exact: false })).toHaveValue("Edited Hero");
+  await expect(page.getByLabel("Background", { exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "Begin adventure →" }).click();
+  await expect(page.getByRole("heading", { name: "Relay Nine" })).toBeVisible();
+  const campaigns = await page.evaluate(async () => (await fetch("/api/campaigns")).json());
+  expect(campaigns.map((c: { characterName: string }) => c.characterName)).toContain("Edited Hero");
+});
+
 test("the form wizard walks every step, with a suggestion, into the sheet editor", async ({ page }) => {
   await world(page, "Wizard Test");
   await page.getByRole("button", { name: /Build step by step/ }).click();
