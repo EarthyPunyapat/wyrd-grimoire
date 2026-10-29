@@ -107,6 +107,7 @@ export function compileGeneratedWorld(raw: WorldProposal) {
         kind: "npc",
         name: n.name,
         summary: n.description,
+        data: n.reactionProfile ? { reactionProfile: n.reactionProfile } : {},
         facts: n.secret ? [{ predicate: "secret", value: n.secret, visibility: "secret" }] : [],
       })),
     ],

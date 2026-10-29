@@ -311,7 +311,7 @@ describe("exploration turn end to end (FakeProvider)", () => {
     ]);
     const r = await t.pipeline.run({ input: "To the jetty; ask the price.", onEvent: t.onEvent });
     expect(r).toMatchObject({
-      narration: "Wenna names her price.",
+      narration: 'Wenna names her price.\n\n<say who="npc:wenna">I\'m listening.</say>',
       guard: { checked: true, regenerated: true, flagged: [] },
     });
     const second = t.fake.calls("narrator")[1]!;
@@ -433,7 +433,7 @@ describe("exploration turn end to end (FakeProvider)", () => {
       },
     );
     const r = await t.pipeline.run({ input: "To the jetty." });
-    expect(r.narration).toBe("Narrated by DeepSeek.");
+    expect(r.narration).toBe('Narrated by DeepSeek.\n\n<say who="npc:wenna">I\'m listening.</say>');
     expect(t.plan.requests).toHaveLength(1);
     expect(t.usage.records.filter((u) => u.role === "narrator").map((u) => [u.provider, u.ok])).toEqual([
       ["plan", false],

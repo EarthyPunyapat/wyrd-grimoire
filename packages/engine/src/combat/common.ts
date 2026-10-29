@@ -44,6 +44,7 @@ export type CombatStep = {
   outcome: "done" | "critSuccess" | "success" | "failure" | "critFailure";
   summary: string;
   lines: MechanicsLine[];
+  witnessIds?: string[];
 };
 
 export const combatOf = (state: GameState): CombatState => {

@@ -22,6 +22,7 @@ export * from "./schemas/pack.ts";
 export * from "./schemas/party.ts";
 export * from "./schemas/providers.ts";
 export * from "./schemas/recipes.ts";
+export * from "./schemas/scene-responses.ts";
 export * from "./schemas/settings.ts";
 export * from "./schemas/sheet.ts";
 export * from "./schemas/spellcasting.ts";

@@ -1,6 +1,7 @@
 import type { Entity, Fact, Resolution } from "@wyrd/core";
 import { type GameState, type RulesContext, skillLabel, skillValue } from "@wyrd/engine";
 import { contentPolicy, contentRules } from "./content.ts";
+import { sceneSpeakerContext } from "./scene-speakers.ts";
 
 /** What the assembler reads from canon. `CanonQueries` from storage satisfies it. */
 export interface CanonSource {
@@ -282,6 +283,21 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
       "Required beats (mention every one):",
       ...r.requiredBeats.map((b) => `- ${b}`),
     );
+    if (r.responses?.length)
+      thisTurn.push(
+        "NPC responses (resolved actions; give a short spoken line only where a speech intent is supplied):",
+        ...r.responses.map((x) =>
+          JSON.stringify({
+            speaker: nameOf(x.actorId),
+            speakerId: x.actorId,
+            kind: x.kind,
+            speechStyle: x.speechStyle,
+            result: x.summary,
+            speechIntent: x.utterance || null,
+          }),
+        ),
+        "Paraphrase the speech intent in character. Do not invent assistance, disclosures, accepted bargains or successful interventions beyond the resolved result.",
+      );
     if (r.forbidden.length) thisTurn.push("Do not reveal or decide:", ...r.forbidden.map((f) => `- ${f}`));
   }
   if (o.turn.corrections?.length)
@@ -361,39 +377,10 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
     .map((r) => `- Rumour: ${r.holders[pcId]!.content}`);
   const questText = role === "parser" ? "" : [...quests, ...clocks, ...heard].join("\n");
 
-  // NPC minds (spec 07): whoever the PC is talking to speaks only from their own memories.
-  const spokenTo = new Set(
-    (o.turn.resolution?.steps ?? []).flatMap((s) => {
-      const a = s.action as { type?: string; targetId?: string };
-      return a.type === "talk" && a.targetId ? [a.targetId] : [];
-    }),
-  );
   const mindText =
-    role !== "narrator"
-      ? ""
-      : [...spokenTo]
-          .map((id) => {
-            const m = state.minds?.[id];
-            const d = m?.dispositions[pcId];
-            const mem = canon.retrieve
-              ? canon.retrieve({
-                  query: o.turn.input,
-                  namespaces: [`npc:${id}`],
-                  includeSecret: true,
-                  now: state.campaign.gameTime,
-                  limit: 5,
-                })
-              : [];
-            const lines = [
-              `${nameOf(id)} (they speak only from this; they don't know anything else about the PC):`,
-              d
-                ? `- Toward the PC: attitude ${d.attitude}, trust ${d.trust}, fear ${d.fear}.`
-                : "- They have no settled opinion of the PC yet.",
-              ...mem.map((x) => `- Remembers: ${x.text}`),
-            ];
-            return lines.join("\n");
-          })
-          .join("\n\n");
+    role === "narrator"
+      ? sceneSpeakerContext(state, o.turn.resolution, nameOf, o.rules.tuning.sceneReactions?.sharedMemories)
+      : "";
 
   // 12. Recent turns, verbatim; trimmed oldest-first down to the role's minimum.
   const turns = canon

@@ -298,3 +298,11 @@ Tactics are **deterministic utility AI** in the engine; the model only writes sp
 - The player's turn is resolved and narrated as one passage. Each player input is a whole turn; unspent AP lapse (D86).
 - Everything until the player's next turn (enemies, companions) is resolved, then narrated as one combined passage.
 - A "fast combat" option narrates whole rounds in two or three sentences each and leaves detail to the mechanics log.
+
+## Public-scene responses
+
+A fight does not remove noncombatants from the scene. Attempted violence can prompt a bounded response from a target and perceiving witnesses (see spec 08). In the scene phase before the next input, neutral witnesses may speak, seek help or make one legal adjacent retreat using normal movement costs. Persistent protectors may join the victim’s side at rolled initiative; the current actor remains current, and entry grants no free attack. They are not added as enemies merely for witnessing violence.
+
+Unknown ordinary people use the commoner `driveOff` intent when no explicit NPC/creature intent is configured. A cautious civilian may choose to escape; the actual attempt still needs their normal turn, AP, disengagement and exit.
+
+Opposed maneuvers display both raw checks and the contest verdict. The maneuver’s resolved degree reflects winning or losing the contest, including an opposed win when both checks individually failed. The mechanics log also includes the defence and hit-result lines produced by combat.

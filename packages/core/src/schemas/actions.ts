@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { COMBAT_ACTION_TYPES, StrikeAction } from "./combat.ts";
 import { AttributeId, Degree, Difficulty, MechanicsLine } from "./common.ts";
+import { SceneResponse } from "./scene-responses.ts";
 
 /**
  * Player actions (spec 08, "The action union"). M2 implements the exploration subset below; the
@@ -117,6 +118,8 @@ export const ResolvedStep = z.object({
   actorId: z.string().optional(),
   lines: z.array(MechanicsLine).optional(),
   phase: z.enum(["player", "others"]).optional(),
+  /** Captured when the action happens, before subsequent moves or unconsciousness. */
+  witnessIds: z.array(z.string()).optional(),
 });
 export type ResolvedStep = z.infer<typeof ResolvedStep>;
 
@@ -130,6 +133,8 @@ export const Resolution = z.object({
   /** Set when an earlier result made a later action impossible; actions from here weren't run. */
   stoppedAt: z.number().int().nonnegative().optional(),
   minutes: z.number().int().nonnegative(),
+  /** Absent in old turns. Only observable responses reach narration. */
+  responses: z.array(SceneResponse).optional(),
   /** Combat only: the round and how the fight ended this turn, if it did. */
   combat: z
     .object({ round: z.number().int(), ended: z.string().optional(), hook: z.string().optional() })

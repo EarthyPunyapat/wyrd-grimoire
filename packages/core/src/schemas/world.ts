@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Entity, Fact } from "./canon.ts";
 import { RngStateSchema } from "./common.ts";
+import { SceneResponse } from "./scene-responses.ts";
 
 /**
  * World simulation state (spec 06, spec 07). It lives in GameState so ticks stay pure and
@@ -115,6 +116,8 @@ export const NpcMemory = z.object({
   sourceId: Id.optional(),
   /** Set when the engine knows the content is false (a lie the PC told). */
   false: z.boolean().optional(),
+  /** Optional engine-owned incident metadata; old memories remain valid. */
+  response: SceneResponse.optional(),
 });
 export type NpcMemory = z.infer<typeof NpcMemory>;
 

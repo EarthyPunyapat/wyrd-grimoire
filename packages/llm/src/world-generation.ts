@@ -43,7 +43,7 @@ Rank each of str, agi, end, int, awa, wil, pre exactly once per background. Pick
     .map((s) => s.id)
     .join(", ")}.
 Code allocates all points. Do not invent bonuses, abilities, plugins or new rules.
-Provide one starting location, 2–5 zones connected in listed order, and 2–6 people. Zone 0 is where play starts; place at least one person there. People reference a zone by zero-based index.
+Provide one starting location, 2–5 zones connected in listed order, and 2–6 people. Zone 0 is where play starts; place at least one person there. People reference a zone by zero-based index. Give each person a reactionProfile with a stable temperament (assertive, cautious, protective or hostile), a short public speechStyle, and canSpeak. Choose these from their role and public personality; keep secrets out of the profile. Animals are nonverbal unless this setting explicitly gives them speech.
 Keep premise, zone descriptions, people descriptions and opening safe for the player to read. The opening describes the immediate scene and a concrete reason to act; only mention people in zone 0. Put hidden motives/reveals ONLY in people's secret field, never in public prose. Use null where no secret is needed.
 Use the supplied character name if present, otherwise suggest an appropriate name. Keep this small: an opening site, not an encyclopedia.`;
   let instructions = proseInstructions(base, content, "world");
@@ -144,6 +144,7 @@ export async function generateWorldBible(
 Use propose_world_bible once. Keep it compact: 2–4 regions with 2–3 sites each, routes linking every site (days of travel at a normal pace, terrain, danger 1–5), 3–5 factions with 1–2 goals, resources 1–5 and a leader, 6–12 key NPCs (each with a role, site, want and maybe a secret), 3–6 hooks tied to a site and maybe an NPC.
 ${input.storyMode === "threatClock" ? "Include one main threat with an agent faction (or null), a motive and 2–3 distinct paths to stop it." : "Set threat to null: this is a Living World campaign."}
 startSite must name the site where the opening scene takes place. address is how people in this world would address the player character before knowing them (a respectful, setting-appropriate word such as "traveller", "citizen", "spacer").
+ Give each person a reactionProfile with a stable temperament (assertive, cautious, protective or hostile), a short public speechStyle, and canSpeak. Choose these from their role and public personality; keep secrets out of the profile. Animals are nonverbal unless this setting explicitly gives them speech.
 Every name must be new and distinct; never reuse or closely echo any name in "taken". Keep public descriptions safe to show the player; put hidden truths only in secret fields.`;
   let names = taken;
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -187,7 +188,7 @@ export function generateLocation(
     router,
     "propose_location",
     LocationProposal,
-    `Create the place where a traveller arrives at this site of an existing role-playing world, consistent with the world, region and site descriptions. 2–5 zones connected in order (zone 0 is where they arrive), 1–6 people with a zero-based zone index. "arrival" describes the immediate scene on arriving. Names must be new: never reuse or echo any name in "taken". Hidden truths go only in secret fields.`,
+    `Create the place where a traveller arrives at this site of an existing role-playing world, consistent with the world, region and site descriptions. 2–5 zones connected in order (zone 0 is where they arrive), 1–6 people with a zero-based zone index. "arrival" describes the immediate scene on arriving. Names must be new: never reuse or echo any name in "taken". Hidden truths go only in secret fields. Give each person a reactionProfile with a stable temperament (assertive, cautious, protective or hostile), a short public speechStyle, and canSpeak. Choose these from their role and public personality; keep secrets out of the profile. Animals are nonverbal unless this setting explicitly gives them speech.`,
     input,
     "location@2",
     "worldGen",

@@ -161,6 +161,13 @@ export function afterTurn(
     if (notable.length) {
       const content = `I saw ${notable.slice(0, 2).join(" ")}`.slice(0, 400);
       for (const id of Object.keys(state.scene.positions)) {
+        const response = state.minds[id]?.memories.at(-1)?.response;
+        if (
+          resolution.combat &&
+          response?.round === resolution.combat.round &&
+          response.aggressorId === resolution.actorId
+        )
+          continue;
         if (id === pcId || state.actors[id]?.dead || ctx.kindOf?.(id) === "item") continue;
         if (state.actors[id]?.sheet.status.conditions.some((c) => c.id === "core:unconscious")) continue;
         if (!canPerceive(state, pcId, id)) continue;
