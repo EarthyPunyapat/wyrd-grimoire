@@ -58,6 +58,16 @@ describe("reducer", () => {
     s.commit([draft("TimeAdvanced", { minutes: 90, reason: "search the library" })]);
     expect(s.state.campaign.gameTime).toBe(90);
   });
+
+  test("renaming changes only the campaign name, and replays from the log", () => {
+    const s = new Sim();
+    const before = s.state;
+    s.commit([draft("CampaignRenamed", { name: "The Long Night" })]);
+    expect(s.state.campaign.name).toBe("The Long Night");
+    expect(s.state.campaign.id).toBe(before.campaign.id);
+    expect(s.state.actors).toEqual(before.actors);
+    expect(fold(s.events, undefined).campaign.name).toBe("The Long Night");
+  });
 });
 
 /** One step a random walk may take; invalid steps (e.g. pushing a success) are simply skipped. */

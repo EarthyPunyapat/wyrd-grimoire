@@ -134,6 +134,7 @@ test("hardcore campaigns refuse loading an earlier save with 409", async () => {
     name: "One life",
     characterName: "Wren",
     updatedAt: new Date().toISOString(),
+    archived: false,
   });
 
   const refused = await request(server, `/campaigns/${id}/saves/${save.id}/load`, {}, cookie);

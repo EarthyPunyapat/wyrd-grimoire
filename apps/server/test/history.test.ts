@@ -143,6 +143,7 @@ test("hardcore campaigns refuse rewind with 409", async () => {
     name: "One life",
     characterName: "Wren",
     updatedAt: new Date().toISOString(),
+    archived: false,
   });
 
   const timeline = TimelineView.parse(

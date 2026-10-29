@@ -168,6 +168,7 @@ export function mountHistory(app: Hono<AppEnvironment>, d: Deps) {
         name: imported.name,
         characterName: imported.characterName,
         updatedAt: new Date(d.now()).toISOString(),
+        archived: false,
       });
       return c.json(ImportResult.parse(imported), 201);
     } catch (error) {

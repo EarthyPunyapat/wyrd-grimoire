@@ -2,13 +2,13 @@
 
 Working notes for whoever picks this up next. Read `AGENTS.md` first, then this file.
 
-## Status (2026-10-29)
+## Status (2026-10-30)
 
-**M1–M7, W2 step 2 and workstreams A (Levels/abilities), B (avatars/sealing), C (wiki lore) and D (source creation/style/canon clocks) are built.** Owner-only and remaining W2 checks stay unticked in `docs/milestones.md`.
+**M1–M7, W2 step 2 and workstreams A (Levels/abilities), B (avatars/sealing), C (wiki lore) and D (source creation/style/canon clocks) are built.** UI 2.0 U3, U4 and U5 are also built. Owner-only and remaining W2 checks stay unticked in `docs/milestones.md`.
 The GM-with-tools turn (Tasks 1–8 of `docs/superpowers/plans/2026-10-29-w2-step2-gm-turn.md`) is on
 `w2-gm-ui` and merges to `main`: one GM model runs a turn with engine tools, streams prose, shows
 cards and choices, retcons with Undo, marks a backup model and runs a non-blocking structural check
-with Fix/Dismiss. `bun run check` is green: typecheck → lint (warnings only) → **795 tests** →
+with Fix/Dismiss. `bun run check` is green: typecheck → lint (warnings only) → **809 tests** →
 `pack validate packs/fantasy-core`.
 
 Owner-only checks still outstanding (need real hardware or keys):
@@ -17,6 +17,17 @@ Owner-only checks still outstanding (need real hardware or keys):
 - M3: LAN/phone playtest from the Arch laptop and a phone.
 - M5: a real-model world run and the NPC-knowledge eval.
 - M8: media (images, TTS) has not been built.
+
+## W2 UI 2.0 U5 — Home and creation (2026-10-30)
+
+Built on `w2-ui-home`, merged to `main`. Plan: `docs/superpowers/plans/2026-10-30-w2-ui-home.md`; decisions: D158.
+
+- **Night Codex home.** Home and the creation dialog carry `data-preset="reader"`; every new rule lives in `apps/web/src/home.css`. Campaigns are ruled rows with character and last-played chrome, inline rename, archive/restore behind a disclosure, and delete with confirmation. `Play.tsx` was not touched.
+- **Rename and archive.** `PATCH /api/campaigns/:id` takes `{name?, archived?}`. Rename appends the new `CampaignRenamed` event, so the card and the played title stay one truth (and rebuilds replay it). Archive is `web_campaigns.archived` in the app store: archived campaigns are hidden from the active list but still open and play; only Delete removes one. Store schema migrated to v3.
+- **Draft library.** `creation_drafts` (migrated from the old `settings` draft keys) backs `GET /api/world-drafts`, `GET /api/world-drafts/:id` and `DELETE /api/world-drafts/:id`. The home page lists unfinished worlds with Continue and Discard; a started draft drops out of the list. Resume restores the generated world, review, sheet flag, pitch and source.
+- **Creation.** The dialog now asks original world vs inside a source explicitly, shows the source fields and wiki, presents the GM's review (including the palette and style), and the style sample has a "More like…" revision loop with its own progress and error. Generation shows a step list, a progress bar and elapsed seconds; campaign start, sheet opening and suggestions show their own status. Model failures render a plain message, optional technical detail, Dismiss and Check model settings. The import review still ships with step 4's import.
+- **Tests.** `apps/server/test/home.test.ts` covers rename/replay projection, archive/restore and draft list/resume/discard; `packages/storage/test/app-store.test.ts` covers drafts and archive; `packages/engine/test/reduce.test.ts` covers the rename reducer. `e2e/home.e2e.ts` covers management, draft resume, the source choice and a failed model revision on desktop and phone.
+- **Validation.** `bun run check` green: typecheck, lint (existing warnings), **809 tests**, fantasy-core pack validation. Build passed. Full sequential Playwright after rebasing on U4 and avatars: **62 passed, 4 existing skips** (one worker; desktop then phone).
 
 ## W2 A — Levels and abilities (2026-10-29)
 
@@ -149,13 +160,13 @@ Built test-first on `w2-lore`; merged to `main`. Plan: `docs/superpowers/plans/2
 - Only the pack's first shop opens (at campaign start); per-settlement shop generation is future
   work (D118).
 - Themes exist for fantasy-core; other packs still use the app default palette (D119).
-- The Playwright e2e suite (`bun run test:e2e`) is not part of `bun run check`; run it separately after UI changes. The current A run passes 45 tests with 3 existing skips (one worker, sequential browsers).
+- The Playwright e2e suite (`bun run test:e2e`) is not part of `bun run check`; run it separately after UI changes. The current run passes 62 tests with 4 existing skips (one worker, sequential browsers).
 
 ## Next milestone
 
 **W2 — Wyrd 2.0** (before M8). The owner played M7 and found it lacking next to their own ChatGPT RPG sessions, and a 72-question interview on 2026-10-29 redesigned the game.
 
-Step 2 and step 3 A/B/C/D are done. Next: F delegation, and E full time skips/watch list (after F). A exports the level/check/breakthrough helpers; C exports `LoreResearch`. Infinite observe scope remains in E.
+Step 2 and step 3 A/B/C/D are done, and UI 2.0 U3, U4 and U5 are built. Next: F delegation, and E full time skips/watch list (after F). A exports the level/check/breakthrough helpers; C exports `LoreResearch`. Infinite observe scope remains in E. U6 (presets/dials) remains.
 
 Read these first:
 - the spec: `docs/superpowers/specs/2026-10-29-wyrd-2-design.md`
