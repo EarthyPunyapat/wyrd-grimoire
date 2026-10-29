@@ -81,3 +81,57 @@ test("passage puts rolls in the margin rail and prose in the column", () => {
   expect(rail).toContain("Insight d20 14 +6 = 20 vs 18");
   expect(main).not.toContain("Insight d20");
 });
+
+const baseTurn = {
+  id: "t2",
+  input: "I open my eyes.",
+  status: "resolved",
+  narration: "The station hums.",
+  cards: [],
+  choices: [],
+  backup: false,
+  checkFlags: [],
+};
+
+test("a roll shows as a margin note with the big result and the die line", () => {
+  const turn = {
+    ...baseTurn,
+    mechanics: [
+      {
+        text: "Willpower d20 14 +6 = 20 vs DC 18 · Success",
+        degree: "success",
+        roll: { die: "d20", sides: 20, natural: 14, modifier: 6, total: 20, dc: 18 },
+      },
+    ],
+  } as unknown as WebTurn;
+  const html = renderToStaticMarkup(<Passage turn={turn} view={view} busy={false} math onReroll={noop} />);
+  const rail = html.slice(html.indexOf('class="margin-notes"'));
+  expect(rail).toContain('class="roll-total">20<');
+  expect(rail).toContain("d20 14 +6 vs DC 18");
+  expect(rail).toContain("Willpower");
+  expect(rail).toContain("Success");
+});
+
+test("a GM chapter card becomes the chapter heading in the column, not a margin note", () => {
+  const turn = {
+    ...baseTurn,
+    mechanics: [],
+    cards: [{ type: "chapter", title: "The Ring Project", subtitle: "Watchtower · night" }],
+  } as unknown as WebTurn;
+  const v = { ...view, turns: [turn] } as unknown as GameView;
+  const html = renderToStaticMarkup(<Passage turn={turn} view={v} busy={false} math onReroll={noop} />);
+  const main = html.slice(html.indexOf('class="passage-main"'), html.indexOf('class="margin-notes"'));
+  expect(main).toContain('class="chapter-numeral"');
+  expect(main).toContain("II");
+  expect(main).toContain("The Ring Project");
+  expect(main).toContain("Watchtower · night");
+  expect(html.slice(html.indexOf('class="margin-notes"'))).not.toContain("The Ring Project");
+});
+
+test("the status strip carries the home wordmark and app settings when given", () => {
+  const html = renderToStaticMarkup(
+    <StatusStrip view={view} onMenu={noop} onSettings={noop} onHome={noop} onAppSettings={noop} />,
+  );
+  expect(html).toContain('aria-label="Wyrd Grimoire home"');
+  expect(html).toContain(">Settings<");
+});

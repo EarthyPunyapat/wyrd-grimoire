@@ -30,7 +30,7 @@
 }
 [data-preset="reader"] .strip-menus button:hover,
 [data-preset="reader"] .strip-menus button[aria-current="true"] { color: var(--ink); border-bottom-color: var(--accent); }
-[data-preset="reader"] .key { color: var(--ink-faint); margin-right: .5em; }
+[data-preset="reader"] .key { color: var(--ink-muted); margin-right: .5em; }
 
 /* ── Story column + margin rail ─────────────────────────────────── */
 [data-preset="reader"] .story { border-right: 0; background: var(--bg); }
@@ -136,7 +136,7 @@
   font: italic var(--text-input) / 1.5 var(--font-read); color: var(--ink);
 }
 [data-preset="reader"] .input-row textarea:focus { border-bottom-color: var(--accent); outline: none; }
-[data-preset="reader"] .input-row textarea::placeholder { color: var(--ink-faint); }
+[data-preset="reader"] .input-row textarea::placeholder { color: var(--ink-muted); }
 [data-preset="reader"] .composer-foot { font: var(--text-meta) var(--font-chrome); color: var(--ink-muted); }
 [data-preset="reader"] .suggestions { display: flex; flex-wrap: wrap; gap: 0 var(--space-4); border: 0; padding: 0 0 6px; margin: 0; }
 [data-preset="reader"] .suggestions button {
@@ -181,7 +181,57 @@
 [data-preset="reader"] .combat-strip { display: flex; padding: 6px var(--gutter) 0; border-top: 1px solid var(--line); background: var(--bg); }
 
 /* The app bar above the strip goes quiet while playing. */
-:root[data-preset="reader"] .topbar { min-height: 0; padding: 6px var(--gutter); background: var(--bg); border-bottom: 1px solid var(--line); }
+:root[data-preset="reader"] .topbar { display: none; }
+[data-preset="reader"] .status-strip .strip-wordmark {
+  order: 0; min-height: var(--touch-target); padding: 0; border: 0; background: none;
+  font: 500 var(--text-meta) var(--font-chrome); color: var(--ink); cursor: pointer;
+}
+[data-preset="reader"] .strip-offline { align-self: center; color: var(--ink-muted); }
 
 /* Rolls in the rail are annotations, not boxes. */
 [data-preset="reader"] .margin-notes .mechanics ul { padding: 0; background: none; border: 0; border-radius: 0; }
+
+/* Roll notes: label, big result, die line, outcome (DESIGN.md Margin Note). */
+[data-preset="reader"] .margin-notes .roll-notes { display: flex; flex-direction: column; gap: 18px; margin: 0; padding: 0; border: 0; }
+[data-preset="reader"] .roll-note { display: flex; flex-direction: column; gap: 4px; padding-top: 10px; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+[data-preset="reader"] .roll-note .note-label { color: var(--ink-muted); }
+[data-preset="reader"] .roll-note .roll-line { display: flex; align-items: baseline; gap: 10px; }
+[data-preset="reader"] .roll-note .roll-total { font-size: var(--text-result); color: var(--ink); }
+[data-preset="reader"] .roll-note .roll-die { color: var(--ink-muted); }
+[data-preset="reader"] .roll-note .roll-outcome { color: var(--ink); }
+[data-preset="reader"] .roll-note.success .roll-outcome,
+[data-preset="reader"] .roll-note.critSuccess .roll-outcome { color: var(--accent); }
+[data-preset="reader"] .roll-note.failure .roll-outcome,
+[data-preset="reader"] .roll-note.critFailure .roll-outcome { color: var(--danger); }
+
+/* Names tinted by what they are; the dotted underline and the card keep colour from being the only cue. */
+[data-preset="reader"] .ref[data-kind="location"],
+[data-preset="reader"] .ref[data-kind="site"],
+[data-preset="reader"] .ref[data-kind="region"] { color: var(--place); }
+[data-preset="reader"] .ref[data-kind="item"] { color: var(--item); }
+[data-preset="reader"] .ref[data-kind="faction"] { color: var(--faction); }
+[data-preset="reader"] .ref[data-kind="creature"] { color: var(--danger); }
+[data-preset="reader"] .ref { background: none; border: 0; padding: 0; font: inherit; cursor: pointer; }
+
+/* The composer follows the story inside the scroll, as in the mockup; only the hotbar is pinned. */
+[data-preset="reader"] .story-inner .composer { padding: var(--space-4) 0 var(--space-7); background: none; }
+[data-preset="reader"] .story-inner .composer-inner { max-width: var(--measure); margin: 0; }
+[data-preset="reader"] .story-inner .combat-strip { max-width: var(--measure); padding: 6px 0 0; }
+
+/* Quiet tools: reroll is there when you want it, not shouting under every passage. */
+[data-preset="reader"] .passage-tools button { color: var(--ink-muted); }
+[data-preset="reader"] .passage-tools button:hover:not(:disabled) { color: var(--accent); }
+[data-preset="reader"] .passage-tools > span { color: var(--ink-muted); }
+
+/* Speaker names are italic sentence case, not tracked capitals (DESIGN.md Speaker Block). */
+[data-preset="reader"] .passage-main .speaker,
+[data-preset="reader"] .live-passage .speaker { text-transform: none; letter-spacing: 0; margin-bottom: 2px; }
+[data-preset="reader"] .prose > * + * { margin-top: var(--rhythm); }
+[data-preset="reader"] .prose p { margin: 0; }
+[data-preset="reader"] .prose blockquote p { margin: 0; }
+/* Only 400 and 500 are bundled; a heavier weight would be faked by the browser. */
+[data-preset="reader"] .prose strong { font-weight: 500; }
+/* The composer is one line that grows with what you write. */
+[data-preset="reader"] .input-row textarea { field-sizing: content; height: auto; }
+[data-preset="reader"] .passage-main blockquote,
+[data-preset="reader"] .live-passage blockquote { margin: var(--space-4) 0 0; }

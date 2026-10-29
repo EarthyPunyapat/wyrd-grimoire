@@ -23,15 +23,27 @@ export function StatusStrip({
   active,
   onMenu,
   onSettings,
+  onHome,
+  onAppSettings,
+  offline,
 }: {
   view: GameView;
   active?: Menu | null;
   onMenu: (menu: Menu) => void;
   onSettings: () => void;
+  /** The app bar's home and settings live in the strip while playing: Reader has one band of chrome. */
+  onHome?: () => void;
+  onAppSettings?: () => void;
+  offline?: boolean;
 }) {
   const day = Math.floor(view.gameTime / 1440) + 1;
   return (
     <header className="status-strip location-bar" data-component="status-strip">
+      {onHome && (
+        <button type="button" className="strip-wordmark" onClick={onHome} aria-label="Wyrd Grimoire home">
+          Wyrd
+        </button>
+      )}
       <span className="strip-place">
         {view.scene?.location ?? "Between chapters"}
         {view.scene?.zone ? ` · ${view.scene.zone}` : ""}
@@ -64,6 +76,12 @@ export function StatusStrip({
         <button type="button" onClick={onSettings} aria-label="Campaign settings" title="Campaign settings">
           <span aria-hidden="true">⚙</span>
         </button>
+        {offline && <span className="strip-offline">Offline</span>}
+        {onAppSettings && (
+          <button type="button" onClick={onAppSettings}>
+            Settings
+          </button>
+        )}
       </nav>
     </header>
   );

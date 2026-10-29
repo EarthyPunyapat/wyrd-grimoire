@@ -150,7 +150,18 @@ export function App() {
       ) : !auth.authenticated ? (
         <Unlock setupRequired={auth.setupRequired} onUnlock={refreshAuth} />
       ) : view ? (
-        <Play view={view} onView={setView} onOpenCampaign={openCampaign} />
+        <Play
+          view={view}
+          onView={setView}
+          onOpenCampaign={openCampaign}
+          onHome={() => {
+            setView(undefined);
+            history.replaceState(null, "", location.pathname);
+            void refreshCards().catch((e) => setError(e.message));
+          }}
+          {...(auth?.authenticated ? { onAppSettings: () => setSettings(true) } : {})}
+          offline={Boolean(auth?.offline)}
+        />
       ) : (
         <main id="main" className="home">
           <div className="eyebrow">A GRIMOIRE OF FATE</div>

@@ -9,7 +9,7 @@ import { Hotbar } from "./Hotbar.tsx";
 import { Inventory } from "./Inventory.tsx";
 import { NarrativeText, narrationContext, RefContext } from "./Narration.tsx";
 import { Party } from "./Party.tsx";
-import { Mechanics, Passage } from "./Passage.tsx";
+import { Passage, RollNotes } from "./Passage.tsx";
 import { Sheet } from "./Sheet.tsx";
 import { type Menu, StatusStrip } from "./StatusStrip.tsx";
 import { Timeline } from "./Timeline.tsx";
@@ -34,10 +34,16 @@ export function Play({
   view,
   onView,
   onOpenCampaign,
+  onHome,
+  onAppSettings,
+  offline,
 }: {
   view: GameView;
   onView: (view: GameView) => void;
   onOpenCampaign?: (id: string) => void | Promise<void>;
+  onHome?: () => void;
+  onAppSettings?: () => void;
+  offline?: boolean;
 }) {
   // A pack theme overrides the app's default palette (spec 13 Themes).
   useEffect(() => {
@@ -197,6 +203,9 @@ export function Play({
           active={panelOpen === "combat" ? null : panelOpen}
           onMenu={openMenu}
           onSettings={() => setCampaignSettings(true)}
+          {...(onHome ? { onHome } : {})}
+          {...(onAppSettings ? { onAppSettings } : {})}
+          offline={Boolean(offline)}
         />
         <section className="story" aria-label="Story">
           <div className="story-scroll">
@@ -292,7 +301,7 @@ export function Play({
                       ))}
                     </div>
                   )}
-                  <Mechanics lines={play.mechanics} expanded resolution={view.resolution} />
+                  <RollNotes lines={play.mechanics} math resolution={view.resolution} />
                   <p>
                     <span className="pulse" aria-hidden="true">
                       ✦
@@ -355,74 +364,72 @@ export function Play({
                   </form>
                 </section>
               )}
+              {inCombat && <CombatStrip combat={view.combat!} />}
+              <form
+                hidden={!!view.ended}
+                className="composer"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void send(input);
+                }}
+              >
+                <div className="composer-inner">
+                  {suggestions && (
+                    <fieldset className="suggestions">
+                      <legend className="sr-only">Suggested actions</legend>
+                      {view.suggestions.map((s) => (
+                        <button
+                          type="button"
+                          key={s}
+                          disabled={play.busy}
+                          onClick={() => {
+                            setInput(s);
+                            textarea.current?.focus();
+                          }}
+                        >
+                          {s} <span aria-hidden="true">↗</span>
+                        </button>
+                      ))}
+                    </fieldset>
+                  )}
+                  <div className="input-row">
+                    <label htmlFor="action-input">What do you do?</label>
+                    <textarea
+                      ref={textarea}
+                      id="action-input"
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                          e.preventDefault();
+                          void send(input);
+                        }
+                      }}
+                      placeholder="Write your next line…  / to type, /gm to change the world"
+                      rows={2}
+                      maxLength={4000}
+                      disabled={play.busy}
+                    />
+                  </div>
+                  <div className="composer-foot">
+                    <span>{play.busy ? "The story is being written…" : ""}</span>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={math}
+                        onChange={(e) => {
+                          setMathChoice(e.target.checked);
+                          localStorage.setItem("wyrd-math", String(e.target.checked));
+                        }}
+                      />
+                      Show the math
+                    </label>
+                  </div>
+                </div>
+              </form>
               <div ref={bottom} />
             </div>
           </div>
-          {inCombat && <CombatStrip combat={view.combat!} />}
-          <form
-            hidden={!!view.ended}
-            className="composer"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void send(input);
-            }}
-          >
-            <div className="composer-inner">
-              {suggestions && (
-                <fieldset className="suggestions">
-                  <legend className="sr-only">Suggested actions</legend>
-                  {view.suggestions.map((s) => (
-                    <button
-                      type="button"
-                      key={s}
-                      disabled={play.busy}
-                      onClick={() => {
-                        setInput(s);
-                        textarea.current?.focus();
-                      }}
-                    >
-                      {s} <span aria-hidden="true">↗</span>
-                    </button>
-                  ))}
-                </fieldset>
-              )}
-              <div className="input-row">
-                <label htmlFor="action-input">What do you do?</label>
-                <textarea
-                  ref={textarea}
-                  id="action-input"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                      e.preventDefault();
-                      void send(input);
-                    }
-                  }}
-                  placeholder="Write your next line…  / to type, /gm to change the world"
-                  rows={2}
-                  maxLength={4000}
-                  disabled={play.busy}
-                />
-              </div>
-              <div className="composer-foot">
-                <span>
-                  {play.busy ? "The story is being written…" : "Enter to send · Shift + Enter for a new line"}
-                </span>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={math}
-                    onChange={(e) => {
-                      setMathChoice(e.target.checked);
-                      localStorage.setItem("wyrd-math", String(e.target.checked));
-                    }}
-                  />
-                  Show the math
-                </label>
-              </div>
-            </div>
-          </form>
         </section>
         <Hotbar
           busy={play.busy}

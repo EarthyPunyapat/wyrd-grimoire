@@ -36,6 +36,84 @@ export function Mechanics({
     </details>
   );
 }
+const DEGREE_WORD = {
+  critSuccess: "Critical success",
+  success: "Success",
+  failure: "Failure",
+  critFailure: "Critical failure",
+};
+
+/** Roman numerals for chapter headings (DESIGN.md: the numeral is the real chapter number). */
+export function roman(n: number): string {
+  const table: [number, string][] = [
+    [1000, "M"],
+    [900, "CM"],
+    [500, "D"],
+    [400, "CD"],
+    [100, "C"],
+    [90, "XC"],
+    [50, "L"],
+    [40, "XL"],
+    [10, "X"],
+    [9, "IX"],
+    [5, "V"],
+    [4, "IV"],
+    [1, "I"],
+  ];
+  let out = "";
+  let left = Math.max(1, Math.floor(n));
+  for (const [value, glyph] of table)
+    while (left >= value) {
+      out += glyph;
+      left -= value;
+    }
+  return out;
+}
+
+/**
+ * Margin notes for rolls (DESIGN.md Margin Note, roll variant): label, big result, die line, outcome.
+ * Lines without a die stay as plain notes. With the math off, only the label and the outcome show.
+ */
+export function RollNotes({
+  lines,
+  math,
+  resolution = "d100",
+}: {
+  lines: MechanicsLine[];
+  math: boolean;
+  resolution?: Resolution;
+}) {
+  const shown = lines.filter((line) => visibleIn(line, resolution));
+  if (!shown.length) return null;
+  return (
+    <div className="mechanics roll-notes">
+      {shown.map((line, i) => {
+        const label = line.text.split(" · ")[0]?.replace(/\s+(d20|d100|\d+%).*$/, "") ?? line.text;
+        const r = line.roll;
+        const mod = r?.modifier ? ` ${r.modifier > 0 ? "+" : "−"}${Math.abs(r.modifier)}` : "";
+        const against =
+          r?.dc !== undefined ? ` vs DC ${r.dc}` : r?.target !== undefined ? ` vs ${r.target}` : "";
+        return (
+          <div className={`roll-note ${line.degree ?? ""}`} key={`${i}-${line.text}`}>
+            <span className="note-label">{r ? label : line.text}</span>
+            {r && math && (
+              <span className="roll-line">
+                <span className="roll-total">{r.total ?? r.natural}</span>
+                <span className="roll-die">
+                  {r.die} {r.natural}
+                  {mod}
+                  {against}
+                </span>
+              </span>
+            )}
+            {line.degree && <span className="roll-outcome">{DEGREE_WORD[line.degree]}</span>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function Passage({
   turn,
   view,
@@ -75,13 +153,31 @@ export function Passage({
     }
   };
   const flags = turn.checkFlags.filter((flag) => !dismissed.includes(flag.quote));
-  const cards =
+  const all =
     turn.retcon && !turn.cards.some((card) => card.type === "retcon")
       ? [...turn.cards, { type: "retcon" as const, retconId: turn.retcon.retconId }]
       : turn.cards;
+  // A chapter card is the column's heading, not a margin note; the opening is chapter I.
+  const chapter = all.find((card) => card.type === "chapter");
+  const cards = all.filter((card) => card.type !== "chapter");
+  const index = view.turns?.findIndex((t) => t.id === turn.id) ?? -1;
+  const chapterNumber =
+    1 +
+    (view.turns ?? []).slice(0, index + 1).filter((t) => t.cards.some((c) => c.type === "chapter")).length;
   return (
     <article className="passage" data-turn={turn.id}>
       <div className="passage-main">
+        {chapter?.type === "chapter" && (
+          <div className="chapter-heading">
+            <span className="chapter-numeral" aria-hidden="true">
+              {roman(chapterNumber)}
+            </span>
+            <div>
+              <h2>{chapter.title}</h2>
+              {chapter.subtitle && <span className="chapter-locator">{chapter.subtitle}</span>}
+            </div>
+          </div>
+        )}
         <p className="player-input">
           <span aria-hidden="true">↳</span> {turn.input}
         </p>
@@ -186,7 +282,7 @@ export function Passage({
           {...(turn.retcon ? { retcon: turn.retcon } : {})}
           {...(onUndo ? { onUndo } : {})}
         />
-        <Mechanics lines={turn.mechanics} expanded={math} resolution={view.resolution} />
+        <RollNotes lines={turn.mechanics} math={math} resolution={view.resolution} />
       </aside>
     </article>
   );

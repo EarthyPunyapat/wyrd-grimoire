@@ -30,6 +30,7 @@ function RefName({ id, text }: { id: string; text: string }) {
       <button
         type="button"
         className="ref"
+        data-kind={ctx.known.find((k) => k.id === id)?.kind}
         aria-expanded={open}
         aria-controls={card}
         onClick={() => (open ? setOpen(false) : void show())}
