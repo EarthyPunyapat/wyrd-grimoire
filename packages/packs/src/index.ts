@@ -1,8 +1,10 @@
 export * from "./content.ts";
 export * from "./generated.ts";
+export * from "./hash.ts";
 export * from "./hooks.ts";
 export { averageDamage, lintPack } from "./lints.ts";
 export { KNOWN_PLUGINS, type LoadResult, loadPack, type PackIssue } from "./loader.ts";
+export * from "./player-gear.ts";
 export { scaffoldPack } from "./scaffold.ts";
 export { satisfies } from "./semver.ts";
 export * from "./world.ts";

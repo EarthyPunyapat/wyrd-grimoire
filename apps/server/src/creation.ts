@@ -8,6 +8,7 @@ import {
   InterviewAnswer,
   InterviewState,
   InterviewView,
+  StartingKitProposal,
   SuggestInput,
   WorldBible,
   WorldPitch,
@@ -26,6 +27,7 @@ import {
   interviewStep,
   offlineInterviewStep,
   offlineSuggestion,
+  ProviderError,
   type RoleRouter,
   type SessionZeroContext,
   suggestField,
@@ -43,6 +45,8 @@ export const StoredDraft = z.object({
   proposal: WorldProposal,
   /** Stage 1 world bible (M5); drafts from before M5 have none and start as a single site. */
   bible: WorldBible.optional(),
+  /** The optional starting kit for a generated world (D148); absent when its call failed. */
+  kit: StartingKitProposal.optional(),
   offline: z.boolean(),
   campaignId: z.string().optional(),
   /** The character as the sheet editor last saved it; absent until the player opens the editor. */
@@ -163,6 +167,8 @@ type Deps = {
   router: () => RoleRouter | null;
 };
 
+const OFFLINE_NOTICE = "The storyteller stumbled, so this one comes from the offline interviewer.";
+
 export function mountCreation(app: Hono<AppEnvironment>, d: Deps) {
   const load = (id: string) => {
     const saved = StoredDraft.safeParse(d.store.creationDraft(id));
@@ -246,11 +252,19 @@ export function mountCreation(app: Hono<AppEnvironment>, d: Deps) {
       };
       const draft = current(saved, pack);
       const ctx = context(saved, pack, draft);
-      const step = router
-        ? await interviewStep(router, ctx, interview).catch(() => {
-            throw unavailable();
-          })
-        : offlineInterviewStep(ctx, interview);
+      let step: Awaited<ReturnType<typeof interviewStep>>;
+      let notice: string | undefined;
+      if (router) {
+        try {
+          step = await interviewStep(router, ctx, interview);
+        } catch (error) {
+          if (!(error instanceof ProviderError)) throw unavailable();
+          step = offlineInterviewStep(ctx, interview);
+          notice = OFFLINE_NOTICE;
+        }
+      } else {
+        step = offlineInterviewStep(ctx, interview);
+      }
       const applied = apply(pack, draft, step.proposals);
       const next = InterviewState.parse({
         ...interview,
@@ -259,7 +273,13 @@ export function mountCreation(app: Hono<AppEnvironment>, d: Deps) {
         refused: applied.refused,
       });
       saveAfterCall(id, saved, { sheet: applied.draft, interview: next });
-      return c.json(InterviewView.parse({ interview: next, creation: view(saved, pack, applied.draft) }));
+      return c.json(
+        InterviewView.parse({
+          interview: next,
+          creation: view(saved, pack, applied.draft),
+          ...(notice ? { notice } : {}),
+        }),
+      );
     });
   });
   // The form wizard's "suggest" buttons (spec 04): one field per call.
@@ -272,16 +292,28 @@ export function mountCreation(app: Hono<AppEnvironment>, d: Deps) {
       const router = d.router();
       const draft = current(saved, pack);
       const ctx = context(saved, pack, draft);
-      const proposals = router
-        ? await suggestField(router, ctx, field).catch(() => {
+      let proposals: Awaited<ReturnType<typeof suggestField>>;
+      let notice: string | undefined;
+      if (router) {
+        try {
+          proposals = await suggestField(router, ctx, field);
+        } catch (error) {
+          if (!(error instanceof ProviderError))
             throw new HTTPException(502, {
               message: "No suggestion this time. Try again, or check model settings.",
             });
-          })
-        : offlineSuggestion(ctx, field);
+          proposals = offlineSuggestion(ctx, field);
+          notice = OFFLINE_NOTICE;
+        }
+      } else {
+        proposals = offlineSuggestion(ctx, field);
+      }
       const applied = apply(pack, draft, proposals);
       saveAfterCall(id, saved, { sheet: applied.draft });
-      return c.json(view(saved, pack, applied.draft));
+      return c.json({
+        ...view(saved, pack, applied.draft),
+        ...(notice ? { notice } : {}),
+      });
     });
   });
 }

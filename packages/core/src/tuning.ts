@@ -66,6 +66,7 @@ export type Tuning = {
     interestMaxPerSkill: number;
     archetypeTalents: number;
     freeTalents: number;
+    playerGearWeightKg: number;
   };
   combat: {
     woundThresholdMultiples: Record<"minor" | "serious" | "critical", number>;
@@ -392,10 +393,13 @@ export type Tuning = {
   };
   snapshotEvery: number;
   sceneReactions?: SceneReactionTuning;
+  /** Structured model calls: extra attempts that feed validation errors back before failing. */
+  structuredOutput: { repairs: number };
 };
 
 export const defaultTuning: Tuning = {
   sceneReactions: defaultSceneReactionTuning,
+  structuredOutput: { repairs: 2 },
   version: 1,
   difficultyShift: { easy: 20, normal: 0, hard: -20, extreme: -40, heroic: -60 },
   difficultyDc: { easy: 7, normal: 11, hard: 15, extreme: 19, heroic: 23 },
@@ -425,6 +429,8 @@ export const defaultTuning: Tuning = {
     interestMaxPerSkill: 30,
     archetypeTalents: 1,
     freeTalents: 1,
+    /** Weight of a piece of player-written starting gear (spec 04). */
+    playerGearWeightKg: 0.5,
   },
   injury: {
     healingDays: { minor: 3, serious: 7, critical: 14, lethal: 21 },

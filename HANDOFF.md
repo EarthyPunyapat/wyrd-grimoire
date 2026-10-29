@@ -106,4 +106,19 @@ In short:
 
 **Machine limit:** run only one browser or Playwright process at a time; the owner's 12 GB laptop crashed running several.
 
+## Model setup for Wyrd 2.0 (owner)
+
+1. Sign in with ChatGPT on the host PC: **Settings → Models → Connection → Continue with ChatGPT**
+   (the redirect goes to `127.0.0.1`, so it must happen on the PC running the server).
+2. List the plan's model ids with `bun run wyrd models chatgpt-plan`, then put the id you want in
+   the **ChatGPT plan (prose)** slot in Settings → Models — that is `models.plan` in the provider
+   config: `{ "provider": "chatgpt-plan", "model": "<id>" }`.
+3. Set the routing preset from **One model for everything** to **Balanced**. Prose roles (narrator,
+   npcDialogue, worldGen, sessionZero) then prefer the plan; parser, guard and summarizer prefer
+   DeepSeek (see `presetRouting` in `packages/llm/src/router.ts`).
+4. Restart the server (`bun run start`).
+
+`ModelServices.ready()` (`apps/server/src/models.ts`) rejects any route whose model starts with
+`PICK-WITH`, so save only after a real model id is chosen.
+
 After W2: **M8 — Media** (see `docs/spec/10-media.md`): image adapters (ComfyUI/Qwen-Image 2.1, OpenAI), portraits and scene-art consistency, TTS adapters (local, Deepgram), voice casting, segment playback and the GPU mutex.

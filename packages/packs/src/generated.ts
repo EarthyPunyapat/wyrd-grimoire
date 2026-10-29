@@ -1,20 +1,75 @@
-import { createHash } from "node:crypto";
 import {
   AncestryDef,
   ArchetypeDef,
   type CompiledPack,
+  defaultEconomy,
   defaultTuning,
+  GearDef,
   GeneratedWorldPreview,
   PackManifest,
-  stableStringify,
+  type StartingKitProposal,
   TalentDef,
   WorldProposal,
 } from "@wyrd/core";
 import { allocateStartingTraining } from "@wyrd/engine";
+import { packHash } from "./hash.ts";
 import { WorldDef } from "./world.ts";
 
+const GENERATED = "generated";
+const generatedId = (id: string) => (id.startsWith(`${GENERATED}:`) ? id : `${GENERATED}:${id}`);
+
+/**
+ * Merges the optional starting kit before the pack is hashed: gear under `generated:<id>`,
+ * per-archetype kits, the world's currency and at most one shop. Unknown references are dropped.
+ */
+function mergeStartingKit(pack: CompiledPack, kit: StartingKitProposal): void {
+  for (const gear of kit.gear) {
+    const id = generatedId(gear.id);
+    pack.items.gear[id] = {
+      ...GearDef.parse({
+        id: "item",
+        name: gear.name,
+        description: gear.description,
+        weightKg: gear.weightKg,
+        price: gear.price,
+        tags: ["generated"],
+      }),
+      id,
+    };
+  }
+  for (const entry of kit.kits) {
+    const archetype = pack.archetypes[generatedId(entry.archetypeId)];
+    if (!archetype) continue;
+    const items = entry.items
+      .map((item) => ({ item: generatedId(item.id), qty: item.qty }))
+      .filter((item) => Object.hasOwn(pack.items.gear, item.item));
+    archetype.kit = items;
+  }
+  const stock = (kit.shop?.stock ?? [])
+    .map((line) => ({ item: generatedId(line.id), qty: line.qty }))
+    .filter((line) => Object.hasOwn(pack.items.gear, line.item));
+  const economy = defaultEconomy();
+  pack.economy = {
+    ...economy,
+    currency: { ...economy.currency, name: kit.currency.name, symbol: kit.currency.symbol },
+    shops:
+      kit.shop && stock.length
+        ? [
+            {
+              id: "generated-shop",
+              name: kit.shop.name,
+              kind: kit.shop.kind,
+              settlement: "village",
+              markup: 1,
+              stock,
+            },
+          ]
+        : [],
+  };
+}
+
 /** Compile bounded fiction proposals into frozen pack data and canon-ready world data. */
-export function compileGeneratedWorld(raw: WorldProposal) {
+export function compileGeneratedWorld(raw: WorldProposal, kit?: StartingKitProposal) {
   const p = WorldProposal.parse(raw);
   if (
     p.location.people.some((n) => n.zone >= p.location.zones.length) ||
@@ -78,9 +133,8 @@ export function compileGeneratedWorld(raw: WorldProposal) {
       id,
     };
   });
-  pack.hash = createHash("sha256")
-    .update(stableStringify({ ...pack, hash: undefined }))
-    .digest("hex");
+  if (kit) mergeStartingKit(pack, kit);
+  pack.hash = packHash(pack);
   const world = WorldDef.parse({
     id: "generated-opening",
     name: p.worldName,

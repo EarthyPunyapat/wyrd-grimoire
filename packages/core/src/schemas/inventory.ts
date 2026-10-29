@@ -246,6 +246,7 @@ export function defaultEconomy(): EconomyDef {
         { id: "gold", name: "Gold", value: 100 },
       ],
     },
+    selling: {},
     wealth: [
       { level: 1, name: "Destitute", maxPrice: 2 },
       { level: 2, name: "Poor", maxPrice: 10 },

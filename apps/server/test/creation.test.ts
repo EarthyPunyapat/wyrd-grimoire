@@ -10,7 +10,9 @@ import {
   InterviewView,
   ProgressionView,
 } from "@wyrd/core";
+import { FakeProvider, RoleRouter } from "@wyrd/llm";
 import { createApp } from "../src/app.ts";
+import { EXAMPLE_WORLD } from "../src/example-world.ts";
 
 const homes: string[] = [];
 const servers: ReturnType<typeof createApp>[] = [];
@@ -23,6 +25,30 @@ async function setup() {
   const home = mkdtempSync(join(tmpdir(), "wyrd-creation-"));
   homes.push(home);
   const server = createApp({ home, offline: true, seed: "creation" });
+  servers.push(server);
+  const call = (path: string, cookie: string, body?: unknown, method = body === undefined ? "GET" : "POST") =>
+    server.app.request(`http://localhost/api${path}`, {
+      method,
+      headers: { Cookie: cookie, "X-Wyrd": "1", "Content-Type": "application/json" },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+  const auth = await call("/auth/setup", "", { passcode: "a long creation test passcode" });
+  const cookie = auth.headers.get("set-cookie")!.split(";")[0]!;
+  return { call: (path: string, body?: unknown, method?: string) => call(path, cookie, body, method) };
+}
+
+async function setupWithRouter(rules: ConstructorParameters<typeof FakeProvider>[0]) {
+  const home = mkdtempSync(join(tmpdir(), "wyrd-creation-model-"));
+  homes.push(home);
+  const provider = new FakeProvider(rules);
+  const router = new RoleRouter({
+    providers: { fake: provider },
+    routing: {
+      worldGen: { provider: "fake", model: "test", fallbacks: [] },
+      sessionZero: { provider: "fake", model: "test", fallbacks: [] },
+    },
+  });
+  const server = createApp({ home, offline: false, router });
   servers.push(server);
   const call = (path: string, cookie: string, body?: unknown, method = body === undefined ? "GET" : "POST") =>
     server.app.request(`http://localhost/api${path}`, {
@@ -186,4 +212,66 @@ test("closing a chapter awards XP, and the Party tab spends it through the engin
     id: "str",
   });
   expect(refused.status).toBe(422);
+});
+
+const OFFLINE_NOTICE = "The storyteller stumbled, so this one comes from the offline interviewer.";
+
+const failingSessionZero = [
+  { role: "sessionZero" as const, reply: { error: { code: "invalid_output" as const, retryable: true } } },
+];
+
+test("interview falls back offline when the model keeps failing", async () => {
+  const { call } = await setupWithRouter([
+    { role: "worldGen", reply: { toolCall: { name: "propose_world", args: EXAMPLE_WORLD } }, times: 1 },
+    ...failingSessionZero,
+  ]);
+  const world = GeneratedWorldPreview.parse(
+    await (await call("/world-drafts", { name: "Fallback", pitch: "A station mystery" })).json(),
+  );
+  const response = await call(`/world-drafts/${world.id}/interview`, {});
+  expect(response.status).toBe(200);
+  const view = InterviewView.parse(await response.json());
+  expect(view.interview.messages.at(-1)!.text.length).toBeGreaterThan(0);
+  expect(view.notice).toBe(OFFLINE_NOTICE);
+});
+
+test("suggest falls back offline when the model keeps failing", async () => {
+  const { call } = await setupWithRouter([
+    { role: "worldGen", reply: { toolCall: { name: "propose_world", args: EXAMPLE_WORLD } }, times: 1 },
+    ...failingSessionZero,
+  ]);
+  const world = GeneratedWorldPreview.parse(
+    await (await call("/world-drafts", { name: "Suggest fallback", pitch: "A station mystery" })).json(),
+  );
+  const response = await call(`/world-drafts/${world.id}/suggest`, { field: "name" });
+  expect(response.status).toBe(200);
+  const view = CreationView.parse(await response.json());
+  expect(view.draft.name.length).toBeGreaterThan(0);
+  expect(view.notice).toBe(OFFLINE_NOTICE);
+});
+
+test("player gear reaches the inventory", async () => {
+  const { call } = await setup();
+  const world = GeneratedWorldPreview.parse(
+    await (await call("/world-drafts", { name: "Lantern", pitch: "A station mystery" })).json(),
+  );
+  const opened = CreationView.parse(await (await call(`/world-drafts/${world.id}/creation`)).json());
+  const saved = CreationView.parse(
+    await (
+      await call(
+        `/world-drafts/${world.id}/sheet`,
+        {
+          ...opened.draft,
+          gear: [{ name: "Yellow lantern ring", description: "Glows with fear." }],
+        },
+        "PUT",
+      )
+    ).json(),
+  );
+  expect(saved.issues.filter((i) => i.severity === "error")).toEqual([]);
+  const started = await call("/campaigns", { draftId: world.id });
+  expect(started.status).toBe(201);
+  const { id } = (await started.json()) as { id: string };
+  const view = GameView.parse(await (await call(`/campaigns/${id}/view`)).json());
+  expect(view.inventory.items.map((i) => i.name)).toContain("Yellow lantern ring");
 });

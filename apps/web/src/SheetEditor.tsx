@@ -479,11 +479,60 @@ export function SheetEditor({
         </fieldset>
       )}
 
-      {show("gear") && preview.equipment.carried.length > 0 && (
+      {show("gear") && (
+        <fieldset disabled={disabled}>
+          <legend>Your gear</legend>
+          <p className="muted small">
+            Anything you carry into the story. Names are yours; each becomes a real item.
+          </p>
+          {draft.gear.map((g, i) => (
+            <div key={`gear-${i}`} className="hook-edit">
+              <input
+                aria-label={`Gear ${i + 1} name`}
+                value={g.name}
+                maxLength={80}
+                placeholder="Yellow lantern ring"
+                onChange={(e) =>
+                  set({ gear: draft.gear.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)) })
+                }
+              />
+              <input
+                aria-label={`Gear ${i + 1} description`}
+                value={g.description}
+                maxLength={400}
+                placeholder="What it looks like or does"
+                onChange={(e) =>
+                  set({
+                    gear: draft.gear.map((x, j) => (j === i ? { ...x, description: e.target.value } : x)),
+                  })
+                }
+              />
+              <button
+                type="button"
+                aria-label={`Remove ${g.name || "gear"}`}
+                onClick={() => set({ gear: draft.gear.filter((_, j) => j !== i) })}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          {draft.gear.length < 12 && (
+            <button
+              type="button"
+              onClick={() => set({ gear: [...draft.gear, { name: "New item", description: "" }] })}
+            >
+              Add gear
+            </button>
+          )}
+        </fieldset>
+      )}
+
+      {show("gear") && preview.equipment.carried.some((c) => !c.item.startsWith("player:")) && (
         <section className="editor-gear">
           <h3>Starting gear</h3>
           <p className="muted small">
             {preview.equipment.carried
+              .filter((c) => !c.item.startsWith("player:"))
               .map((c) => `${pretty(c.item)}${c.qty > 1 ? ` ×${c.qty}` : ""}`)
               .join(" · ")}
           </p>

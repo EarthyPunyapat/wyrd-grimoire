@@ -42,6 +42,7 @@ import {
   isKnownSkill,
   legacyEvents,
   obituary,
+  playerCanonEvents,
   RESOLUTION_MODULES,
   reduce,
   resolveDowntime,
@@ -55,6 +56,7 @@ import {
   combatContent,
   elaborateEntity,
   generateLocation,
+  generateStartingKit,
   generateWorld,
   generateWorldBible,
   makeTurnContext,
@@ -80,6 +82,7 @@ import {
   locationEvents,
   skillCatalog,
   type WorldDef,
+  withPlayerGear,
   worldEvents,
 } from "@wyrd/packs";
 import { AppStore, backupCampaign, CampaignStore, CanonQueries } from "@wyrd/storage";
@@ -404,12 +407,22 @@ export function createApp(options: Options) {
       : await generateWorldBible(models.router(), bibleInput, taken).catch(() => undefined);
     await mark("bible", "done");
     await mark("validate", "running");
-    const { pack } = compileGeneratedWorld(proposal);
+    // The starting kit is optional too: a failed call keeps today's empty kit and no shop (D148).
+    const kit = offline
+      ? undefined
+      : await generateStartingKit(models.router(), { proposal, pitch: input.pitch }).catch(() => undefined);
+    const { pack } = compileGeneratedWorld(proposal, kit);
     const id = randomUUID();
     const preview = generatedWorldPreview(id, input.name, proposal, pack, offline);
     await mark("validate", "done");
     await mark("save", "running");
-    store.saveCreationDraft(id, { input, proposal, ...(bible ? { bible } : {}), offline });
+    store.saveCreationDraft(id, {
+      input,
+      proposal,
+      ...(bible ? { bible } : {}),
+      ...(kit ? { kit } : {}),
+      offline,
+    });
     await mark("save", "done");
     return preview;
   }
@@ -463,7 +476,7 @@ export function createApp(options: Options) {
     if (!saved.success)
       throw new HTTPException(404, { message: "World draft not found. Generate your world first." });
     if (saved.data.campaignId) return c.json({ id: saved.data.campaignId }, 201);
-    const { pack, world } = compileGeneratedWorld(saved.data.proposal);
+    const { pack, world } = compileGeneratedWorld(saved.data.proposal, saved.data.kit);
     const characterName = input.characterName || saved.data.proposal.suggestedCharacterName;
     // The quick path names an origin and background; the other paths start from the edited sheet.
     const sheet =
@@ -493,6 +506,7 @@ export function createApp(options: Options) {
         bible,
         hooks,
         settings,
+        saved.data.input.pitch,
       );
       store.saveCreationDraft(input.draftId, { ...saved.data, campaignId: id });
       return c.json({ id }, 201);
@@ -619,19 +633,22 @@ export function createApp(options: Options) {
     extra: EventDraft[] = [],
     hooks?: { ids: string[]; events: EventDraft[] },
     settings: CampaignSettingsInput = {},
+    pitch?: string,
   ) {
+    // Player-written gear becomes real pack items before anything is frozen or built.
+    const gamePack = withPlayerGear(pack, character.gear);
     const created = unwrap(
       createCampaign({
         name,
         settings,
-        packIds: [pack.manifest.id],
-        packHash: pack.hash,
+        packIds: [gamePack.manifest.id],
+        packHash: gamePack.hash,
         seed: options.seed ?? randomBytes(16).toString("hex"),
       }),
     );
-    const built = buildPc("pc", character, pack, created.payload.settings);
+    const built = buildPc("pc", character, gamePack, created.payload.settings);
     const sheet = hooks ? { ...built, identity: { ...built.identity, hookIds: hooks.ids } } : built;
-    const template = pack.economy?.shops[0];
+    const template = gamePack.economy?.shops[0];
     const shop = template
       ? ShopState.parse({
           id: `shop:${template.id}`,
@@ -654,12 +671,21 @@ export function createApp(options: Options) {
     mkdirSync(dir, { recursive: true });
     const game = CampaignStore.create<GameState>(join(dir, "campaign.db"), created, {
       reduce,
-      pack: { hash: pack.hash, content: pack },
+      pack: { hash: gamePack.hash, content: gamePack },
     });
     try {
       game.append(unwrap(createActor(game.state(), sheet, "pc")));
       // The sheet's kit is carried for combat; the inventory projection needs the same items.
       game.append(startingKitEvents(sheet.id, sheet.equipment));
+      game.append(
+        playerCanonEvents({
+          pcId: sheet.id,
+          sheet,
+          gear: character.gear,
+          pitch,
+          newId: () => randomUUID(),
+        }),
+      );
       game.append([
         draft("EntityCreated", {
           entity: Entity.parse({

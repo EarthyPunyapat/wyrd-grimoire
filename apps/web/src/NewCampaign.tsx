@@ -314,6 +314,7 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
           <div className="eyebrow">
             STEP {step + 1} OF {STEPS.length} · {STEPS[step]!.title.toUpperCase()}
           </div>
+          {creation.view.notice && <p className="muted small">{creation.view.notice}</p>}
           <SheetEditor
             view={creation.view}
             onChange={creation.edit}
@@ -347,6 +348,7 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
       ) : mode === "editor" && creation.view ? (
         <section aria-label="Build your character">
           <div className="eyebrow">YOUR CHARACTER</div>
+          {creation.view.notice && <p className="muted small">{creation.view.notice}</p>}
           <SheetEditor view={creation.view} onChange={creation.edit} disabled={busy} />
           {creation.error && (
             <p role="alert" className="error">

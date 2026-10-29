@@ -158,6 +158,53 @@ export type AssembleOptions = {
 };
 
 /**
+ * The player's own creation writing, as pinned canonical facts. It rides in the stable instructions
+ * (4.5) so the per-turn trimmer can never drop it, capped at a tenth of the role's budget by
+ * shortening the longest values first (D147).
+ */
+function playerCanonSection(o: AssembleOptions): Section | null {
+  const pcId = o.state.party.pcId;
+  if (!pcId) return null;
+  const facts = [pcId, "concept:world-bible"]
+    .flatMap((id) => o.canon.factsAbout(id, o.role === "guard" ? { includeSecret: true } : undefined))
+    .filter(
+      (f) =>
+        f.pinned &&
+        f.source === "player" &&
+        !f.retracted &&
+        !f.supersededBy &&
+        (o.role === "guard" || f.visibility === "public"),
+    );
+  if (!facts.length) return null;
+  const name = (id: string) => o.state.actors[id]?.sheet.identity.name ?? o.canon.entity(id)?.name ?? id;
+  const items = facts.map((f) => ({
+    label: `${name(f.entityId)}: ${f.predicate}`,
+    value: typeof f.value === "string" ? f.value : JSON.stringify(f.value),
+  }));
+  const render = () => items.map((i) => `- ${i.label} ${i.value}`).join("\n");
+  const capChars = Math.floor(ROLE_BUDGETS[o.role] * 0.1) * 4 - "## Player canon\n\n".length;
+  let text = render();
+  while (text.length > capChars) {
+    let longest = items[0]!;
+    for (const item of items) if (item.value.length > longest.value.length) longest = item;
+    if (longest.value.length <= 1) break;
+    // Cut enough to fit (plus the suffix's own characters), then keep the " …" marker.
+    const over = text.length - capChars;
+    const keep = Math.max(0, longest.value.length - over - 2);
+    longest.value = `${longest.value.slice(0, keep).trimEnd()} …`;
+    const next = render();
+    if (next.length >= text.length) {
+      longest.value = "…";
+      text = render();
+      if (text.length >= capChars) break;
+    } else {
+      text = next;
+    }
+  }
+  return { n: 4.5, title: "Player canon", text };
+}
+
+/**
  * Builds a role's prompt from sections in priority order (spec 07, "Context assembler"), within
  * the role's budget. v1 covers sections 1–4, 6–8, 12 and 13; retrieval and summaries come in M5.
  * Narrator context only carries public facts; the guard also sees secrets, to catch leaks.
@@ -174,6 +221,7 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
         ? contentPolicy(state.campaign.settings.content)
         : contentRules(state.campaign.settings);
 
+  const playerCanon = playerCanonSection(o);
   const instructions = join([
     {
       n: 1,
@@ -183,6 +231,7 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
     { n: 2, title: "Rules", text: o.stable.rulesDigest },
     { n: 3, title: "Tone", text: o.stable.tone || "(no tone guide)" },
     { n: 4, title: "World", text: o.stable.worldBible || "(no world bible yet)" },
+    ...(playerCanon ? [playerCanon] : []),
   ]);
 
   // 6. PC and party, compact.

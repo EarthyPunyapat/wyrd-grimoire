@@ -274,6 +274,46 @@ describe("context assembler v1", () => {
   });
 });
 
+describe("player canon", () => {
+  const playerFact = (id: string, predicate: string, value: string): Fact =>
+    FactSchema.parse({
+      id,
+      entityId: "pc",
+      predicate,
+      value,
+      source: "player",
+      importance: 5,
+      pinned: true,
+    });
+  const withFacts = (...facts: Fact[]): CanonSource => {
+    const base = canon();
+    return {
+      ...base,
+      factsAbout: (id, o) => [...base.factsAbout(id, o), ...facts.filter((f) => f.entityId === id)],
+    };
+  };
+
+  test("includes player canon", () => {
+    const out = assemble(opts({ canon: withFacts(playerFact("pf1", "carries", "Yellow lantern ring")) }));
+    expect(out.instructions).toContain("Player canon");
+    expect(out.instructions).toContain("Yellow lantern ring");
+  });
+
+  test("player canon is capped", () => {
+    const backstory = playerFact("pf-b", "backstory", "x".repeat(4000));
+    const gear = Array.from({ length: 12 }, (_, i) =>
+      playerFact(`pf-${i}`, "carries", `Item ${i}: ${"y".repeat(800)}`),
+    );
+    const out = assemble(opts({ canon: withFacts(backstory, ...gear) }));
+    const at = out.instructions.indexOf("## Player canon");
+    expect(at).toBeGreaterThan(-1);
+    const sectionText = out.instructions.slice(at);
+    expect(estimateTokens(sectionText)).toBeLessThanOrEqual(2_400);
+    expect(sectionText).toContain("…");
+    expect(out.sections.some((s) => s.n === 13)).toBe(true);
+  });
+});
+
 describe("the GM role", () => {
   test("gm context includes Your state with item ids", () => {
     const s = state();
