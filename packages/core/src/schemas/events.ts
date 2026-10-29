@@ -4,6 +4,7 @@ import { CheckResolvedPayload } from "./check.ts";
 import { combatEventSchemas } from "./combat.ts";
 import { ActorId, ContentId, RngStateSchema } from "./common.ts";
 import { classEventSchemas } from "./domains/classes.ts";
+import { injuryEventSchemas } from "./domains/injury.ts";
 import { livingEventSchemas } from "./domains/living.ts";
 import { spellEventSchemas } from "./domains/spellcasting.ts";
 import { subsystemEventSchemas } from "./domains/subsystems.ts";
@@ -143,6 +144,7 @@ export const eventPayloadSchemas = {
   ...spellEventSchemas,
   ...livingEventSchemas,
   ...classEventSchemas,
+  ...injuryEventSchemas,
 } as const;
 
 export type EventType = keyof typeof eventPayloadSchemas;

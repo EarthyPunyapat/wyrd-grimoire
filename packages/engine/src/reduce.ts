@@ -1,6 +1,7 @@
 import { CompanionState, type EventEnvelope, type EventType } from "@wyrd/core";
 import { classHandlers } from "./reduce/classes.ts";
 import { clamp, clampHp, companion, mind, updateSheet, updateStatus } from "./reduce/helpers.ts";
+import { injuryHandlers } from "./reduce/injury.ts";
 import { livingHandlers } from "./reduce/living.ts";
 import { spellHandlers } from "./reduce/spellcasting.ts";
 import { subsystemHandlers } from "./reduce/subsystems.ts";
@@ -20,6 +21,7 @@ export type ReduceOptions = {
  */
 type DomainKey =
   | keyof typeof classHandlers
+  | keyof typeof injuryHandlers
   | keyof typeof spellHandlers
   | keyof typeof livingHandlers
   | keyof typeof subsystemHandlers
@@ -438,6 +440,7 @@ const baseHandlers: Omit<Handlers, DomainKey> = {
 const handlers: Handlers = {
   ...baseHandlers,
   ...classHandlers,
+  ...injuryHandlers,
   ...spellHandlers,
   ...livingHandlers,
   ...subsystemHandlers,
