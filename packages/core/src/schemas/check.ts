@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ActorId, AttributeId, Degree, Difficulty, MechanicsLine, ResolutionId, SkillId } from "./common.ts";
+import { LevelOpposition } from "./domains/levels.ts";
 
 /** What a check tests: a skill, or a raw attribute (target = attribute × 10). */
 export const CheckTarget = z.union([SkillId, z.object({ attribute: AttributeId })]);
@@ -10,6 +11,9 @@ export type Modifier = z.infer<typeof Modifier>;
 
 export const CheckRequest = z.object({
   actorId: ActorId,
+  opposition: LevelOpposition.optional(),
+  abilityId: z.string().min(1).optional(),
+  exploit: z.string().trim().min(1).optional(),
   skill: CheckTarget,
   difficulty: Difficulty,
   modifiers: z.array(Modifier).default([]),

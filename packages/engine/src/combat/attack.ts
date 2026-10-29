@@ -2,6 +2,7 @@ import { type ActorId, draft, findBodyPlan, type MechanicsLine, type Modifier } 
 import { resolveCheck } from "../checks.ts";
 import { resolveHit } from "../injury/index.ts";
 import { degradeItem, spendAmmo } from "../inventory.ts";
+import { effectiveLevel } from "../levels.ts";
 import { compareResults, isSuccess } from "../resolution/index.ts";
 import { fail, ok, type Result } from "../result.ts";
 import { skillValue } from "../skills.ts";
@@ -116,6 +117,11 @@ export function resolveStrike(
   const state = w.state;
   const attacker = combatant(state, attackerId)!;
   const target = combatant(state, targetId)!;
+  const useLevels =
+    state.campaign.settings.structural.resolution === "d20" ||
+    [sheetOf(state, attackerId), sheetOf(state, targetId)].some(
+      (s) => effectiveLevel(s, ctx.tuning) === "infinite",
+    );
   const weapon = heldWeapon(state, attackerId, ctx, opts.weaponId);
   const ranged = isRangedWeapon(weapon);
   const band = rangeBand(state, attackerId, targetId)!;
@@ -169,6 +175,7 @@ export function resolveStrike(
     state,
     {
       actorId: attackerId,
+      ...(useLevels ? { opposition: { actorId: targetId } } : {}),
       skill: weapon?.skill ?? "core:unarmed",
       difficulty: "normal",
       modifiers,
@@ -222,6 +229,7 @@ export function resolveStrike(
       w.state,
       {
         actorId: targetId,
+        ...(useLevels ? { opposition: { actorId: attackerId } } : {}),
         skill: d.skill,
         difficulty: "normal",
         modifiers: defender.defending ? [{ source: "defending", value: f.defendBonus }] : [],

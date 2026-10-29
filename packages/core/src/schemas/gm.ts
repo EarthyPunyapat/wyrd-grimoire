@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { EntityKind } from "./canon.ts";
 import { ActorId, ContentId, Difficulty } from "./common.ts";
+import { LevelOpposition, LevelUpCard } from "./domains/levels.ts";
 import { GearDef } from "./pack.ts";
 
 /**
@@ -67,6 +68,9 @@ export type StateChange = z.infer<typeof StateChange>;
 export type StateChangeInput = z.input<typeof StateChange>;
 
 export const RollArgs = z.object({
+  opposition: LevelOpposition.optional(),
+  exploit: z.string().trim().min(1).optional(),
+  abilityId: z.string().min(1).optional(),
   actorId: z.string().optional(),
   skill: z.string(),
   difficulty: Difficulty,
@@ -105,6 +109,7 @@ export const TimeSkipArgs = z.object({
 export type TimeSkipArgs = z.infer<typeof TimeSkipArgs>;
 
 export const Card = z.discriminatedUnion("type", [
+  LevelUpCard,
   z.object({ type: z.literal("item"), itemId: z.string() }),
   z.object({ type: z.literal("character"), entityId: z.string() }),
   z.object({ type: z.literal("status"), actorId: z.string() }),

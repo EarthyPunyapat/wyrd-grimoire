@@ -249,6 +249,7 @@ export function Play({
                     math={math}
                     onReroll={() => void play.reroll(turn.id)}
                     onFix={(id) => void play.fix(id)}
+                    onAcceptLevel={(id) => void play.acceptLevel(id)}
                     onUndo={(id) => void play.undo(id)}
                     {...(turn.id === last?.id
                       ? { onChoice: (i: number, label: string) => void send(label, i) }
@@ -432,6 +433,7 @@ export function Play({
           </div>
         </section>
         <Hotbar
+          abilities={view.pc.abilities}
           busy={play.busy}
           inCombat={inCombat}
           onFill={fill}

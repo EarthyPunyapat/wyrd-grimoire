@@ -14,6 +14,7 @@ export * from "./exploration.ts";
 export * from "./gm-changes.ts";
 export * from "./injury/index.ts";
 export * from "./inventory.ts";
+export * from "./levels.ts";
 export * from "./luck.ts";
 export * from "./player-canon.ts";
 export * from "./progression.ts";

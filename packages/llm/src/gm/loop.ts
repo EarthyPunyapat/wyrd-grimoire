@@ -112,6 +112,7 @@ export async function runGmTurn(d: PipelineDeps, t: TurnInput, hooks: GmHooks): 
     for (const call of c.toolCalls) {
       const r = await executeTool(call, {
         lore: d.lore,
+        gmMode,
         onProgress: (progress) => emit({ type: "progress", ...progress }),
         state: working.state,
         pcId,

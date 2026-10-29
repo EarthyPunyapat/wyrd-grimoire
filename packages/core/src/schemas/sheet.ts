@@ -1,6 +1,8 @@
 import { z } from "zod";
 import type { LocationKind } from "../tuning.ts";
+import { defaultTuning } from "../tuning.ts";
 import { ActorId, AttributeId, ContentId, PenaltyScope, SkillId } from "./common.ts";
+import { Ability, Level } from "./domains/levels.ts";
 
 export const AttributesSchema = z.record(AttributeId, z.number().int().min(1).max(10));
 export type Attributes = Record<AttributeId, number>;
@@ -109,6 +111,9 @@ export const DerivedStats = z.object({
 export type DerivedStats = z.infer<typeof DerivedStats>;
 
 export const CharacterSheet = z.object({
+  level: Level.default(defaultTuning.levels.start),
+  effectiveLevel: Level.optional(),
+  abilities: z.array(Ability).default([]),
   id: ActorId,
   identity: z.object({
     name: z.string().min(1),

@@ -27,6 +27,7 @@ import {
   WorldPitch,
 } from "@wyrd/core";
 import {
+  acceptLevelUp,
   actingActor,
   buy,
   capacityKg,
@@ -42,8 +43,10 @@ import {
   haggle,
   isKnownSkill,
   legacyEvents,
+  levelProposals,
   obituary,
   playerCanonEvents,
+  powerRating,
   RESOLUTION_MODULES,
   reduce,
   resolveDowntime,
@@ -801,6 +804,10 @@ export function createApp(options: Options) {
         },
       },
       speakers,
+      powerRating: powerRating(pc),
+      levelProposals: levelProposals(state).filter(
+        (p) => p.actorId === pc.id || state.party.companionIds.includes(p.actorId),
+      ),
       resolution,
       theme: gamePack.theme ?? null,
       shop: (() => {
@@ -1203,6 +1210,24 @@ export function createApp(options: Options) {
     });
     launch(id, jobId, "", target);
     return c.json({ turnId: jobId }, 202);
+  });
+  app.post("/api/campaigns/:id/levels/:proposalId/accept", (c) => {
+    const id = c.req.param("id");
+    const game = campaign(id);
+    if (store.running(id)) throw new HTTPException(409, { message: "A turn is already running" });
+    const state = game.state();
+    const proposalId = c.req.param("proposalId");
+    const proposal = levelProposals(state).find((p) => p.id === proposalId);
+    if (
+      !proposal ||
+      (proposal.actorId !== state.party.pcId && !state.party.companionIds.includes(proposal.actorId))
+    )
+      throw new HTTPException(404, { message: "No such level proposal" });
+    const result = acceptLevelUp(state, proposalId);
+    if (!result.ok) throw new HTTPException(409, { message: result.errors[0]!.message });
+    game.append(result.value);
+    store.touchCampaign(id);
+    return c.json(gameView(id));
   });
   /** Undo a retcon until the player takes another turn (D144). */
   app.post("/api/campaigns/:id/retcons/:retconId/undo", (c) => {

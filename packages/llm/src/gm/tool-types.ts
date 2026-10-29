@@ -15,6 +15,7 @@ export type ToolEffects = {
 };
 
 export type ToolContext = {
+  gmMode?: boolean;
   lore?: LoreLookup;
   onProgress?: (progress: ToolProgress) => void;
   state: GameState;

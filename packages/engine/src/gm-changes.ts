@@ -1,4 +1,5 @@
 import {
+  defaultTuning,
   draft,
   type EventDraft,
   GearDef,
@@ -8,9 +9,11 @@ import {
   type StateChangeInput,
   StateChange as StateChangeSchema,
   slugify,
+  type Tuning,
 } from "@wyrd/core";
 import { catalogWith } from "./catalog.ts";
 import { addItem, equipItem, inventoryOf, removeItem } from "./inventory.ts";
+import { xpLevelEvents } from "./levels.ts";
 import type { GameState } from "./state.ts";
 import { Working } from "./working.ts";
 
@@ -57,7 +60,7 @@ export function knownEntities(state: GameState): Set<string> {
 export function applyChanges(
   state: GameState,
   changes: StateChangeInput[],
-  ctx: { items: ItemCatalog; newId: () => string },
+  ctx: { items: ItemCatalog; newId: () => string; tuning?: Tuning },
 ): { drafts: EventDraft[]; outcomes: ChangeOutcome[]; inverse: EventDraft[] } {
   const working = new Working(state);
   const known = knownEntities(state);
@@ -71,6 +74,11 @@ export function applyChanges(
       const applied = applyOne(working.state, parsed, ctx, known);
       working.apply(applied.drafts);
       drafts.push(...applied.drafts);
+      if (applied.drafts.some((d) => d.type === "XpAwarded")) {
+        const levels = xpLevelEvents(working.state, ctx.tuning ?? defaultTuning);
+        working.apply(levels);
+        drafts.push(...levels);
+      }
       inverse.push(...applied.inverse);
       for (const id of applied.ids ?? []) known.add(id);
       outcomes.push({
@@ -90,7 +98,7 @@ export function applyChanges(
 function applyOne(
   state: GameState,
   change: StateChange,
-  ctx: { items: ItemCatalog; newId: () => string },
+  ctx: { items: ItemCatalog; newId: () => string; tuning?: Tuning },
   known: Set<string>,
 ): Applied {
   const items = catalogWith(state, ctx.items);

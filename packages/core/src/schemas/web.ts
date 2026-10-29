@@ -2,6 +2,7 @@ import { z } from "zod";
 import { GuardSummary } from "./canon.ts";
 import { CombatView } from "./combat.ts";
 import { MechanicsLine, ResolutionId } from "./common.ts";
+import { LevelProposal } from "./domains/levels.ts";
 import { Card, Choice } from "./gm.ts";
 import { BaseCampaignPreset, CampaignPreset, CampaignSettings, ProgressionMode } from "./settings.ts";
 import { CharacterSheet } from "./sheet.ts";
@@ -117,6 +118,10 @@ export const GameView = z.object({
   backgroundName: z.string(),
   speakers: z.record(z.string(), z.string()).default({}),
   pc: CharacterSheet,
+  powerRating: z.union([z.number(), z.string()]).optional(),
+  levelProposals: z
+    .array(LevelProposal.extend({ status: z.enum(["pending", "accepted", "superseded"]) }))
+    .default([]),
   /** The campaign's dice system, locked at creation (spec 02, 12). */
   resolution: ResolutionId.default("d100"),
   /** `value` is the canonical 0–100 skill; `display` is the module's notation ("65%" or "+3"). */

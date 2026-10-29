@@ -3,6 +3,7 @@ import type { ComponentType } from "react";
 import { ChapterCard } from "./chapter.tsx";
 import { CharacterCard } from "./character.tsx";
 import { ItemCard } from "./item.tsx";
+import { LevelUpCard } from "./level-up.tsx";
 import { ReportCard } from "./report.tsx";
 import { RetconCard } from "./retcon.tsx";
 import { RollCard } from "./roll.tsx";
@@ -16,6 +17,7 @@ export type { CardProps, RetconView } from "./types.ts";
  * option in core, one file here and one line in this map; TypeScript fails until every type has one.
  */
 export const CARD_VIEWS: { [K in Card["type"]]: ComponentType<CardProps<K>> } = {
+  levelUp: LevelUpCard,
   chapter: ChapterCard,
   item: ItemCard,
   character: CharacterCard,
