@@ -94,6 +94,25 @@ test("quick start, live turn, reroll, reload and character sheet", async ({ page
   expect(accessibility.violations).toEqual([]);
 });
 
+test("browser back reaches the campaign list and the skip link stays in the story", async ({ page }) => {
+  await create(page);
+  await expect(page).toHaveURL(/#campaign=/);
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: "Your campaigns" })).toBeVisible();
+  await page.goForward();
+  await expect(page.locator(".play-layout")).toBeVisible();
+
+  // The in-page skip link changes the hash; it must not be mistaken for leaving the campaign.
+  await page.getByRole("link", { name: "Skip to story" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#main$/);
+  await expect(page.locator(".play-layout")).toBeVisible();
+  await page.goBack();
+  await expect(page.locator(".play-layout")).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: "Your campaigns" })).toBeVisible();
+});
+
 test("clarification choices are resolved and guard flags can regenerate", async ({ page }) => {
   await create(page);
   await page.getByLabel("What do you do?", { exact: true }).fill("ambiguous request");

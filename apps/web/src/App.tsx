@@ -48,7 +48,10 @@ export function App() {
     setError("");
     try {
       setView(await api(`/campaigns/${id}/view`, GameView.parse));
-      history.replaceState(null, "", `#campaign=${encodeURIComponent(id)}`);
+      // Push a real entry so browser Back returns to the list instead of leaving the app. A
+      // deep link or a back/forward to this same campaign must not add another one.
+      const hash = `#campaign=${encodeURIComponent(id)}`;
+      if (location.hash !== hash) history.pushState(null, "", hash);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -66,16 +69,24 @@ export function App() {
     }
   }, [auth, refreshCards, openCampaign]);
   // The hash can change without a reload — history, a pasted link, another tab. Open
-  // whatever campaign it now names, so deep links work after the first load too.
+  // whatever campaign it now names, so deep links work after the first load too; back to a
+  // hash with no campaign is a return to the list. In-page anchors (the "Skip to story"
+  // link) are not navigation and must keep the player in the campaign.
   useEffect(() => {
     if (!auth?.authenticated) return;
     const onHashChange = () => {
       const id = new URLSearchParams(location.hash.slice(1)).get("campaign");
-      if (id && id !== view?.id) void openCampaign(id);
+      if (id) {
+        if (id !== view?.id) void openCampaign(id);
+        return;
+      }
+      if (location.hash && location.hash !== "#") return;
+      setView(undefined);
+      void refreshCards().catch((e) => setError(e.message));
     };
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
-  }, [auth?.authenticated, openCampaign, view?.id]);
+  }, [auth?.authenticated, openCampaign, refreshCards, view?.id]);
   useEffect(() => {
     const lock = () => {
       setAuth((a) => (a ? { ...a, authenticated: false } : a));
