@@ -386,10 +386,13 @@ export type Tuning = {
   };
   snapshotEvery: number;
   sceneReactions?: SceneReactionTuning;
+  /** Structured model calls: extra attempts that feed validation errors back before failing. */
+  structuredOutput: { repairs: number };
 };
 
 export const defaultTuning: Tuning = {
   sceneReactions: defaultSceneReactionTuning,
+  structuredOutput: { repairs: 2 },
   version: 1,
   difficultyShift: { easy: 20, normal: 0, hard: -20, extreme: -40, heroic: -60 },
   difficultyDc: { easy: 7, normal: 11, hard: 15, extreme: 19, heroic: 23 },
