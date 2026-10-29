@@ -41,6 +41,7 @@ import {
   isKnownSkill,
   legacyEvents,
   obituary,
+  playerCanonEvents,
   RESOLUTION_MODULES,
   reduce,
   resolveDowntime,
@@ -471,6 +472,7 @@ export function createApp(options: Options) {
         bible,
         hooks,
         settings,
+        saved.data.input.pitch,
       );
       store.saveCreationDraft(input.draftId, { ...saved.data, campaignId: id });
       return c.json({ id }, 201);
@@ -597,6 +599,7 @@ export function createApp(options: Options) {
     extra: EventDraft[] = [],
     hooks?: { ids: string[]; events: EventDraft[] },
     settings: CampaignSettingsInput = {},
+    pitch?: string,
   ) {
     // Player-written gear becomes real pack items before anything is frozen or built.
     const gamePack = withPlayerGear(pack, character.gear);
@@ -640,6 +643,15 @@ export function createApp(options: Options) {
       game.append(unwrap(createActor(game.state(), sheet, "pc")));
       // The sheet's kit is carried for combat; the inventory projection needs the same items.
       game.append(startingKitEvents(sheet.id, sheet.equipment));
+      game.append(
+        playerCanonEvents({
+          pcId: sheet.id,
+          sheet,
+          gear: character.gear,
+          pitch,
+          newId: () => randomUUID(),
+        }),
+      );
       game.append([
         draft("EntityCreated", {
           entity: Entity.parse({

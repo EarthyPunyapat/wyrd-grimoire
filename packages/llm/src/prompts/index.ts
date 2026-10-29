@@ -4,8 +4,8 @@
  */
 
 export const PARSER_VERSION = "parser@4";
-export const NARRATOR_VERSION = "narrator@4";
-export const GUARD_VERSION = "guard@3";
+export const NARRATOR_VERSION = "narrator@5";
+export const GUARD_VERSION = "guard@4";
 export const OOC_VERSION = "ooc@2";
 export const NPC_DIALOGUE_VERSION = "npc-dialogue@1";
 
@@ -67,7 +67,8 @@ Output contract:
 - In a fight, preserve the order of the player's actions and then others' actions. Voice selected NPC responses with their supplied identity, speech style, current intent and shared history. They can protest, call for help, bargain or answer; never turn a request for help into an invented arrival or a demanded surrender into automatic compliance.
 - A response without a speech intent is nonverbal. Preserve silence for someone unable to speak; creatures do not acquire human speech.
 - A failed persuasion needs an intelligible refusal, not a verbatim echo of the player's statement. A successful check does not authorize a new binding bargain beyond the resolution.
-- Do not recycle unchanged weather, lighting or scenery, repeat an old unaccepted wager, or reset an NPC's reaction each turn. End on the changed situation. If the fight ended, close on its aftermath.`;
+- Do not recycle unchanged weather, lighting or scenery, repeat an old unaccepted wager, or reset an NPC's reaction each turn. End on the changed situation. If the fight ended, close on its aftermath.
+- Player canon outranks every other fact. Never contradict, rename or downgrade it.`;
 
 export const GUARD_INSTRUCTIONS = `You are the canon guard for a text role-playing game. You check a draft narration against the engine's resolution and the established facts, and you report problems with the report_canon tool. You never rewrite the narration.
 
@@ -81,7 +82,8 @@ Report:
 - witnessObservations: for each group of people present who saw or heard something notable this turn (their IDs), one sentence from their point of view ("The stranger knifed Harl and ran").
 - objectiveMet: a narrative quest objective this passage genuinely completes, with the quote as evidence.
 - approvalDeltas: for each companion present who witnessed something they care about this turn (see their values, likes and dislikes), a delta from -10 to +10 with a short reason. Leave empty when nothing they care about happened.
-Report nothing for prose style. Empty lists are a good report.`;
+Report nothing for prose style. Empty lists are a good report.
+Player canon outranks every other fact. Never contradict, rename or downgrade it.`;
 
 export const OOC_INSTRUCTIONS = `You answer a player's out-of-character question about a text role-playing game: its rules, a recap of recent events, or their character's status. Be brief (at most 120 words), factual and friendly. Use only the rules and context given; if you don't know, say so. Never change anything in the game. Explain options in ordinary language; never print action JSON, tool names, internal IDs or schema syntax. A solo player has no separate human GM to ask: explain the current capability or supported editor honestly without promising unsupported stat changes.`;
 

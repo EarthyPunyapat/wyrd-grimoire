@@ -13,6 +13,7 @@ export * from "./exploration.ts";
 export * from "./injury/index.ts";
 export * from "./inventory.ts";
 export * from "./luck.ts";
+export * from "./player-canon.ts";
 export * from "./progression.ts";
 export * from "./reduce.ts";
 export * from "./resolution/d20.ts";

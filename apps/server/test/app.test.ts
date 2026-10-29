@@ -451,7 +451,7 @@ test("a generated world has regions, sites and roads; travel opens new sites and
   const pinned = CodexView.parse(
     await (await request(server, `${factPath}/pin`, { pinned: true }, cookie)).json(),
   );
-  expect(pinned.pins).toBe(1);
+  expect(pinned.pins).toBe(codex.pins + 1);
   const edited = CodexView.parse(
     await (await request(server, `${factPath}/retcon`, { value: "Rewritten by the player." }, cookie)).json(),
   );
