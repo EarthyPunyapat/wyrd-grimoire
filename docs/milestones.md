@@ -101,10 +101,10 @@ Each milestone lists its scope, the spec sections it implements, and acceptance 
 - Complete `fantasy-core` content to the minimums in [05](spec/05-genre-packs.md#the-starter-pack-fantasy-core).
 
 **Acceptance**
-- [ ] A campaign on each preset is playable; toggling subsystems mid-campaign causes no errors.
-- [ ] A d20 campaign plays end to end.
-- [ ] Living World runs a month of in-game time with visible faction events and news.
-- [ ] Locked settings are refused by the API and greyed out in the UI.
+- [x] A campaign on each preset is playable; toggling subsystems mid-campaign causes no errors.
+- [x] A d20 campaign plays end to end.
+- [x] Living World runs a month of in-game time with visible faction events and news.
+- [x] Locked settings are refused by the API and greyed out in the UI.
 
 ## M8 — Media
 
