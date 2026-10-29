@@ -1,6 +1,14 @@
-import { CreatedCampaign, GeneratedWorldPreview, StartGeneratedCampaign, WorldPitch } from "@wyrd/core";
+import {
+  CreatedCampaign,
+  CreationView,
+  GeneratedWorldPreview,
+  StartGeneratedCampaign,
+  WorldPitch,
+} from "@wyrd/core";
 import { useState } from "react";
 import { api } from "./api.ts";
+import { SheetEditor, withArchetype } from "./SheetEditor.tsx";
+import { useCreation } from "./use-creation.ts";
 
 export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => void; offline: boolean }) {
   const [name, setName] = useState("");
@@ -11,6 +19,29 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
   const [archetype, setArchetype] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const creation = useCreation(world?.id);
+  const blocked = editing && (!creation.view || creation.view.issues.some((i) => i.severity === "error"));
+
+  /** Opens the sheet editor on the saved draft, carrying over the quick picks and name. */
+  async function customise() {
+    if (!world) return;
+    setBusy(true);
+    try {
+      const view = await api(`/world-drafts/${world.id}/creation`, CreationView.parse);
+      let draft =
+        view.draft.archetype === archetype ? view.draft : withArchetype(view.draft, view, archetype);
+      draft = { ...draft, ancestry, name: characterName.trim() || draft.name };
+      creation.setView(view);
+      await creation.save(draft);
+      setEditing(true);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <form
       aria-busy={busy}
@@ -28,6 +59,14 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
             setWorld(draft);
             setAncestry(draft.origins[0]!.id);
             setArchetype(draft.backgrounds[0]!.id);
+          } else if (editing) {
+            await creation.flush();
+            const created = await api(
+              "/campaigns",
+              CreatedCampaign.parse,
+              StartGeneratedCampaign.parse({ draftId: world.id }),
+            );
+            onCreate(created.id);
           } else {
             const created = await api(
               "/campaigns",
@@ -61,17 +100,19 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
           placeholder="Give this story a name"
         />
       </label>
-      <label>
-        Character name <span className="muted">(optional)</span>
-        <input
-          name="characterName"
-          value={characterName}
-          onChange={(e) => setCharacterName(e.target.value)}
-          disabled={busy}
-          maxLength={80}
-          placeholder={world ? world.suggestedCharacterName : "Choose now or let the world suggest one"}
-        />
-      </label>
+      {!editing && (
+        <label>
+          Character name <span className="muted">(optional)</span>
+          <input
+            name="characterName"
+            value={characterName}
+            onChange={(e) => setCharacterName(e.target.value)}
+            disabled={busy}
+            maxLength={80}
+            placeholder={world ? world.suggestedCharacterName : "Choose now or let the world suggest one"}
+          />
+        </label>
+      )}
       {!world ? (
         <label>
           What kind of adventure or world do you want?
@@ -87,6 +128,19 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
             placeholder="A hard sci-fi mystery on a failing space station, with a human crew and no magic…"
           />
         </label>
+      ) : editing && creation.view ? (
+        <section aria-label="Build your character">
+          <div className="eyebrow">YOUR CHARACTER</div>
+          <SheetEditor view={creation.view} onChange={creation.edit} disabled={busy} />
+          {creation.error && (
+            <p role="alert" className="error">
+              {creation.error}
+            </p>
+          )}
+          <button type="button" disabled={busy} onClick={() => setEditing(false)}>
+            ← Back to the world
+          </button>
+        </section>
       ) : (
         <section className="world-review" aria-label="Review your world">
           <div className="eyebrow">{world.offline ? "OFFLINE EXAMPLE" : "YOUR GENERATED WORLD"}</div>
@@ -132,6 +186,9 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
           {!characterName.trim() && (
             <p className="muted">Leave the character name blank to use {world.suggestedCharacterName}.</p>
           )}
+          <button type="button" disabled={busy} onClick={() => void customise()}>
+            Customise character
+          </button>
           <h3>Your opening</h3>
           <p>{world.opening}</p>
           <button
@@ -156,7 +213,7 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
           {error}
         </p>
       )}
-      <button type="submit" className="primary" disabled={busy}>
+      <button type="submit" className="primary" disabled={busy || blocked}>
         {busy
           ? "Working…"
           : world

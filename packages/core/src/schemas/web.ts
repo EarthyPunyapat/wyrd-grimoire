@@ -20,7 +20,13 @@ export const PasscodeInput = z.object({ passcode: z.string().min(1).max(256) }).
 export const QuickStartInput = z
   .object({
     name: z.string().trim().min(1).max(100),
-    characterName: z.string().trim().min(1).max(80),
+    /** Optional with a pregen, which brings its own name. */
+    characterName: z.string().trim().max(80).default(""),
+    /** A pack pregen (spec 04 quick start); otherwise the archetype and ancestry below. */
+    pregen: z
+      .string()
+      .regex(/^[a-z-]+$/)
+      .optional(),
     archetype: z
       .string()
       .regex(/^[a-z-]+$/)

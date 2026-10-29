@@ -12,6 +12,7 @@ import {
   HUMANOID_BODY_PLAN,
   localIdOf,
   PackManifest,
+  PregenDef,
   SkillDef,
   stableStringify,
   TalentDef,
@@ -43,6 +44,7 @@ const CONTENT_FILES = {
   ancestries: { file: "ancestries.yaml", schema: AncestryDef },
   bodyPlans: { file: "bodyplans.yaml", schema: BodyPlanDef },
   archetypes: { file: "archetypes.yaml", schema: ArchetypeDef },
+  pregens: { file: "pregens.yaml", schema: PregenDef },
   weapons: { file: "items/weapons.yaml", schema: WeaponDef },
   armor: { file: "items/armor.yaml", schema: ArmorDef },
   gear: { file: "items/gear.yaml", schema: GearDef },
@@ -230,6 +232,19 @@ export function loadPack(dir: string): LoadResult {
       return { ...k, item: item ?? k.item };
     });
   }
+  for (const p of Object.values(content.pregens)) {
+    const ancestry = ref(content.ancestries, p.ancestry);
+    if (!ancestry) badRef(p.id, "ancestry", "Ancestry", p.ancestry);
+    p.ancestry = ancestry ?? p.ancestry;
+    const archetype = ref(content.archetypes, p.archetype);
+    if (!archetype) badRef(p.id, "archetype", "Archetype", p.archetype);
+    p.archetype = archetype ?? p.archetype;
+    if (p.freeTalent) {
+      const talent = ref(content.talents, p.freeTalent);
+      if (!talent) badRef(p.id, "freeTalent", "Talent", p.freeTalent);
+      p.freeTalent = talent ?? p.freeTalent;
+    }
+  }
   for (const w of Object.values(content.weapons)) {
     const s = resolveSkill(w.skill);
     if (!s) badRef(w.id, "skill", "Skill", w.skill);
@@ -299,6 +314,7 @@ export function loadPack(dir: string): LoadResult {
     ancestries: content.ancestries,
     bodyPlans: content.bodyPlans,
     archetypes: content.archetypes,
+    pregens: content.pregens,
     creatures: content.creatures,
     items: { weapons: content.weapons, armor: content.armor, gear: content.gear },
   };

@@ -40,6 +40,7 @@ export function compileGeneratedWorld(raw: WorldProposal) {
     ancestries: {},
     bodyPlans: {},
     archetypes: {},
+    pregens: {},
     creatures: {},
     items: { weapons: {}, armor: {}, gear: {} },
     hash: "",

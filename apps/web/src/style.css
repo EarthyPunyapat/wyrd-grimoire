@@ -343,3 +343,33 @@ progress::-webkit-progress-value { background: var(--accent); }
 .ref-open { justify-self: start; min-height: 32px; padding: .2rem .6rem; font-size: .75rem; }
 .mobile-bar button { padding: .3rem .5rem; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; transition: none !important; } }
+/* Sheet editor (spec 04): every creation path ends here. */
+.dialog:has(.sheet-editor) { width: min(900px, calc(100% - 2rem)); }
+.sheet-editor { display: grid; gap: 1.25rem; }
+.sheet-editor fieldset { border: 1px solid var(--line); border-radius: 4px; padding: 1rem; margin: 0; display: grid; gap: .75rem; min-width: 0; }
+.sheet-editor legend { padding: 0 .4rem; color: var(--accent); font-size: .85rem; }
+.sheet-editor .budget { color: var(--ink-muted); font-size: .75rem; }
+.sheet-editor .small { font-size: .8rem; margin: 0; }
+.sheet-editor ul { margin: 0; padding-left: 1.25rem; }
+.editor-status .ok { color: var(--success); margin: 0; font-size: .9rem; }
+.editor-status .warnings { font-size: .8rem; margin-top: .5rem; }
+.attr-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: .5rem; }
+.attr-stepper { display: grid; grid-template-columns: 2.5rem 44px 2rem 44px; align-items: center; gap: .25rem; }
+.attr-stepper span { font-size: .75rem; font-weight: 600; letter-spacing: .05em; }
+.attr-stepper output { text-align: center; font-family: var(--font-display); font-size: 1.25rem; }
+.attr-stepper button { padding: 0; }
+.skill-edit { list-style: none; padding: 0 !important; display: grid; gap: .35rem; }
+.skill-edit li { display: grid; grid-template-columns: minmax(0, 1fr) 5.5rem 3.5rem 44px; align-items: center; gap: .5rem; }
+.skill-edit label { font-size: .9rem; }
+.skill-edit input { padding: .4rem .5rem; }
+.skill-value { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+.add-skill { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: end; gap: .5rem; }
+.hook-edit { display: grid; grid-template-columns: 11rem minmax(0, 1fr) minmax(0, 2fr) 44px; gap: .5rem; }
+.editor-gear h3 { margin-bottom: .25rem; }
+@media (max-width: 640px) {
+  .hook-edit { grid-template-columns: 1fr 44px; }
+  .hook-edit select, .hook-edit input { grid-column: 1; }
+  .hook-edit button { grid-column: 2; grid-row: 1; }
+  .add-skill { grid-template-columns: 1fr; }
+  .skill-edit li { grid-template-columns: minmax(0, 1fr) 4.5rem 3rem 44px; }
+}

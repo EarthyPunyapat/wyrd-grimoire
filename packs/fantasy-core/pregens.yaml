@@ -1,0 +1,52 @@
+- id: brannoc
+  name: Brannoc Vell
+  pronouns: he/him
+  ancestry: human
+  archetype: sellsword
+  freeTalent: tough-as-roots
+  appearance: { build: broad and scarred, hair: grey-shot black, eyes: brown, marks: [a notched left ear], clothingStyle: patched mercenary leathers }
+  personality: [blunt, loyal, tired]
+  backstory: Brannoc held the line at Harrow Ford for a lord who never paid. He walked away with his sword, a bad knee and the company's last banner, which he still cannot bring himself to burn.
+  hooks:
+    - { kind: rival, name: Captain Isolde Marr, description: "The officer who sold the company's position at Harrow Ford and now commands her own band." }
+    - { kind: debt, name: The Harrow Ford widows, description: "Brannoc promised the fallen men's families their wages. He has paid a third." }
+  portraitPrompt: A broad, scarred human sellsword in patched leathers, grey-shot black hair, a notched ear.
+- id: sefa
+  name: Sefa Lindqvist
+  pronouns: she/her
+  ancestry: elf
+  archetype: hedge-wizard
+  freeTalent: iron-will
+  appearance: { build: slight, hair: "ash-blonde, braided", eyes: pale green, marks: [burn scars on both palms], clothingStyle: a mended travelling cloak sewn with charms }
+  personality: [curious, wry, guarded]
+  backstory: Sefa taught herself fire from a book she should not have been able to read. The village that raised her was glad of her cures and terrified of her flames, and in the end it asked her to leave.
+  hooks:
+    - { kind: missing, name: Aldric Lindqvist, description: "Sefa's younger brother, who went looking for the book's author and never wrote back." }
+    - { kind: secret, name: The burnt barn, description: "The fire that drove Sefa out was hers. Everyone believes it was lightning." }
+  portraitPrompt: A slight elven hedge wizard with an ash-blonde braid, pale green eyes and burn-scarred palms.
+- id: pip
+  name: Pip Hollowell
+  pronouns: they/them
+  ancestry: halfling
+  archetype: cutpurse
+  freeTalent: quick-hands
+  appearance: { build: small and quick, hair: curly auburn, eyes: hazel, marks: [], clothingStyle: a good coat that once belonged to someone else }
+  personality: [charming, restless, generous]
+  backstory: Pip grew up running errands for a fence in the river quarter and learned that the easiest locks are the ones people forget to check. They give away most of what they take, which annoys their partners.
+  hooks:
+    - { kind: debt, name: Mother Corran, description: "The fence who raised Pip expects a share of every job, forever." }
+    - { kind: bond, name: Tobin Reed, description: "A watchman who looks the other way for Pip, and would lose everything if anyone found out." }
+  portraitPrompt: A small halfling thief with curly auburn hair and a fine, ill-fitting coat.
+- id: hild
+  name: Hild Stonemark
+  pronouns: she/her
+  ancestry: dwarf
+  archetype: hunter
+  freeTalent: keen-ears
+  appearance: { build: compact and strong, hair: "copper, in a single braid", eyes: grey, marks: [a claw scar across one cheek], clothingStyle: furs and oiled leather }
+  personality: [patient, quiet, stubborn]
+  backstory: Hild left the halls under the mountain for the forests above and never went back. She tracks for hire, and she is still hunting the wolf that gave her the scar.
+  hooks:
+    - { kind: rival, name: Old Ashjaw, description: "A huge grey wolf that has outrun every hunter sent after it, Hild included." }
+    - { kind: missing, name: Brother Odo, description: "The hermit who nursed Hild back to health. His hut was empty when she last passed it." }
+  portraitPrompt: A compact dwarven hunter with a copper braid, grey eyes and a claw scar on one cheek.

@@ -63,8 +63,9 @@ export const StartGeneratedCampaign = z
   .object({
     draftId: z.uuid(),
     characterName: z.string().trim().max(80).default(""),
-    ancestry: ContentId,
-    archetype: ContentId,
+    /** The quick path: an origin and background. Without them the sheet editor's draft is used. */
+    ancestry: ContentId.optional(),
+    archetype: ContentId.optional(),
   })
   .strict();
 export const GeneratedWorldPreview = z.object({

@@ -3,6 +3,7 @@ import { mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   type CompiledPack,
+  type DraftSheet,
   defaultTuning,
   draft,
   Entity,
@@ -14,24 +15,20 @@ import {
   StartGeneratedCampaign,
   SubmitTurnInput,
   TurnCompletedPayload,
-  WorldBible,
   WorldPitch,
-  WorldProposal,
 } from "@wyrd/core";
 import {
-  buildSheet,
   combatView,
   createActor,
   createCampaign,
+  draftFromArchetype,
   type GameState,
   legacyEvents,
   obituary,
   reduce,
   skillLabel,
   skillValue,
-  startingEquipment,
   unwrap,
-  validateCreation,
 } from "@wyrd/engine";
 import {
   combatContent,
@@ -44,7 +41,6 @@ import {
   offlineElaboration,
   offlineLocation,
   type RoleRouter,
-  recap,
   SecretStore,
   TurnPipeline,
   type TurnStreamEvent,
@@ -69,7 +65,8 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
 import { NONCE, type SecureHeadersVariables, secureHeaders } from "hono/secure-headers";
 import { streamSSE } from "hono/streaming";
-import { z } from "zod";
+import type { z } from "zod";
+import { evaluateDraft, mountCreation, pregenDraft, StoredDraft } from "./creation.ts";
 import { EXAMPLE_WORLD } from "./example-world.ts";
 import { ModelServices, mountModels } from "./models.ts";
 import { addressOf, mountWorld } from "./world-views.ts";
@@ -217,6 +214,7 @@ export function createApp(options: Options) {
     return c.json({ ok: true });
   });
   mountModels(app, models);
+  mountCreation(app, { store, body });
   mountWorld(app, {
     campaign: (id) => campaign(id),
     store,
@@ -244,14 +242,6 @@ export function createApp(options: Options) {
       ancestries: Object.values(content.ancestries).map((a) => ({ id: a.id.split(":")[1], name: a.name })),
     }),
   );
-  const StoredDraft = z.object({
-    input: WorldPitch,
-    proposal: WorldProposal,
-    /** Stage 1 world bible (M5); drafts from before M5 have none and start as a single site. */
-    bible: WorldBible.optional(),
-    offline: z.boolean(),
-    campaignId: z.string().optional(),
-  });
   let generating = false;
   app.post("/api/world-drafts", async (c) => {
     const input = await body(c, WorldPitch);
@@ -298,13 +288,17 @@ export function createApp(options: Options) {
       throw new HTTPException(404, { message: "World draft not found. Generate your world first." });
     if (saved.data.campaignId) return c.json({ id: saved.data.campaignId }, 201);
     const { pack, world } = compileGeneratedWorld(saved.data.proposal);
+    const characterName = input.characterName || saved.data.proposal.suggestedCharacterName;
+    // The quick path names an origin and background; the other paths start from the edited sheet.
+    const sheet =
+      input.ancestry && input.archetype
+        ? archetypeDraft(pack, input.ancestry, input.archetype, characterName)
+        : saved.data.sheet;
+    if (!sheet)
+      throw new HTTPException(422, { message: "Choose an origin and background, or build a character" });
     const id = createGame(
-      {
-        name: saved.data.input.name,
-        characterName: input.characterName || saved.data.proposal.suggestedCharacterName,
-        ancestry: input.ancestry,
-        archetype: input.archetype,
-      },
+      saved.data.input.name,
+      input.ancestry && input.archetype ? sheet : { ...sheet, name: sheet.name || characterName },
       pack,
       world,
       saved.data.bible ? (w) => bibleEvents(saved.data.bible!, w, defaultTuning) : undefined,
@@ -314,71 +308,54 @@ export function createApp(options: Options) {
   });
   // Explicit authored test fixture; the normal web flow never chooses fantasy-core implicitly.
   app.post("/api/campaigns/quick-start", async (c) => {
-    const { world: worldId, ...input } = await body(c, QuickStartInput);
-    const id = createGame(
-      {
-        ...input,
-        ancestry: `${pack.manifest.id}:${input.ancestry}`,
-        archetype: `${pack.manifest.id}:${input.archetype}`,
-      },
-      pack,
-      worlds[worldId]!,
-    );
+    const { world: worldId, pregen, name, characterName, ...input } = await body(c, QuickStartInput);
+    const sheet = pregen
+      ? pregenDraft(pack, pregen)
+      : archetypeDraft(
+          pack,
+          `${pack.manifest.id}:${input.ancestry}`,
+          `${pack.manifest.id}:${input.archetype}`,
+          "",
+        );
+    const id = createGame(name, { ...sheet, name: characterName || sheet.name }, pack, worlds[worldId]!);
     return c.json({ id }, 201);
   });
-  /** A PC sheet from an origin and background, with the background's kit (spec 04 quick start). */
+  /** A draft from an origin and background, with the background's kit (spec 04 quick start). */
+  function archetypeDraft(pack: CompiledPack, ancestry: string, archetype: string, characterName: string) {
+    const def = creationContent([pack]).archetypes[archetype];
+    if (!def || !pack.ancestries[ancestry])
+      throw new HTTPException(422, { message: "Choose an origin and background from this world" });
+    return draftFromArchetype(ancestry, def, characterName);
+  }
+  /** Builds and validates a PC; a 422 names the first broken rule. */
   function buildPc(
     id: string,
-    input: { characterName: string; ancestry: string; archetype: string },
+    draft: DraftSheet,
     pack: CompiledPack,
     settings: GameState["campaign"]["settings"],
   ) {
-    const content = creationContent([pack]);
-    const archetype = content.archetypes[input.archetype];
-    if (!archetype || !content.ancestries[input.ancestry])
-      throw new HTTPException(422, { message: "Choose an origin and background from this world" });
-    return buildSheet(
-      {
-        id,
-        identity: { name: input.characterName, ancestry: input.ancestry, background: archetype.description },
-        bodyPlan: content.ancestries[input.ancestry]!.bodyPlan,
-        archetypeId: archetype.id,
-        attributes: archetype.suggestedAttributes,
-        skills: Object.fromEntries(
-          Object.entries(archetype.skills).map(([sk, trained]) => [sk, { trained }]),
-        ),
-        talents: [archetype.talent],
-        equipment: startingEquipment(archetype.kit, pack.items),
-      },
-      settings,
-      defaultTuning,
-    );
+    const { sheet, issues } = evaluateDraft(draft, pack, id, settings);
+    const problem = issues.find((i) => i.severity === "error");
+    if (problem)
+      throw new HTTPException(422, { message: `This character isn't valid yet: ${problem.message}` });
+    return sheet;
   }
   function createGame(
-    input: { name: string; characterName: string; ancestry: string; archetype: string },
+    name: string,
+    character: DraftSheet,
     pack: CompiledPack,
     world: WorldDef,
     extra?: (world: WorldDef) => EventDraft[],
   ) {
-    const content = creationContent([pack]);
-    const archetype = content.archetypes[input.archetype];
-    if (!archetype || !content.ancestries[input.ancestry])
-      throw new HTTPException(422, { message: "Choose an origin and background from this world" });
     const created = unwrap(
       createCampaign({
-        name: input.name,
+        name,
         packIds: [pack.manifest.id],
         packHash: pack.hash,
         seed: options.seed ?? randomBytes(16).toString("hex"),
       }),
     );
-    const sheet = buildPc("pc", input, pack, created.payload.settings);
-    if (
-      validateCreation(sheet, content, created.payload.settings, defaultTuning).some(
-        (i) => i.severity === "error",
-      )
-    )
-      throw new HTTPException(422, { message: "This character combination is invalid" });
+    const sheet = buildPc("pc", character, pack, created.payload.settings);
     const id = randomUUID();
     const dir = join(options.home, "campaigns", id);
     mkdirSync(dir, { recursive: true });
@@ -403,8 +380,8 @@ export function createApp(options: Options) {
       ]);
       store.addCampaign({
         id,
-        name: input.name,
-        characterName: input.characterName,
+        name,
+        characterName: sheet.identity.name,
         updatedAt: new Date(now()).toISOString(),
       });
       campaigns.set(id, game);
@@ -610,20 +587,15 @@ export function createApp(options: Options) {
     const newId = `pc-${Object.values(state.actors).filter((a) => a.role === "pc").length + 1}`;
     const sheet = buildPc(
       newId,
-      {
-        characterName: input.characterName,
-        ancestry: qualify(input.ancestry ?? dead.identity.ancestry),
-        archetype: qualify(input.archetype ?? dead.archetypeId ?? Object.keys(gamePack.archetypes)[0] ?? ""),
-      },
+      archetypeDraft(
+        gamePack,
+        qualify(input.ancestry ?? dead.identity.ancestry),
+        qualify(input.archetype ?? dead.archetypeId ?? Object.keys(gamePack.archetypes)[0] ?? ""),
+        input.characterName,
+      ),
       gamePack,
       state.campaign.settings,
     );
-    if (
-      validateCreation(sheet, creationContent([gamePack]), state.campaign.settings, defaultTuning).some(
-        (i) => i.severity === "error",
-      )
-    )
-      throw new HTTPException(422, { message: "This character combination is invalid" });
     game.append(unwrap(legacyEvents(state, sheet, view.ended.obituary)));
     return c.json({ id }, 201);
   });

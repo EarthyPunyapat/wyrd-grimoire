@@ -7,11 +7,15 @@ import {
   type CampaignSettings,
   CharacterSheet,
   type CharacterSheetInput,
+  type DraftSheet,
+  type ItemCatalog,
   localIdOf,
+  type PregenDef,
   type TalentDef,
   type Tuning,
 } from "@wyrd/core";
 import { deriveStats } from "./derived.ts";
+import { startingEquipment } from "./equipment.ts";
 import { luckMax } from "./luck.ts";
 import type { RuleError } from "./result.ts";
 import { CORE_SKILL_CATALOG, lookupSkill, type SkillCatalog, skillValue } from "./skills.ts";
@@ -257,3 +261,75 @@ export function validateCreation(
 }
 
 export const hasErrors = (issues: CreationIssue[]): boolean => issues.some((i) => i.severity === "error");
+
+type Archetype = CreationContent["archetypes"][string];
+
+/** A draft from an origin and an archetype: its suggested attributes, skills and talent (spec 04). */
+export function draftFromArchetype(ancestry: string, archetype: Archetype, name = ""): DraftSheet {
+  return {
+    name,
+    pronouns: "",
+    ancestry,
+    archetype: archetype.id,
+    attributes: { ...archetype.suggestedAttributes } as Attributes,
+    skills: { ...archetype.skills },
+    talents: [archetype.talent],
+    appearance: { marks: [] },
+    background: archetype.description,
+    personality: [],
+    backstory: "",
+    hooks: [],
+  };
+}
+
+/** A pregenerated character's draft: the archetype's numbers plus the pregen's person. */
+export function draftFromPregen(pregen: PregenDef, archetype: Archetype): DraftSheet {
+  const base = draftFromArchetype(pregen.ancestry, archetype, pregen.name);
+  return {
+    ...base,
+    pronouns: pregen.pronouns,
+    talents: pregen.freeTalent ? [archetype.talent, pregen.freeTalent] : base.talents,
+    appearance: pregen.appearance,
+    personality: pregen.personality,
+    backstory: pregen.backstory,
+    hooks: pregen.hooks,
+  };
+}
+
+/**
+ * The sheet a draft describes: derived stats, a fresh status and the archetype's kit. It isn't
+ * validated here; `validateCreation` reports what's wrong. Unknown origins and archetypes build
+ * anyway (plain humanoid, no kit) so the editor can show the error beside the rest of the sheet.
+ */
+export function sheetFromDraft(
+  id: string,
+  draft: DraftSheet,
+  content: CreationContent,
+  items: ItemCatalog,
+  settings: CampaignSettings,
+  tuning: Tuning,
+): CharacterSheet {
+  const archetype = content.archetypes[draft.archetype];
+  return buildSheet(
+    {
+      id,
+      identity: {
+        name: draft.name || "Unnamed",
+        ...(draft.pronouns ? { pronouns: draft.pronouns } : {}),
+        ancestry: draft.ancestry,
+        appearance: draft.appearance,
+        background: draft.background,
+        personality: draft.personality,
+        backstory: draft.backstory,
+      },
+      bodyPlan: content.ancestries[draft.ancestry]?.bodyPlan ?? "humanoid",
+      archetypeId: draft.archetype,
+      attributes: draft.attributes,
+      skills: Object.fromEntries(Object.entries(draft.skills).map(([sk, trained]) => [sk, { trained }])),
+      talents: draft.talents,
+      equipment: startingEquipment(archetype?.kit ?? [], items),
+    },
+    settings,
+    tuning,
+  );
+}

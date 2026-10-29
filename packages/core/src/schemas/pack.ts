@@ -2,6 +2,8 @@ import { z } from "zod";
 import { DiceExpr } from "../dice.ts";
 import type { LocationKind } from "../tuning.ts";
 import { AttributeId, RangeBand } from "./common.ts";
+import { BackstoryHook } from "./creation.ts";
+import { AppearanceFacts } from "./sheet.ts";
 
 /**
  * Pack content schemas, as authored in YAML. Entry IDs are local (`arcana`); references may be
@@ -163,6 +165,26 @@ export const ArchetypeDef = z.object({
 });
 export type ArchetypeDef = z.infer<typeof ArchetypeDef>;
 
+/**
+ * A ready-to-play character (spec 04 quick start). Attributes, skills and kit come from the
+ * archetype; the pregen adds a person: a name, a free talent, looks, a backstory and hooks.
+ */
+export const PregenDef = z.object({
+  id: LocalId,
+  name: z.string().min(1),
+  pronouns: z.string().default(""),
+  ancestry: ContentRef,
+  archetype: ContentRef,
+  freeTalent: ContentRef.optional(),
+  appearance: AppearanceFacts.prefault({}),
+  personality: z.array(z.string()).default([]),
+  backstory: z.string().min(1),
+  hooks: z.array(BackstoryHook).default([]),
+  /** For a portrait generator; no portraits ship as images yet. */
+  portraitPrompt: z.string().default(""),
+});
+export type PregenDef = z.infer<typeof PregenDef>;
+
 const ItemBase = {
   id: LocalId,
   name: z.string().min(1),
@@ -246,6 +268,7 @@ export type CompiledPack = {
   ancestries: Record<string, AncestryDef & { id: string }>;
   bodyPlans: Record<string, BodyPlanDef>;
   archetypes: Record<string, ArchetypeDef & { id: string }>;
+  pregens: Record<string, PregenDef & { id: string }>;
   creatures: Record<string, CreatureDef & { id: string }>;
   items: {
     weapons: Record<string, WeaponDef & { id: string }>;
