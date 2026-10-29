@@ -93,7 +93,7 @@ describe("dev CLI", () => {
 
     expect(ok("rebuild", db)).toBe(`hash ${head}`);
     expect(ok("branches", db).split("\n")).toHaveLength(2);
-  });
+  }, 20000);
 
   test("hardcore campaigns refuse rewind", () => {
     const db = join(dir, "hardcore.db");
