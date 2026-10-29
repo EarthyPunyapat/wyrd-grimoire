@@ -7,6 +7,7 @@ import { LevelProposal } from "./domains/levels.ts";
 import { Card, Choice } from "./gm.ts";
 import { BaseCampaignPreset, CampaignPreset, CampaignSettings, ProgressionMode } from "./settings.ts";
 import { CharacterSheet } from "./sheet.ts";
+import { CreationReview, GeneratedWorldPreview } from "./world-generation.ts";
 export const ConnectionStatus = z.object({
   offline: z.boolean(),
   configured: z.boolean(),
@@ -79,8 +80,42 @@ export const CampaignCard = z.object({
   name: z.string(),
   characterName: z.string(),
   updatedAt: z.string(),
+  /** Hidden behind the home screen's archived disclosure; the campaign still opens and plays. */
+  archived: z.boolean().default(false),
 });
 export type CampaignCard = z.infer<typeof CampaignCard>;
+/** Home management: rename the campaign and/or move it in or out of the archive. */
+export const CampaignPatch = z
+  .object({
+    name: z.string().trim().min(1).max(100).optional(),
+    archived: z.boolean().optional(),
+  })
+  .strict()
+  .refine((patch) => patch.name !== undefined || patch.archived !== undefined, {
+    message: "Choose a new name or an archive state",
+  });
+/** One unfinished creation in the draft library. Started drafts are not listed. */
+export const DraftCard = z.object({
+  id: z.string(),
+  name: z.string(),
+  worldName: z.string(),
+  characterName: z.string(),
+  pitch: z.string(),
+  sourceTitle: z.string().optional(),
+  updatedAt: z.string(),
+});
+export type DraftCard = z.infer<typeof DraftCard>;
+/** Everything the creation dialog needs to pick a draft back up. */
+export const DraftResume = z.object({
+  id: z.string(),
+  preview: GeneratedWorldPreview,
+  review: CreationReview.optional(),
+  hasSheet: z.boolean(),
+  /** The pitch and name the creation form needs to look exactly as it did. */
+  pitch: z.string(),
+  characterName: z.string(),
+});
+export type DraftResume = z.infer<typeof DraftResume>;
 export const WebTurn = z.object({
   id: z.string(),
   input: z.string(),

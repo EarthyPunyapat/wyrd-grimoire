@@ -41,18 +41,53 @@ export class AppStore {
         `);
       })();
     }
+    if ((this.db.query("PRAGMA user_version").get() as { user_version: number }).user_version < 3) {
+      this.db.transaction(() => {
+        this.db.run("ALTER TABLE web_campaigns ADD COLUMN archived INTEGER NOT NULL DEFAULT 0");
+        // Creation drafts move out of the key/value settings table so the home library can list them.
+        this.db.run(`
+          CREATE TABLE creation_drafts (id TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL)
+        `);
+        const legacy = this.db
+          .query("SELECT key, value FROM settings WHERE key LIKE 'creation-draft:%'")
+          .all() as { key: string; value: string }[];
+        const migratedAt = new Date().toISOString();
+        for (const row of legacy) {
+          this.db.run("INSERT OR REPLACE INTO creation_drafts VALUES (?, ?, ?)", [
+            row.key.slice("creation-draft:".length),
+            row.value,
+            migratedAt,
+          ]);
+          this.db.run("DELETE FROM settings WHERE key = ?", [row.key]);
+        }
+        this.db.run("PRAGMA user_version = 3");
+      })();
+    }
   }
   saveCreationDraft(id: string, value: unknown): void {
-    this.db.run("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", [
-      `creation-draft:${id}`,
+    this.db.run("INSERT OR REPLACE INTO creation_drafts VALUES (?, ?, ?)", [
+      id,
       JSON.stringify(value),
+      new Date().toISOString(),
     ]);
   }
   creationDraft(id: string): unknown {
-    const row = this.db.query("SELECT value FROM settings WHERE key = ?").get(`creation-draft:${id}`) as {
+    const row = this.db.query("SELECT value FROM creation_drafts WHERE id = ?").get(id) as {
       value: string;
     } | null;
     return row ? JSON.parse(row.value) : null;
+  }
+  /** Every unstarted draft, newest first. Started drafts are filtered by the caller. */
+  creationDrafts(): { id: string; value: unknown; updatedAt: string }[] {
+    const rows = this.db
+      .query(
+        "SELECT id, value, updated_at AS updatedAt FROM creation_drafts ORDER BY updated_at DESC, id DESC",
+      )
+      .all() as { id: string; value: string; updatedAt: string }[];
+    return rows.map((row) => ({ id: row.id, value: JSON.parse(row.value), updatedAt: row.updatedAt }));
+  }
+  removeCreationDraft(id: string): void {
+    this.db.run("DELETE FROM creation_drafts WHERE id = ?", [id]);
   }
   /** The player's own journal notes for a campaign (spec 07, Journal). */
   saveNotes(campaignId: string, notes: string): void {
@@ -112,18 +147,31 @@ export class AppStore {
     return rows.map((row) => JSON.parse(row.record) as UsageRecord);
   }
   campaigns(): WebCampaign[] {
-    return this.db
+    const rows = this.db
       .query(
-        "SELECT id, name, character_name AS characterName, updated_at AS updatedAt FROM web_campaigns ORDER BY updated_at DESC",
+        "SELECT id, name, character_name AS characterName, updated_at AS updatedAt, archived FROM web_campaigns ORDER BY updated_at DESC",
       )
-      .all() as WebCampaign[];
+      .all() as (Omit<WebCampaign, "archived"> & { archived: number })[];
+    return rows.map((row) => ({ ...row, archived: Boolean(row.archived) }));
   }
   addCampaign(c: WebCampaign): void {
-    this.db.run("INSERT INTO web_campaigns VALUES (?, ?, ?, ?)", [
-      c.id,
-      c.name,
-      c.characterName,
-      c.updatedAt,
+    this.db.run(
+      "INSERT INTO web_campaigns (id, name, character_name, updated_at, archived) VALUES (?, ?, ?, ?, ?)",
+      [c.id, c.name, c.characterName, c.updatedAt, c.archived ? 1 : 0],
+    );
+  }
+  renameCampaign(id: string, name: string): void {
+    this.db.run("UPDATE web_campaigns SET name = ?, updated_at = ? WHERE id = ?", [
+      name,
+      new Date().toISOString(),
+      id,
+    ]);
+  }
+  setCampaignArchived(id: string, archived: boolean): void {
+    this.db.run("UPDATE web_campaigns SET archived = ?, updated_at = ? WHERE id = ?", [
+      archived ? 1 : 0,
+      new Date().toISOString(),
+      id,
     ]);
   }
   removeCampaign(id: string): void {

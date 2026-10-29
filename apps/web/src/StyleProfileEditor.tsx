@@ -12,7 +12,7 @@ export function StyleProfileEditor({
   disabled?: boolean;
 }) {
   return (
-    <fieldset disabled={disabled}>
+    <fieldset className="style-profile" disabled={disabled}>
       <legend>Story style</legend>
       <label>
         Source style <span className="muted">(blank uses the house style)</span>
@@ -33,7 +33,7 @@ export function StyleProfileEditor({
           placeholder="More like a tense thriller, with shorter dialogue…"
         />
       </label>
-      <label>
+      <label className="style-sample">
         Sample paragraph
         <textarea
           value={value.sample}

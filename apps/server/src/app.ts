@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
+  CampaignPatch,
   type CampaignPreset,
   type CampaignSettingsInput,
   type CompiledPack,
@@ -348,6 +349,27 @@ export function createApp(options: Options) {
     return opened;
   }
   app.get("/api/campaigns", (c) => c.json(store.campaigns()));
+
+  // Home management: rename through the event log, archive as app-store metadata. Neither is deletion.
+  app.patch("/api/campaigns/:id", async (c) => {
+    const id = c.req.param("id");
+    const patch = await body(c, CampaignPatch);
+    const entry = store.campaigns().find((row) => row.id === id);
+    if (!entry) throw new HTTPException(404, { message: "Campaign not found" });
+    if (patch.name !== undefined) {
+      if (store.running(id))
+        throw new HTTPException(409, {
+          message: "A turn is running. Wait for it to finish, then rename.",
+        });
+      const game = campaign(id);
+      if (game.state().campaign.name !== patch.name)
+        game.append([draft("CampaignRenamed", { name: patch.name }, "player")]);
+      store.renameCampaign(id, patch.name);
+    }
+    if (patch.archived !== undefined) store.setCampaignArchived(id, patch.archived);
+    const updated = store.campaigns().find((row) => row.id === id)!;
+    return c.json(updated);
+  });
 
   app.delete("/api/campaigns/:id", (c) => {
     const id = c.req.param("id");
@@ -812,6 +834,7 @@ export function createApp(options: Options) {
         name,
         characterName: sheet.identity.name,
         updatedAt: new Date(now()).toISOString(),
+        archived: false,
       });
       campaigns.set(id, game);
     } catch (error) {

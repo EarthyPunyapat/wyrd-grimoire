@@ -45,6 +45,8 @@ export const eventPayloadSchemas = {
     settings: CampaignSettings,
     changed: z.array(z.string()), // dotted paths, e.g. "narration.showMath"
   }),
+  /** The home screen's rename; the campaign title everywhere follows the event log. */
+  CampaignRenamed: z.object({ name: z.string().trim().min(1).max(100) }),
   BranchForked: z.object({ fromBranchId: z.string(), forkSeq: z.number().int().nonnegative() }),
   ActorCreated: z.object({
     role: z.enum(["pc", "companion", "npc"]),

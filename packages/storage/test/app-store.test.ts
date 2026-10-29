@@ -30,6 +30,39 @@ test("app usage preserves identical live attempts but deduplicates legacy import
   }
 });
 
+test("creation drafts are listed, read back and removed; campaign cards carry an archive flag", () => {
+  const store = new AppStore(":memory:");
+  try {
+    store.saveCreationDraft("first", { name: "First" });
+    store.saveCreationDraft("second", { name: "Second" });
+    expect(store.creationDraft("first")).toEqual({ name: "First" });
+    expect(
+      store
+        .creationDrafts()
+        .map((d) => d.id)
+        .sort(),
+    ).toEqual(["first", "second"]);
+    expect(store.creationDrafts()[0]!.updatedAt).toBeTruthy();
+    store.removeCreationDraft("first");
+    expect(store.creationDraft("first")).toBeNull();
+
+    store.addCampaign({
+      id: "c1",
+      name: "One",
+      characterName: "Hero",
+      updatedAt: "2026-10-30T00:00:00.000Z",
+      archived: false,
+    });
+    expect(store.campaigns()[0]!.archived).toBe(false);
+    store.setCampaignArchived("c1", true);
+    expect(store.campaigns()[0]!.archived).toBe(true);
+    store.renameCampaign("c1", "Two");
+    expect(store.campaigns()[0]!.name).toBe("Two");
+  } finally {
+    store.close();
+  }
+});
+
 test("app model settings update atomically and idle sessions expire", () => {
   const store = new AppStore(":memory:");
   try {

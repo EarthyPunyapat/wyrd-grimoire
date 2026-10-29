@@ -31,6 +31,19 @@ const cases = new FakeProvider([
   },
   {
     role: "worldGen",
+    match: (r) =>
+      r.tools?.[0]?.name === "propose_style_sample" &&
+      r.messages.some((m) => m.content.includes("make the provider fail")),
+    reply: {
+      error: {
+        code: "server",
+        retryable: false,
+        message: "The story model is unavailable.",
+      },
+    },
+  },
+  {
+    role: "worldGen",
     match: (r) => r.tools?.[0]?.name === "propose_style_sample",
     reply: {
       toolCall: {

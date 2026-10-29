@@ -51,6 +51,7 @@ type DomainKey =
 /** One handler per event type; the mapped type makes a missing handler a compile error. */
 const baseHandlers: Omit<Handlers, DomainKey> = {
   SettingsChanged: (s, e) => ({ ...s, campaign: { ...s.campaign, settings: e.payload.settings } }),
+  CampaignRenamed: (s, e) => ({ ...s, campaign: { ...s.campaign, name: e.payload.name } }),
 
   // Branch structure lives in storage; the event marks the fork point in the log.
   BranchForked: (s) => s,

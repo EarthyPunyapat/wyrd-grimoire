@@ -18,12 +18,12 @@ export async function api<T>(
   const response = await fetch(`/api${path}`, {
     method: actual,
     credentials: "same-origin",
-    ...(body === undefined
-      ? {}
-      : {
-          headers: { "Content-Type": "application/json", "X-Wyrd": "1" },
-          body: JSON.stringify(body),
-        }),
+    headers: {
+      // The server requires this on every non-GET request; harmless on reads.
+      "X-Wyrd": "1",
+      ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+    },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
   if (response.status === 204) return parse(null);
   const data: unknown = await response.json();
