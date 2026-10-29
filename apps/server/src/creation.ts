@@ -8,6 +8,7 @@ import {
   InterviewAnswer,
   InterviewState,
   InterviewView,
+  StartingKitProposal,
   SuggestInput,
   WorldBible,
   WorldPitch,
@@ -44,6 +45,8 @@ export const StoredDraft = z.object({
   proposal: WorldProposal,
   /** Stage 1 world bible (M5); drafts from before M5 have none and start as a single site. */
   bible: WorldBible.optional(),
+  /** The optional starting kit for a generated world (D148); absent when its call failed. */
+  kit: StartingKitProposal.optional(),
   offline: z.boolean(),
   campaignId: z.string().optional(),
   /** The character as the sheet editor last saved it; absent until the player opens the editor. */

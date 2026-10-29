@@ -55,6 +55,7 @@ import {
   combatContent,
   elaborateEntity,
   generateLocation,
+  generateStartingKit,
   generateWorld,
   generateWorldBible,
   makeTurnContext,
@@ -383,12 +384,22 @@ export function createApp(options: Options) {
       : await generateWorldBible(models.router(), bibleInput, taken).catch(() => undefined);
     await mark("bible", "done");
     await mark("validate", "running");
-    const { pack } = compileGeneratedWorld(proposal);
+    // The starting kit is optional too: a failed call keeps today's empty kit and no shop (D148).
+    const kit = offline
+      ? undefined
+      : await generateStartingKit(models.router(), { proposal, pitch: input.pitch }).catch(() => undefined);
+    const { pack } = compileGeneratedWorld(proposal, kit);
     const id = randomUUID();
     const preview = generatedWorldPreview(id, input.name, proposal, pack, offline);
     await mark("validate", "done");
     await mark("save", "running");
-    store.saveCreationDraft(id, { input, proposal, ...(bible ? { bible } : {}), offline });
+    store.saveCreationDraft(id, {
+      input,
+      proposal,
+      ...(bible ? { bible } : {}),
+      ...(kit ? { kit } : {}),
+      offline,
+    });
     await mark("save", "done");
     return preview;
   }
@@ -442,7 +453,7 @@ export function createApp(options: Options) {
     if (!saved.success)
       throw new HTTPException(404, { message: "World draft not found. Generate your world first." });
     if (saved.data.campaignId) return c.json({ id: saved.data.campaignId }, 201);
-    const { pack, world } = compileGeneratedWorld(saved.data.proposal);
+    const { pack, world } = compileGeneratedWorld(saved.data.proposal, saved.data.kit);
     const characterName = input.characterName || saved.data.proposal.suggestedCharacterName;
     // The quick path names an origin and background; the other paths start from the edited sheet.
     const sheet =

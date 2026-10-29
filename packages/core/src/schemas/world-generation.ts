@@ -62,6 +62,46 @@ export const WorldProposal = z
   })
   .strict();
 export type WorldProposal = z.infer<typeof WorldProposal>;
+
+/**
+ * The optional starting kit for a generated world (D148): everyday gear, one kit per background,
+ * the world's currency and at most one shop. Merged into the pack before it is hashed.
+ */
+export const StartingKitProposal = z.object({
+  currency: z.object({
+    name: z.string().min(1).max(40),
+    symbol: z.string().max(4).default(""),
+  }),
+  gear: z
+    .array(
+      z.object({
+        id: z.string().regex(/^[a-z0-9][a-z0-9-]*$/),
+        name: z.string().min(1).max(80),
+        description: z.string().max(300).default(""),
+        weightKg: z.number().min(0).max(50),
+        price: z.number().int().min(0),
+      }),
+    )
+    .min(4)
+    .max(16),
+  kits: z.array(
+    z.object({
+      archetypeId: z.string(),
+      items: z.array(z.object({ id: z.string(), qty: z.number().int().min(1).max(20) })).max(8),
+    }),
+  ),
+  shop: z
+    .object({
+      name: z.string().min(1).max(80),
+      kind: z.string().default("general"),
+      stock: z
+        .array(z.object({ id: z.string(), qty: z.number().int().min(1).max(50) }))
+        .min(1)
+        .max(16),
+    })
+    .nullable(),
+});
+export type StartingKitProposal = z.infer<typeof StartingKitProposal>;
 export const StartGeneratedCampaign = z
   .object({
     draftId: z.uuid(),

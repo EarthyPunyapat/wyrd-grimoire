@@ -5,6 +5,7 @@ import {
   type Fact,
   LocationProposal,
   nameClashes,
+  StartingKitProposal,
   WorldBible,
   WorldPitch,
   WorldProposal,
@@ -12,6 +13,7 @@ import {
 import { CORE_SKILLS } from "@wyrd/engine";
 import { type ContentSettings, proposalLinesCrossed } from "@wyrd/memory";
 import type { z } from "zod";
+import { STARTING_KIT_INSTRUCTIONS, STARTING_KIT_VERSION } from "./prompts/index.ts";
 import { proseInstructions } from "./prose.ts";
 import type { RoleRouter } from "./router.ts";
 import { proposeStructured } from "./structured.ts";
@@ -63,6 +65,39 @@ Use the supplied character name if present, otherwise suggest an appropriate nam
     instructions = `${proseInstructions(base, content, "world")}\n\n${crossedNote(crossed.map((v) => v.term))}`;
   }
   throw crossedError();
+}
+
+/** A generated world's everyday kit, archetype kits, currency and shop (D148). */
+export function generateStartingKit(
+  router: RoleRouter,
+  input: { proposal: WorldProposal; pitch: string },
+  opts: { campaignId?: string } = {},
+): Promise<StartingKitProposal> {
+  const brief = {
+    pitch: input.pitch,
+    world: {
+      name: input.proposal.worldName,
+      premise: input.proposal.premise,
+      tone: input.proposal.tone,
+    },
+    archetypes: input.proposal.backgrounds.map((b, i) => ({
+      id: `generated:background-${i + 1}`,
+      name: b.name,
+      description: b.description,
+    })),
+  };
+  return proposeStructured(
+    router,
+    {
+      role: "worldGen",
+      tool: "propose_starting_kit",
+      schema: StartingKitProposal,
+      instructions: STARTING_KIT_INSTRUCTIONS,
+      input: JSON.stringify(brief),
+      promptVersion: STARTING_KIT_VERSION,
+    },
+    opts,
+  );
 }
 
 /** One structured call (worldGen unless another role is named): a forced tool, a zod-validated answer, or an error. */

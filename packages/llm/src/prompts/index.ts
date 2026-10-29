@@ -8,6 +8,15 @@ export const NARRATOR_VERSION = "narrator@5";
 export const GUARD_VERSION = "guard@4";
 export const OOC_VERSION = "ooc@2";
 export const NPC_DIALOGUE_VERSION = "npc-dialogue@1";
+export const STARTING_KIT_VERSION = "startingKit@1";
+
+/** A genre-appropriate everyday kit and one small shop for a generated world (D148). */
+export const STARTING_KIT_INSTRUCTIONS = `You equip the characters of a newly generated role-playing world with ordinary starting gear.
+Use propose_starting_kit once.
+Give 4–16 pieces of everyday gear suitable to this world's genre and technology: the things an ordinary person there owns, carries or could buy. Every item has a short local id (a-z, 0-9 and -), a plain name, a one-line description, a weight in kilograms and a price in the world's smallest currency unit. Never invent magic, super-science or unique artefacts.
+Give one kit for each listed archetype id, using only gear ids you defined, at most 8 entries. The kit is what someone starting in that background would already carry.
+Choose the currency's name and symbol appropriate to the setting. Prices must make sense in that currency. The shop stocks everyday goods, using the same gear ids.
+Set shop to null when money and shops do not fit the setting.`;
 
 export const PARSER_INSTRUCTIONS = `You are the parser for a text role-playing game. You turn what the player types into game actions. You never narrate and never decide outcomes: the engine rolls the dice.
 

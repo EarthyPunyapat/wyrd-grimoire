@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { findBodyPlan, GameView, GeneratedWorldPreview, HUMANOID_BODY_PLAN } from "@wyrd/core";
-import { FakeProvider, RoleRouter } from "@wyrd/llm";
+import { FakeProvider, type FakeRule, RoleRouter } from "@wyrd/llm";
 import { compileGeneratedWorld } from "@wyrd/packs";
 import { createApp } from "../src/app.ts";
 import { EXAMPLE_WORLD } from "../src/example-world.ts";
@@ -130,4 +130,89 @@ test("invalid proposals cannot create canon and failure allows a subsequent gene
     }
     expect(server.store.campaigns()).toHaveLength(0);
   }
+});
+
+const STARTING_KIT = {
+  currency: { name: "credits", symbol: "cr" },
+  gear: [
+    { id: "rope", name: "Rope", description: "Hemp rope.", weightKg: 0.5, price: 2 },
+    { id: "lamp", name: "Lamp", description: "A small oil lamp.", weightKg: 0.4, price: 3 },
+    { id: "knife", name: "Knife", description: "A plain knife.", weightKg: 0.3, price: 4 },
+    { id: "blanket", name: "Blanket", description: "A wool blanket.", weightKg: 1, price: 2 },
+  ],
+  kits: [{ archetypeId: "generated:background-1", items: [{ id: "rope", qty: 1 }] }],
+  shop: { name: "Camp store", kind: "general", stock: [{ id: "rope", qty: 3 }] },
+};
+
+async function setupWithKit(kitReply: FakeRule["reply"]) {
+  const home = mkdtempSync(join(tmpdir(), "wyrd-generation-kit-"));
+  homes.push(home);
+  const provider = new FakeProvider([
+    {
+      role: "worldGen",
+      match: (req) => req.tools?.some((t) => t.name === "propose_world") ?? false,
+      reply: { toolCall: { name: "propose_world", args: EXAMPLE_WORLD } },
+    },
+    {
+      role: "worldGen",
+      match: (req) => req.tools?.some((t) => t.name === "propose_starting_kit") ?? false,
+      reply: kitReply,
+    },
+  ]);
+  const router = new RoleRouter({
+    providers: { fake: provider },
+    routing: { worldGen: { provider: "fake", model: "test", fallbacks: [] } },
+  });
+  const server = createApp({ home, offline: false, router });
+  servers.push(server);
+  const response = await request(server, "/auth/setup", "", { passcode: "a long generation test passcode" });
+  const cookie = response.headers.get("set-cookie")!.split(";")[0]!;
+  return { server, cookie };
+}
+
+test("wizard campaign starts with kit and shop", async () => {
+  const { server, cookie } = await setupWithKit({
+    toolCall: { name: "propose_starting_kit", args: STARTING_KIT },
+  });
+  const preview = GeneratedWorldPreview.parse(
+    await (
+      await request(server, "/world-drafts", cookie, {
+        name: "Kit",
+        pitch: "Hard sci-fi with a human crew and no magic",
+      })
+    ).json(),
+  );
+  const made = await request(server, "/campaigns", cookie, {
+    draftId: preview.id,
+    ancestry: preview.origins[0]!.id,
+    archetype: preview.backgrounds[0]!.id,
+  });
+  expect(made.status).toBe(201);
+  const { id } = (await made.json()) as { id: string };
+  const view = GameView.parse(await (await request(server, `/campaigns/${id}/view`, cookie)).json());
+  expect(view.shop).not.toBeNull();
+  expect(view.inventory.items.length).toBeGreaterThan(0);
+});
+
+test("kit failure keeps creation working", async () => {
+  const { server, cookie } = await setupWithKit({
+    error: { code: "invalid_output", retryable: true },
+  });
+  const preview = GeneratedWorldPreview.parse(
+    await (
+      await request(server, "/world-drafts", cookie, {
+        name: "No kit",
+        pitch: "Hard sci-fi with a human crew and no magic",
+      })
+    ).json(),
+  );
+  const made = await request(server, "/campaigns", cookie, {
+    draftId: preview.id,
+    ancestry: preview.origins[0]!.id,
+    archetype: preview.backgrounds[0]!.id,
+  });
+  expect(made.status).toBe(201);
+  const { id } = (await made.json()) as { id: string };
+  const view = GameView.parse(await (await request(server, `/campaigns/${id}/view`, cookie)).json());
+  expect(view.shop).toBeNull();
 });
