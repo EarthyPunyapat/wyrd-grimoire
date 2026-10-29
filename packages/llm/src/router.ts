@@ -69,6 +69,11 @@ export class RoleRouter {
     this.now = opts.now ?? Date.now;
   }
 
+  /** True when the role has a route, so callers can choose a pipeline without catching. */
+  has(role: Role): boolean {
+    return Boolean(this.opts.routing[role]);
+  }
+
   route(role: Role): RoleRoute {
     const r = this.opts.routing[role];
     if (!r) throw new ProviderError("bad_request", `No route configured for role ${role}`, false);

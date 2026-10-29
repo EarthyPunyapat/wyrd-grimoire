@@ -1,6 +1,8 @@
 import type { BodyPlanDef, CompiledPack, CreatureDef, ItemCatalog, SceneInput } from "@wyrd/core";
 import {
+  type Card,
   type CharacterSheet,
+  type Choice,
   type Clarification,
   draft,
   Entity,
@@ -37,6 +39,7 @@ import {
   type CanonSource,
   contentViolations,
 } from "@wyrd/memory";
+import { runGmTurn } from "./gm/loop.ts";
 import {
   COMBAT_RULES_DIGEST,
   EXPLORATION_RULES_DIGEST,
@@ -92,7 +95,11 @@ export type TurnStreamEvent =
   | { type: "guard.flag"; flags: GuardSummary["flagged"] }
   | { type: "fallback"; message: string }
   | { type: "turn.completed"; turnId: string }
-  | { type: "error"; message: string; retryable: boolean };
+  | { type: "error"; message: string; retryable: boolean }
+  | { type: "progress"; phase: "researching" | "rolling" | "simulating" | "writing"; detail?: string }
+  | { type: "card"; card: Card }
+  | { type: "choices"; choices: Choice[] }
+  | { type: "model.backup"; provider: string };
 
 export type TurnResult = {
   turnId: string;
@@ -519,16 +526,21 @@ export class TurnPipeline {
     if (this.busy) throw new Error("A turn is already running for this campaign");
     this.busy = true;
     try {
-      return await this.runInner(t);
+      if (!this.d.router.has("gm")) return await this.runInner(t);
+      return await runGmTurn(this.d, t, {
+        prompt: (state, input) => this.prompt("gm", state, { input }),
+        ctx: (state) => this.turnCtx(state),
+        classic: (turnId) => this.runInner(t, turnId),
+      });
     } finally {
       this.busy = false;
     }
   }
 
-  private async runInner(t: TurnInput): Promise<TurnResult> {
+  private async runInner(t: TurnInput, accepted?: string): Promise<TurnResult> {
     const emit = t.onEvent ?? (() => {});
-    const turnId = this.d.newId();
-    emit({ type: "turn.accepted", turnId });
+    const turnId = accepted ?? this.d.newId();
+    if (!accepted) emit({ type: "turn.accepted", turnId });
     let state = this.d.store.state();
     const pcId = state.party.pcId;
     if (!pcId) throw new Error("The campaign has no player character");
