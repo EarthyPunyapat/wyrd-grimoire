@@ -93,7 +93,13 @@ describe("inventory and encumbrance (spec 11)", () => {
 
   test("a starting kit becomes inventory stacks and its ammunition can be spent", () => {
     const s = sim({ subsystems: { ammo: true } });
-    const equipment = startingEquipment([{ item: "test:arrow", qty: 2 }, { item: "test:rock", qty: 1 }], items);
+    const equipment = startingEquipment(
+      [
+        { item: "test:arrow", qty: 2 },
+        { item: "test:rock", qty: 1 },
+      ],
+      items,
+    );
     s.commit(startingKitEvents("pc", equipment));
     expect(inventoryOf(s.state, "pc").stacks.find((x) => x.itemId === "test:arrow")?.qty).toBe(2);
     expect(carriedKg(s.state, "pc", ictx)).toBe(5);

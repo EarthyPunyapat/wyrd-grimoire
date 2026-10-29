@@ -46,8 +46,8 @@ import {
   resolveDowntime,
   sell,
   skillLabel,
-  startingKitEvents,
   skillValue,
+  startingKitEvents,
   unwrap,
 } from "@wyrd/engine";
 import {
@@ -832,12 +832,14 @@ export function createApp(options: Options) {
             ...(snapshots.get(t.id) ? { guard: snapshots.get(t.id)!.guard } : {}),
           };
         }),
-        suggestions: view.combat
-          ? view.combat.actions
-              .filter((a) => a.legal)
-              .slice(0, 4)
-              .map((a) => a.fill)
-          : ["Look around", "Search the area", "Wait 10 minutes"],
+        suggestions: state.campaign.settings.narration.suggestions
+          ? view.combat
+            ? view.combat.actions
+                .filter((a) => a.legal)
+                .slice(0, 4)
+                .map((a) => a.fill)
+            : ["Look around", "Search the area", "Wait 10 minutes"]
+          : [],
         offline: options.offline,
         combat: view.combat,
         ended: view.ended,

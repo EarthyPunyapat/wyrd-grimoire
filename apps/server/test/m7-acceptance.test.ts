@@ -205,7 +205,12 @@ test("a quick-start kit reaches the inventory, weighs in and can be sold", async
   }
   expect(game.inventory.weightKg).toBeCloseTo(4.6);
 
-  const sold = await request(server, `/campaigns/${id}/shop/sell`, { itemId: "fantasy-core:dagger", qty: 1 }, cookie);
+  const sold = await request(
+    server,
+    `/campaigns/${id}/shop/sell`,
+    { itemId: "fantasy-core:dagger", qty: 1 },
+    cookie,
+  );
   expect(sold.status).toBe(200);
   game = GameView.parse(await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json());
   expect(game.inventory.items.some((i) => i.id === "fantasy-core:dagger")).toBe(false);

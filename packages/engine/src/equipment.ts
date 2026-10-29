@@ -1,4 +1,11 @@
-import { type ActorId, draft, type Equipment, type EventDraft, type ItemCatalog, type KitEntry } from "@wyrd/core";
+import {
+  type ActorId,
+  draft,
+  type Equipment,
+  type EventDraft,
+  type ItemCatalog,
+  type KitEntry,
+} from "@wyrd/core";
 import type { Result, RuleError } from "./result.ts";
 
 const isWeapon = (items: ItemCatalog, id: string) => Object.hasOwn(items.weapons, id);

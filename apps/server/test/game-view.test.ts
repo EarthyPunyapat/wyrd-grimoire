@@ -22,9 +22,9 @@ function setup() {
   return server;
 }
 type Server = ReturnType<typeof setup>;
-const request = (server: Server, path: string, body?: unknown, cookie?: string) =>
+const request = (server: Server, path: string, body?: unknown, cookie?: string, method?: string) =>
   server.app.request(`http://localhost/api${path}`, {
-    method: body === undefined ? "GET" : "POST",
+    method: method ?? (body === undefined ? "GET" : "POST"),
     headers: { "Content-Type": "application/json", "X-Wyrd": "1", ...(cookie ? { Cookie: cookie } : {}) },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
@@ -44,13 +44,45 @@ test("a non-caster's view has no spells", async () => {
   );
   expect(made.status).toBe(201);
   const { id } = (await made.json()) as { id: string };
-  const view = GameView.parse(await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json());
+  const view = GameView.parse(
+    await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json(),
+  );
   expect(view.spells).toEqual([]);
+});
+
+test("the view returns no suggestions when the campaign setting is off", async () => {
+  const server = setup();
+  const cookie = await login(server);
+  const made = await request(
+    server,
+    "/campaigns/quick-start",
+    { name: "Quiet", characterName: "Wren", archetype: "cutpurse" },
+    cookie,
+  );
+  expect(made.status).toBe(201);
+  const { id } = (await made.json()) as { id: string };
+  const before = GameView.parse(
+    await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json(),
+  );
+  expect(before.suggestions.length).toBeGreaterThan(0);
+
+  const patched = await request(
+    server,
+    `/campaigns/${id}/settings`,
+    { narration: { suggestions: false } },
+    cookie,
+    "PATCH",
+  );
+  expect(patched.status).toBe(200);
+  const after = GameView.parse(
+    await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json(),
+  );
+  expect(after.suggestions).toEqual([]);
 });
 
 test("a caster's view lists exactly the spells on their known list", () => {
   const pack = loadPack(join(import.meta.dir, "../../../packs/fantasy-core")).pack!;
-  const [first, second] = Object.keys(pack.spells).sort();
+  const [first, second] = Object.keys(pack.spells ?? {}).sort();
   const state = {
     flags: { spellcasting: { known: { pc: [first!] } } },
   } as unknown as GameState;
