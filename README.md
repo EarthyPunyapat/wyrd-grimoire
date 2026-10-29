@@ -9,7 +9,7 @@
 
 ## Status
 
-**M1–M6 are built:** the engine core, the model loop, the web client, combat, world and memory, and characters with companions. Four acceptance checks still need the owner at a real keyboard — real-provider M2 sign-in and a 20-turn session, the M3 LAN/phone playtest, and the M5 real-model world run and NPC-knowledge eval. **M7 (breadth) is next**; see [docs/milestones.md](docs/milestones.md).
+**M1–M7 are built:** the engine core, the model loop, the web client, combat, world and memory, characters with companions, and the M7 breadth pass — presets and locked settings, class/use-based/hybrid progression, d20 UI, Living World and downtime, the spellcasting plugin, survival and injury completion, inventory/economy, content dials, timeline/export/backups, pack themes and the full fantasy-core content floor. A few checks still need the owner at a real keyboard — real-provider sign-in and a 20-turn session, the LAN/phone playtest, and the real-model world run; media (M8) is next. See [docs/milestones.md](docs/milestones.md) and [HANDOFF.md](HANDOFF.md).
 
 **Live site:** [earthypunyapat.github.io/wyrd-grimoire](https://earthypunyapat.github.io/wyrd-grimoire/) — source in [`site/`](site/).
 
