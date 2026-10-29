@@ -10,9 +10,15 @@ export function usePlay(view: GameView, onView: (view: GameView) => void) {
   const [error, setError] = useState("");
   const [reconnecting, setReconnecting] = useState(false);
   const retry = useRef<ReturnType<typeof SubmitTurnInput.parse> | null>(null);
+  const refreshSeq = useRef(0);
   const refresh = useCallback(async () => {
+    const mine = ++refreshSeq.current;
     const updated = await api(`/campaigns/${view.id}/view`, GameView.parse);
-    onView(updated);
+    // Only the newest request may win; a slow older refresh must not overwrite a newer view.
+    if (mine === refreshSeq.current) {
+      onView(updated);
+      setError("");
+    }
     return updated;
   }, [view.id, onView]);
   useEffect(() => {
@@ -20,7 +26,7 @@ export function usePlay(view: GameView, onView: (view: GameView) => void) {
     sessionStorage.setItem(key, pending);
     const source = new EventSource(`/api/campaigns/${view.id}/turns/${pending}/stream`);
     const eventIds = new Set<string>();
-    const listener = (event: Event) => {
+    const listener = async (event: Event) => {
       if (!(event instanceof MessageEvent)) {
         setReconnecting(true);
         return;
@@ -35,8 +41,14 @@ export function usePlay(view: GameView, onView: (view: GameView) => void) {
         if (data.type === "turn.completed") {
           source.close();
           sessionStorage.removeItem(key);
+          // Keep `pending` (and therefore busy) until the view includes the new passage, or Send
+          // re-enables while `view` still lacks the turn that just finished.
+          try {
+            await refresh();
+          } catch (e) {
+            setError((e as Error).message);
+          }
           setPending(null);
-          void refresh().catch((e) => setError(e.message));
         }
       } catch {
         source.close();

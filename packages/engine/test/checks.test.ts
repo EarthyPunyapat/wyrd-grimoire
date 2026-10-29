@@ -375,6 +375,22 @@ describe("opposed checks", () => {
     expect(s.state.lastChecks.guard?.opposed).toBe(true);
   });
 
+  test("a defender who cannot act loses without a second roll, and the turn still resolves", () => {
+    const s = sim();
+    s.commit(unwrap(applyCondition(s.state, "guard", { id: "core:unconscious" })));
+    const out = unwrap(
+      resolveOpposedCheck(
+        s.state,
+        stealth({ opposedBy: { actorId: "guard", skill: "core:perception" } }),
+        ctx,
+      ),
+    );
+    expect(out.winner).toBe("active");
+    expect(out.defender.rolls).toEqual([]);
+    expect(out.defender.display.text).toContain("can't oppose");
+    expect(out.events.filter((e) => e.type === "CheckResolved")).toHaveLength(1);
+  });
+
   test("resolveCheck refuses opposed requests and vice versa", () => {
     const s = sim();
     expect(

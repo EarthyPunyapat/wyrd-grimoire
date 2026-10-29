@@ -81,7 +81,10 @@ After a process restart, interrupted requests are marked done with a recovery me
 GameView shows any turn already committed to the campaign log; resubmitting the same clientTurnId
 does not execute it again. Narration failures retain the engine result with a mechanical summary.
 Canon flags support Keep canon & regenerate via reroll. Retcon/edit needs the later canon-editing
-events; it is not implemented as a direct state mutation.
+events; it is not implemented as a direct state mutation. A flag shows the quoted narration line and
+a fixed reason; the guard's own wording stays server-side because the guard reads secret facts.
+Rerolling an older passage rebuilds the scene at that turn and hides later turns and facts from the
+prompt, so a re-narration cannot use the future.
 
 GameView exposes the PC sheet, effective skills, public world name/opening, current location and
 same-zone names, plus player turn history. It never serializes the full world bible, NPC sheets,

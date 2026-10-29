@@ -59,6 +59,7 @@ import {
   blockingIssues,
   GUARD_TOOL,
   GuardReportV1,
+  guardFlags,
   ProposeActions,
   ProposeCombatActions,
   parserTools,
@@ -581,7 +582,31 @@ export class TurnPipeline {
         } else if (tc.name === "propose_actions") {
           const parsed = (mode === "combat" ? ProposeCombatActions : ProposeActions).safeParse(tc.args);
           if (parsed.success) {
-            const actorId = parsed.data.actorId ?? acting;
+            const actorId: string = parsed.data.actorId ?? acting;
+            // Only the player's own characters act (spec 08, step 2). A parser-chosen NPC would
+            // otherwise move, speak or spend time as that NPC through the ordinary action path.
+            if (actorId !== pcId && !state.party.companionIds.includes(actorId)) {
+              lastErrors = [
+                {
+                  actionIndex: 0,
+                  code: "ACTOR_NOT_CONTROLLABLE",
+                  message: `Only the player character or a companion the player commands can act, not "${actorId}". Write the plan as the player's side of the scene.`,
+                },
+              ];
+              if (attempt < MAX_REPAIRS) {
+                repairs++;
+                reply(
+                  JSON.stringify({
+                    rejected: true,
+                    errors: lastErrors,
+                    instruction:
+                      "Omit actorId (the player character acts) or name a companion the player controls. Never act as an NPC.",
+                  }),
+                );
+                continue;
+              }
+              break;
+            }
             const v = validateTurn(state, actorId, parsed.data.actions, ctx);
             if (v.ok) {
               plan = { actorId, actions: parsed.data.actions, intent: parsed.data.intent };
@@ -696,6 +721,19 @@ export class TurnPipeline {
    * Everything that blocks a passage: the guard model's report plus the engine's own deterministic
    * lines-and-veils check (spec 12). The engine decides even when the guard call fails.
    */
+  /** Flags safe to persist and send to the browser: no secret-fact detail from the guard. */
+  private visibleFlags(state: GameState, report: GuardReportV1 | null, text: string) {
+    const flags = report ? guardFlags(report) : [];
+    const seen = new Set(flags.map((f) => `${f.kind}|${f.quote}|${f.detail}`));
+    for (const v of contentViolations(state.campaign.settings.content, text, this.d.rules.tuning.content)) {
+      const key = `${v.kind}|${v.quote}|${v.term}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      flags.push({ kind: v.kind, quote: v.quote, detail: v.term });
+    }
+    return flags;
+  }
+
   private blockingFor(state: GameState, report: GuardReportV1 | null, text: string) {
     const issues: Array<{ kind: string; quote: string; detail: string }> = report
       ? blockingIssues(report)
@@ -731,6 +769,7 @@ export class TurnPipeline {
     call: { campaignId?: string | undefined; turnId: string },
     emit: (e: TurnStreamEvent) => void,
     excludeTurnId?: string,
+    horizonSeq?: number,
   ) {
     const maxChars = MAX_CHARS[state.campaign.settings.narration.length];
     const showFirst = state.campaign.settings.narration.canonCheck === "afterShowing";
@@ -740,6 +779,7 @@ export class TurnPipeline {
         resolution,
         ...(corrections ? { corrections } : {}),
         ...(excludeTurnId ? { excludeTurnId } : {}),
+        ...(horizonSeq === undefined ? {} : { horizonSeq }),
       });
       const completion = await this.d.router.complete(
         "narrator",
@@ -761,7 +801,12 @@ export class TurnPipeline {
       };
     };
     const check = async (text: string): Promise<GuardReportV1 | null> => {
-      const p = this.prompt("guard", state, { input, resolution, draft: text });
+      const p = this.prompt("guard", state, {
+        input,
+        resolution,
+        draft: text,
+        ...(horizonSeq === undefined ? {} : { horizonSeq }),
+      });
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
           const c = await this.d.router.complete(
@@ -815,10 +860,10 @@ export class TurnPipeline {
       try {
         final = await narrate(issues.map((i) => this.correction(i)));
         report = await check(final.text);
-        flagged = this.blockingFor(state, report, final.text);
+        flagged = this.visibleFlags(state, report, final.text);
       } catch {
         // Keep the first draft, flagged.
-        flagged = issues;
+        flagged = this.visibleFlags(state, report, final.text);
       }
     }
     return {
@@ -1118,7 +1163,15 @@ export class TurnPipeline {
       }
       const before = this.d.store.state(this.d.store.activeBranchId, turn.startedSeq - 1);
       const call = { campaignId: this.d.campaignId, turnId };
-      const voiced = await this.voice(before, turn.input, record.resolution, call, emit, turnId);
+      const voiced = await this.voice(
+        before,
+        turn.input,
+        record.resolution,
+        call,
+        emit,
+        turnId,
+        turn.startedSeq - 1,
+      );
       this.d.store.append(
         [
           ...this.canonFromGuard(before, voiced.report, { recordWitnesses: false }),

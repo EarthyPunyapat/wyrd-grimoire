@@ -55,7 +55,7 @@ export function Play({
   const [legacyName, setLegacyName] = useState("");
   const [legacyError, setLegacyError] = useState("");
   const [campaignSettings, setCampaignSettings] = useState(false);
-  const [math, setMath] = useState(localStorage.getItem("wyrd-math") === "true");
+  const [math, setMath] = useState(localStorage.getItem("wyrd-math") !== "false");
   const textarea = useRef<HTMLTextAreaElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const play = usePlay(view, onView);

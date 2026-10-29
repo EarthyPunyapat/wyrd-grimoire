@@ -54,8 +54,8 @@ export function Passage({
       <p className="player-input">
         <span aria-hidden="true">↳</span> {turn.input}
       </p>
-      <Mechanics lines={turn.mechanics} expanded={math} resolution={view.resolution} />
       {turn.narration && <Narration text={turn.narration} {...narrationContext(view)} />}
+      <Mechanics lines={turn.mechanics} expanded={math} resolution={view.resolution} />
       {turn.answer && <p className="ooc">{turn.answer}</p>}
       {turn.status === "failed" && (
         <p role="alert" className="error">

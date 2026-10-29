@@ -66,6 +66,16 @@ test("quick start, live turn, reroll, reload and character sheet", async ({ page
   await expect(page.getByLabel("What do you do?", { exact: true })).toBeEnabled();
   expect(await page.locator(".mechanics").textContent()).toBe(mechanics);
   await expect(page.locator(".story")).not.toContainText(/tokens|\$\d|cost estimate/i);
+  // Spec 13: the mechanics log sits under each passage, not above the prose.
+  expect(
+    await page.evaluate(() => {
+      const passage = document.querySelector(".passage");
+      const prose = passage?.querySelector(".prose");
+      const mechanics = passage?.querySelector(".mechanics");
+      if (!prose || !mechanics) return null;
+      return (prose.compareDocumentPosition(mechanics) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+    }),
+  ).toBe(true);
   await page.screenshot({ path: info.outputPath("m3.png"), fullPage: true });
   await page.reload();
   await expect(page.locator(".prose")).toContainText("offline narrator");
