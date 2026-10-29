@@ -82,6 +82,8 @@ export function Play({
   const textarea = useRef<HTMLTextAreaElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const play = usePlay(view, onView);
+  const activeAvatar = view.avatars.find((run) => run.status === "active");
+  const [unseal, setUnseal] = useState<{ text: string; option?: number } | null>(null);
   const fill = (text: string) => {
     setInput(text);
     setCombatOpen(false);
@@ -131,7 +133,7 @@ export function Play({
     }
   };
   const last = view.turns.at(-1);
-  const send = useCallback(
+  const submit = useCallback(
     async (text: string, option?: number) => {
       if (!text.trim()) return;
       const accepted = await play.send(
@@ -141,6 +143,18 @@ export function Play({
       if (accepted) setInput("");
     },
     [play.send, last],
+  );
+  // D134: stepping in as the sovereign during an avatar's run unseals it, so ask first.
+  const send = useCallback(
+    async (text: string, option?: number) => {
+      if (!text.trim()) return;
+      if (activeAvatar && view.pc.level === "infinite") {
+        setUnseal(option === undefined ? { text } : { text, option });
+        return;
+      }
+      await submit(text, option);
+    },
+    [activeAvatar, view.pc.level, submit],
   );
   useEffect(() => {
     if (!play.busy) textarea.current?.focus();
@@ -434,6 +448,7 @@ export function Play({
         </section>
         <Hotbar
           abilities={view.pc.abilities}
+          level={view.pc.level}
           busy={play.busy}
           inCombat={inCombat}
           onFill={fill}
@@ -501,6 +516,32 @@ export function Play({
               <Sheet view={view} />
               <Dialog.Close className="dialog-close" aria-label="Close character sheet">
                 ×
+              </Dialog.Close>
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
+        <Dialog.Root open={unseal !== null} onOpenChange={(o) => !o && setUnseal(null)}>
+          <Dialog.Portal>
+            <Dialog.Overlay className="overlay" />
+            <Dialog.Content className="dialog">
+              <Dialog.Title>Act as the sovereign?</Dialog.Title>
+              <Dialog.Description>
+                {activeAvatar ? `${activeAvatar.name}'s run is still active.` : "An avatar run is active."}{" "}
+                Stepping in as the sovereign will mark the run unsealed. Its record will show it.
+              </Dialog.Description>
+              <button
+                type="button"
+                className="primary"
+                onClick={() => {
+                  const pending = unseal;
+                  setUnseal(null);
+                  if (pending) void submit(pending.text, pending.option);
+                }}
+              >
+                Act as the sovereign
+              </button>
+              <Dialog.Close className="dialog-close" aria-label="Stay with the avatar">
+                Cancel
               </Dialog.Close>
             </Dialog.Content>
           </Dialog.Portal>

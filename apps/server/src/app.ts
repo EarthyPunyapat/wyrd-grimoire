@@ -30,6 +30,7 @@ import {
 import {
   acceptLevelUp,
   actingActor,
+  avatarRuns,
   buy,
   capacityKg,
   carriedKg,
@@ -899,6 +900,10 @@ export function createApp(options: Options) {
       levelProposals: levelProposals(state).filter(
         (p) => p.actorId === pc.id || state.party.companionIds.includes(p.actorId),
       ),
+      avatars: avatarRuns(state).map((run) => ({
+        ...run,
+        name: state.actors[run.avatarId]?.sheet.identity.name ?? run.avatarId,
+      })),
       resolution,
       theme: state.campaign.settings.theme ?? gamePack.theme ?? null,
       shop: (() => {

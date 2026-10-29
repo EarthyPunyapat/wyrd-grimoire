@@ -4,11 +4,11 @@ Working notes for whoever picks this up next. Read `AGENTS.md` first, then this 
 
 ## Status (2026-10-29)
 
-**M1–M7, W2 step 2 and workstreams A (Levels/abilities), C (wiki lore) and D (source creation/style/canon clocks) are built.** Owner-only and remaining W2 checks stay unticked in `docs/milestones.md`.
+**M1–M7, W2 step 2 and workstreams A (Levels/abilities), B (avatars/sealing), C (wiki lore) and D (source creation/style/canon clocks) are built.** Owner-only and remaining W2 checks stay unticked in `docs/milestones.md`.
 The GM-with-tools turn (Tasks 1–8 of `docs/superpowers/plans/2026-10-29-w2-step2-gm-turn.md`) is on
 `w2-gm-ui` and merges to `main`: one GM model runs a turn with engine tools, streams prose, shows
 cards and choices, retcons with Undo, marks a backup model and runs a non-blocking structural check
-with Fix/Dismiss. `bun run check` is green: typecheck → lint (warnings only) → **781 tests** →
+with Fix/Dismiss. `bun run check` is green: typecheck → lint (warnings only) → **795 tests** →
 `pack validate packs/fantasy-core`.
 
 Owner-only checks still outstanding (need real hardware or keys):
@@ -31,6 +31,18 @@ Built test-first on `w2-levels`, merged to `main`. Plan: `docs/superpowers/plans
 - Offline engine, tool, server, replay and render tests cover the rules and flow. Combat goldens were deliberately regenerated; only ActorCreated hashes changed for default sheet fields, with all combat outcomes unchanged.
 - Validation: `bun run check` passed: typecheck, lint (existing warnings), **771 tests**, and fantasy-core pack validation. `bun run build` also passed.
 - Browser verification: dedicated Levels workflow passes desktop and phone. Full `bun run test:e2e`: **45 passed, 3 existing skips**, sequential with one worker/browser at a time. Browser install/build outputs are not committed.
+
+## W2 B — Avatars and sealing (2026-10-29)
+
+Built test-first on `w2-avatars`, merged to `main`. Plan: `docs/superpowers/plans/2026-10-29-w2-avatars.md`; implementation defaults: D156.
+
+- `core/schemas/domains/avatars.ts` defines `AvatarCreated`, `AvatarRunEnded`, `SealSet` and `SealBroken` plus the run projection type; `engine/reduce/avatars.ts` alone handles them. `avatarRuns`/`activeAvatarRuns`/`runForSovereign`/`endAvatarRun` in `engine/avatars.ts` read the log.
+- `create_avatar` (infinite sovereign only) builds a finite actor at the chosen Level, joins it under manual control, and starts a run. An infinite avatar is refused so every avatar rolls real dice through A's Level rules.
+- `ActorDied` now lives in the avatars domain: an active avatar run closes with `reason: died` and the avatar is marked dead; a linked sovereign is never marked dead. `AvatarRunEnded {completed|unsealed}` closes other runs.
+- `seal` writes `effectiveLevel` and `unseal` removes it, so A's gap table and infinity rule apply while sealed. Any player-acted GM tool naming the sovereign during an active run appends `AvatarRunEnded{unsealed}`; the play screen asks for confirmation first.
+- GameView carries avatar runs (id/name/Level/status), and an ∞ character's hotbar shows Seal and Send avatar. Finite characters do not see those actions.
+- Offline engine/tool/render tests cover creation, real dice, death, sovereign safety, unsealing, sealing and breaking a seal.
+- Validation: `bun run check` passed (typecheck, lint with existing warnings, **795 tests**, fantasy-core pack validation). `bun run build` passed. Focused Playwright (`play`, `levels`) passed sequentially on desktop and phone with one worker.
 
 ## W2 D — Source creation, style and canon clocks (2026-10-29)
 
@@ -132,7 +144,7 @@ Built test-first on `w2-lore`; merged to `main`. Plan: `docs/superpowers/plans/2
 
 **W2 — Wyrd 2.0** (before M8). The owner played M7 and found it lacking next to their own ChatGPT RPG sessions, and a 72-question interview on 2026-10-29 redesigned the game.
 
-Step 2 and step 3 A/C/D are done. Next: B avatars/sealing, F delegation, and E full time skips/watch list (after F). A exports the level/check/breakthrough helpers; C exports `LoreResearch`. Infinite observe scope remains in E.
+Step 2 and step 3 A/B/C/D are done. Next: F delegation, and E full time skips/watch list (after F). A exports the level/check/breakthrough helpers; C exports `LoreResearch`. Infinite observe scope remains in E.
 
 Read these first:
 - the spec: `docs/superpowers/specs/2026-10-29-wyrd-2-design.md`

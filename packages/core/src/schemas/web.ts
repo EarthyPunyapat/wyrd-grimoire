@@ -2,6 +2,7 @@ import { z } from "zod";
 import { GuardSummary } from "./canon.ts";
 import { CombatView } from "./combat.ts";
 import { MechanicsLine, ResolutionId } from "./common.ts";
+import { AvatarRun } from "./domains/avatars.ts";
 import { LevelProposal } from "./domains/levels.ts";
 import { Card, Choice } from "./gm.ts";
 import { BaseCampaignPreset, CampaignPreset, CampaignSettings, ProgressionMode } from "./settings.ts";
@@ -122,6 +123,8 @@ export const GameView = z.object({
   levelProposals: z
     .array(LevelProposal.extend({ status: z.enum(["pending", "accepted", "superseded"]) }))
     .default([]),
+  /** Avatar runs (D134): the active one drives the sovereign-intervention confirmation. */
+  avatars: z.array(AvatarRun.extend({ name: z.string() })).default([]),
   /** The campaign's dice system, locked at creation (spec 02, 12). */
   resolution: ResolutionId.default("d100"),
   /** `value` is the canonical 0–100 skill; `display` is the module's notation ("65%" or "+3"). */
