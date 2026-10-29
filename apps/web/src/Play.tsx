@@ -139,8 +139,23 @@ export function Play({
   }, [play.busy, view.turns.length]);
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement).closest("input,textarea,select,[role=dialog]")) return;
-      if (e.key.toLowerCase() === "c") setSheet(true);
+      if ((e.target as HTMLElement).closest("input,textarea,select,[role=dialog],[contenteditable=true]"))
+        return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const key = e.key.toLowerCase();
+      if (key === "c") {
+        setSheet(true);
+        return;
+      }
+      // Spec 13 keyboard: J journal, M map, I inventory. On a phone they open the bottom sheets.
+      const destinations = { j: "journal", m: "map", i: "inventory" } as const;
+      if (key in destinations) {
+        e.preventDefault();
+        const next = destinations[key as keyof typeof destinations];
+        if (window.matchMedia("(max-width: 767px)").matches) setPanelOpen(next);
+        else setTab(next);
+        return;
+      }
       const choice = last?.clarification?.options[Number(e.key) - 1];
       if (choice && !play.busy) {
         e.preventDefault();
