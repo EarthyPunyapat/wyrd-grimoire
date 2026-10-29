@@ -180,9 +180,12 @@ The profile can be edited mid-campaign. The **default house style** imitates the
 **References:** ChatGPT's in-chat cards, and the modern UI of Caves of Qud: one dark dominant hue with bright accents, a dense one-line status strip on top, a message log on the right with coloured keywords, an ability hotbar along the bottom with key hints, and centred thin-bordered event pop-ups. Qud's **structure** with a modern finish (D139).
 
 - **Layout presets:**
-  - **Reader** (now, the default): the prose owns the screen.
+  - **Reader** (default, the "Night Codex" mockup): book serif prose, chapter numerals, rolls and items as margin notes.
+  - **Cockpit** (the "Qud Modern" mockup): dense monospace chrome, a right-hand log and watch list, a 1px accent line for selection.
+  - **Chat** (the "Lantern Glass" mockup): true black, soft rounded cards, input as a chat bubble.
   - **Visual Novel** (with M8 art).
-  - **Cockpit** (optional: adds the right-hand log).
+
+  All presets share components, data and accent meanings; they change only layout, fonts and spacing (D150).
   - Customization is presets plus dials: text size, column width, light/dark, density, motion. No free drag-and-drop.
 - **Chrome:**
   - a slim status strip (level or power rating, key resource, location, game time, model badge)
