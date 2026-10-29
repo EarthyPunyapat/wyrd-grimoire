@@ -62,7 +62,7 @@ Use the supplied character name if present, otherwise suggest an appropriate nam
         ],
         toolChoice: { name: "propose_world" },
       },
-      { promptVersion: "world-opening@2", maxChars: 60000 },
+      { promptVersion: "world-opening@2", maxChars: 60000, maxOutputTokens: 16384 },
     );
     const call = result.toolCalls.length === 1 && result.toolCalls[0];
     const parsed = call && call.name === "propose_world" ? WorldProposal.safeParse(call.args) : undefined;
@@ -105,7 +105,7 @@ export async function propose<T>(
         tools: [{ name, description: `Answer with ${name}.`, parameters: json as Record<string, unknown> }],
         toolChoice: { name },
       },
-      { promptVersion, maxChars: 80000 },
+      { promptVersion, maxChars: 80000, maxOutputTokens: 16384 },
     );
     const call = result.toolCalls.find((c) => c.name === name);
     const parsed = call ? schema.safeParse(call.args) : undefined;

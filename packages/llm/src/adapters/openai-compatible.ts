@@ -232,11 +232,14 @@ export class OpenAICompatibleProvider implements ChatProvider {
       try {
         args = c.args ? JSON.parse(c.args) : {};
       } catch {
+        const cutOff = finish === "length" || finish === "max_tokens";
         yield {
           type: "error",
           code: "invalid_output",
           retryable: true,
-          message: `Tool call ${c.name} had invalid JSON arguments`,
+          message: cutOff
+            ? `Tool call ${c.name} was cut off at the model's output limit (${c.args.length} characters). Try again or raise the model's max output.`
+            : `Tool call ${c.name} returned invalid JSON (${c.args.length} characters).`,
         };
         return;
       }

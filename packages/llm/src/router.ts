@@ -36,6 +36,8 @@ export type CallOptions = {
   retries?: number;
   onText?: (delta: string) => void;
   maxChars?: number;
+  /** Hard output-token cap for a call (large tool-call JSON needs headroom). */
+  maxOutputTokens?: number;
   signal?: AbortSignal;
 };
 
@@ -143,7 +145,13 @@ export class RoleRouter {
     };
     try {
       const completion = await collect(
-        provider.generate({ ...req, role, model: target.model, signal: controller.signal }),
+        provider.generate({
+          ...req,
+          role,
+          model: target.model,
+          ...(opts.maxOutputTokens ? { maxOutputTokens: opts.maxOutputTokens } : {}),
+          signal: controller.signal,
+        }),
         {
           provider: target.provider,
           ...(opts.onText ? { onText: opts.onText } : {}),
