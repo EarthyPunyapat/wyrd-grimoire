@@ -11,6 +11,7 @@ import type { NamingStyleDef } from "./naming.ts";
 import type { RecipeDef } from "./recipes.ts";
 import { AppearanceFacts } from "./sheet.ts";
 import type { SpellDef } from "./spellcasting.ts";
+import type { ThemeSpec } from "./theme.ts";
 
 /**
  * Pack content schemas, as authored in YAML. Entry IDs are local (`arcana`); references may be
@@ -281,6 +282,8 @@ export type CompiledPack = {
   creatures: Record<string, CreatureDef & { id: string }>;
   /** Spells from `spells.yaml` (spec 05, the spellcasting plugin). */
   spells?: Record<string, SpellDef & { id: string }>;
+  /** UI theme tokens from `theme.yaml` (spec 13). */
+  theme?: ThemeSpec;
   /** Money, shops, ammo recovery and container capacities from `economy.yaml` (spec 11). */
   economy?: EconomyDef;
   items: {

@@ -133,6 +133,8 @@ export const GameView = z.object({
     .object({ reason: z.literal("death"), obituary: z.string() })
     .nullable()
     .default(null),
+  /** Pack theme tokens (spec 13); null when the pack has no theme.yaml. */
+  theme: z.unknown().nullable().default(null),
   /** Survival state and recent notices (spec 11). Empty when the subsystems are off. */
   survival: z
     .object({

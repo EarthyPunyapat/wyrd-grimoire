@@ -21,6 +21,7 @@ import {
   SpellDef as SpellSchema,
   stableStringify,
   TalentDef,
+  ThemeSpec,
   WeaponDef,
 } from "@wyrd/core";
 import { CORE_SKILL_CATALOG, PACK_API_VERSION } from "@wyrd/engine";
@@ -129,6 +130,15 @@ export function loadPack(dir: string): LoadResult {
   for (const [i, p] of manifest.plugins.entries()) {
     if (!KNOWN_PLUGINS.has(p.id))
       error("PLUGIN_UNKNOWN", "pack.yaml", `No plugin "${p.id}" in this build`, `plugins.${i}`);
+  }
+
+  let theme: ThemeSpec | undefined;
+  const themePath = join(dir, "theme.yaml");
+  if (existsSync(themePath)) {
+    const parsed = ThemeSpec.safeParse(parseYaml(readFileSync(themePath, "utf8")));
+    if (!parsed.success)
+      for (const i of parsed.error.issues) error("SCHEMA", "theme.yaml", i.message, i.path.join("."));
+    else theme = parsed.data;
   }
 
   const tonePath = join(dir, "tone.md");
@@ -474,6 +484,7 @@ export function loadPack(dir: string): LoadResult {
     creatures: content.creatures,
     recipes: content.recipes,
     spells: content.spells,
+    ...(theme ? { theme } : {}),
     ...(economy ? { economy } : {}),
     items: { weapons: content.weapons, armor: content.armor, gear: content.gear },
   };

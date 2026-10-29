@@ -580,6 +580,7 @@ export function createApp(options: Options) {
         pc,
         speakers,
         resolution,
+        theme: gamePack.theme ?? null,
         survival: (() => {
           const sl = survivalOf(state.flags);
           const needs = sl.needs[pc.id];

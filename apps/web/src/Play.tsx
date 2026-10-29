@@ -1,5 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import type { GameView } from "@wyrd/core";
+import { type GameView, ThemeSpec } from "@wyrd/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.ts";
 import { CampaignSettingsPanel } from "./CampaignSettings.tsx";
@@ -10,6 +10,7 @@ import { Party } from "./Party.tsx";
 import { Mechanics, Passage } from "./Passage.tsx";
 import { Sheet } from "./Sheet.tsx";
 import { Timeline } from "./Timeline.tsx";
+import { clearThemeVars, themeVars } from "./theme.ts";
 import { usePlay } from "./use-play.ts";
 import { Codex, Journal, WorldMap } from "./World.tsx";
 
@@ -34,6 +35,17 @@ export function Play({
   onView: (view: GameView) => void;
   onOpenCampaign?: (id: string) => void | Promise<void>;
 }) {
+  // A pack theme overrides the app's default palette (spec 13 Themes).
+  useEffect(() => {
+    const parsed = ThemeSpec.safeParse(view.theme);
+    if (!parsed.success) return;
+    const variant = document.documentElement.dataset.theme;
+    const dark =
+      variant === "dark" || (variant !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+    const vars = themeVars(parsed.data, dark);
+    for (const [name, value] of Object.entries(vars)) document.documentElement.style.setProperty(name, value);
+    return () => clearThemeVars(document.documentElement.style, vars);
+  }, [view.theme]);
   const [input, setInput] = useState("");
   const [sheet, setSheet] = useState(false);
   const [combatOpen, setCombatOpen] = useState(false);
