@@ -132,9 +132,10 @@ test("XP from a closed chapter is spent in the Party tab", async ({ page }, info
   await page.getByLabel("What do you do?", { exact: true }).fill("look around");
   await page.getByLabel("What do you do?", { exact: true }).press("Enter");
   await expect(page.getByLabel("What do you do?", { exact: true })).toBeEnabled({ timeout: 15000 });
-  await page.getByRole("tab", { name: "Journal" }).click();
+  await page.getByRole("button", { name: "Journal", exact: true }).click();
   await page.getByRole("button", { name: /End session/ }).click();
-  await page.getByRole("tab", { name: "Party" }).click();
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await page.getByRole("button", { name: "Party", exact: true }).click();
   const party = page.getByRole("region", { name: "Party" });
   await expect(party.getByText("2 XP", { exact: true })).toBeVisible();
   // Every trained skill here is past 50% (3+ XP a step), so learn a new field skill for 2.

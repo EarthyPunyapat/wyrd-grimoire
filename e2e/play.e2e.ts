@@ -30,7 +30,7 @@ async function create(page: Page) {
 test("dialogue uses names and important references are emphasized safely", async ({ page }, info) => {
   await create(page);
   await page.getByLabel("What do you do?", { exact: true }).fill("readability check");
-  await page.getByRole("button", { name: "Send ↑" }).click();
+  await page.getByLabel("What do you do?", { exact: true }).press("Enter");
   await expect(page.locator(".speaker")).toHaveText(["Mina Vale", "Jules Park"]);
   // Known names are reference cards (M5); narrator-marked clues stay bold.
   await expect(page.locator(".prose p strong, .prose p .ref")).toHaveText([
@@ -79,14 +79,9 @@ test("quick start, live turn, reroll, reload and character sheet", async ({ page
   await page.screenshot({ path: info.outputPath("m3.png"), fullPage: true });
   await page.reload();
   await expect(page.locator(".prose")).toContainText("offline narrator");
-  if (info.project.name === "phone") {
-    await page.getByRole("button", { name: "Sheet ↗" }).click();
-    await expect(page.getByRole("dialog").getByRole("heading", { name: "Wren" })).toBeVisible();
-    await page.getByRole("button", { name: "Close character sheet" }).click();
-  } else
-    await expect(
-      page.getByRole("complementary", { name: "Character sheet" }).getByRole("heading", { name: "Wren" }),
-    ).toBeVisible();
+  await page.getByRole("button", { name: "Sheet", exact: true }).click();
+  await expect(page.getByRole("dialog").getByRole("heading", { name: "Wren" })).toBeVisible();
+  await page.getByRole("button", { name: "Close character sheet" }).click();
   const viewport = page.viewportSize()!;
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
   expect(errors).toEqual([]);
@@ -101,20 +96,24 @@ test("J, M, I and C open their panels without stealing typed keys", async ({ pag
   );
   await create(page);
   await page.locator(".location-bar span").first().click();
-  const selected = page.getByRole("tab", { selected: true });
-  await page.keyboard.press("j");
-  await expect(selected).toHaveText("Journal");
-  await page.keyboard.press("m");
-  await expect(selected).toHaveText("Map");
-  await page.keyboard.press("i");
-  await expect(selected).toHaveText("Inventory");
+  // Reader opens every menu full screen over the story (D150); Escape returns to the story.
+  for (const [key, name] of [
+    ["j", "Journal"],
+    ["m", "Map"],
+    ["i", "Inventory"],
+  ] as const) {
+    await page.keyboard.press(key);
+    await expect(page.getByRole("dialog", { name })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  }
 
   // A key typed into the composer is text, not a shortcut.
   const box = page.getByLabel("What do you do?", { exact: true });
   await box.fill("");
   await box.press("j");
   await expect(box).toHaveValue("j");
-  await expect(selected).toHaveText("Inventory");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await page.keyboard.press("c");
@@ -143,12 +142,12 @@ test("browser back reaches the campaign list and the skip link stays in the stor
 test("clarification choices are resolved and guard flags can regenerate", async ({ page }) => {
   await create(page);
   await page.getByLabel("What do you do?", { exact: true }).fill("ambiguous request");
-  await page.getByRole("button", { name: "Send ↑" }).click();
+  await page.getByLabel("What do you do?", { exact: true }).press("Enter");
   await expect(page.getByText("Where would you like to look?", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "1 Look around the room" }).click();
   await expect(page.locator(".prose")).toBeVisible();
   await page.getByLabel("What do you do?", { exact: true }).fill("force a canon flag");
-  await page.getByRole("button", { name: "Send ↑" }).click();
+  await page.getByLabel("What do you do?", { exact: true }).press("Enter");
   await expect(page.getByRole("heading", { name: "Canon needs a second look" })).toBeVisible();
   await page.getByRole("button", { name: "Keep canon & regenerate" }).click();
   await expect(page.getByLabel("What do you do?", { exact: true })).toBeEnabled();
@@ -157,7 +156,7 @@ test("clarification choices are resolved and guard flags can regenerate", async 
 test("model routes save, connection stays host-side, and usage is confined to settings", async ({ page }) => {
   await create(page);
   await page.getByLabel("What do you do?", { exact: true }).fill("look around");
-  await page.getByRole("button", { name: "Send ↑" }).click();
+  await page.getByLabel("What do you do?", { exact: true }).press("Enter");
   await expect(page.locator(".prose")).toBeVisible();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   const dialog = page.getByRole("dialog");

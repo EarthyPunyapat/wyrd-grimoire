@@ -1,0 +1,187 @@
+/* Reader preset — the "Night Codex" play screen (DESIGN.md Layout + Components, D150).
+   Scoped to [data-preset="reader"]; tokens come from tokens.css. Square, flat, 1px rules, no shadows. */
+
+[data-preset="reader"].play-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--bg);
+  color: var(--ink);
+}
+[data-preset="reader"] * { box-shadow: none; }
+[data-preset="reader"] button { border-radius: 0; }
+
+/* ── Status strip ───────────────────────────────────────────────── */
+[data-preset="reader"] .status-strip {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--space-5);
+  min-height: var(--status-height); padding: 0 var(--gutter);
+  border-bottom: 1px solid var(--line); background: var(--bg);
+  font: var(--text-meta) / 1.4 var(--font-chrome); font-variant-numeric: tabular-nums; color: var(--ink-muted);
+}
+[data-preset="reader"] .status-strip .strip-place { order: 3; }
+[data-preset="reader"] .status-strip .strip-name { order: 1; color: var(--ink); }
+[data-preset="reader"] .status-strip .strip-meta { order: 2; }
+[data-preset="reader"] .status-strip .strip-meta + .strip-meta { order: 4; }
+[data-preset="reader"] .status-strip .strip-spacer { order: 5; flex: 1; }
+[data-preset="reader"] .strip-menus { order: 6; display: flex; flex-wrap: wrap; gap: 0 var(--space-3); }
+[data-preset="reader"] .strip-menus button {
+  min-height: var(--touch-target); padding: 0 2px; border: 0; border-bottom: 1px solid transparent;
+  background: none; color: var(--ink-muted); font: inherit; cursor: pointer;
+}
+[data-preset="reader"] .strip-menus button:hover,
+[data-preset="reader"] .strip-menus button[aria-current="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+[data-preset="reader"] .key { color: var(--ink-faint); margin-right: .5em; }
+
+/* ── Story column + margin rail ─────────────────────────────────── */
+[data-preset="reader"] .story { border-right: 0; background: var(--bg); }
+[data-preset="reader"] .story-scroll { padding: var(--space-7) var(--gutter) var(--space-5); }
+[data-preset="reader"] .story-inner { max-width: calc(var(--measure) + var(--rail) + var(--space-7)); margin: 0 auto; }
+
+[data-preset="reader"] .chapter-heading { display: flex; align-items: baseline; gap: 18px; margin-bottom: var(--rhythm); max-width: var(--measure); }
+[data-preset="reader"] .chapter-numeral { font: 400 var(--text-chapter-numeral) / 1 var(--font-read); color: var(--accent); }
+[data-preset="reader"] .chapter-heading h2 { margin: 0; font: italic 400 var(--text-title) / 1.1 var(--font-read); color: var(--ink); }
+[data-preset="reader"] .chapter-locator { display: block; font: var(--text-meta) / 1.6 var(--font-chrome); color: var(--ink-muted); }
+[data-preset="reader"] .opening { max-width: var(--measure); margin-bottom: calc(var(--rhythm) * 2); }
+[data-preset="reader"] .opening .prose,
+[data-preset="reader"] .passage-main,
+[data-preset="reader"] .live-passage {
+  font: var(--story-size) / var(--story-leading) var(--font-read); color: var(--ink);
+}
+[data-preset="reader"] .opening-note { font: italic 16px / 1.6 var(--font-read); color: var(--ink-muted); }
+
+[data-preset="reader"] .passage {
+  display: grid; grid-template-columns: minmax(0, var(--measure)) var(--rail); gap: var(--space-5) var(--space-7);
+  align-items: start; padding: 0; margin: 0 0 calc(var(--rhythm) * 2); border-bottom: 0;
+}
+[data-preset="reader"] .passage-main { min-width: 0; display: flex; flex-direction: column; gap: var(--rhythm); }
+[data-preset="reader"] .passage-main > * { margin: 0; }
+[data-preset="reader"] .player-input { font: italic 18px / 1.6 var(--font-read); color: var(--ink-muted); }
+[data-preset="reader"] .player-input > span[aria-hidden] { display: none; }
+[data-preset="reader"] .passage-main blockquote { margin: 0; padding-left: 20px; border: 0; }
+[data-preset="reader"] .passage-main .speaker {
+  display: block; font: italic 400 var(--text-speaker) / 1.4 var(--font-read); color: var(--person);
+}
+[data-preset="reader"] .ref { color: var(--person); text-decoration: underline dotted 1px; text-underline-offset: 4px; }
+[data-preset="reader"] .backup-badge { align-self: flex-start; font: var(--text-meta) var(--font-chrome); color: var(--ink-muted); border-bottom: 1px solid var(--line-strong); }
+
+/* Margin notes: annotations beside the passage, each with a 1px top rule. */
+[data-preset="reader"] .margin-notes { display: flex; flex-direction: column; gap: 18px; font: var(--text-meta) / 1.6 var(--font-chrome); color: var(--ink-muted); }
+[data-preset="reader"] .margin-notes:empty { display: none; }
+[data-preset="reader"] .margin-notes .gm-cards { display: flex; flex-direction: column; gap: 18px; margin: 0; }
+[data-preset="reader"] .margin-notes .gm-card {
+  margin: 0; padding: 10px 0 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: none; color: var(--ink);
+}
+[data-preset="reader"] .margin-notes .item-card { border-top-color: var(--line-gold); }
+[data-preset="reader"] .margin-notes .item-card strong,
+[data-preset="reader"] .margin-notes .item-card h3 { color: var(--gold); }
+[data-preset="reader"] .margin-notes .eyebrow { color: var(--ink-muted); font: var(--text-meta) var(--font-chrome); letter-spacing: 0; text-transform: none; }
+[data-preset="reader"] .margin-notes .mechanics { margin: 0; padding-top: 10px; border: 0; border-top: 1px solid var(--line); background: none; }
+[data-preset="reader"] .margin-notes .mechanics summary { color: var(--ink-muted); cursor: pointer; }
+[data-preset="reader"] .margin-notes .mechanics ul { margin: 6px 0 0; padding: 0; list-style: none; }
+[data-preset="reader"] .margin-notes .mechanics li { color: var(--ink); }
+[data-preset="reader"] .margin-notes .mechanics li.success,
+[data-preset="reader"] .margin-notes .mechanics li.critSuccess { color: var(--accent); }
+[data-preset="reader"] .margin-notes .mechanics li.failure,
+[data-preset="reader"] .margin-notes .mechanics li.critFailure { color: var(--danger); }
+
+/* Choice list: one row each, 1px rules, the whole row is the target. */
+[data-preset="reader"] .gm-choices { display: flex; flex-direction: column; gap: 0; border: 0; padding: 0; margin: 0; }
+[data-preset="reader"] .gm-choices button,
+[data-preset="reader"] .clarification button {
+  display: flex; gap: 14px; align-items: baseline; width: 100%; min-height: var(--touch-target);
+  padding: 10px 0; border: 0; border-top: 1px solid var(--line); background: none; text-align: left;
+  font: var(--text-choice) / 1.5 var(--font-read); color: var(--ink); cursor: pointer;
+}
+[data-preset="reader"] .gm-choices button:last-child { border-bottom: 1px solid var(--line); }
+[data-preset="reader"] .gm-choices button:hover:not(:disabled),
+[data-preset="reader"] .clarification button:hover:not(:disabled) { background: var(--surface); border-top-color: var(--accent); }
+[data-preset="reader"] .gm-choices button:disabled { color: var(--ink-faint); cursor: default; }
+[data-preset="reader"] .gm-choices kbd,
+[data-preset="reader"] .clarification kbd {
+  border: 0; background: none; padding: 0; font: 13px var(--font-chrome); color: var(--accent);
+}
+[data-preset="reader"] .gm-choices .small.muted { font-style: italic; color: var(--ink-muted); font-size: inherit; }
+
+[data-preset="reader"] .check-flags,
+[data-preset="reader"] .guard-card,
+[data-preset="reader"] .clarification {
+  border: 0; border-top: 1px solid var(--line-strong); border-radius: 0; background: none; padding: 10px 0 0;
+  font: var(--text-meta) / 1.6 var(--font-chrome); color: var(--ink-muted);
+}
+[data-preset="reader"] .check-flags h3,
+[data-preset="reader"] .guard-card h3,
+[data-preset="reader"] .clarification h3 { margin: 0 0 4px; font: inherit; color: var(--ink); }
+[data-preset="reader"] .check-flag-actions button,
+[data-preset="reader"] .guard-card button,
+[data-preset="reader"] .passage-tools button {
+  min-height: var(--touch-target); padding: 0 8px 0 0; border: 0; background: none; color: var(--accent);
+  font: var(--text-meta) var(--font-chrome); cursor: pointer;
+}
+[data-preset="reader"] .passage-tools { gap: var(--space-3); font: var(--text-meta) var(--font-chrome); color: var(--ink-muted); }
+[data-preset="reader"] .passage-tools > span { font: italic 14px var(--font-read); }
+
+[data-preset="reader"] .pending { max-width: var(--measure); font: var(--text-meta) / 1.6 var(--font-chrome); color: var(--ink-muted); }
+[data-preset="reader"] .pending .live-passage { margin-bottom: var(--rhythm); }
+[data-preset="reader"] .pending .pulse { color: var(--accent); }
+
+/* ── Composer: a label and one underline; Enter sends ──────────── */
+[data-preset="reader"] .composer { padding: 0 var(--gutter) var(--space-4); border-top: 0; background: var(--bg); }
+[data-preset="reader"] .composer-inner { max-width: calc(var(--measure) + var(--rail) + var(--space-7)); }
+[data-preset="reader"] .composer-inner > * { max-width: var(--measure); }
+[data-preset="reader"] .input-row { display: flex; flex-direction: column; gap: 6px; }
+[data-preset="reader"] .input-row label { font: var(--text-meta) var(--font-chrome); color: var(--ink-muted); }
+[data-preset="reader"] .input-row textarea {
+  min-height: var(--touch-target); max-height: 160px; resize: none; padding: 8px 0;
+  border: 0; border-bottom: 1px solid var(--line-strong); border-radius: 0; background: none;
+  font: italic var(--text-input) / 1.5 var(--font-read); color: var(--ink);
+}
+[data-preset="reader"] .input-row textarea:focus { border-bottom-color: var(--accent); outline: none; }
+[data-preset="reader"] .input-row textarea::placeholder { color: var(--ink-faint); }
+[data-preset="reader"] .composer-foot { font: var(--text-meta) var(--font-chrome); color: var(--ink-muted); }
+[data-preset="reader"] .suggestions { display: flex; flex-wrap: wrap; gap: 0 var(--space-4); border: 0; padding: 0 0 6px; margin: 0; }
+[data-preset="reader"] .suggestions button {
+  min-height: var(--touch-target); padding: 0; border: 0; background: none; color: var(--ink-muted);
+  font: var(--text-meta) var(--font-chrome); cursor: pointer;
+}
+[data-preset="reader"] .suggestions button:hover:not(:disabled) { color: var(--ink); text-decoration: underline 1px var(--accent); text-underline-offset: 4px; }
+
+/* ── Hotbar: fixed chrome at the bottom ─────────────────────────── */
+[data-preset="reader"] .hotbar {
+  display: flex; justify-content: center; gap: 28px; min-height: var(--hotbar-height);
+  padding: 0 var(--gutter); border-top: 1px solid var(--line); background: var(--bg);
+  overflow-x: auto; white-space: nowrap; font: var(--text-meta) var(--font-chrome);
+}
+[data-preset="reader"] .hotbar button {
+  min-height: var(--touch-target); align-self: center; padding: 0 4px; border: 0; border-bottom: 1px solid transparent;
+  background: none; color: var(--ink); font: inherit; cursor: pointer;
+}
+[data-preset="reader"] .hotbar button:hover:not(:disabled) { border-bottom-color: var(--accent); }
+[data-preset="reader"] .hotbar button:disabled { color: var(--ink-faint); cursor: default; }
+[data-preset="reader"] .hotbar .hotbar-danger { color: var(--danger); }
+
+/* ── Menus open full screen over the story (U4 builds the tabbed status screen) ── */
+.dialog.menu-screen[data-preset="reader"] {
+  inset: 0; width: auto; max-width: none; height: auto; max-height: none; transform: none;
+  border: 0; border-radius: 0; background: var(--bg); color: var(--ink); overflow-y: auto;
+  padding: var(--space-6) max(var(--gutter), calc((100vw - 960px) / 2));
+}
+
+/* ── Narrow windows: the rail folds under the passage; chrome keeps 44px targets ── */
+@media (max-width: 1000px) {
+  [data-preset="reader"] .passage { grid-template-columns: minmax(0, 1fr); }
+  [data-preset="reader"] .margin-notes { border-top: 0; }
+}
+@media (max-width: 640px) {
+  [data-preset="reader"] { --gutter: var(--space-4); }
+  [data-preset="reader"] .hotbar { justify-content: flex-start; gap: var(--space-5); }
+  [data-preset="reader"] .chapter-numeral { font-size: 40px; }
+}
+
+/* In a fight the initiative strip sits above the composer at every width; the full panel is the Combat dialog (X). */
+[data-preset="reader"] .combat-strip { display: flex; padding: 6px var(--gutter) 0; border-top: 1px solid var(--line); background: var(--bg); }
+
+/* The app bar above the strip goes quiet while playing. */
+:root[data-preset="reader"] .topbar { min-height: 0; padding: 6px var(--gutter); background: var(--bg); border-bottom: 1px solid var(--line); }
+
+/* Rolls in the rail are annotations, not boxes. */
+[data-preset="reader"] .margin-notes .mechanics ul { padding: 0; background: none; border: 0; border-radius: 0; }

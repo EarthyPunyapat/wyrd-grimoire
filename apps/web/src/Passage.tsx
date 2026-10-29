@@ -81,109 +81,113 @@ export function Passage({
       : turn.cards;
   return (
     <article className="passage" data-turn={turn.id}>
-      <p className="player-input">
-        <span aria-hidden="true">↳</span> {turn.input}
-      </p>
-      {turn.backup && <p className="backup-badge">backup model</p>}
-      {turn.narration && <Narration text={turn.narration} {...narrationContext(view)} />}
-      <Cards
-        cards={cards}
-        view={view}
-        mechanics={turn.mechanics}
-        {...(turn.retcon ? { retcon: turn.retcon } : {})}
-        {...(onUndo ? { onUndo } : {})}
-      />
-      <Mechanics lines={turn.mechanics} expanded={math} resolution={view.resolution} />
-      {turn.choices.length > 0 && onChoice && (
-        <fieldset className="gm-choices">
-          <legend className="sr-only">Choices</legend>
-          {turn.choices.map((choice, i) => (
-            <button
-              type="button"
-              key={choice.label}
-              disabled={busy}
-              onClick={() => onChoice(i, choice.label)}
-            >
-              <kbd>{i + 1}</kbd> {choice.label}
-              {choice.description && <span className="small muted"> — {choice.description}</span>}
-            </button>
-          ))}
-        </fieldset>
-      )}
-      {flags.length > 0 && (
-        <div className="check-flags" role="status">
-          <h3>Possible unrecorded change</h3>
-          {flags.map((flag) => (
-            <div key={flag.quote} className="check-flag">
-              <p>
-                <q>{flag.quote}</q> — {flag.claim}
-              </p>
-              <div className="check-flag-actions">
-                {onFix && (
-                  <button type="button" disabled={busy} onClick={() => onFix(turn.id)}>
-                    Fix
-                  </button>
-                )}
-                <button type="button" onClick={() => dismiss(flag.quote)}>
-                  Dismiss
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-      {turn.answer && <p className="ooc">{turn.answer}</p>}
-      {turn.status === "failed" && (
-        <p role="alert" className="error">
-          The storyteller could not resolve that turn. Please try your action again.
+      <div className="passage-main">
+        <p className="player-input">
+          <span aria-hidden="true">↳</span> {turn.input}
         </p>
-      )}
-      {turn.clarification && onChoice && (
-        <div className="clarification">
-          <h3>
-            A moment… <DiceBadge resolution={view.resolution} />
-          </h3>
-          <p>{turn.clarification.question}</p>
-          {view.resolution === "d20" && (
-            <p className="muted small">Checks roll d20 + the skill modifier against the DC.</p>
-          )}
-          <div>
-            {turn.clarification.options.map((option, i) => (
+        {turn.backup && <p className="backup-badge">backup model</p>}
+        {turn.narration && <Narration text={turn.narration} {...narrationContext(view)} />}
+        {turn.choices.length > 0 && onChoice && (
+          <fieldset className="gm-choices">
+            <legend className="sr-only">Choices</legend>
+            {turn.choices.map((choice, i) => (
               <button
                 type="button"
-                key={option.label}
+                key={choice.label}
                 disabled={busy}
-                onClick={() => onChoice(i, option.label)}
+                onClick={() => onChoice(i, choice.label)}
               >
-                <kbd>{i + 1}</kbd> {option.label}
+                <kbd>{i + 1}</kbd> {choice.label}
+                {choice.description && <span className="small muted"> — {choice.description}</span>}
               </button>
             ))}
+          </fieldset>
+        )}
+        {flags.length > 0 && (
+          <div className="check-flags" role="status">
+            <h3>Possible unrecorded change</h3>
+            {flags.map((flag) => (
+              <div key={flag.quote} className="check-flag">
+                <p>
+                  <q>{flag.quote}</q> — {flag.claim}
+                </p>
+                <div className="check-flag-actions">
+                  {onFix && (
+                    <button type="button" disabled={busy} onClick={() => onFix(turn.id)}>
+                      Fix
+                    </button>
+                  )}
+                  <button type="button" onClick={() => dismiss(flag.quote)}>
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
-      )}
-      {turn.guard?.flagged.length ? (
-        <div className="guard-card">
-          <h3>Canon needs a second look</h3>
-          {turn.guard.flagged.map((flag) => (
-            <p key={flag.quote}>
-              <q>{flag.quote}</q> — {flag.detail}
-            </p>
-          ))}
-          <button type="button" disabled={busy} onClick={onReroll}>
-            Keep canon & regenerate
-          </button>
-        </div>
-      ) : turn.guard && !turn.guard.checked ? (
-        <p className="muted guard-note">Canon check unavailable for this passage.</p>
-      ) : null}
-      {turn.status === "resolved" && (
-        <div className="passage-tools">
-          <button type="button" disabled={busy} onClick={onReroll}>
-            ↻ Reroll narration
-          </button>
-          <span>Same dice. Another telling.</span>
-        </div>
-      )}
+        )}
+        {turn.answer && <p className="ooc">{turn.answer}</p>}
+        {turn.status === "failed" && (
+          <p role="alert" className="error">
+            The storyteller could not resolve that turn. Please try your action again.
+          </p>
+        )}
+        {turn.clarification && onChoice && (
+          <div className="clarification">
+            <h3>
+              A moment… <DiceBadge resolution={view.resolution} />
+            </h3>
+            <p>{turn.clarification.question}</p>
+            {view.resolution === "d20" && (
+              <p className="muted small">Checks roll d20 + the skill modifier against the DC.</p>
+            )}
+            <div>
+              {turn.clarification.options.map((option, i) => (
+                <button
+                  type="button"
+                  key={option.label}
+                  disabled={busy}
+                  onClick={() => onChoice(i, option.label)}
+                >
+                  <kbd>{i + 1}</kbd> {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {turn.guard?.flagged.length ? (
+          <div className="guard-card">
+            <h3>Canon needs a second look</h3>
+            {turn.guard.flagged.map((flag) => (
+              <p key={flag.quote}>
+                <q>{flag.quote}</q> — {flag.detail}
+              </p>
+            ))}
+            <button type="button" disabled={busy} onClick={onReroll}>
+              Keep canon & regenerate
+            </button>
+          </div>
+        ) : turn.guard && !turn.guard.checked ? (
+          <p className="muted guard-note">Canon check unavailable for this passage.</p>
+        ) : null}
+        {turn.status === "resolved" && (
+          <div className="passage-tools">
+            <button type="button" disabled={busy} onClick={onReroll}>
+              ↻ Reroll narration
+            </button>
+            <span>Same dice. Another telling.</span>
+          </div>
+        )}
+      </div>
+      <aside className="margin-notes" aria-label="Margin notes">
+        <Cards
+          cards={cards}
+          view={view}
+          mechanics={turn.mechanics}
+          {...(turn.retcon ? { retcon: turn.retcon } : {})}
+          {...(onUndo ? { onUndo } : {})}
+        />
+        <Mechanics lines={turn.mechanics} expanded={math} resolution={view.resolution} />
+      </aside>
     </article>
   );
 }

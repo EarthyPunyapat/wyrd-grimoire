@@ -43,12 +43,11 @@ test("a named save can be loaded to move the campaign back", async ({ page }, in
   const saved = await clock(page);
 
   const openTimeline = async () => {
-    if (phone) await page.getByRole("button", { name: "Timeline", exact: true }).click();
-    else await page.getByRole("tab", { name: "Timeline" }).click();
+    await page.getByRole("button", { name: "Timeline", exact: true }).click();
     return page.getByRole("region", { name: "Timeline" });
   };
   const closePanel = async () => {
-    if (phone) await page.getByRole("button", { name: "Close panel" }).click();
+    await page.getByRole("button", { name: "Close panel" }).click();
   };
 
   let timeline = await openTimeline();

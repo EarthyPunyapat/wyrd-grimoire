@@ -30,9 +30,8 @@ const coins = (panel: ReturnType<Page["getByRole"]>) =>
 test("inventory shows coins, gear and a working shop", async ({ page }, info) => {
   const phone = info.project.name === "phone";
   await market(page);
-  if (phone) await page.getByRole("button", { name: "Inventory", exact: true }).click();
-  else await page.getByRole("tab", { name: "Inventory", exact: true }).click();
-  const panel = (phone ? page.getByRole("dialog") : page.getByRole("complementary")).getByRole("region", {
+  await page.getByRole("button", { name: "Inventory", exact: true }).click();
+  const panel = page.getByRole("dialog").getByRole("region", {
     name: "Inventory",
   });
   await expect(panel.getByRole("heading", { name: "Equipped" })).toBeVisible();
@@ -57,12 +56,8 @@ test("a generated campaign has no merchant and does not crash on an empty pack",
   await page.getByRole("button", { name: "Preview example world →" }).click();
   await page.getByRole("button", { name: "Begin adventure →" }).click();
   await expect(page.getByRole("heading", { name: "Relay Nine" })).toBeVisible();
-  if (info.project.name === "phone")
-    await page.getByRole("button", { name: "Inventory", exact: true }).click();
-  else await page.getByRole("tab", { name: "Inventory", exact: true }).click();
-  const panel = (
-    info.project.name === "phone" ? page.getByRole("dialog") : page.getByRole("complementary")
-  ).getByRole("region", { name: "Inventory" });
+  await page.getByRole("button", { name: "Inventory", exact: true }).click();
+  const panel = page.getByRole("dialog").getByRole("region", { name: "Inventory" });
   await expect(panel.getByText("No merchant here.")).toBeVisible();
   await expect(panel.getByText("Nothing but what you stand in.")).toBeVisible();
   await expect(coins(panel)).toHaveText(/\d+/);

@@ -30,7 +30,7 @@
   --hue-red: #e5566f;
   --hue-cyan: #5cc8e0;
   --hue: var(--hue-green);
-  --accent: var(--hue);
+  /* --accent is set per preset only, so screens outside a preset keep their own theme accent. */
 
   /* Spacing: a 4px base with a short, reusable rhythm. */
   --space-1: 4px;

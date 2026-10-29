@@ -5,11 +5,13 @@ import { api } from "./api.ts";
 import { CampaignSettingsPanel } from "./CampaignSettings.tsx";
 import { Cards } from "./Cards.tsx";
 import { CombatPanel, CombatStrip } from "./Combat.tsx";
+import { Hotbar } from "./Hotbar.tsx";
 import { Inventory } from "./Inventory.tsx";
 import { NarrativeText, narrationContext, RefContext } from "./Narration.tsx";
 import { Party } from "./Party.tsx";
 import { Mechanics, Passage } from "./Passage.tsx";
 import { Sheet } from "./Sheet.tsx";
+import { type Menu, StatusStrip } from "./StatusStrip.tsx";
 import { Timeline } from "./Timeline.tsx";
 import { clearThemeVars, themeVars } from "./theme.ts";
 import { useCampaignSettings } from "./use-campaign-settings.ts";
@@ -48,10 +50,16 @@ export function Play({
     for (const [name, value] of Object.entries(vars)) document.documentElement.style.setProperty(name, value);
     return () => clearThemeVars(document.documentElement.style, vars);
   }, [view.theme]);
+  // Reader themes the whole page while playing: the app bar and the menus that open over the story (D150).
+  useEffect(() => {
+    document.documentElement.dataset.preset = "reader";
+    return () => {
+      delete document.documentElement.dataset.preset;
+    };
+  }, []);
   const [input, setInput] = useState("");
   const [sheet, setSheet] = useState(false);
   const [combatOpen, setCombatOpen] = useState(false);
-  const [tab, setTab] = useState<Tab>(view.combat ? "combat" : "sheet");
   const [panelOpen, setPanelOpen] = useState<Tab | null>(null);
   const [codexFocus, setCodexFocus] = useState<string | null>(null);
   const [legacyName, setLegacyName] = useState("");
@@ -74,18 +82,12 @@ export function Play({
     textarea.current?.focus();
   };
   const inCombat = !!view.combat && !view.ended;
-  const tabs: Tab[] = inCombat
-    ? ["combat", "sheet", "inventory", "party", "journal", "codex", "map", "timeline"]
-    : ["sheet", "inventory", "party", "journal", "codex", "map", "timeline"];
   const stamp = view.turns.length;
-  useEffect(() => {
-    if (inCombat) setTab("combat");
-    else setTab((t) => (t === "combat" ? "sheet" : t));
-  }, [inCombat]);
+  // Reader keeps one reading column: every menu opens over the story, never beside it (DESIGN.md).
+  const openMenu = (menu: Menu) => (menu === "sheet" ? setSheet(true) : setPanelOpen(menu));
   const openCodex = (id: string) => {
     setCodexFocus(id);
-    if (window.matchMedia("(max-width: 767px)").matches) setPanelOpen("codex");
-    else setTab("codex");
+    setPanelOpen("codex");
   };
   const travel = (text: string) => {
     fill(text);
@@ -148,13 +150,27 @@ export function Play({
         setSheet(true);
         return;
       }
-      // Spec 13 keyboard: J journal, M map, I inventory. On a phone they open the bottom sheets.
-      const destinations = { j: "journal", m: "map", i: "inventory" } as const;
+      // Spec 13 keyboard: J journal (Q quests live there too), M map, I inventory.
+      const destinations = { j: "journal", q: "journal", m: "map", i: "inventory" } as const;
       if (key in destinations) {
         e.preventDefault();
-        const next = destinations[key as keyof typeof destinations];
-        if (window.matchMedia("(max-width: 767px)").matches) setPanelOpen(next);
-        else setTab(next);
+        setPanelOpen(destinations[key as keyof typeof destinations]);
+        return;
+      }
+      // Hotbar keys (spec §12): O observe, T time skip, G choices, X combat.
+      if (key === "o" || key === "t") {
+        e.preventDefault();
+        fill(key === "o" ? "Observe " : "Time skip: ");
+        return;
+      }
+      if (key === "g" && !play.busy) {
+        e.preventDefault();
+        void send("Give me choices");
+        return;
+      }
+      if (key === "x" && inCombat) {
+        e.preventDefault();
+        setCombatOpen(true);
         return;
       }
       const choice = last?.clarification?.options[Number(e.key) - 1];
@@ -171,28 +187,18 @@ export function Play({
     };
     window.addEventListener("keydown", listener);
     return () => window.removeEventListener("keydown", listener);
-  }, [last, play.busy, send]);
+  }, [last, play.busy, send, inCombat]);
   return (
     <RefContext.Provider value={{ known: view.known, campaignId: view.id, open: openCodex }}>
-      <main id="main" className="play-layout">
+      <main id="main" className="play-layout play-reader" data-preset="reader">
         <h1 className="sr-only">{view.name}</h1>
+        <StatusStrip
+          view={view}
+          active={panelOpen === "combat" ? null : panelOpen}
+          onMenu={openMenu}
+          onSettings={() => setCampaignSettings(true)}
+        />
         <section className="story" aria-label="Story">
-          <div className="location-bar">
-            <span>
-              ⌂ <strong>{view.scene?.location ?? "Between chapters"}</strong>{" "}
-              {view.scene?.zone && ` / ${view.scene.zone}`}
-            </span>
-            <span>
-              {view.scene?.weather} ·{" "}
-              {Math.floor((view.gameTime % 1440) / 60)
-                .toString()
-                .padStart(2, "0")}
-              :{(view.gameTime % 60).toString().padStart(2, "0")}
-            </span>
-            <button type="button" onClick={() => setCampaignSettings(true)}>
-              ⚙ Campaign settings
-            </button>
-          </div>
           <div className="story-scroll">
             <div className="story-inner">
               <button
@@ -205,31 +211,17 @@ export function Play({
               >
                 Jump to the latest passage
               </button>
-              <div className="scene-banner" aria-hidden="true">
-                <svg viewBox="0 0 800 210" preserveAspectRatio="xMidYMid slice">
-                  <title>A map of possible paths</title>
-                  <path
-                    className="hills"
-                    d="M0 150 100 120 220 160 350 100 450 140 570 80 680 130 800 90V210H0Z"
-                  />
-                  <path
-                    className="ferry"
-                    d="M100 120 220 160 350 100 450 140 570 80 680 130M350 100v-55m-25 25h50m-25-15 15 15-15 15-15-15Z"
-                  />
-                </svg>
-                <span>
-                  {view.worldName} <small>ON THE EDGE OF SOMETHING</small>
-                </span>
-              </div>
-              <div className="chapter-label">
-                <span />
-                THE STORY SO FAR
-                <span />
-              </div>
               {!view.turns.length && (
                 <div className="opening">
-                  <div className="eyebrow">CHAPTER ONE</div>
-                  <h2>{view.scene?.location ?? view.worldName}</h2>
+                  <div className="chapter-heading">
+                    <span className="chapter-numeral" aria-hidden="true">
+                      I
+                    </span>
+                    <div>
+                      <h2>{view.scene?.location ?? view.worldName}</h2>
+                      <span className="chapter-locator">Chapter one · {view.worldName}</span>
+                    </div>
+                  </div>
                   <p className="prose">
                     <NarrativeText text={view.opening} names={narrationContext(view).names} />
                   </p>
@@ -395,9 +387,7 @@ export function Play({
                 </fieldset>
               )}
               <div className="input-row">
-                <label className="sr-only" htmlFor="action-input">
-                  What do you do?
-                </label>
+                <label htmlFor="action-input">What do you do?</label>
                 <textarea
                   ref={textarea}
                   id="action-input"
@@ -409,17 +399,16 @@ export function Play({
                       void send(input);
                     }
                   }}
-                  placeholder="What do you do?"
+                  placeholder="Write your next line…  / to type, /gm to change the world"
                   rows={2}
                   maxLength={4000}
                   disabled={play.busy}
                 />
-                <button className="primary send-button" disabled={play.busy || !input.trim()} type="submit">
-                  {play.busy ? "…" : "Send ↑"}
-                </button>
               </div>
               <div className="composer-foot">
-                <span>Enter to send · Shift + Enter for a new line</span>
+                <span>
+                  {play.busy ? "The story is being written…" : "Enter to send · Shift + Enter for a new line"}
+                </span>
                 <label>
                   <input
                     type="checkbox"
@@ -435,32 +424,17 @@ export function Play({
             </div>
           </form>
         </section>
-        <aside className="desktop-sheet" aria-label={tab === "sheet" ? "Character sheet" : TAB_LABEL[tab]}>
-          <div className="panel-tabs">
-            <div role="tablist" aria-label="Side panel" className="tab-list">
-              {tabs.map((t) => (
-                <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>
-                  {TAB_LABEL[t]}
-                </button>
-              ))}
-            </div>
-            {tab === "sheet" && (
-              <button
-                type="button"
-                className="expand"
-                onClick={() => setSheet(true)}
-                aria-label="Expand character sheet"
-              >
-                ↗
-              </button>
-            )}
-          </div>
-          {panel(tab)}
-        </aside>
+        <Hotbar
+          busy={play.busy}
+          inCombat={inCombat}
+          onFill={fill}
+          onSend={(text) => void send(text)}
+          onCombat={() => setCombatOpen(true)}
+        />
         <Dialog.Root open={panelOpen !== null} onOpenChange={(o) => !o && setPanelOpen(null)}>
           <Dialog.Portal>
             <Dialog.Overlay className="overlay" />
-            <Dialog.Content className="dialog sheet-dialog">
+            <Dialog.Content className="dialog sheet-dialog menu-screen" data-preset="reader">
               <Dialog.Title>{panelOpen ? TAB_LABEL[panelOpen] : ""}</Dialog.Title>
               <Dialog.Description className="sr-only">Your party, journal, codex and map.</Dialog.Description>
               {panelOpen && panel(panelOpen)}
@@ -508,32 +482,6 @@ export function Play({
           </Dialog.Portal>
         </Dialog.Root>
         <Dialog.Root open={sheet} onOpenChange={setSheet}>
-          <div className="mobile-bar">
-            <span>
-              {view.pc.identity.name} · HP {view.pc.status.hp}/{view.pc.derived.hpMax}
-            </span>
-            {inCombat && (
-              <button type="button" className="hot" onClick={() => setCombatOpen(true)}>
-                Combat ↗
-              </button>
-            )}
-            <button type="button" onClick={() => setPanelOpen("party")}>
-              Party
-            </button>
-            <button type="button" onClick={() => setPanelOpen("journal")}>
-              Journal
-            </button>
-            <button type="button" onClick={() => setPanelOpen("map")}>
-              Map
-            </button>
-            <button type="button" onClick={() => setPanelOpen("timeline")}>
-              Timeline
-            </button>
-            <button type="button" onClick={() => setPanelOpen("inventory")}>
-              Inventory
-            </button>
-            <Dialog.Trigger>Sheet ↗</Dialog.Trigger>
-          </div>
           <Dialog.Portal>
             <Dialog.Overlay className="overlay" />
             <Dialog.Content className="dialog sheet-dialog">

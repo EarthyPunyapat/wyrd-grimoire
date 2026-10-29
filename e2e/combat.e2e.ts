@@ -40,15 +40,11 @@ test("a tavern brawl plays start to finish through the UI with free text", async
   await brawl(page);
   await act(page, "I shoot Fen");
   await expect(page.locator(".mechanics").first()).toContainText("Initiative");
-  const phone = info.project.name === "phone";
-  const panel = () => (phone ? page.locator(".combat-strip") : page.getByRole("region", { name: "Combat" }));
+  // Reader keeps one reading column: the initiative strip shows the fight; the full panel is a dialog (D150).
+  const panel = () => page.locator(".combat-strip");
   let usedCombo = false;
   for (let turn = 0; turn < 25; turn++) {
     if (!(await panel().isVisible())) break;
-    if (!phone) {
-      await expect(page.getByRole("img", { name: /of 3 AP/ })).toBeVisible();
-      await expect(page.getByRole("list", { name: "Initiative order" })).toBeVisible();
-    }
     const foes = await page.locator(".combatant.enemy:not(.out) .name").allTextContents();
     const foe = foes[0]?.replace(" · fleeing", "");
     if (!foe) {
@@ -74,10 +70,8 @@ test("a tavern brawl plays start to finish through the UI with free text", async
 test("the combat panel shows the battlefield, legal actions and a target card", async ({ page }, info) => {
   await brawl(page);
   await act(page, "I shoot Fen");
-  if (info.project.name === "phone") {
-    await expect(page.locator(".combat-strip")).toBeVisible();
-    await page.getByRole("button", { name: "Combat ↗" }).click();
-  }
+  await expect(page.locator(".combat-strip")).toBeVisible();
+  await page.getByRole("button", { name: "Combat", exact: true }).click();
   const panel = page.getByRole("region", { name: "Combat" }).first();
   await expect(panel.getByRole("group", { name: /Battlefield/ })).toBeVisible();
   await expect(panel.getByRole("group", { name: "Legal actions" })).toBeVisible();
@@ -104,7 +98,7 @@ test("the combat panel shows the battlefield, legal actions and a target card", 
 test("the target card opens on an enemy in reach and refuses ones that are not", async ({ page }, info) => {
   await brawl(page, "cutpurse");
   await act(page, "I attack Cutter");
-  if (info.project.name === "phone") await page.getByRole("button", { name: "Combat ↗" }).click();
+  await page.getByRole("button", { name: "Combat", exact: true }).click();
   const panel = page.getByRole("region", { name: "Combat" }).first();
   const targetName = panel.locator(".target h4");
   // Fen is on the stairs, beyond a dagger; Mags and the rest are in the bar.

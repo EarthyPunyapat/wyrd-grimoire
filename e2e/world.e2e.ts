@@ -40,8 +40,8 @@ async function begin(page: Page) {
 }
 
 const open = async (page: Page, name: string, phone: boolean) => {
-  if (phone) await page.getByRole("button", { name, exact: true }).click();
-  else await page.getByRole("tab", { name }).click();
+  void phone;
+  await page.getByRole("button", { name, exact: true }).click();
 };
 
 test("a codex fact can be pinned and the pin count follows", async ({ page }, info) => {
@@ -53,11 +53,13 @@ test("a codex fact can be pinned and the pin count follows", async ({ page }, in
   await box.press("Enter");
   await expect(box).toBeEnabled({ timeout: 15000 });
   await open(page, "Codex", false);
-  const codex = page.getByRole("complementary").getByRole("region", { name: "Codex" });
-  await expect(codex.getByText("0 of 20 facts pinned.")).toBeVisible();
+  const codex = page.getByRole("dialog").getByRole("region", { name: "Codex" });
+  // Creation already pins the player's own canon (D147), so count from where the codex starts.
+  const count = codex.getByText(/\d+ of 20 facts pinned\./);
+  const before = Number(/(\d+) of 20/.exec((await count.textContent()) ?? "")?.[1]);
   const pin = codex.getByRole("button", { name: /^Pin / }).first();
   await pin.click();
-  await expect(codex.getByText("1 of 20 facts pinned.")).toBeVisible();
+  await expect(codex.getByText(`${before + 1} of 20 facts pinned.`)).toBeVisible();
   await expect(codex.getByRole("button", { name: /^Unpin / })).toBeVisible();
 });
 
@@ -65,7 +67,7 @@ test("map, travel, journal and codex: the world beyond the opening site", async 
   const phone = info.project.name === "phone";
   await begin(page);
   await open(page, "Map", phone);
-  const map = page.getByRole(phone ? "dialog" : "complementary").getByRole("region", { name: "Map" });
+  const map = page.getByRole("dialog").getByRole("region", { name: "Map" });
   await expect(map.getByRole("group", { name: /Map of/ })).toBeVisible();
   // A site node is a button: Enter opens its codex entry on the map, with a way to travel.
   await map.getByRole("button", { name: "Greywater Market", exact: true }).focus();
@@ -83,14 +85,13 @@ test("map, travel, journal and codex: the world beyond the opening site", async 
   await page.screenshot({ path: info.outputPath("m5-after-travel.png") });
   if (!phone) {
     await open(page, "Codex", phone);
-    const codex = page.getByRole("complementary").getByRole("region", { name: "Codex" });
+    const codex = page.getByRole("dialog").getByRole("region", { name: "Codex" });
     await expect(codex).toContainText("Greywater Market");
     await expect(codex).not.toContainText("nearly bankrupt");
     await page.screenshot({ path: info.outputPath("m5-codex.png") });
+    await page.getByRole("button", { name: "Close panel" }).click();
     await open(page, "Journal", phone);
-    await expect(page.getByRole("complementary").getByRole("region", { name: "Journal" })).toContainText(
-      "Quests",
-    );
+    await expect(page.getByRole("dialog").getByRole("region", { name: "Journal" })).toContainText("Quests");
     const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
     expect(accessibility.violations).toEqual([]);
   }
