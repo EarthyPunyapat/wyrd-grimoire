@@ -209,6 +209,8 @@ export function createApp(options: Options) {
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", NONCE],
         imgSrc: ["'self'", "data:"],
+        // Vite inlines the smallest bundled font subsets; they are still local app assets.
+        fontSrc: ["'self'", "data:"],
         connectSrc: ["'self'"],
         frameAncestors: ["'none'"],
         baseUri: ["'none'"],

@@ -8,6 +8,7 @@ import { Hotbar } from "./Hotbar.tsx";
 import { MENU_LABEL, Menus, type MenuTab } from "./Menus.tsx";
 import { NarrativeText, narrationContext, RefContext } from "./Narration.tsx";
 import { Passage, RollNotes } from "./Passage.tsx";
+import { usePlayPreset } from "./presets.ts";
 import { type Menu, StatusStrip } from "./StatusStrip.tsx";
 import { clearThemeVars, themeVars } from "./theme.ts";
 import { useCampaignSettings } from "./use-campaign-settings.ts";
@@ -39,13 +40,14 @@ export function Play({
     for (const [name, value] of Object.entries(vars)) document.documentElement.style.setProperty(name, value);
     return () => clearThemeVars(document.documentElement.style, vars);
   }, [view.theme]);
-  // Reader themes the whole page while playing: the app bar and the menus that open over the story (D150).
+  // The chosen preset themes the whole page while playing: the app bar and the menus that open over the story (D150).
+  const preset = usePlayPreset();
   useEffect(() => {
-    document.documentElement.dataset.preset = "reader";
+    document.documentElement.dataset.preset = preset;
     return () => {
       delete document.documentElement.dataset.preset;
     };
-  }, []);
+  }, [preset]);
   const [input, setInput] = useState("");
   const [combatOpen, setCombatOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState<MenuTab | null>(null);
@@ -168,7 +170,7 @@ export function Play({
   }, [last, play.busy, send, inCombat]);
   return (
     <RefContext.Provider value={{ known: view.known, campaignId: view.id, open: openCodex }}>
-      <main id="main" className="play-layout play-reader" data-preset="reader">
+      <main id="main" className="play-layout play-reader" data-preset={preset}>
         <h1 className="sr-only">{view.name}</h1>
         <StatusStrip
           view={view}
@@ -416,7 +418,7 @@ export function Play({
         <Dialog.Root open={panelOpen !== null} onOpenChange={(o) => !o && setPanelOpen(null)}>
           <Dialog.Portal>
             <Dialog.Overlay className="overlay menu-overlay" />
-            <Dialog.Content className="dialog menu-screen" data-preset="reader">
+            <Dialog.Content className="dialog menu-screen" data-preset={preset}>
               <Dialog.Title>
                 {panelOpen === "settings"
                   ? "Campaign settings"

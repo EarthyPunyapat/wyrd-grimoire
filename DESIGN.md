@@ -213,7 +213,7 @@ A near-black ground, warm bone ink, and a small set of colours that each carry o
 - **Key** (400, 13px, line-height 1.4): the letter or digit inside a choice, hotbar action or menu hint.
 - **Input** (400 italic, 19px): the composer's text. The placeholder is the only italic chrome-adjacent reading text.
 
-The reading-font slot is `--font-read`; the chrome slot is `--font-chrome`. Cockpit swaps them to Public Sans and JetBrains Mono; Chat swaps them to Inter and JetBrains Mono. The roles do not change.
+The reading-font slot is `--font-read`; the chrome slot is `--font-chrome`. Cockpit swaps them to Public Sans and JetBrains Mono; Chat swaps them to Inter and JetBrains Mono. All six faces are bundled from npm for offline/LAN use. The roles do not change.
 
 ### Named Rules
 
@@ -244,6 +244,19 @@ All presets share the status strip, composer, choice list, cards, hotbar and key
 **The Fixed Chrome Rule.** The status strip and hotbar are fixed chrome. The story scrolls between them; the page does not scroll the chrome out of reach.
 
 **The One Column Rule.** Reader has one reading column. Margin notes are annotations. A second content column is a different preset, not a Reader layout.
+
+### Dials
+
+The preset and its four dials are device preferences, stored in `wyrd-play-preferences` and set from Settings. They apply immediately, mid-campaign. Dials are `data-*` attributes on `<html>`; they scale the preset's tokens and never add decoration.
+
+| Dial | Values | Attribute | Effect |
+|---|---|---|---|
+| Text size | `small`, `normal`, `large` | `data-text-size` | Scales prose, title, choice and input type; chrome stays put |
+| Column width | `narrow`, `normal`, `wide` | `data-column` | Scales `--measure`; the rail and gutter stay fixed |
+| Density | `comfortable`, `compact` | `data-density` | Tightens `--rhythm` and `--gutter`; never below a 44px target |
+| Motion | `full`, `reduced`, `none` | `data-motion` | `reduced` removes big-moment motion; `none` removes animation and transition |
+
+`prefers-reduced-motion: reduce` overrides `full`. There is no free drag-and-drop, no second accent and no per-campaign layout: the preset is how this device reads the same game.
 
 ## Elevation & Depth
 

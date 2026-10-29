@@ -4,11 +4,11 @@ Working notes for whoever picks this up next. Read `AGENTS.md` first, then this 
 
 ## Status (2026-10-29)
 
-**M1–M7, W2 step 2 and workstreams A (Levels/abilities), B (avatars/sealing), C (wiki lore) and D (source creation/style/canon clocks) are built.** Owner-only and remaining W2 checks stay unticked in `docs/milestones.md`.
+**M1–M7, W2 step 2, workstreams A (Levels/abilities), B (avatars/sealing), C (wiki lore) and D (source creation/style/canon clocks), plus UI 2.0 U4 (status screen) and U6 (presets and dials), are built.** Owner-only and remaining W2 checks stay unticked in `docs/milestones.md`.
 The GM-with-tools turn (Tasks 1–8 of `docs/superpowers/plans/2026-10-29-w2-step2-gm-turn.md`) is on
 `w2-gm-ui` and merges to `main`: one GM model runs a turn with engine tools, streams prose, shows
 cards and choices, retcons with Undo, marks a backup model and runs a non-blocking structural check
-with Fix/Dismiss. `bun run check` is green: typecheck → lint (warnings only) → **795 tests** →
+with Fix/Dismiss. `bun run check` is green: typecheck → lint (warnings only) → **813 tests** →
 `pack validate packs/fantasy-core`.
 
 Owner-only checks still outstanding (need real hardware or keys):
@@ -17,6 +17,17 @@ Owner-only checks still outstanding (need real hardware or keys):
 - M3: LAN/phone playtest from the Arch laptop and a phone.
 - M5: a real-model world run and the NPC-knowledge eval.
 - M8: media (images, TTS) has not been built.
+
+## W2 U6 — presets and dials (2026-10-29)
+
+Built on `w2-ui-presets`; plan `docs/superpowers/plans/2026-10-29-w2-ui-presets.md`; decision D158.
+
+- Cockpit (Qud Modern) and Chat (Lantern Glass) are CSS presets over the Reader components. `apps/web/src/cockpit.css` adds the dense one-line chrome strip, a right-hand passage log, a watch list of the PC and people present, square cards and 1px selection lines. `apps/web/src/chat.css` adds true black, borderless rounded cards, right-aligned player bubbles and a sticky pill composer.
+- The preset and dials are device preferences (`wyrd-play-preferences`), validated field by field and switched live from the app Settings dialog. Dial attributes on `<html>` scale the shared tokens: text size, column width, density and motion; `prefers-reduced-motion` still wins.
+- `Play.tsx` changes only the preset switch (`usePlayPreset` plus `data-preset`); both presets use the existing strip, story, choices, cards, composer, hotbar and menus.
+- Public Sans, Inter and JetBrains Mono are bundled from npm for offline/LAN use. The server CSP now allows Vite's inlined `data:` font subsets.
+- Validation: `bun run typecheck`, `bun run lint`, **813 tests**, `bun run build`, and the full sequential Playwright suite: **58 passed, 4 existing skips** on desktop/phone. Cockpit and Chat also pass axe WCAG AA on both projects.
+- The watch list currently shows scene data; workstream E's watched entities can replace the source when it lands.
 
 ## W2 A — Levels and abilities (2026-10-29)
 
@@ -67,7 +78,7 @@ Built on `w2-ui-menus`; plan `docs/superpowers/plans/2026-10-29-w2-ui-menus.md`,
 - `moveEquipment` is the new engine rule: one validated `EquipmentChanged`, with carried quantities synced from the item stacks. `POST /api/campaigns/:id/inventory/move` serves the instant actions, and GameView derives each item's location from the sheet so the bag and card agree.
 - Styles are in `apps/web/src/menus.css`; item and chrome icons come from game-icons.net (CC BY 3.0), credited per icon in `NOTICE`.
 - Validation: `bun run check` passed (typecheck, lint warnings only, **803 tests**, fantasy-core pack validation). Build passed. Full sequential Playwright with one worker: **54 passed, 4 existing skips**; the new menus workflow passes desktop and phone including axe WCAG A/AA.
-- U5 (home and creation) and U6 (Cockpit/Chat presets) remain.
+- U5 (home and creation) remains; U6 (Cockpit/Chat presets and dials) is done below.
 
 ## W2 C — Lore from wikis (2026-10-29)
 
