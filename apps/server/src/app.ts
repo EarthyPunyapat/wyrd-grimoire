@@ -112,6 +112,27 @@ type Options = {
   seed?: string;
 };
 
+/** The spells this PC knows. No spellcasting state, or no entry for this PC, means none. */
+export function visibleSpells(state: GameState, pack: CompiledPack, pcId: string) {
+  const known = (state.flags.spellcasting as { known?: Record<string, string[]> } | undefined)?.known?.[pcId];
+  if (!known) return [];
+  const wanted = new Set(known);
+  return Object.values(pack.spells ?? {})
+    .filter((spell) => wanted.has(spell.id))
+    .map((spell) => ({
+      id: spell.id,
+      name: spell.name,
+      school: spell.school,
+      tier: spell.tier,
+      apCost: spell.apCost,
+      range: spell.range,
+      target: spell.target,
+      strain: spell.strain ?? defaultTuning.spellcasting.strainByTier[spell.tier],
+      concentration: spell.concentration,
+      description: spell.description,
+    }));
+}
+
 export function createApp(options: Options) {
   mkdirSync(options.home, { recursive: true });
   const store = new AppStore(join(options.home, "app.db"));
@@ -771,24 +792,7 @@ export function createApp(options: Options) {
             };
           }),
         },
-        spells: Object.values(gamePack.spells ?? {})
-          .filter((spell) => {
-            const known = (state.flags.spellcasting as { known?: Record<string, string[]> } | undefined)
-              ?.known?.[pc.id];
-            return !known || known.includes(spell.id);
-          })
-          .map((spell) => ({
-            id: spell.id,
-            name: spell.name,
-            school: spell.school,
-            tier: spell.tier,
-            apCost: spell.apCost,
-            range: spell.range,
-            target: spell.target,
-            strain: spell.strain ?? defaultTuning.spellcasting.strainByTier[spell.tier],
-            concentration: spell.concentration,
-            description: spell.description,
-          })),
+        spells: visibleSpells(state, gamePack, pc.id),
         skills: Object.keys(pc.skills).map((id) => {
           const value = skillValue(pc, id, skills, defaultTuning);
           return {
