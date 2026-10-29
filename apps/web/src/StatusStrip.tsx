@@ -1,16 +1,18 @@
 import { defaultTuning, type GameView } from "@wyrd/core";
+import { GameIcon, type GameIconName } from "./icons.tsx";
+import type { MenuTab } from "./Menus.tsx";
 
-export type Menu = "sheet" | "inventory" | "party" | "journal" | "codex" | "map" | "timeline";
+export type Menu = MenuTab;
 
 /** Menus in strip order; a key is a hint beside the name, never the accessible name (DESIGN.md Status Strip). */
-const MENUS: { id: Menu; name: string; key?: string }[] = [
-  { id: "sheet", name: "Sheet", key: "C" },
-  { id: "inventory", name: "Inventory", key: "I" },
-  { id: "journal", name: "Journal", key: "J" },
-  { id: "map", name: "Map", key: "M" },
-  { id: "party", name: "Party" },
-  { id: "codex", name: "Codex" },
-  { id: "timeline", name: "Timeline" },
+const MENUS: { id: Menu; name: string; key?: string; icon: GameIconName }[] = [
+  { id: "character", name: "Character", key: "C", icon: "person" },
+  { id: "inventory", name: "Inventory", key: "I", icon: "bag" },
+  { id: "quests", name: "Quests", key: "Q", icon: "scroll" },
+  { id: "journal", name: "Journal", key: "J", icon: "book" },
+  { id: "codex", name: "Codex", icon: "gems" },
+  { id: "map", name: "Map", key: "M", icon: "map" },
+  { id: "timeline", name: "Timeline", icon: "hourglass" },
 ];
 
 const clock = (minutes: number) =>
@@ -66,6 +68,7 @@ export function StatusStrip({
             aria-current={active === m.id ? "true" : undefined}
             onClick={() => onMenu(m.id)}
           >
+            <GameIcon name={m.icon} size={14} />
             {m.key && (
               <span className="key" aria-hidden="true">
                 {m.key}
@@ -75,7 +78,7 @@ export function StatusStrip({
           </button>
         ))}
         <button type="button" onClick={onSettings} aria-label="Campaign settings" title="Campaign settings">
-          <span aria-hidden="true">⚙</span>
+          <GameIcon name="gears" size={14} />
         </button>
         {offline && <span className="strip-offline">Offline</span>}
         {onAppSettings && (

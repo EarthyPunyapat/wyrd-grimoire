@@ -1,0 +1,32 @@
+# Third-party notices
+
+## game-icons.net
+
+The item and chrome icons in `apps/web/src/icons.tsx` are adapted from
+[game-icons.net](https://game-icons.net/) and licensed under
+[Creative Commons Attribution 3.0 Unported (CC BY 3.0)](https://creativecommons.org/licenses/by/3.0/).
+The opaque background tile was removed and the white artwork is recoloured with
+`currentColor`; those are the only modifications. No endorsement by the authors is implied.
+
+| Icon | Author | Source |
+|---|---|---|
+| crossed-swords | Lorc | https://game-icons.net/1x1/lorc/crossed-swords.html |
+| breastplate | Lorc | https://game-icons.net/1x1/lorc/breastplate.html |
+| backpack | Delapouite | https://game-icons.net/1x1/delapouite/backpack.html |
+| round-potion | Caro Asercion | https://game-icons.net/1x1/caro-asercion/round-potion.html |
+| diamond-ring | Delapouite | https://game-icons.net/1x1/delapouite/diamond-ring.html |
+| spell-book | Delapouite | https://game-icons.net/1x1/delapouite/spell-book.html |
+| scroll-unfurled | Lorc | https://game-icons.net/1x1/lorc/scroll-unfurled.html |
+| coins | Delapouite | https://game-icons.net/1x1/delapouite/coins.html |
+| key | Lorc | https://game-icons.net/1x1/lorc/key.html |
+| treasure-map | Lorc | https://game-icons.net/1x1/lorc/treasure-map.html |
+| hourglass | Lorc | https://game-icons.net/1x1/lorc/hourglass.html |
+| gears | Lorc | https://game-icons.net/1x1/lorc/gears.html |
+| person | Delapouite | https://game-icons.net/1x1/delapouite/person.html |
+| hand-grip | Delapouite | https://game-icons.net/1x1/delapouite/hand-grip.html |
+| leather-boot | Lorc | https://game-icons.net/1x1/lorc/leather-boot.html |
+| waterskin | Delapouite | https://game-icons.net/1x1/delapouite/waterskin.html |
+| shiny-apple | Lorc | https://game-icons.net/1x1/lorc/shiny-apple.html |
+| torch | Delapouite | https://game-icons.net/1x1/delapouite/torch.html |
+| roman-shield | Delapouite | https://game-icons.net/1x1/delapouite/roman-shield.html |
+| gem-chain | Lorc | https://game-icons.net/1x1/lorc/gem-chain.html |

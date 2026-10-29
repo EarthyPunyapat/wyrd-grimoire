@@ -47,7 +47,7 @@ test("a named save can be loaded to move the campaign back", async ({ page }, in
     return page.getByRole("region", { name: "Timeline" });
   };
   const closePanel = async () => {
-    await page.getByRole("button", { name: "Close panel" }).click();
+    await page.getByRole("button", { name: "Close status screen" }).click();
   };
 
   let timeline = await openTimeline();

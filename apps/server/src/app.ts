@@ -46,6 +46,7 @@ import {
   isKnownSkill,
   legacyEvents,
   levelProposals,
+  moveEquipment,
   obituary,
   playerCanonEvents,
   powerRating,
@@ -954,16 +955,23 @@ export function createApp(options: Options) {
         items: (state.inventory?.actors[pc.id]?.stacks ?? []).map((stack) => {
           const item =
             gameItems.weapons[stack.itemId] ?? gameItems.armor[stack.itemId] ?? gameItems.gear[stack.itemId];
+          // The sheet's equipment is the combat-facing truth; show it on the item so the bag and
+          // the shared item card agree after an instant equip or stow (U4).
+          const location =
+            pc.equipment.held.main === stack.itemId
+              ? "main hand"
+              : pc.equipment.held.off === stack.itemId
+                ? "off hand"
+                : pc.equipment.worn.includes(stack.itemId)
+                  ? "worn"
+                  : stack.location.kind === "container"
+                    ? "pack"
+                    : "carried";
           return {
             id: stack.itemId,
             name: item?.name ?? stack.itemId,
             qty: stack.qty,
-            location:
-              stack.location.kind === "worn"
-                ? stack.location.slot
-                : stack.location.kind === "held"
-                  ? `${stack.location.hand} hand`
-                  : stack.location.kind,
+            location,
             condition: stack.condition,
             quality: stack.quality,
             kind: gameItems.weapons[stack.itemId]
@@ -1414,6 +1422,29 @@ export function createApp(options: Options) {
       );
     }
     return c.json(out.value.result);
+  });
+  app.post("/api/campaigns/:id/inventory/move", async (c) => {
+    const id = c.req.param("id");
+    const game = campaign(id);
+    if (store.running(id))
+      throw new HTTPException(409, { message: "A turn is running. Wait for it to finish." });
+    const state = game.state();
+    const pcId = state.party.pcId;
+    if (!pcId) throw new HTTPException(409, { message: "This campaign has no player character" });
+    const input = await body(
+      c,
+      z
+        .object({
+          itemId: z.string().min(1).max(200),
+          to: z.enum(["main", "off", "worn", "carried"]),
+        })
+        .strict(),
+    );
+    const pack = game.packSnapshot()!.content as CompiledPack;
+    const out = moveEquipment(state, pcId, input.itemId, input.to, catalogWith(state, pack.items));
+    if (!out.ok) throw new HTTPException(409, { message: out.errors.map((e) => e.message).join("; ") });
+    game.append(out.value);
+    return c.json({ ok: true });
   });
   app.post("/api/campaigns/:id/shop/:verb", async (c) => {
     const id = c.req.param("id");
