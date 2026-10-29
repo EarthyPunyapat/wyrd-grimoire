@@ -148,6 +148,34 @@ function WatchList({ view }: { view: GameView }) {
   );
 }
 
+/** How many recent rolls Cockpit's running log keeps. */
+const LOG_LINES = 12;
+
+/**
+ * Cockpit's running log (D150): the latest rolls across turns, newest last, so the right-hand rail is
+ * a real log rather than only the newest passage's notes. CSS shows it only in Cockpit.
+ */
+function CockpitLog({ view }: { view: GameView }) {
+  const lines = (view.turns ?? []).flatMap((t, i) => t.mechanics.map((line) => ({ turn: i + 1, line })));
+  const recent = lines.slice(-LOG_LINES);
+  return (
+    <section className="cockpit-log" aria-label="Log">
+      <h3>Log</h3>
+      {recent.length ? (
+        <ol>
+          {recent.map(({ turn, line }, i) => (
+            <li key={`${turn}-${i}-${line.text}`} className={line.degree ?? ""}>
+              <span className="log-turn">{turn}</span> {line.text}
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="log-none">No rolls yet.</p>
+      )}
+    </section>
+  );
+}
+
 export function Passage({
   turn,
   view,
@@ -311,7 +339,12 @@ export function Passage({
         )}
       </div>
       <aside className="margin-notes" aria-label="Margin notes">
-        {index === (view.turns?.length ?? 0) - 1 && <WatchList view={view} />}
+        {index === (view.turns?.length ?? 0) - 1 && (
+          <>
+            <CockpitLog view={view} />
+            <WatchList view={view} />
+          </>
+        )}
         <Cards
           onAcceptLevel={busy ? undefined : onAcceptLevel}
           cards={cards}

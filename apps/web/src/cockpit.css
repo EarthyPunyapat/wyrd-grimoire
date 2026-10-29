@@ -14,15 +14,16 @@
 [data-preset="cockpit"] .topbar { display: none; }
 
 /* Only Cockpit shows the watch list; Reader keeps its rail for annotations and Chat has none. */
-.play-layout .watch-list { display: none; }
+.play-layout .watch-list,
+.play-layout .cockpit-log { display: none; }
 
 /* ── Status strip: one dense band of chrome ─────────────────────── */
 [data-preset="cockpit"] .status-strip {
-  display: flex; flex-wrap: nowrap; align-items: center; gap: 0 var(--space-3);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--space-3);
   min-height: var(--status-height); padding: 0 var(--gutter);
   border-bottom: 1px solid var(--line); background: var(--surface);
   font: 11px / 1.5 var(--font-chrome); letter-spacing: 0.01em; color: var(--ink-muted);
-  font-variant-numeric: tabular-nums; overflow-x: auto;
+  font-variant-numeric: tabular-nums;
 }
 [data-preset="cockpit"] .status-strip > * { white-space: nowrap; }
 [data-preset="cockpit"] .status-strip .strip-wordmark {
@@ -34,7 +35,7 @@
 [data-preset="cockpit"] .strip-place { order: 3; }
 [data-preset="cockpit"] .strip-meta + .strip-meta { order: 4; }
 [data-preset="cockpit"] .strip-spacer { order: 5; flex: 1; }
-[data-preset="cockpit"] .strip-menus { order: 6; display: flex; flex-wrap: nowrap; gap: 0 10px; }
+[data-preset="cockpit"] .strip-menus { order: 6; display: flex; flex-wrap: wrap; gap: 0 10px; }
 [data-preset="cockpit"] .strip-menus button {
   min-height: var(--touch-target); padding: 0 1px; border: 0; border-bottom: 1px solid transparent;
   background: none; color: var(--ink-muted); font: inherit; cursor: pointer;
@@ -72,11 +73,17 @@
   font: 11.5px / 1.6 var(--font-chrome); color: var(--ink-muted);
 }
 [data-preset="cockpit"] .margin-notes:empty { display: none; }
-[data-preset="cockpit"] .margin-notes::before {
-  content: "LOG";
-  display: block; padding-bottom: 6px; border-bottom: 1px solid var(--line); margin-bottom: 8px;
-  font: 10px var(--font-chrome); letter-spacing: 0.16em; color: var(--ink-faint);
-}
+/* The running log of recent rolls across turns, above the watch list (D150). */
+[data-preset="cockpit"] .cockpit-log { display: block; padding-bottom: 10px; border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+[data-preset="cockpit"] .cockpit-log h3 { margin: 0 0 6px; font: 10px var(--font-chrome); letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-muted); }
+[data-preset="cockpit"] .cockpit-log ol { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; font-variant-numeric: tabular-nums; }
+[data-preset="cockpit"] .cockpit-log li { color: var(--ink); }
+[data-preset="cockpit"] .cockpit-log li.success,
+[data-preset="cockpit"] .cockpit-log li.critSuccess { color: var(--accent); }
+[data-preset="cockpit"] .cockpit-log li.failure,
+[data-preset="cockpit"] .cockpit-log li.critFailure { color: var(--danger); }
+[data-preset="cockpit"] .cockpit-log .log-turn { color: var(--ink-muted); margin-right: 4px; }
+[data-preset="cockpit"] .cockpit-log .log-none { margin: 0; color: var(--ink-muted); }
 [data-preset="cockpit"] .story-inner > .composer {
   grid-column: 1; padding: var(--space-4) 0 var(--space-5);
 }

@@ -17,10 +17,25 @@ const cases = new FakeProvider([
       toolCall: { name: "propose_lore", args: { facts: ["Marsh lights guide travellers away from paths."] } },
     },
   },
+  // Source worlds are three calls (D154): the opening world falls through to propose_world below.
   {
     role: "worldGen",
-    match: (r) => r.tools?.[0]?.name === "propose_source",
-    reply: { toolCall: { name: "propose_source", args: SOURCE_FIXTURE } },
+    match: (r) => r.tools?.[0]?.name === "propose_source_bible",
+    reply: { toolCall: { name: "propose_source_bible", args: SOURCE_FIXTURE.bible } },
+  },
+  {
+    role: "worldGen",
+    match: (r) => r.tools?.[0]?.name === "propose_source_extras",
+    reply: {
+      toolCall: {
+        name: "propose_source_extras",
+        args: {
+          abilities: SOURCE_FIXTURE.abilities,
+          characters: SOURCE_FIXTURE.characters,
+          canonEvents: SOURCE_FIXTURE.canonEvents,
+        },
+      },
+    },
   },
   {
     role: "worldGen",

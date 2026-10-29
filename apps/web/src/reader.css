@@ -243,3 +243,19 @@
 [data-preset="reader"] .margin-notes .item-card h3 { margin: 0; font: var(--text-meta) / 1.6 var(--font-chrome); color: var(--gold); }
 [data-preset="reader"] .margin-notes .item-type { margin: 0; color: var(--ink-muted); }
 [data-preset="reader"] .margin-notes .item-description { margin: 0; font: 15px / 1.5 var(--font-read); color: var(--ink); }
+
+/* Strip menus in every preset: icon, key and name with a little air; when the strip gets tight the
+   name folds away visually (it stays the accessible name) so the strip never runs off the screen. */
+[data-preset] .strip-menus button { display: inline-flex; align-items: center; gap: 4px; }
+[data-preset] .strip-menus .key { margin-right: 0; }
+@media (max-width: 1599px) {
+  [data-preset="cockpit"] .strip-menus .menu-name,
+  [data-preset="chat"] .strip-menus .menu-name {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+}
+@media (max-width: 1279px) {
+  [data-preset="reader"] .strip-menus .menu-name {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+}

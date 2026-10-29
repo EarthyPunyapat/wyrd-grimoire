@@ -15,9 +15,9 @@
 
 /* ── Status strip: one ground with the page, no dividing rule ───── */
 [data-preset="chat"] .status-strip {
-  display: flex; flex-wrap: nowrap; align-items: center; gap: 0 var(--space-3);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--space-3);
   min-height: var(--status-height); padding: 0 var(--gutter);
-  background: #000000; border: 0; overflow-x: auto;
+  background: #000000; border: 0;
   font: 12px / 1.5 var(--font-chrome); color: var(--ink-muted); font-variant-numeric: tabular-nums;
 }
 [data-preset="chat"] .status-strip > * { white-space: nowrap; }
@@ -30,7 +30,7 @@
 [data-preset="chat"] .strip-place { order: 3; }
 [data-preset="chat"] .strip-meta + .strip-meta { order: 4; }
 [data-preset="chat"] .strip-spacer { order: 5; flex: 1; }
-[data-preset="chat"] .strip-menus { order: 6; display: flex; flex-wrap: nowrap; gap: 0 10px; }
+[data-preset="chat"] .strip-menus { order: 6; display: flex; flex-wrap: wrap; gap: 0 10px; }
 [data-preset="chat"] .strip-menus button {
   min-height: var(--touch-target); padding: 0 2px; border: 0; border-bottom: 1px solid transparent;
   background: none; color: var(--ink-muted); font: inherit; cursor: pointer;

@@ -74,7 +74,7 @@ export function StatusStrip({
                 {m.key}
               </span>
             )}
-            {m.name}
+            <span className="menu-name">{m.name}</span>
           </button>
         ))}
         <button type="button" onClick={onSettings} aria-label="Campaign settings" title="Campaign settings">

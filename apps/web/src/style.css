@@ -55,7 +55,8 @@ em { font-weight: 400; }
 .eyebrow { font-size: .65rem; font-weight: 600; letter-spacing: .2em; color: var(--accent); margin-bottom: 1rem; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .skip-link { position: fixed; top: -100px; left: 1rem; z-index: 100; padding: 1rem; background: var(--surface); }
-.skip-link:focus { top: 1rem; }
+/* Keyboard users only: a mouse click or focus restored by a dialog never reveals it. */
+.skip-link:focus-visible { top: 1rem; }
 .story-jump:focus { position: static; width: auto; height: auto; clip-path: none; margin: 0 0 1rem; padding: .75rem; overflow: visible; }
 .frame { height: 100dvh; display: flex; flex-direction: column; }
 .topbar { display: flex; align-items: center; flex-wrap: wrap; gap: 1.5rem; min-height: 76px; padding: .75rem 1.5rem; background: var(--surface); border-bottom: 1px solid var(--line); flex-shrink: 0; }
