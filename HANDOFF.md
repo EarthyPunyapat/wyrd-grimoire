@@ -8,7 +8,7 @@ Working notes for whoever picks this up next. Read `AGENTS.md` first, then this 
 The GM-with-tools turn (Tasks 1–8 of `docs/superpowers/plans/2026-10-29-w2-step2-gm-turn.md`) is on
 `w2-gm-ui` and merges to `main`: one GM model runs a turn with engine tools, streams prose, shows
 cards and choices, retcons with Undo, marks a backup model and runs a non-blocking structural check
-with Fix/Dismiss. `bun run check` is green: typecheck → lint (warnings only) → **864 tests** →
+with Fix/Dismiss. `bun run check` is green: typecheck → lint (warnings only) → **873 tests** →
 `pack validate packs/fantasy-core`.
 
 Owner-only checks still outstanding (need real hardware or keys):
@@ -27,7 +27,7 @@ Built test-first on `w2-skips`, merged to `main`. Plan: `docs/superpowers/plans/
 - Skips exclude dead/inactive actors from NPC life events and call existing runTicks at every daily boundary (weekly every seventh calendar day), plus earlier task boundaries/final partial days. D's canon and F's task checks run through those ticks. They stop for watched major events (including completed faction goals), final pending canon segment, blocked tasks or death. Recorded/valid fact interventions permit averted canon resolution. Combat/dead campaigns cannot skip.
 - Digests and one report per watched entity persist as report cards, including quiet spans. Summaries use typed event fields; no raw NPC minds or private payloads. Effective infinity observes unknown existing entities, learns public facts and may establish watches; finite/sealed observers remain knowledge-limited. Missing IDs fail.
 - `PUT /api/campaigns/:id/watch/:entityId` takes `{watch: boolean}` for known targets, guards running turns and appends events. GameView projects safe watched identity/report fields. Codex controls edit watches; Cockpit shows watched entities outside the scene. GM prompts carry watch IDs and recent task metadata for future until conditions.
-- Offline tests cover daily/monthly replay/RNG equivalence, every interruption, conditions/limits/validation, F/D integration, safe observation and reports, API/rebuild, and Cockpit/Codex on desktop/phone. Validation results are recorded below when the final checks complete.
+- Offline tests cover daily/monthly replay/RNG equivalence, every interruption, conditions/limits/validation, F/D integration, safe observation and reports, API/rebuild, and Cockpit/Codex on desktop/phone. Final validation after integrating current main (including ChatGPT import): `bun run check` passed with **873 offline tests**, typecheck, lint (existing warnings) and fantasy-core pack validation. Build passed; full sequential browser suite: **70 passed, 4 existing skips**, one worker and one browser at a time.
 
 ## W2 F — Companions, Ari and delegation (2026-10-29)
 
@@ -194,7 +194,7 @@ Built test-first on `w2-lore`; merged to `main`. Plan: `docs/superpowers/plans/2
 - Only the pack's first shop opens (at campaign start); per-settlement shop generation is future
   work (D118).
 - Themes exist for fantasy-core; other packs still use the app default palette (D119).
-- The Playwright e2e suite (`bun run test:e2e`) is not part of `bun run check`; run it separately after UI changes. The current full run passes 68 tests with 4 existing skips (one worker; desktop then phone).
+- The Playwright e2e suite (`bun run test:e2e`) is not part of `bun run check`; run it separately after UI changes. The current full run passes 70 tests with 4 existing skips (one worker; desktop then phone).
 
 ## Next milestone
 
