@@ -58,8 +58,8 @@ export function resolveDowntime(
   if (actor.dead) return fail("ACTOR_DEAD", `${ctx.nameOf(actorId)} is dead`);
   if (state.combat) return fail("IN_COMBAT", "You can't take downtime in the middle of a fight");
   const t = ctx.tuning.downtime;
-  const minutes = t.minutes[action.type];
-  const events: EventDraft[] = [draft("TimeAdvanced", { minutes, reason: action.type }, "engine")];
+  let minutes = t.minutes[action.type];
+  const events: EventDraft[] = [];
   const rewards: DowntimeResult["rewards"] = {};
   let degree: Degree | undefined;
   let summary = "";
@@ -91,13 +91,44 @@ export function resolveDowntime(
       break;
     }
     case "craft": {
+      if (!state.campaign.settings.subsystems.crafting)
+        return fail("CRAFTING_OFF", "Crafting is off in this campaign");
       const recipe = ctx.recipes?.[action.recipeId];
       if (!recipe) return fail("RECIPE_UNKNOWN", `No recipe called ${action.recipeId}`);
+      const stacks = state.inventory?.actors[actorId]?.stacks ?? [];
+      const itemOf = (itemId: string) =>
+        ctx.items?.weapons[itemId] ?? ctx.items?.armor[itemId] ?? ctx.items?.gear[itemId];
+      const have = (itemId: string) =>
+        stacks.filter((stack) => stack.itemId === itemId).reduce((sum, stack) => sum + stack.qty, 0);
+      const missing = recipe.inputs.filter((input) => have(input.item) < input.qty);
+      if (missing.length) {
+        const list = missing
+          .map((input) => `${input.qty} × ${itemOf(input.item)?.name ?? input.item}`)
+          .join(", ");
+        return fail("CRAFT_MISSING_INPUTS", `You don't have the materials: ${list}`);
+      }
+      const missingTools = recipe.tools.filter(
+        (tool) => !stacks.some((stack) => (itemOf(stack.itemId)?.tags ?? []).includes(tool)),
+      );
+      if (missingTools.length)
+        return fail("CRAFT_MISSING_TOOLS", `You need these tools: ${missingTools.join(", ")}`);
+      minutes = recipe.minutes;
       const r = roll(recipe.skill, recipe.difficulty, `craft ${recipe.name}`);
       if (!r.ok) return r;
       degree = r.value;
+      // The attempt spends its materials even when the result is crude, nothing, or ruined.
+      for (const input of recipe.inputs)
+        events.push(
+          draft(
+            "ItemTransferred",
+            { actorId, itemId: input.item, qty: input.qty, reason: `used for ${recipe.name}` },
+            "engine",
+          ),
+        );
       if (degree === "critFailure") {
         summary = `The ${recipe.name.toLowerCase()} is ruined; the materials are lost.`;
+      } else if (degree === "failure" && recipe.complex) {
+        summary = `${ctx.nameOf(actorId)} fails to finish the ${recipe.name.toLowerCase()}; the materials are spent.`;
       } else {
         const quality = degree === "critSuccess" ? "fine" : degree === "success" ? "standard" : "crude";
         events.push(
@@ -204,6 +235,8 @@ export function resolveDowntime(
     }
   }
 
+  // Time passes first in the log, then the check and its consequences.
+  events.unshift(draft("TimeAdvanced", { minutes, reason: action.type }, "engine"));
   const result = DowntimeResult.parse({
     action: action.type,
     minutes,

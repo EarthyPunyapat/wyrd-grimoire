@@ -1105,6 +1105,7 @@ export function createApp(options: Options) {
       tuning: defaultTuning,
       nameOf: (eid: string) => state.actors[eid]?.sheet.identity.name ?? canon.entity(eid)?.name ?? eid,
       recipes: pack.recipes ?? {},
+      items: pack.items,
     });
     if (!out.ok)
       throw new HTTPException(422, {
