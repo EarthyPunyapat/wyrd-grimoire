@@ -66,6 +66,7 @@ export type Tuning = {
     interestMaxPerSkill: number;
     archetypeTalents: number;
     freeTalents: number;
+    playerGearWeightKg: number;
   };
   combat: {
     woundThresholdMultiples: Record<"minor" | "serious" | "critical", number>;
@@ -422,6 +423,8 @@ export const defaultTuning: Tuning = {
     interestMaxPerSkill: 30,
     archetypeTalents: 1,
     freeTalents: 1,
+    /** Weight of a piece of player-written starting gear (spec 04). */
+    playerGearWeightKg: 0.5,
   },
   injury: {
     healingDays: { minor: 3, serious: 7, critical: 14, lethal: 21 },

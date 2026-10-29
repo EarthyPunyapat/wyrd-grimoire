@@ -11,6 +11,7 @@ import {
   type ItemCatalog,
   localIdOf,
   type PregenDef,
+  playerGearIds,
   type SessionZeroProposals,
   type TalentDef,
   type Tuning,
@@ -299,6 +300,7 @@ export function draftFromArchetype(ancestry: string, archetype: Archetype, name 
     personality: [],
     backstory: "",
     hooks: [],
+    gear: [],
   };
 }
 
@@ -330,6 +332,9 @@ export function sheetFromDraft(
   tuning: Tuning,
 ): CharacterSheet {
   const archetype = content.archetypes[draft.archetype];
+  const equipment = startingEquipment(archetype?.kit ?? [], items);
+  for (const gear of playerGearIds(draft.gear ?? []))
+    equipment.carried.push({ item: gear.id, qty: gear.qty });
   // Class campaigns start at level 1 in the class their background maps to (spec 04).
   const classDef =
     settings.structural.progression === "classes"
@@ -353,7 +358,7 @@ export function sheetFromDraft(
       skills: Object.fromEntries(Object.entries(draft.skills).map(([sk, trained]) => [sk, { trained }])),
       talents: draft.talents,
       ...(classDef ? { progression: { classLevels: { [classDef.id]: 1 } } } : {}),
-      equipment: startingEquipment(archetype?.kit ?? [], items),
+      equipment,
     },
     settings,
     tuning,
@@ -369,6 +374,7 @@ const PROPOSAL_PATHS: Record<keyof SessionZeroProposals, (path: string) => boole
   talents: (p) => p === "talents",
   appearance: () => false,
   hooks: () => false,
+  gear: () => false,
 };
 
 /**
@@ -393,7 +399,15 @@ export function applyProposals(
       tuning,
     ).filter((i) => i.severity === "error");
   let current = draft;
-  for (const part of ["identity", "attributes", "skills", "talents", "appearance", "hooks"] as const) {
+  for (const part of [
+    "identity",
+    "attributes",
+    "skills",
+    "talents",
+    "appearance",
+    "hooks",
+    "gear",
+  ] as const) {
     const value = proposals[part];
     if (!value) continue;
     let next: DraftSheet;
@@ -447,6 +461,19 @@ export function applyProposals(
       case "hooks":
         next = { ...current, hooks: value as DraftSheet["hooks"] };
         break;
+      case "gear": {
+        // Append-only, merged by case-insensitive name: an existing entry is never removed or rewritten.
+        const seen = new Set(current.gear.map((g) => g.name.trim().toLowerCase()));
+        const merged = [...current.gear];
+        for (const g of value as NonNullable<SessionZeroProposals["gear"]>) {
+          const key = g.name.trim().toLowerCase();
+          if (seen.has(key)) continue;
+          seen.add(key);
+          merged.push(g);
+        }
+        next = { ...current, gear: merged.slice(0, 12) };
+        break;
+      }
     }
     const before = new Set(errors(current).map((i) => `${i.code}:${i.path}`));
     const added = errors(next).filter(

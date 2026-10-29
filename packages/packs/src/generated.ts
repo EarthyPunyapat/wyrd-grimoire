@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import {
   AncestryDef,
   ArchetypeDef,
@@ -6,11 +5,11 @@ import {
   defaultTuning,
   GeneratedWorldPreview,
   PackManifest,
-  stableStringify,
   TalentDef,
   WorldProposal,
 } from "@wyrd/core";
 import { allocateStartingTraining } from "@wyrd/engine";
+import { packHash } from "./hash.ts";
 import { WorldDef } from "./world.ts";
 
 /** Compile bounded fiction proposals into frozen pack data and canon-ready world data. */
@@ -78,9 +77,7 @@ export function compileGeneratedWorld(raw: WorldProposal) {
       id,
     };
   });
-  pack.hash = createHash("sha256")
-    .update(stableStringify({ ...pack, hash: undefined }))
-    .digest("hex");
+  pack.hash = packHash(pack);
   const world = WorldDef.parse({
     id: "generated-opening",
     name: p.worldName,

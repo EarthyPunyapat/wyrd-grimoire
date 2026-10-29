@@ -249,3 +249,29 @@ test("suggest falls back offline when the model keeps failing", async () => {
   expect(view.draft.name.length).toBeGreaterThan(0);
   expect(view.notice).toBe(OFFLINE_NOTICE);
 });
+
+test("player gear reaches the inventory", async () => {
+  const { call } = await setup();
+  const world = GeneratedWorldPreview.parse(
+    await (await call("/world-drafts", { name: "Lantern", pitch: "A station mystery" })).json(),
+  );
+  const opened = CreationView.parse(await (await call(`/world-drafts/${world.id}/creation`)).json());
+  const saved = CreationView.parse(
+    await (
+      await call(
+        `/world-drafts/${world.id}/sheet`,
+        {
+          ...opened.draft,
+          gear: [{ name: "Yellow lantern ring", description: "Glows with fear." }],
+        },
+        "PUT",
+      )
+    ).json(),
+  );
+  expect(saved.issues.filter((i) => i.severity === "error")).toEqual([]);
+  const started = await call("/campaigns", { draftId: world.id });
+  expect(started.status).toBe(201);
+  const { id } = (await started.json()) as { id: string };
+  const view = GameView.parse(await (await call(`/campaigns/${id}/view`)).json());
+  expect(view.inventory.items.map((i) => i.name)).toContain("Yellow lantern ring");
+});

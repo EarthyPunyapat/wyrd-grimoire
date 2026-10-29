@@ -21,6 +21,12 @@ export type BackstoryHook = z.infer<typeof BackstoryHook>;
  * A character before the campaign starts. Skills hold trained points; the engine fills in derived
  * stats, status and the archetype's kit when it builds the sheet.
  */
+export const PlayerGear = z.object({
+  name: z.string().trim().min(1).max(80),
+  description: z.string().max(400).default(""),
+});
+export type PlayerGear = z.infer<typeof PlayerGear>;
+
 export const DraftSheet = z
   .object({
     name: z.string().trim().max(80).default(""),
@@ -35,6 +41,8 @@ export const DraftSheet = z
     personality: z.array(z.string().trim().min(1).max(40)).max(6).default([]),
     backstory: z.string().trim().max(4000).default(""),
     hooks: z.array(BackstoryHook).max(6).default([]),
+    /** Gear the player wrote at creation; it becomes real pack items (D146). */
+    gear: z.array(PlayerGear).max(12).default([]),
   })
   .strict();
 export type DraftSheet = z.infer<typeof DraftSheet>;
@@ -132,6 +140,8 @@ export const SessionZeroProposals = z
       .partial()
       .strict(),
     hooks: z.array(BackstoryHook).max(6),
+    /** Items the player says they carry; merged append-only into the draft's gear. */
+    gear: z.array(PlayerGear).max(12),
   })
   .partial()
   .strict();

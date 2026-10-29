@@ -79,6 +79,7 @@ import {
   locationEvents,
   skillCatalog,
   type WorldDef,
+  withPlayerGear,
   worldEvents,
 } from "@wyrd/packs";
 import { AppStore, backupCampaign, CampaignStore, CanonQueries } from "@wyrd/storage";
@@ -597,18 +598,20 @@ export function createApp(options: Options) {
     hooks?: { ids: string[]; events: EventDraft[] },
     settings: CampaignSettingsInput = {},
   ) {
+    // Player-written gear becomes real pack items before anything is frozen or built.
+    const gamePack = withPlayerGear(pack, character.gear);
     const created = unwrap(
       createCampaign({
         name,
         settings,
-        packIds: [pack.manifest.id],
-        packHash: pack.hash,
+        packIds: [gamePack.manifest.id],
+        packHash: gamePack.hash,
         seed: options.seed ?? randomBytes(16).toString("hex"),
       }),
     );
-    const built = buildPc("pc", character, pack, created.payload.settings);
+    const built = buildPc("pc", character, gamePack, created.payload.settings);
     const sheet = hooks ? { ...built, identity: { ...built.identity, hookIds: hooks.ids } } : built;
-    const template = pack.economy?.shops[0];
+    const template = gamePack.economy?.shops[0];
     const shop = template
       ? ShopState.parse({
           id: `shop:${template.id}`,
@@ -631,7 +634,7 @@ export function createApp(options: Options) {
     mkdirSync(dir, { recursive: true });
     const game = CampaignStore.create<GameState>(join(dir, "campaign.db"), created, {
       reduce,
-      pack: { hash: pack.hash, content: pack },
+      pack: { hash: gamePack.hash, content: gamePack },
     });
     try {
       game.append(unwrap(createActor(game.state(), sheet, "pc")));

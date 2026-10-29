@@ -32,5 +32,6 @@ export * from "./schemas/usage.ts";
 export * from "./schemas/web.ts";
 export * from "./schemas/world.ts";
 export * from "./schemas/world-generation.ts";
+export * from "./slug.ts";
 export * from "./stable-json.ts";
 export * from "./tuning.ts";
