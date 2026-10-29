@@ -86,6 +86,24 @@ Owner-only checks still outstanding (need real hardware or keys):
 
 ## Next milestone
 
-**M8 — Media** (see `docs/spec/10-media.md`): image adapters (ComfyUI/Qwen-Image 2.1, OpenAI),
-portraits and scene art consistency, TTS adapters (local, Deepgram), voice casting, segment playback
-and the GPU mutex.
+**W2 — Wyrd 2.0** (before M8). The owner played M7 and found it lacking next to their own ChatGPT RPG sessions, and a 72-question interview on 2026-10-29 redesigned the game.
+
+Read these first:
+- the spec: `docs/superpowers/specs/2026-10-29-wyrd-2-design.md`
+- the decisions: D129–D144 in `docs/decisions.md`
+- the plans in `docs/superpowers/plans/`:
+  - `2026-10-29-w2-roadmap.md`: order, owners and workstreams
+  - `2026-10-29-w2-step1-fixes.md`: detailed, ready to execute
+  - `2026-10-29-w2-step2-gm-turn.md`: detailed, ready to execute (Claude builds it)
+
+In short:
+- One GM model runs each turn and calls engine tools.
+- Source-story campaigns are researched from wikis.
+- A cosmic Level scale (1–20 plus ∞) with avatars and sealing.
+- Time skips with a watch list, and Ari as a loyal companion with delegation.
+- UI 2.0 follows Caves of Qud's modern UI plus ChatGPT-style cards.
+- "Done" is the owner's 20-turn test on their imported Ethan Hunt + Ari campaign.
+
+**Machine limit:** run only one browser or Playwright process at a time; the owner's 12 GB laptop crashed running several.
+
+After W2: **M8 — Media** (see `docs/spec/10-media.md`): image adapters (ComfyUI/Qwen-Image 2.1, OpenAI), portraits and scene-art consistency, TTS adapters (local, Deepgram), voice casting, segment playback and the GPU mutex.

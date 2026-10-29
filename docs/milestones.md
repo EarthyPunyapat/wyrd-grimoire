@@ -106,12 +106,25 @@ Each milestone lists its scope, the spec sections it implements, and acceptance 
 - [x] Living World runs a month of in-game time with visible faction events and news.
 - [x] Locked settings are refused by the API and greyed out in the UI.
 
-## After M8 — UI rework
+## UI rework — moved into W2
 
-The owner wants a full UI rework once M8 ships; a dedicated roadmap will be written at that point.
-Recorded asks so far: campaign management (delete, rename, archive), resumable creation and a draft
-library, visible progress for every long job, clearer model/provider errors, and a broader layout,
-mobile and accessibility pass.
+The UI rework planned for after M8 now happens in W2 as UI 2.0 (D139). Its recorded asks are carried into the [W2 roadmap](superpowers/plans/2026-10-29-w2-roadmap.md) (U3–U6): campaign management (delete, rename, archive), resumable creation and a draft library, visible progress for every long job, clearer model/provider errors, and a broader layout, mobile and accessibility pass.
+
+## W2 — Wyrd 2.0 (before M8)
+
+**Spec:** [Wyrd 2.0 design](superpowers/specs/2026-10-29-wyrd-2-design.md) · **Plans:** [roadmap](superpowers/plans/2026-10-29-w2-roadmap.md), [step 1](superpowers/plans/2026-10-29-w2-step1-fixes.md), [step 2](superpowers/plans/2026-10-29-w2-step2-gm-turn.md)
+
+The owner played M7 and found it lacking next to their ChatGPT RPG sessions, so this milestone fixes the game before media is added (D129–D144).
+
+**Acceptance**
+- [ ] Step 1: player-written creation details survive as items and pinned player canon; wizard campaigns start with a kit and a shop; session zero and world generation survive bad model output.
+- [ ] Step 2: new turns run through the GM-with-tools loop with streaming, cards, choices, retcon Undo, the structural check and the backup-model badge.
+- [ ] Step 3: Levels and abilities, avatars and sealing, wiki lore, source creation with canon clocks and style, time skips with the watch list, and Ari with delegation.
+- [ ] UI 2.0: the owner-picked direction is applied to the play screen, the status screen (with inventory) and home/creation.
+- [ ] Step 4: the Ethan + Ari import works; the side-by-side replay is reviewed and fixed.
+- [ ] The owner plays 20 turns of the imported campaign and judges it at least as good as their ChatGPT sessions (owner-only).
+
+---
 
 ## M8 — Media
 
@@ -129,4 +142,4 @@ mobile and accessibility pass.
 
 ## After M8
 
-Speech input; a second genre pack (cyberpunk, with `hacking` and `cyberware` plugins) to prove genre independence; polish.
+Speech input; polish. (The cyberpunk pack is superseded by source-story mode, D135; the UI overhaul moved into W2 as UI 2.0, D139.)
