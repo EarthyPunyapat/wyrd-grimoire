@@ -18,6 +18,7 @@ import {
   type GameState,
   type Purchase,
   priceOf,
+  RESOLUTION_MODULES,
   sheetFromDraft,
   skillLabel,
   skillValue,
@@ -69,6 +70,8 @@ function companionSummary(c: GameState["companions"][string]) {
 
 /** What each party member could buy now, priced by the engine (spec 04 spend UI). */
 export function progressionView(state: GameState, content: CreationContent) {
+  const resolution = state.campaign.settings.structural.resolution;
+  const resolutionModule = RESOLUTION_MODULES[resolution];
   const members = [state.party.pcId, ...state.party.companionIds].flatMap((id) => {
     const actor = id ? state.actors[id] : undefined;
     if (!id || !actor || actor.dead) return [];
@@ -99,12 +102,16 @@ export function progressionView(state: GameState, content: CreationContent) {
           value: sheet.attributes[a],
           ...price({ kind: "attribute", id: a }),
         })),
-        skills: Object.keys(sheet.skills).map((s) => ({
-          id: s,
-          name: skillLabel(s, content.skills),
-          value: skillValue(sheet, s, content.skills, defaultTuning),
-          ...price({ kind: "skill", id: s }),
-        })),
+        skills: Object.keys(sheet.skills).map((s) => {
+          const value = skillValue(sheet, s, content.skills, defaultTuning);
+          return {
+            id: s,
+            name: skillLabel(s, content.skills),
+            value,
+            display: resolutionModule.displaySkill(value),
+            ...price({ kind: "skill", id: s }),
+          };
+        }),
         talents: Object.values(content.talents)
           .filter((t) => !sheet.talents.includes(t.id))
           .map((t) => ({
@@ -126,7 +133,12 @@ export function progressionView(state: GameState, content: CreationContent) {
       ? []
       : [{ name: state.actors[c.id]?.sheet.identity.name ?? c.id, status: c.status }],
   );
-  return ProgressionView.parse({ mode: state.campaign.settings.structural.progression, members, former });
+  return ProgressionView.parse({
+    mode: state.campaign.settings.structural.progression,
+    resolution,
+    members,
+    former,
+  });
 }
 
 const words = (text: string) => new Set(text.toLowerCase().match(/[a-z]{4,}/g) ?? []);

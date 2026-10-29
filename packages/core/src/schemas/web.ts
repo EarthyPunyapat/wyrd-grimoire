@@ -100,7 +100,17 @@ export const GameView = z.object({
   backgroundName: z.string(),
   speakers: z.record(z.string(), z.string()).default({}),
   pc: CharacterSheet,
-  skills: z.array(z.object({ id: z.string(), name: z.string(), value: z.number() })),
+  /** The campaign's dice system, locked at creation (spec 02, 12). */
+  resolution: ResolutionId.default("d100"),
+  /** `value` is the canonical 0–100 skill; `display` is the module's notation ("65%" or "+3"). */
+  skills: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      value: z.number(),
+      display: z.string().default(""),
+    }),
+  ),
   scene: z
     .object({
       location: z.string(),

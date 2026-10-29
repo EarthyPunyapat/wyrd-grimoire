@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ResolutionId } from "./common.ts";
 import { CharacterSheet } from "./sheet.ts";
 
 // ── Progression and the party (spec 04, spec 13 Party tab) ──────────────────────────────────────
@@ -12,7 +13,16 @@ export const ProgressionMember = z.object({
   pending: z.object({ attributes: z.number(), talents: z.number() }),
   marks: z.array(z.string()),
   attributes: z.array(z.object({ id: z.string(), name: z.string(), value: z.number(), ...Priced })),
-  skills: z.array(z.object({ id: z.string(), name: z.string(), value: z.number(), ...Priced })),
+  skills: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      value: z.number(),
+      /** The campaign module's notation ("65%" or "+3"). */
+      display: z.string().default(""),
+      ...Priced,
+    }),
+  ),
   talents: z.array(
     z.object({ id: z.string(), name: z.string(), tier: z.number(), description: z.string(), ...Priced }),
   ),
@@ -34,6 +44,8 @@ export const ProgressionMember = z.object({
 export type ProgressionMember = z.infer<typeof ProgressionMember>;
 export const ProgressionView = z.object({
   mode: z.enum(["classless", "useBased", "hybrid", "classes"]),
+  /** The campaign's dice system, so the spend screen can use its notation (spec 02, 12). */
+  resolution: ResolutionId.default("d100"),
   members: z.array(ProgressionMember),
   /** Companions who left or died, for the record. */
   former: z.array(z.object({ name: z.string(), status: z.enum(["left", "dead"]) })).default([]),

@@ -110,6 +110,32 @@ describe("resolve", () => {
     expect(r.display.text).toMatch(/^Stealth \+3 vs DC 15 \(Hard\) · rolled \d+ \+ 3 = \d+ · /);
   });
 
+  test("d20 lines carry the die, sides, modifier, total and DC for the UI", () => {
+    const rng = new Rng(seedRng(1));
+    const r = d20Module.resolve(prepared({ skillValue: 65, difficulty: "hard" }), rng, defaultTuning);
+    expect(r.display.roll).toEqual({
+      die: "d20",
+      sides: 20,
+      natural: r.rolls[0]!,
+      modifier: 3,
+      total: r.rolls[0]! + 3,
+      dc: 15,
+    });
+    expect(r.display.text).not.toContain("%");
+  });
+
+  test("d100 lines keep their text and carry the target percentage", () => {
+    const rng = new Rng(seedRng(1));
+    const r = d100Module.resolve(prepared({ skillValue: 65, difficulty: "hard" }), rng, defaultTuning);
+    expect(r.display.roll).toEqual({
+      die: "d100",
+      sides: 100,
+      natural: 45 - r.margin,
+      target: 45,
+    });
+    expect(r.display.text).toContain("45%");
+  });
+
   test("d100 boons keep the lowest tens die, banes the highest", () => {
     const n = 20_000;
     const avg = (netBoons: number) => {

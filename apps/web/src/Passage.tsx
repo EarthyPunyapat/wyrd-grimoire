@@ -1,16 +1,31 @@
 import type { GameView, MechanicsLine, WebTurn } from "@wyrd/core";
+import { DiceBadge, type Resolution } from "./Dice.tsx";
 import { Narration, narrationContext } from "./Narration.tsx";
 
 const glyphs = { critSuccess: "✦", success: "✓", failure: "✗", critFailure: "✖" };
-export function Mechanics({ lines, expanded = false }: { lines: MechanicsLine[]; expanded?: boolean }) {
-  if (!lines.length) return null;
+
+/** A d100 line in a d20 campaign is stale or foreign; never show its percentage (spec 02, 12). */
+const visibleIn = (line: MechanicsLine, resolution: Resolution) =>
+  !(resolution === "d20" && line.roll?.die === "d100");
+
+export function Mechanics({
+  lines,
+  expanded = false,
+  resolution = "d100",
+}: {
+  lines: MechanicsLine[];
+  expanded?: boolean;
+  resolution?: Resolution;
+}) {
+  const shown = lines.filter((line) => visibleIn(line, resolution));
+  if (!shown.length) return null;
   return (
     <details className="mechanics" open={expanded || undefined}>
       <summary>
-        Mechanics <span>({lines.length})</span>
+        Mechanics <span>({shown.length})</span> <DiceBadge resolution={resolution} />
       </summary>
       <ul>
-        {lines.map((line, i) => (
+        {shown.map((line, i) => (
           <li className={line.degree ?? ""} key={`${i}-${line.text}`}>
             <span aria-hidden="true">{line.degree ? glyphs[line.degree] : "◇"}</span> {line.text}
           </li>
@@ -39,7 +54,7 @@ export function Passage({
       <p className="player-input">
         <span aria-hidden="true">↳</span> {turn.input}
       </p>
-      <Mechanics lines={turn.mechanics} expanded={math} />
+      <Mechanics lines={turn.mechanics} expanded={math} resolution={view.resolution} />
       {turn.narration && <Narration text={turn.narration} {...narrationContext(view)} />}
       {turn.answer && <p className="ooc">{turn.answer}</p>}
       {turn.status === "failed" && (
@@ -49,8 +64,13 @@ export function Passage({
       )}
       {turn.clarification && onChoice && (
         <div className="clarification">
-          <h3>A moment…</h3>
+          <h3>
+            A moment… <DiceBadge resolution={view.resolution} />
+          </h3>
           <p>{turn.clarification.question}</p>
+          {view.resolution === "d20" && (
+            <p className="muted small">Checks roll d20 + the skill modifier against the DC.</p>
+          )}
           <div>
             {turn.clarification.options.map((option, i) => (
               <button

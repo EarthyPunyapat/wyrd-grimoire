@@ -51,9 +51,19 @@ export const d20Module: ResolutionModule = {
     const sum = [`${natural}`];
     if (m !== 0) sum.push(m > 0 ? `+ ${m}` : `− ${-m}`);
     if (extra !== 0) sum.push(extra > 0 ? `+ ${extra}` : `− ${-extra}`);
-    const text = `${head.join(" · ")} · rolled ${sum.join(" ")} = ${total} · ${DEGREE_WORDS[degree]}`;
+    const shownTotal = total < 0 ? `−${-total}` : `${total}`;
+    const text = `${head.join(" · ")} · rolled ${sum.join(" ")} = ${shownTotal} · ${DEGREE_WORDS[degree]}`;
 
-    return { degree, margin: total - dc, rolls: dice, display: { text, degree } };
+    return {
+      degree,
+      margin: total - dc,
+      rolls: dice,
+      display: {
+        text,
+        degree,
+        roll: { die: "d20", sides: 20, natural, modifier: m + extra, total, dc },
+      },
+    };
   },
 
   displaySkill: (value) => signed(d20SkillModifier(value)),

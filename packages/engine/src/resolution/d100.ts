@@ -43,7 +43,11 @@ export const d100Module: ResolutionModule = {
       degree,
       margin: target - roll,
       rolls: [...tensDice.map((t) => t * 10), units],
-      display: { text, degree },
+      display: {
+        text,
+        degree,
+        roll: { die: "d100", sides: 100, natural: roll, target },
+      },
     };
   },
 

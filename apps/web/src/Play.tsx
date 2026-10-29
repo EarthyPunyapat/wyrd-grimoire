@@ -71,7 +71,9 @@ export function Play({
   const panel = (t: Tab) => {
     switch (t) {
       case "combat":
-        return view.combat ? <CombatPanel combat={view.combat} busy={play.busy} onFill={fill} /> : null;
+        return view.combat ? (
+          <CombatPanel combat={view.combat} busy={play.busy} onFill={fill} resolution={view.resolution} />
+        ) : null;
       case "party":
         return <Party campaignId={view.id} stamp={stamp} onChanged={() => void play.refresh()} />;
       case "journal":
@@ -207,7 +209,7 @@ export function Play({
               </div>
               {play.busy && (
                 <div className="pending" role="status">
-                  <Mechanics lines={play.mechanics} expanded />
+                  <Mechanics lines={play.mechanics} expanded resolution={view.resolution} />
                   <p>
                     <span className="pulse" aria-hidden="true">
                       ✦
@@ -383,7 +385,14 @@ export function Play({
               <Dialog.Description className="sr-only">
                 Turn order, the battlefield, and your legal actions.
               </Dialog.Description>
-              {view.combat && <CombatPanel combat={view.combat} busy={play.busy} onFill={fill} />}
+              {view.combat && (
+                <CombatPanel
+                  combat={view.combat}
+                  busy={play.busy}
+                  onFill={fill}
+                  resolution={view.resolution}
+                />
+              )}
               <Dialog.Close className="dialog-close" aria-label="Close combat panel">
                 ×
               </Dialog.Close>
