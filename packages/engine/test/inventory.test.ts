@@ -26,6 +26,7 @@ const items = {
   armor: {},
   gear: {
     "test:anvil": gear("test:anvil", 20, 10),
+    "test:gem": gear("test:gem", 1, 100),
     "test:rock": gear("test:rock", 5, 10),
     "test:arrow": gear("test:arrow", 0, 1),
     "test:bullet": gear("test:bullet", 0, 1),
@@ -127,6 +128,21 @@ function rich(settings = {}) {
 }
 const ectx = { ...rules, items, nameOf: (id: string) => id };
 
+/** A shop selling one gem; `price` sets the shop line, so the shop can price it below base. */
+const gemShop = (attitude: number, price?: number): ShopState => ({
+  ...shop,
+  attitude,
+  stock: [price === undefined ? { itemId: "test:gem", qty: 10 } : { itemId: "test:gem", qty: 10, price }],
+});
+function atShop(shopState: ShopState, coins = 1000) {
+  const s = sim({ subsystems: { money: "haggling" } });
+  s.state = {
+    ...s.state,
+    economy: { wallets: { pc: { coins, wealthLevel: 3 } }, shops: { [shopState.id]: shopState } },
+  };
+  return s;
+}
+
 describe("money and shops (spec 11)", () => {
   test("buying moves coins, stock and items", () => {
     const s = rich();
@@ -142,6 +158,48 @@ describe("money and shops (spec 11)", () => {
     s.commit(unwrap(sell(s.state, "pc", "shop:test", "test:rock", 1, ectx)));
     expect(s.state.economy.wallets.pc!.coins).toBe(before + 5);
     expect(s.state.economy.shops["shop:test"]!.stock[0]!.qty).toBe(11);
+  });
+
+  test("a discounted shop line cannot be bought and sold back for profit", () => {
+    // The gem's base is 100 and the shop line is 40 — below the 60% ceiling of its value.
+    // Pricing the sale from the base would pay 50 and mint 10 coins per loop.
+    const s = atShop(gemShop(0, 40));
+    s.commit(unwrap(buy(s.state, "pc", "shop:test", "test:gem", 1, ectx)));
+    expect(s.state.economy.wallets.pc!.coins).toBe(960);
+    s.commit(unwrap(sell(s.state, "pc", "shop:test", "test:gem", 1, ectx)));
+    expect(s.state.economy.wallets.pc!.coins).toBe(980);
+  });
+
+  test("selling back to the shop it came from can never return more than it cost", () => {
+    for (const price of [1, 10, 40, 50, 60, 100, 150]) {
+      for (const attitude of [-100, -50, 0, 50, 100]) {
+        const s = atShop(gemShop(attitude, price), 10_000);
+        const start = s.state.economy.wallets.pc!.coins;
+        s.commit(unwrap(buy(s.state, "pc", "shop:test", "test:gem", 1, ectx)));
+        const paid = start - s.state.economy.wallets.pc!.coins;
+        const beforeSale = s.state.economy.wallets.pc!.coins;
+        s.commit(unwrap(sell(s.state, "pc", "shop:test", "test:gem", 1, ectx)));
+        const got = s.state.economy.wallets.pc!.coins - beforeSale;
+        expect(got).toBeLessThanOrEqual(paid);
+      }
+    }
+  });
+
+  test("ordinary selling still pays the attitude share of the item's value", () => {
+    // A shop that doesn't list the rock falls back to the pack price (10) → 5 at neutral attitude.
+    const s = atShop(gemShop(0, 40));
+    give(s, "test:rock", 1);
+    const before = s.state.economy.wallets.pc!.coins;
+    s.commit(unwrap(sell(s.state, "pc", "shop:test", "test:rock", 1, ectx)));
+    expect(s.state.economy.wallets.pc!.coins).toBe(before + 5);
+  });
+
+  test("a shop line without its own price sells from the pack price", () => {
+    const s = atShop(gemShop(0));
+    give(s, "test:gem", 1);
+    const before = s.state.economy.wallets.pc!.coins;
+    s.commit(unwrap(sell(s.state, "pc", "shop:test", "test:gem", 1, ectx)));
+    expect(s.state.economy.wallets.pc!.coins).toBe(before + 50);
   });
 
   test("haggling sets a lasting price modifier", () => {

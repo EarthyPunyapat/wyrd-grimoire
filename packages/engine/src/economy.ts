@@ -45,7 +45,7 @@ export function buyPrice(
   return Math.max(1, Math.round(basePrice * shop.markup * shop.priceModifier * bargain));
 }
 
-/** What a merchant pays per unit: a share of value scaled by attitude (spec 11, Selling). */
+/** What a merchant pays per unit: the attitude share of the shop's price (spec 11, Selling). */
 export function sellPrice(shop: ShopState, basePrice: number, ctx: EconomyContext): number {
   const { min, max } = ctx.tuning.economy.selling;
   const share = min + ((shop.attitude + 100) / 200) * (max - min);
@@ -105,7 +105,10 @@ export function sell(
     .filter((s) => s.itemId === itemId)
     .reduce((sum, s) => sum + s.qty, 0);
   if ((have ?? 0) < qty) return fail("NOT_CARRIED", `You only carry ${have ?? 0}`);
-  const base = priceOfItem(ctx.items, itemId);
+  // Price the sale on the same basis a purchase would use: a cheap shop line also sells cheap,
+  // so buying back from the shop it came from can never turn a profit.
+  const line = shop.stock.find((s) => s.itemId === itemId);
+  const base = line?.price ?? priceOfItem(ctx.items, itemId);
   if (base === null) return fail("PRICE_UNKNOWN", `No price for ${itemId}`);
   const coins = sellPrice(shop, base, ctx) * qty;
   return ok([
