@@ -16,6 +16,8 @@ export type ToolEffects = {
 
 export type ToolContext = {
   gmMode?: boolean;
+  /** Accepted changes earlier in this turn, before storage projections are committed. */
+  pendingDrafts?: readonly EventDraft[];
   lore?: LoreLookup;
   onProgress?: (progress: ToolProgress) => void;
   state: GameState;

@@ -17,6 +17,7 @@ export * from "./prose.ts";
 export * from "./router.ts";
 export * from "./secrets.ts";
 export * from "./session-zero.ts";
+export * from "./source-creation.ts";
 export * from "./structured.ts";
 export * from "./summaries.ts";
 export * from "./tools.ts";

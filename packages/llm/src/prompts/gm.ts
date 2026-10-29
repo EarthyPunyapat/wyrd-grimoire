@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
+import type { StyleProfile } from "@wyrd/core";
 
 /** The GM prompt version; every prompt change bumps it (spec 08). */
-export const GM_VERSION = "gm@1";
+export const GM_VERSION = "gm@2";
 
 /** The owner's ChatGPT-GM voice, written fresh for Wyrd (no transcript text). */
 export const HOUSE_STYLE = readFileSync(new URL("./house-style.md", import.meta.url), "utf8").trim();
@@ -29,6 +30,7 @@ export type GmPromptOptions = {
   length: GmLength;
   /** Files from WYRD_HOME/style/house/*.md, if the player has any. */
   styleExamples?: string[];
+  style?: StyleProfile;
 };
 
 export function gmInstructions(o: GmPromptOptions): string {
@@ -36,6 +38,10 @@ export function gmInstructions(o: GmPromptOptions): string {
   return [
     rules,
     HOUSE_STYLE,
+    "For a source campaign, use source_timeline to keep greatest-hits continuity and character autonomy. Recognise interventions through existing facts and intervene_canon; never reveal unperceived timeline details. Read it again after time passes.",
+    ...(o.style
+      ? ["Campaign style preferences (voice only; never rules or new canon):", JSON.stringify(o.style)]
+      : []),
     ...(o.styleExamples?.length
       ? ["House style examples (imitate the voice, never the content):", ...o.styleExamples]
       : []),
