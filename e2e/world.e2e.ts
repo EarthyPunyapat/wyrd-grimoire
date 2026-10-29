@@ -3,10 +3,32 @@ import { expect, type Page, test } from "@playwright/test";
 
 const passcode = "a local browser test passcode";
 
-async function begin(page: Page) {
+async function unlock(page: Page) {
   await page.goto("/");
   await page.getByLabel("Passcode", { exact: true }).fill(passcode);
   await page.getByRole("button", { name: /Set passcode & enter|Unlock grimoire/ }).click();
+  await expect(page.getByRole("heading", { name: "Your campaigns" })).toBeVisible();
+}
+
+async function quickStart(page: Page, name: string, world: string) {
+  await unlock(page);
+  const id = await page.evaluate(
+    async ({ name, world }) => {
+      const response = await fetch("/api/campaigns/quick-start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Wyrd": "1" },
+        body: JSON.stringify({ name, characterName: "Wren", archetype: "cutpurse", world }),
+      });
+      return ((await response.json()) as { id: string }).id;
+    },
+    { name, world },
+  );
+  await page.goto(`/#campaign=${id}`);
+  await expect(page.getByRole("button", { name: /Campaign settings/ })).toBeVisible();
+}
+
+async function begin(page: Page) {
+  await unlock(page);
   await page.getByRole("button", { name: "+ New campaign", exact: true }).click();
   await page.getByLabel("Campaign name", { exact: true }).fill("World Test");
   await page
@@ -22,13 +44,36 @@ const open = async (page: Page, name: string, phone: boolean) => {
   else await page.getByRole("tab", { name }).click();
 };
 
+test("a codex fact can be pinned and the pin count follows", async ({ page }, info) => {
+  test.skip(info.project.name === "phone", "The phone opens the codex from a reference card");
+  await quickStart(page, "Pin Test", "ashford-ferry");
+  // Knowledge of the people in the room arrives after the first turn.
+  const box = page.getByLabel("What do you do?", { exact: true });
+  await box.fill("look around the room");
+  await box.press("Enter");
+  await expect(box).toBeEnabled({ timeout: 15000 });
+  await open(page, "Codex", false);
+  const codex = page.getByRole("complementary").getByRole("region", { name: "Codex" });
+  await expect(codex.getByText("0 of 20 facts pinned.")).toBeVisible();
+  const pin = codex.getByRole("button", { name: /^Pin / }).first();
+  await pin.click();
+  await expect(codex.getByText("1 of 20 facts pinned.")).toBeVisible();
+  await expect(codex.getByRole("button", { name: /^Unpin / })).toBeVisible();
+});
+
 test("map, travel, journal and codex: the world beyond the opening site", async ({ page }, info) => {
   const phone = info.project.name === "phone";
   await begin(page);
   await open(page, "Map", phone);
   const map = page.getByRole(phone ? "dialog" : "complementary").getByRole("region", { name: "Map" });
-  await expect(map.getByRole("img", { name: /Map of/ })).toBeVisible();
-  await map.getByRole("button", { name: /Greywater Market/ }).click();
+  await expect(map.getByRole("group", { name: /Map of/ })).toBeVisible();
+  // A site node is a button: Enter opens its codex entry on the map, with a way to travel.
+  await map.getByRole("button", { name: "Greywater Market", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  const site = map.locator(".map-site");
+  await expect(site).toContainText("Greywater Market");
+  await expect(site).toContainText("Known:");
+  await site.getByRole("button", { name: "Travel here" }).click();
   await expect(page.getByLabel("What do you do?", { exact: true })).toHaveValue(
     "I travel to Greywater Market",
   );

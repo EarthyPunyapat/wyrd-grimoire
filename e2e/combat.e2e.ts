@@ -3,24 +3,22 @@ import { expect, type Page, test } from "@playwright/test";
 
 const passcode = "a local browser test passcode";
 
-async function brawl(page: Page) {
+async function brawl(page: Page, archetype = "hunter") {
   await page.goto("/");
   await page.getByLabel("Passcode", { exact: true }).fill(passcode);
   await page.getByRole("button", { name: /Set passcode & enter|Unlock grimoire/ }).click();
   await expect(page.getByRole("heading", { name: "Your campaigns" })).toBeVisible();
-  const id = await page.evaluate(async () => {
-    const r = await fetch("/api/campaigns/quick-start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Wyrd": "1" },
-      body: JSON.stringify({
-        name: "Lantern Brawl",
-        characterName: "Wren",
-        archetype: "hunter",
-        world: "tavern-brawl",
-      }),
-    });
-    return ((await r.json()) as { id: string }).id;
-  });
+  const id = await page.evaluate(
+    async ({ name, archetype }) => {
+      const r = await fetch("/api/campaigns/quick-start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Wyrd": "1" },
+        body: JSON.stringify({ name, characterName: "Wren", archetype, world: "tavern-brawl" }),
+      });
+      return ((await r.json()) as { id: string }).id;
+    },
+    { name: archetype === "hunter" ? "Lantern Brawl" : "Dagger Brawl", archetype },
+  );
   await page.goto(`/#campaign=${id}`);
   await page.reload();
   await expect(page.getByRole("heading", { name: "The Crooked Lantern" })).toBeVisible();
@@ -101,4 +99,18 @@ test("the combat panel shows the battlefield, legal actions and a target card", 
   await page.screenshot({ path: info.outputPath("m4-combat-panel.png") });
   const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(accessibility.violations).toEqual([]);
+});
+
+test("the target card opens on an enemy in reach and refuses ones that are not", async ({ page }, info) => {
+  await brawl(page, "cutpurse");
+  await act(page, "I attack Cutter");
+  if (info.project.name === "phone") await page.getByRole("button", { name: "Combat ↗" }).click();
+  const panel = page.getByRole("region", { name: "Combat" }).first();
+  const targetName = panel.locator(".target h4");
+  // Fen is on the stairs, beyond a dagger; Mags and the rest are in the bar.
+  await expect(targetName).not.toHaveText("Fen");
+  await expect(panel.getByRole("button", { name: /^Attack / })).toBeEnabled();
+  await panel.getByRole("button", { name: /^Select Fen/ }).click();
+  await expect(targetName).toHaveText("Fen");
+  await expect(panel.getByRole("button", { name: "Attack Fen" })).toBeDisabled();
 });

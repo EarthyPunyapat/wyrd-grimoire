@@ -65,6 +65,8 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
   );
   const [ancestry, setAncestry] = useState(typeof saved?.ancestry === "string" ? saved.ancestry : "");
   const [archetype, setArchetype] = useState(typeof saved?.archetype === "string" ? saved.archetype : "");
+  // A sheet opened in the editor stays the character's truth through the review step.
+  const [customSheet, setCustomSheet] = useState(saved?.customSheet === true);
   const [error, setError] = useState("");
   const [detail, setDetail] = useState("");
   const [busy, setBusy] = useState(false);
@@ -99,6 +101,7 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
           world,
           ancestry,
           archetype,
+          customSheet,
           progression,
           preset,
           storyMode,
@@ -119,6 +122,7 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
     world,
     ancestry,
     archetype,
+    customSheet,
     progression,
     preset,
     storyMode,
@@ -145,6 +149,7 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
       creation.setView(view);
       await creation.save(draft);
       setStep(0);
+      setCustomSheet(true);
       setMode(next);
     } catch (e) {
       setError((e as Error).message);
@@ -198,7 +203,8 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
             setAncestry(draft.origins[0]!.id);
             setArchetype(draft.backgrounds[0]!.id);
             setProgression(draft.progressions[0] ?? "classless");
-          } else if (mode === "editor") {
+          } else if (mode === "editor" || customSheet) {
+            // The editor's saved sheet is the character, even after returning to the world review.
             await creation.flush();
             const created = await api(
               "/campaigns",
@@ -268,7 +274,11 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
           <input
             name="characterName"
             value={characterName}
-            onChange={(e) => setCharacterName(e.target.value)}
+            onChange={(e) => {
+              setCharacterName(e.target.value);
+              if (customSheet && creation.view)
+                creation.edit({ ...creation.view.draft, name: e.target.value });
+            }}
             disabled={busy}
             maxLength={80}
             placeholder={world ? world.suggestedCharacterName : "Choose now or let the world suggest one"}
@@ -343,7 +353,14 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
               {creation.error}
             </p>
           )}
-          <button type="button" disabled={busy} onClick={() => setMode("review")}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              if (creation.view) setCharacterName(creation.view.draft.name);
+              setMode("review");
+            }}
+          >
             ← Back to the world
           </button>
         </section>
@@ -352,6 +369,11 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
           <div className="eyebrow">{world.offline ? "OFFLINE EXAMPLE" : "YOUR GENERATED WORLD"}</div>
           <h2>{world.worldName}</h2>
           <p>{world.premise}</p>
+          {customSheet && (
+            <p className="muted small">
+              Your customised sheet is kept. Choose “Customise character” again to change it.
+            </p>
+          )}
           <div className="form-row">
             <label>
               {world.originLabel}
@@ -359,7 +381,7 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
                 aria-label={world.originLabel}
                 value={ancestry}
                 onChange={(e) => setAncestry(e.target.value)}
-                disabled={busy}
+                disabled={busy || customSheet}
               >
                 {world.origins.map((o) => (
                   <option key={o.id} value={o.id}>
@@ -374,7 +396,7 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
                 aria-label="Background"
                 value={archetype}
                 onChange={(e) => setArchetype(e.target.value)}
-                disabled={busy}
+                disabled={busy || customSheet}
               >
                 {world.backgrounds.map((b) => (
                   <option key={b.id} value={b.id}>
@@ -498,6 +520,7 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
             disabled={busy}
             onClick={() => {
               setWorld(undefined);
+              setCustomSheet(false);
               setError("");
               setDetail("");
               setMode("review");
@@ -517,6 +540,7 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
               setPitch("");
               setAncestry("");
               setArchetype("");
+              setCustomSheet(false);
               setMode("review");
               setStep(0);
               setSteps([]);

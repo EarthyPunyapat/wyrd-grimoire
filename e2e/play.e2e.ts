@@ -94,6 +94,52 @@ test("quick start, live turn, reroll, reload and character sheet", async ({ page
   expect(accessibility.violations).toEqual([]);
 });
 
+test("J, M, I and C open their panels without stealing typed keys", async ({ page }, info) => {
+  test.skip(
+    info.project.name === "phone",
+    "keyboard shortcuts are the desktop path; the phone bar covers these",
+  );
+  await create(page);
+  await page.locator(".location-bar span").first().click();
+  const selected = page.getByRole("tab", { selected: true });
+  await page.keyboard.press("j");
+  await expect(selected).toHaveText("Journal");
+  await page.keyboard.press("m");
+  await expect(selected).toHaveText("Map");
+  await page.keyboard.press("i");
+  await expect(selected).toHaveText("Inventory");
+
+  // A key typed into the composer is text, not a shortcut.
+  const box = page.getByLabel("What do you do?", { exact: true });
+  await box.fill("");
+  await box.press("j");
+  await expect(box).toHaveValue("j");
+  await expect(selected).toHaveText("Inventory");
+
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.press("c");
+  await expect(page.getByRole("dialog", { name: "Character sheet" })).toBeVisible();
+});
+
+test("browser back reaches the campaign list and the skip link stays in the story", async ({ page }) => {
+  await create(page);
+  await expect(page).toHaveURL(/#campaign=/);
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: "Your campaigns" })).toBeVisible();
+  await page.goForward();
+  await expect(page.locator(".play-layout")).toBeVisible();
+
+  // The in-page skip link changes the hash; it must not be mistaken for leaving the campaign.
+  await page.getByRole("link", { name: "Skip to story" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#main$/);
+  await expect(page.locator(".play-layout")).toBeVisible();
+  await page.goBack();
+  await expect(page.locator(".play-layout")).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: "Your campaigns" })).toBeVisible();
+});
+
 test("clarification choices are resolved and guard flags can regenerate", async ({ page }) => {
   await create(page);
   await page.getByLabel("What do you do?", { exact: true }).fill("ambiguous request");

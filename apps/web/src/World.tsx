@@ -1,4 +1,4 @@
-import { CodexView, DowntimeResult, JournalView, MapView } from "@wyrd/core";
+import { type CodexEntry, CodexView, DowntimeResult, JournalView, MapView } from "@wyrd/core";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api.ts";
 
@@ -172,10 +172,13 @@ export function Codex({
       </p>
     );
   if (!data) return <p className="panel-pad muted">Opening the codex…</p>;
-  const act = async (path: string, body: unknown) => {
+  // The fact id is one path segment; the verb after it is literal path, not part of the id.
+  const act = async (factId: string, verb: "pin" | "retcon", body: unknown) => {
     setProblem("");
     try {
-      setData(await api(`/campaigns/${campaignId}/facts/${encodeURIComponent(path)}`, parseCodex, body));
+      setData(
+        await api(`/campaigns/${campaignId}/facts/${encodeURIComponent(factId)}/${verb}`, parseCodex, body),
+      );
     } catch (e) {
       setProblem((e as Error).message);
     }
@@ -244,7 +247,7 @@ export function Codex({
                           className="inline-form"
                           onSubmit={(ev) => {
                             ev.preventDefault();
-                            void act(`${f.id}/retcon`, { value: editing.value }).then(() => setEditing(null));
+                            void act(f.id, "retcon", { value: editing.value }).then(() => setEditing(null));
                           }}
                         >
                           <input
@@ -267,7 +270,7 @@ export function Codex({
                               type="button"
                               aria-pressed={f.pinned}
                               aria-label={`${f.pinned ? "Unpin" : "Pin"} ${f.predicate} of ${e.name}`}
-                              onClick={() => void act(`${f.id}/pin`, { pinned: !f.pinned })}
+                              onClick={() => void act(f.id, "pin", { pinned: !f.pinned })}
                             >
                               {f.pinned ? "★" : "☆"}
                             </button>
@@ -299,12 +302,24 @@ export function WorldMap({
   campaignId,
   stamp,
   onTravel,
+  onCodex,
 }: {
   campaignId: string;
   stamp: number;
   onTravel: (text: string) => void;
+  onCodex?: (id: string) => void;
 }) {
   const { data, error } = usePanel(`/campaigns/${campaignId}/map`, parseMap, stamp);
+  // Clicking a site opens what the PC knows about it, without leaving the map.
+  const [selected, setSelected] = useState<MapView["sites"][number] | null>(null);
+  const [entry, setEntry] = useState<CodexEntry | null>(null);
+  const choose = (site: MapView["sites"][number]) => {
+    setSelected(site);
+    setEntry(null);
+    api(`/campaigns/${campaignId}/codex`, parseCodex)
+      .then((codex) => setEntry(codex.entries.find((e) => e.id === site.id) ?? null))
+      .catch(() => setEntry(null));
+  };
   if (error)
     return (
       <p role="alert" className="error panel-pad">
@@ -328,10 +343,11 @@ export function WorldMap({
   const here = data.sites.find((s) => s.here);
   return (
     <section className="world-panel" aria-label="Map">
+      {/* biome-ignore lint/a11y/useSemanticElements: an SVG can't hold buttons; role=group exposes the site controls */}
       <svg
         className="map"
         viewBox={`0 0 ${w} ${h}`}
-        role="img"
+        role="group"
         aria-label={`Map of ${data.sites.map((s) => s.name).join(", ")}`}
       >
         {data.regions.map((r, ci) => (
@@ -354,7 +370,21 @@ export function WorldMap({
         {data.sites.map((s) => {
           const p = pos.get(s.id)!;
           return (
-            <g key={s.id} className={`site${s.here ? " here" : ""}${s.visited ? " visited" : ""}`}>
+            // biome-ignore lint/a11y/useSemanticElements: SVG groups can't be <button> elements
+            <g
+              key={s.id}
+              className={`site${s.here ? " here" : ""}${s.visited ? " visited" : ""}${selected?.id === s.id ? " selected" : ""}`}
+              role="button"
+              tabIndex={0}
+              aria-label={`${s.name}${s.here ? " (you are here)" : ""}`}
+              onClick={() => choose(s)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  choose(s);
+                }
+              }}
+            >
               <circle cx={p.x} cy={p.y} r={s.here ? 9 : 7} />
               <text x={p.x} y={p.y + 22} textAnchor="middle">
                 {s.name}
@@ -363,8 +393,49 @@ export function WorldMap({
           );
         })}
       </svg>
+      {selected && (
+        <div className="map-site" aria-live="polite">
+          <h4>{entry?.name ?? selected.name}</h4>
+          {entry ? (
+            <>
+              <p className="small">{entry.summary}</p>
+              <p className="small muted">Known: {entry.how}</p>
+              {entry.facts.length > 0 && (
+                <ul className="plain">
+                  {entry.facts.slice(0, 4).map((f) => (
+                    <li key={f.id} className="small">
+                      <em>{f.predicate}:</em> {f.value}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          ) : (
+            <p className="small muted">What you know of {selected.name} is still taking shape.</p>
+          )}
+          <div className="map-site-actions">
+            {!selected.here && (
+              <button
+                type="button"
+                className="act"
+                onClick={() => {
+                  onTravel(`I travel to ${selected.name}`);
+                  setSelected(null);
+                }}
+              >
+                Travel here
+              </button>
+            )}
+            {onCodex && (
+              <button type="button" onClick={() => onCodex(selected.id)}>
+                Open codex entry
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       <h3>Roads from here</h3>
-      <ul className="plain">
+      <ul className="plain" aria-label="Roads from here">
         {data.routes
           .filter((r) => here && (r.a === here.id || r.b === here.id))
           .map((r) => {

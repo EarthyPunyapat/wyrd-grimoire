@@ -73,11 +73,20 @@ export function CombatPanel({
   resolution?: Resolution;
 }) {
   const enemies = combat.combatants.filter((c) => c.side === "enemy");
+  // A legal strike names its target, so the panel only ever attacks someone in reach.
+  const reachable = new Set(
+    combat.actions
+      .filter((a) => a.legal && a.fill.includes("attack "))
+      .map((a) => a.fill.slice(a.fill.indexOf("attack ") + "attack ".length)),
+  );
   const [targetId, setTargetId] = useState<string | null>(null);
   const target =
     combat.combatants.find((c) => c.id === targetId) ??
+    enemies.find((c) => c.status === "active" && reachable.has(c.name)) ??
     enemies.find((c) => c.status === "active") ??
     enemies[0];
+  const canStrike =
+    !!target && target.side === "enemy" && target.status === "active" && reachable.has(target.name);
   const current = combat.combatants.find((c) => c.id === combat.currentActorId);
   const map = layout(combat.zones);
   const centre = (zoneId: string) => {
@@ -258,7 +267,8 @@ export function CombatPanel({
               <button
                 type="button"
                 className="act"
-                disabled={busy}
+                disabled={busy || !canStrike}
+                title={canStrike ? undefined : "Out of reach from here"}
                 onClick={() => onFill(`I attack ${target.name}`)}
               >
                 Attack {target.name}

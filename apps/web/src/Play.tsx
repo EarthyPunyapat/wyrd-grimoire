@@ -11,6 +11,7 @@ import { Mechanics, Passage } from "./Passage.tsx";
 import { Sheet } from "./Sheet.tsx";
 import { Timeline } from "./Timeline.tsx";
 import { clearThemeVars, themeVars } from "./theme.ts";
+import { useCampaignSettings } from "./use-campaign-settings.ts";
 import { usePlay } from "./use-play.ts";
 import { Codex, Journal, WorldMap } from "./World.tsx";
 
@@ -55,7 +56,14 @@ export function Play({
   const [legacyName, setLegacyName] = useState("");
   const [legacyError, setLegacyError] = useState("");
   const [campaignSettings, setCampaignSettings] = useState(false);
-  const [math, setMath] = useState(localStorage.getItem("wyrd-math") !== "false");
+  // The campaign's setting seeds the device once; after that the checkbox owns this device.
+  const [mathChoice, setMathChoice] = useState<boolean | null>(() => {
+    const stored = localStorage.getItem("wyrd-math");
+    return stored === null ? null : stored === "true";
+  });
+  const settings = useCampaignSettings(view.id);
+  const math = mathChoice ?? settings?.narration.showMath ?? true;
+  const suggestions = settings?.narration.suggestions ?? true;
   const textarea = useRef<HTMLTextAreaElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const play = usePlay(view, onView);
@@ -66,8 +74,8 @@ export function Play({
   };
   const inCombat = !!view.combat && !view.ended;
   const tabs: Tab[] = inCombat
-    ? ["combat", "sheet", "party", "journal", "codex", "map", "timeline"]
-    : ["sheet", "party", "journal", "codex", "map", "timeline"];
+    ? ["combat", "sheet", "inventory", "party", "journal", "codex", "map", "timeline"]
+    : ["sheet", "inventory", "party", "journal", "codex", "map", "timeline"];
   const stamp = view.turns.length;
   useEffect(() => {
     if (inCombat) setTab("combat");
@@ -95,7 +103,7 @@ export function Play({
       case "codex":
         return <Codex campaignId={view.id} stamp={stamp} focus={codexFocus} />;
       case "map":
-        return <WorldMap campaignId={view.id} stamp={stamp} onTravel={travel} />;
+        return <WorldMap campaignId={view.id} stamp={stamp} onTravel={travel} onCodex={openCodex} />;
       case "timeline":
         return (
           <Timeline
@@ -131,8 +139,23 @@ export function Play({
   }, [play.busy, view.turns.length]);
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement).closest("input,textarea,select,[role=dialog]")) return;
-      if (e.key.toLowerCase() === "c") setSheet(true);
+      if ((e.target as HTMLElement).closest("input,textarea,select,[role=dialog],[contenteditable=true]"))
+        return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const key = e.key.toLowerCase();
+      if (key === "c") {
+        setSheet(true);
+        return;
+      }
+      // Spec 13 keyboard: J journal, M map, I inventory. On a phone they open the bottom sheets.
+      const destinations = { j: "journal", m: "map", i: "inventory" } as const;
+      if (key in destinations) {
+        e.preventDefault();
+        const next = destinations[key as keyof typeof destinations];
+        if (window.matchMedia("(max-width: 767px)").matches) setPanelOpen(next);
+        else setTab(next);
+        return;
+      }
       const choice = last?.clarification?.options[Number(e.key) - 1];
       if (choice && !play.busy) {
         e.preventDefault();
@@ -301,22 +324,24 @@ export function Play({
             }}
           >
             <div className="composer-inner">
-              <fieldset className="suggestions">
-                <legend className="sr-only">Suggested actions</legend>
-                {view.suggestions.map((s) => (
-                  <button
-                    type="button"
-                    key={s}
-                    disabled={play.busy}
-                    onClick={() => {
-                      setInput(s);
-                      textarea.current?.focus();
-                    }}
-                  >
-                    {s} <span aria-hidden="true">↗</span>
-                  </button>
-                ))}
-              </fieldset>
+              {suggestions && (
+                <fieldset className="suggestions">
+                  <legend className="sr-only">Suggested actions</legend>
+                  {view.suggestions.map((s) => (
+                    <button
+                      type="button"
+                      key={s}
+                      disabled={play.busy}
+                      onClick={() => {
+                        setInput(s);
+                        textarea.current?.focus();
+                      }}
+                    >
+                      {s} <span aria-hidden="true">↗</span>
+                    </button>
+                  ))}
+                </fieldset>
+              )}
               <div className="input-row">
                 <label className="sr-only" htmlFor="action-input">
                   What do you do?
@@ -348,7 +373,7 @@ export function Play({
                     type="checkbox"
                     checked={math}
                     onChange={(e) => {
-                      setMath(e.target.checked);
+                      setMathChoice(e.target.checked);
                       localStorage.setItem("wyrd-math", String(e.target.checked));
                     }}
                   />
@@ -451,6 +476,9 @@ export function Play({
             </button>
             <button type="button" onClick={() => setPanelOpen("timeline")}>
               Timeline
+            </button>
+            <button type="button" onClick={() => setPanelOpen("inventory")}>
+              Inventory
             </button>
             <Dialog.Trigger>Sheet ↗</Dialog.Trigger>
           </div>

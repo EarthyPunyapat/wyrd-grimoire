@@ -27,6 +27,36 @@ async function campaign(page: Page) {
   return id;
 }
 
+test("campaign narration settings seed the play screen on a fresh device", async ({ page }) => {
+  const id = await campaign(page);
+  const suggestions = await page.evaluate(async (campaignId) => {
+    const response = await fetch(`/api/campaigns/${campaignId}/view`);
+    return ((await response.json()) as { suggestions: string[] }).suggestions;
+  }, id);
+  // The view still offers suggestions; only the player's setting may hide the chips.
+  expect(suggestions.length).toBeGreaterThan(0);
+  await page.evaluate(async (campaignId) => {
+    const response = await fetch(`/api/campaigns/${campaignId}/settings`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "X-Wyrd": "1" },
+      body: JSON.stringify({ narration: { showMath: false, suggestions: false } }),
+    });
+    if (!response.ok) throw new Error(`settings PATCH failed: ${response.status}`);
+  }, id);
+  await page.reload();
+  const math = page.getByLabel("Show the math");
+  await expect(math).not.toBeChecked();
+  await expect(page.getByRole("group", { name: "Suggested actions" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Look around/ })).toHaveCount(0);
+
+  // The checkbox still works on this device and wins on later visits.
+  await math.check();
+  await expect(math).toBeChecked();
+  expect(await page.evaluate(() => localStorage.getItem("wyrd-math"))).toBe("true");
+  await page.reload();
+  await expect(page.getByLabel("Show the math")).toBeChecked();
+});
+
 test("campaign settings show locks, apply a preset and keep a custom label", async ({ page }) => {
   const id = await campaign(page);
   await page.getByRole("button", { name: /Campaign settings/ }).click();
