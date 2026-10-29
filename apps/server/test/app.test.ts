@@ -125,10 +125,94 @@ test("campaign quick start persists and GameView excludes world truth and hidden
   expect(data.pc.identity.name).toBe("Wren");
   expect(data.scene?.location).toBeTruthy();
   const text = JSON.stringify(data);
-  for (const forbidden of ["world-bible", "rngState", "importance", "secret", 'resolution"', "forbidden"])
+  for (const forbidden of ["world-bible", "rngState", "importance", "secret", "forbidden"])
     expect(text).not.toContain(forbidden);
   expect((await request(server, "/campaigns", undefined, cookie)).status).toBe(200);
   expect(server.store.campaigns()).toHaveLength(1);
+});
+
+test("a d20 campaign plays several turns: the view exposes the mode and mechanics use d20 + DC", async () => {
+  const server = setup();
+  const cookie = await login(server);
+  const made = await request(
+    server,
+    "/campaigns/quick-start",
+    {
+      name: "A d20 at Ashford",
+      characterName: "Wren",
+      archetype: "cutpurse",
+      resolution: "d20",
+    },
+    cookie,
+  );
+  expect(made.status).toBe(201);
+  const { id } = (await made.json()) as { id: string };
+  let n = 0;
+  const turn = async (input: string): Promise<ReturnType<typeof GameView.parse>> => {
+    const submitted = await request(
+      server,
+      `/campaigns/${id}/turns`,
+      { input, clientTurnId: `d20-${n++}` },
+      cookie,
+    );
+    expect(submitted.status).toBe(202);
+    const { turnId } = (await submitted.json()) as { turnId: string };
+    const stream = await (
+      await request(server, `/campaigns/${id}/turns/${turnId}/stream`, undefined, cookie)
+    ).text();
+    expect(stream).toContain("event: narration.final");
+    return GameView.parse(
+      await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json(),
+    );
+  };
+
+  let view = await turn("sneak behind the barrels");
+  expect(view.resolution).toBe("d20");
+  expect(view.skills.length).toBeGreaterThan(0);
+  expect(view.skills.every((s) => !s.display.endsWith("%"))).toBe(true);
+  const check = view.turns[0]!.mechanics.find((m) => m.roll);
+  expect(check?.roll?.die).toBe("d20");
+  expect(check?.roll?.sides).toBe(20);
+  expect(check?.roll?.dc).toBeGreaterThan(0);
+  expect(check?.text).toContain("DC");
+  expect(check?.text).not.toContain("%");
+
+  view = await turn("look around");
+  view = await turn("wait 10 minutes");
+  expect(view.turns).toHaveLength(3);
+  expect(view.resolution).toBe("d20");
+});
+
+test("a d100 campaign keeps d100 mechanics and percentage skill notation", async () => {
+  const server = setup();
+  const cookie = await login(server);
+  const made = await request(
+    server,
+    "/campaigns/quick-start",
+    { name: "A d100 at Ashford", characterName: "Wren", archetype: "cutpurse" },
+    cookie,
+  );
+  const { id } = (await made.json()) as { id: string };
+  const submitted = await request(
+    server,
+    `/campaigns/${id}/turns`,
+    { input: "sneak behind the barrels", clientTurnId: "d100-1" },
+    cookie,
+  );
+  const { turnId } = (await submitted.json()) as { turnId: string };
+  await (
+    await request(server, `/campaigns/${id}/turns/${turnId}/stream`, undefined, cookie)
+  ).text();
+  const view = GameView.parse(
+    await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json(),
+  );
+  expect(view.resolution).toBe("d100");
+  expect(view.skills.every((s) => s.display.endsWith("%"))).toBe(true);
+  const check = view.turns[0]!.mechanics.find((m) => m.roll);
+  expect(check?.roll?.die).toBe("d100");
+  expect(check?.roll?.sides).toBe(100);
+  expect(check?.roll?.target).toBeGreaterThan(0);
+  expect(check?.text).toContain("%");
 });
 
 test("turn IDs deduplicate submissions; SSE replays in order and reroll keeps dice and time", async () => {

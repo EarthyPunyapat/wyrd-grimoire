@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { GuardSummary } from "./canon.ts";
 import { CombatView } from "./combat.ts";
-import { MechanicsLine } from "./common.ts";
+import { MechanicsLine, ResolutionId } from "./common.ts";
 import { CharacterSheet } from "./sheet.ts";
 export const ConnectionStatus = z.object({
   offline: z.boolean(),
@@ -36,6 +36,8 @@ export const QuickStartInput = z
       .regex(/^[a-z-]+$/)
       .default("human"),
     progression: z.enum(["classless", "useBased", "hybrid"]).default("classless"),
+    /** Dice system, locked at creation (spec 12). The web picker arrives with campaign settings. */
+    resolution: ResolutionId.default("d100"),
     /** Which authored test world to start in. */
     world: z.enum(["ashford-ferry", "tavern-brawl"]).default("ashford-ferry"),
   })
@@ -95,7 +97,17 @@ export const GameView = z.object({
   backgroundName: z.string(),
   speakers: z.record(z.string(), z.string()).default({}),
   pc: CharacterSheet,
-  skills: z.array(z.object({ id: z.string(), name: z.string(), value: z.number() })),
+  /** The campaign's dice system, locked at creation (spec 02, 12). */
+  resolution: ResolutionId.default("d100"),
+  /** `value` is the canonical 0–100 skill; `display` is the module's notation ("65%" or "+3"). */
+  skills: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      value: z.number(),
+      display: z.string().default(""),
+    }),
+  ),
   scene: z
     .object({
       location: z.string(),

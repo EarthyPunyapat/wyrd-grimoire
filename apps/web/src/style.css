@@ -67,6 +67,7 @@ em { font-weight: 400; }
 .top-tools { margin-left: auto; display: flex; align-items: center; gap: 1rem; font-size: .8rem; }
 .top-tools button { border: 0; }
 .mode-badge { border: 1px solid var(--line); border-radius: 20px; padding: .3rem .65rem; font-size: .65rem; letter-spacing: .05em; color: var(--ink-muted); }
+.dice-badge { display: inline-block; border: 1px solid var(--line); border-radius: 20px; padding: .05rem .4rem; font: .6rem/1.4 var(--font-mono); letter-spacing: .05em; color: var(--accent); vertical-align: middle; }
 .home { max-width: 960px; margin: 0 auto; padding: 5rem 2rem 2rem; }
 .home h1 { font-size: clamp(2.5rem, 5vw, 4rem); line-height: 1.1; margin-bottom: 1.5rem; letter-spacing: -.035em; }
 .home h1 em { color: var(--accent); }

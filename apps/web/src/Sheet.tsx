@@ -1,4 +1,5 @@
 import { ATTRIBUTE_IDS, ATTRIBUTE_NAMES, type GameView } from "@wyrd/core";
+import { DiceBadge, skillDisplay } from "./Dice.tsx";
 
 export function Sheet({ view }: { view: GameView }) {
   const { pc } = view;
@@ -46,15 +47,20 @@ export function Sheet({ view }: { view: GameView }) {
         </dl>
       </div>
       <div className="sheet-section">
-        <h3>Trained skills</h3>
+        <h3>
+          Trained skills <DiceBadge resolution={view.resolution} />
+        </h3>
         <dl className="skills">
           {view.skills.map((skill) => (
             <div key={skill.id}>
               <dt>{skill.name}</dt>
-              <dd>{skill.value}%</dd>
+              <dd>{skillDisplay(skill)}</dd>
             </div>
           ))}
         </dl>
+        {view.resolution === "d20" && (
+          <p className="muted small">Add each modifier to a d20 and beat the check's DC.</p>
+        )}
       </div>
       <div className="sheet-section">
         <h3>Wounds & conditions</h3>

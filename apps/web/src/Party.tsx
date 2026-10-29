@@ -1,6 +1,7 @@
 import { type ProgressionMember, ProgressionView } from "@wyrd/core";
 import { useState } from "react";
 import { api } from "./api.ts";
+import { DiceBadge, type Resolution, skillDisplay } from "./Dice.tsx";
 import { usePanel } from "./World.tsx";
 
 const parseProgression = (d: unknown) => ProgressionView.parse(d);
@@ -134,10 +135,12 @@ function Advance({
   m,
   busy,
   buy,
+  resolution,
 }: {
   m: ProgressionMember;
   busy: boolean;
   buy: (kind: "skill" | "attribute" | "talent" | "fieldSkill", id: string) => void;
+  resolution: Resolution;
 }) {
   const [field, setField] = useState(m.fieldSkills[0]?.id ?? "");
   const [specialisation, setSpecialisation] = useState("");
@@ -176,12 +179,14 @@ function Advance({
         </ul>
       </div>
       <div className="sheet-section">
-        <h3>Skills (+5)</h3>
+        <h3>
+          Skills (+5) <DiceBadge resolution={resolution} />
+        </h3>
         <ul className="advance-list">
           {m.skills.map((s) => (
             <li key={s.id}>
               <span>{s.name}</span>
-              <span className="advance-value">{s.value}%</span>
+              <span className="advance-value">{skillDisplay(s)}</span>
               <Buy
                 label={`Raise ${s.name}`}
                 cost={s.cost}
@@ -334,7 +339,15 @@ export function Party({
         </p>
       )}
       {member?.companion && <CompanionCard m={member} busy={busy} onControl={(c, d) => void control(c, d)} />}
-      {member && <Advance key={member.actorId} m={member} busy={busy} buy={(k, id) => void buy(k, id)} />}
+      {member && (
+        <Advance
+          key={member.actorId}
+          m={member}
+          busy={busy}
+          buy={(k, id) => void buy(k, id)}
+          resolution={data.resolution}
+        />
+      )}
       {data.members.length === 1 && (
         <p className="muted small party-hint">
           You travel alone. Win someone over and ask them to come along; up to three can join you.

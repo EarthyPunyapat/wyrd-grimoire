@@ -12,6 +12,7 @@ import {
   LegacyInput,
   PasscodeInput,
   QuickStartInput,
+  type ResolutionId,
   StartGeneratedCampaign,
   SubmitTurnInput,
   TurnCompletedPayload,
@@ -28,6 +29,7 @@ import {
   legacyEvents,
   obituary,
   reduce,
+  RESOLUTION_MODULES,
   skillLabel,
   skillValue,
   unwrap,
@@ -343,6 +345,7 @@ export function createApp(options: Options) {
       name,
       characterName,
       progression,
+      resolution,
       ...input
     } = await body(c, QuickStartInput);
     const sheet = pregen
@@ -363,6 +366,7 @@ export function createApp(options: Options) {
       [],
       hooks,
       progression,
+      resolution,
     );
     return c.json({ id }, 201);
   });
@@ -425,11 +429,12 @@ export function createApp(options: Options) {
     extra: EventDraft[] = [],
     hooks?: { ids: string[]; events: EventDraft[] },
     progression: "classless" | "useBased" | "hybrid" = "classless",
+    resolution: ResolutionId = "d100",
   ) {
     const created = unwrap(
       createCampaign({
         name,
-        settings: { structural: { progression } },
+        settings: { structural: { progression, resolution } },
         packIds: [pack.manifest.id],
         packHash: pack.hash,
         seed: options.seed ?? randomBytes(16).toString("hex"),
@@ -489,6 +494,8 @@ export function createApp(options: Options) {
     );
     const gamePack = game.packSnapshot()!.content as CompiledPack;
     const skills = skillCatalog([gamePack]);
+    const resolution = state.campaign.settings.structural.resolution;
+    const resolutionModule = RESOLUTION_MODULES[resolution];
     const view = combatParts(game, state, gamePack);
     const turns = canon.recentTurns(100);
     // Resolve only IDs already spoken in player-visible passages, never the full NPC registry.
@@ -517,11 +524,16 @@ export function createApp(options: Options) {
         backgroundName: gamePack.archetypes[pc.archetypeId ?? ""]?.name ?? "",
         pc,
         speakers,
-        skills: Object.keys(pc.skills).map((id) => ({
-          id,
-          name: skillLabel(id, skills),
-          value: skillValue(pc, id, skills, defaultTuning),
-        })),
+        resolution,
+        skills: Object.keys(pc.skills).map((id) => {
+          const value = skillValue(pc, id, skills, defaultTuning);
+          return {
+            id,
+            name: skillLabel(id, skills),
+            value,
+            display: resolutionModule.displaySkill(value),
+          };
+        }),
         scene: scene
           ? {
               location: canon.entity(scene.locationId)?.name ?? "Unknown place",

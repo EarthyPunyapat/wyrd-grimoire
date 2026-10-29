@@ -49,9 +49,34 @@ export const RngStateSchema = z.tuple([
   z.number().int().nonnegative(),
 ]);
 
+/**
+ * The structured dice detail behind a mechanics line (spec 02). `text` is still the
+ * pre-rendered line the resolution module produced; this lets the UI label the dice mode and
+ * keep a d100 roll out of a d20 campaign without re-implementing any rules.
+ */
+export const MechanicsRoll = z.object({
+  /** Which resolution module produced the line. */
+  die: ResolutionId,
+  /** Die faces: 100 or 20. */
+  sides: z.number().int().positive(),
+  /** The die result that counted (the kept die of a boon/bane pair). */
+  natural: z.number().int(),
+  /** d20: the total modifier added to the die (skill + modifiers + boon bonus). */
+  modifier: z.number().int().optional(),
+  /** d20: die + modifier. */
+  total: z.number().int().optional(),
+  /** d100: the target percentage. */
+  target: z.number().int().optional(),
+  /** d20: the difficulty class. */
+  dc: z.number().int().optional(),
+});
+export type MechanicsRoll = z.infer<typeof MechanicsRoll>;
+
 /** A short pre-rendered line for the mechanics log, so the UI never re-implements rules. */
 export const MechanicsLine = z.object({
   text: z.string(),
   degree: Degree.optional(),
+  /** Present when the line records a dice roll. */
+  roll: MechanicsRoll.optional(),
 });
 export type MechanicsLine = z.infer<typeof MechanicsLine>;

@@ -1,5 +1,6 @@
 import type { CombatView } from "@wyrd/core";
 import { useState } from "react";
+import { DiceBadge, type Resolution } from "./Dice.tsx";
 
 type Combatant = CombatView["combatants"][number];
 
@@ -64,10 +65,12 @@ export function CombatPanel({
   combat,
   busy,
   onFill,
+  resolution = "d100",
 }: {
   combat: CombatView;
   busy: boolean;
   onFill: (text: string) => void;
+  resolution?: Resolution;
 }) {
   const enemies = combat.combatants.filter((c) => c.side === "enemy");
   const [targetId, setTargetId] = useState<string | null>(null);
@@ -95,7 +98,9 @@ export function CombatPanel({
   return (
     <section className="combat-panel" aria-label="Combat">
       <div className="combat-head">
-        <span className="label">Round {combat.round} · initiative</span>
+        <span className="label">
+          Round {combat.round} · initiative <DiceBadge resolution={resolution} />
+        </span>
         <span className="small">
           {combat.yourTurn ? "Your turn" : `${current?.name ?? "Someone"}'s turn`}
         </span>
