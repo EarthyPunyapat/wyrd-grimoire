@@ -65,6 +65,17 @@ export function App() {
       if (id) void openCampaign(id);
     }
   }, [auth, refreshCards, openCampaign]);
+  // The hash can change without a reload — history, a pasted link, another tab. Open
+  // whatever campaign it now names, so deep links work after the first load too.
+  useEffect(() => {
+    if (!auth?.authenticated) return;
+    const onHashChange = () => {
+      const id = new URLSearchParams(location.hash.slice(1)).get("campaign");
+      if (id && id !== view?.id) void openCampaign(id);
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, [auth?.authenticated, openCampaign, view?.id]);
   useEffect(() => {
     const lock = () => {
       setAuth((a) => (a ? { ...a, authenticated: false } : a));
