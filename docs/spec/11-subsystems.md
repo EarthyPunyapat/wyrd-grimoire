@@ -44,7 +44,7 @@ Every subsystem is built, and every subsystem can be switched on or off per camp
 
 - Denominations, base prices and regional modifiers come from the pack's `economy.yaml`.
 - **Shops** are canon entities with stock that refreshes weekly (game time) from pack tables, sized by settlement.
-- **Selling** fetches 40–60% of the shop's price for the item — its shop line when it has one, otherwise the pack base price — depending on merchant attitude and faction reputation. Purchases use the same basis, so buying from a cheap line and selling it back can never turn a profit.
+- **Selling** fetches 40–60% of the shop's price for the item — its shop line when it has one, otherwise the pack base price — depending on merchant attitude and faction reputation. Purchases use the same basis, so buying from a cheap line and selling it back cannot turn a profit at the pack's markups.
 - **Haggling** (when on): opposed Persuasion vs the merchant's Insight. Success ±10% in the PC's favour, critSuccess ±20%; critFailure offends the merchant (attitude −10, maybe refuses service).
 - **Price drift** (Simulation): seasonal and event-driven multipliers (a siege doubles food prices).
 - **Wealth levels** (Story): 1 Destitute · 2 Poor · 3 Comfortable · 4 Wealthy · 5 Rich. Purchases at or below your level just happen; above it needs a check or a plot reason; big purchases may lower the level.
