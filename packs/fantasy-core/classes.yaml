@@ -1,0 +1,61 @@
+- id: fighter
+  name: Fighter
+  description: A trained blade who holds the line and makes violence a craft.
+  skills: [melee, athletics, intimidation, perception, survival, medicine]
+  archetypes: [sellsword]
+  features:
+    - { level: 2, name: "Shield Line", description: "You keep your footing and cover the person beside you.", talent: line-veteran }
+    - { level: 4, name: "Second Wind", description: "You find another breath when the fight should have taken it.", talent: second-wind }
+    - { level: 6, name: "Iron Nerve", description: "Fear has less purchase on you.", talent: iron-will }
+    - { level: 8, name: "Hard to Kill", description: "Hard winters and harder fights made you stubborn.", talent: tough-as-roots }
+    - { level: 10, name: "Veteran of the Line", description: "You have seen every way a line can break, and how to hold it." }
+- id: rogue
+  name: Rogue
+  description: A quick hand in a city that watches its purses and its doors.
+  skills: [stealth, sleight-of-hand, deception, perception, acrobatics, streetwise]
+  archetypes: [cutpurse]
+  features:
+    - { level: 2, name: "Light Fingers", description: "Purses and keys find their way into your hands.", talent: light-fingers }
+    - { level: 4, name: "Quick Draw", description: "You never fumble for a blade.", talent: quick-hands }
+    - { level: 6, name: "Silver Tongue", description: "People want to agree with you.", talent: silver-tongue }
+    - { level: 8, name: "Unseen Step", description: "You know which boards creak and which shadows are empty." }
+- id: mage
+  name: Mage
+  description: A scholar of the schools who pays for power in strain and study.
+  skills: [spellcasting/elemental, arcana, lore/history, investigation, insight, language/old-script]
+  archetypes: [hedge-wizard]
+  features:
+    - { level: 2, name: "Hedge Lore", description: "Charms, herbs and small spirits are familiar company.", talent: hedge-lore }
+    - { level: 4, name: "Iron Focus", description: "Your mind holds when magic pushes back.", talent: iron-will }
+    - { level: 6, name: "Well-Read", description: "You have read more than is good for you.", talent: well-read }
+    - { level: 8, name: "Second School", description: "You have begun a second school of spellcasting." }
+- id: priest
+  name: Priest
+  description: A keeper of a faith who carries its promises into dangerous places.
+  skills: [faith, medicine, persuasion, insight, lore/religion, survival]
+  archetypes: [pilgrim]
+  features:
+    - { level: 2, name: "Road Blessing", description: "A pilgrim's word carries weight.", talent: road-blessed }
+    - { level: 4, name: "Steady Faith", description: "Doubt is a test, not a defeat.", talent: iron-will }
+    - { level: 6, name: "Keeper of Stories", description: "You know the old accounts and what they cost.", talent: well-read }
+    - { level: 8, name: "Shepherd", description: "Your flock holds together because you do." }
+- id: ranger
+  name: Ranger
+  description: A far-walker who reads weather, tracks and the land's mood.
+  skills: [ranged, survival, perception, stealth, athletics, navigation]
+  archetypes: [hunter]
+  features:
+    - { level: 2, name: "Tracker", description: "Bent grass and broken twigs tell you stories.", talent: tracker }
+    - { level: 4, name: "Keen Ears", description: "You hear the creak on the stair before anyone else.", talent: keen-ears }
+    - { level: 6, name: "Hardy", description: "Long roads have made you hard to kill.", talent: tough-as-roots }
+    - { level: 8, name: "Far Walker", description: "No road is too long and no weather too poor." }
+- id: bard
+  name: Bard
+  description: A collector of songs, secrets and other people's confidence.
+  skills: [persuasion, deception, insight, lore/history, language/old-script, streetwise]
+  archetypes: [scholar]
+  features:
+    - { level: 2, name: "Silver Tongue", description: "People want to agree with you.", talent: silver-tongue }
+    - { level: 4, name: "Well-Read", description: "You have read more than is good for you.", talent: well-read }
+    - { level: 6, name: "Keen Ears", description: "You hear what people mean, not only what they say.", talent: keen-ears }
+    - { level: 8, name: "Name in Every Port", description: "Someone owes you a favour almost everywhere." }

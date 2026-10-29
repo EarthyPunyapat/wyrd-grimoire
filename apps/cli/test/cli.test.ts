@@ -50,7 +50,7 @@ describe("dev CLI", () => {
   });
 
   test("pack validate passes for fantasy-core and fails for a broken pack", () => {
-    expect(ok("pack", "validate", "packs/fantasy-core")).toContain("fantasy-core 0.1.0: valid");
+    expect(ok("pack", "validate", "packs/fantasy-core")).toMatch(/fantasy-core \d+\.\d+\.\d+: valid/);
     expect(wyrd("pack", "validate", dir).code).toBe(1);
   });
 

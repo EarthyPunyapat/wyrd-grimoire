@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { DiceExpr } from "../dice.ts";
 import type { LocationKind } from "../tuning.ts";
-import { AttributeId, RangeBand } from "./common.ts";
+import { AttributeId, Difficulty, RangeBand } from "./common.ts";
 import { BackstoryHook } from "./creation.ts";
 import { AppearanceFacts } from "./sheet.ts";
 
@@ -160,6 +160,10 @@ export const ArchetypeDef = z.object({
   /** Suggested trained points (core + interest) per skill. */
   skills: z.record(ContentRef, z.number().int().positive()),
   talent: ContentRef,
+  /** In class mode, the class this background maps onto (spec 04). */
+  class: ContentRef.optional(),
+  /** Spells this background starts knowing (spellcasting plugin). */
+  spells: z.array(ContentRef).default([]),
   kit: z.array(KitEntry).default([]),
   backstoryPrompts: z.array(z.string()).default([]),
 });
@@ -169,6 +173,230 @@ export type ArchetypeDef = z.infer<typeof ArchetypeDef>;
  * A ready-to-play character (spec 04 quick start). Attributes, skills and kit come from the
  * archetype; the pregen adds a person: a name, a free talent, looks, a backstory and hooks.
  */
+/**
+ * A class for class progression (spec 04). Levels run 1–10 by default; XP thresholds are engine
+ * tuning, and each level grants training in the class skills plus a class feature at set levels.
+ */
+export const ClassFeature = z.object({
+  level: z.number().int().min(1).max(10),
+  name: z.string().min(1),
+  description: z.string().default(""),
+  /** A talent the feature grants when the level is reached. */
+  talent: ContentRef.optional(),
+});
+export type ClassFeature = z.infer<typeof ClassFeature>;
+
+export const ClassDef = z.object({
+  id: LocalId,
+  name: z.string().min(1),
+  description: z.string().min(1),
+  /** Skills this class trains; each level's class points go to these. */
+  skills: z.array(ContentRef).min(1),
+  features: z.array(ClassFeature).default([]),
+  /** Which archetypes map onto this class at creation. */
+  archetypes: z.array(ContentRef).default([]),
+});
+export type ClassDef = z.infer<typeof ClassDef>;
+
+export const SpellSchool = z.enum(["elemental", "healing", "illusion", "warding"]);
+export type SpellSchool = z.infer<typeof SpellSchool>;
+
+export const SpellEffect = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("damage"),
+    dice: DiceExpr,
+    damageType: z.string().min(1),
+    armorPiercing: z.number().int().nonnegative().default(0),
+  }),
+  z.object({ kind: z.literal("heal"), dice: DiceExpr }),
+  z.object({
+    kind: z.literal("applyCondition"),
+    condition: ContentRef,
+    level: z.number().int().min(1).max(5).optional(),
+    note: z.string().optional(),
+  }),
+  z.object({ kind: z.literal("removeCondition"), condition: ContentRef }),
+  z.object({
+    kind: z.literal("zoneTag"),
+    tag: z.string().min(1),
+    duration: z.number().int().positive().optional(),
+  }),
+  z.object({
+    kind: z.literal("moveTarget"),
+    toZoneId: z.string().optional(),
+    metres: z.number().int().positive().optional(),
+  }),
+  z.object({
+    kind: z.literal("ward"),
+    protection: z.number().int().positive(),
+    damageTypes: z.array(z.string()).default([]),
+    duration: z.number().int().positive().optional(),
+  }),
+  z.object({
+    kind: z.literal("summon"),
+    creature: ContentRef,
+    count: z.number().int().min(1).max(3).default(1),
+  }),
+  z.object({ kind: z.literal("detect"), what: z.enum(["hidden", "magic", "lies", "traps"]) }),
+  z.object({ kind: z.literal("illusion"), difficulty: Difficulty.default("normal") }),
+]);
+export type SpellEffect = z.infer<typeof SpellEffect>;
+
+/** A spell (spec 05): data the spellcasting plugin resolves. Strain and miscasts are plugin rules. */
+export const SpellDef = z.object({
+  id: LocalId,
+  name: z.string().min(1),
+  description: z.string().default(""),
+  school: SpellSchool,
+  tier: z.number().int().min(1).max(3),
+  apCost: z.number().int().min(1).max(3),
+  range: RangeBand,
+  target: z.enum(["self", "actor", "zone", "area"]),
+  check: ContentRef,
+  difficulty: Difficulty.default("normal"),
+  effects: z.array(SpellEffect).min(1),
+  /** Strain points; defaults to the tier's cost from tuning. */
+  strain: z.number().int().nonnegative().optional(),
+  components: z.array(z.string()).default([]),
+  duration: z.number().int().positive().optional(),
+  concentration: z.boolean().default(false),
+});
+export type SpellDef = z.infer<typeof SpellDef>;
+
+/** The spellcasting plugin's pack config: school list and per-school miscast results. */
+export const SpellcastingConfig = z.object({
+  schools: z.array(SpellSchool).min(1).default(["elemental", "healing", "illusion", "warding"]),
+  /** Extra strain past this threshold gives an Exhausted level (spec 05). */
+  strainThreshold: z.number().int().positive().default(3),
+  miscasts: z
+    .partialRecord(
+      SpellSchool,
+      z.array(
+        z.object({
+          name: z.string().min(1),
+          description: z.string().min(1),
+          damage: DiceExpr.optional(),
+          condition: ContentRef.optional(),
+          attention: z.boolean().default(false),
+          loseSpell: z.boolean().default(false),
+        }),
+      ),
+    )
+    .default({}),
+});
+export type SpellcastingConfig = z.infer<typeof SpellcastingConfig>;
+
+export const LootEntry = z.object({
+  item: ContentRef,
+  weight: z.number().positive().default(1),
+  qtyMin: z.number().int().positive().default(1),
+  qtyMax: z.number().int().positive().default(1),
+  coins: z.object({ min: z.number().int().nonnegative(), max: z.number().int().nonnegative() }).optional(),
+});
+export const LootTableDef = z.object({
+  id: LocalId,
+  name: z.string().min(1),
+  description: z.string().default(""),
+  /** Who or what the table is for: a settlement size, creature tag or quest kind. */
+  tags: z.array(z.string()).default([]),
+  rolls: z.number().int().positive().default(1),
+  entries: z.array(LootEntry).min(1),
+});
+export type LootTableDef = z.infer<typeof LootTableDef>;
+
+export const EconomyDef = z.object({
+  id: LocalId,
+  name: z.string().min(1),
+  /** The smallest unit prices are written in (ItemDef.price). */
+  baseUnit: z.string().min(1),
+  denominations: z.array(z.object({ name: z.string().min(1), value: z.number().int().positive() })).min(1),
+  /** Price multipliers by tag (food, weapon, lodging…), applied by shops. */
+  priceByTag: z.record(z.string(), z.number().positive()).default({}),
+  /** Regional price multipliers by culture, terrain or named region tag. */
+  regionalModifiers: z.record(z.string(), z.number().positive()).default({}),
+  wealthLevels: z
+    .array(
+      z.object({
+        level: z.number().int().min(1).max(5),
+        name: z.string().min(1),
+        minCoins: z.number().int().nonnegative(),
+      }),
+    )
+    .default([]),
+  /** Weekly shop drift and seasonal multipliers (Simulation money). */
+  seasonalDrift: z.record(z.string(), z.number().positive()).default({}),
+});
+export type EconomyDef = z.infer<typeof EconomyDef>;
+
+export const CalendarDef = z.object({
+  id: LocalId,
+  name: z.string().min(1),
+  daysPerMonth: z.number().int().positive(),
+  monthNames: z.array(z.string().min(1)).min(1),
+  seasons: z.array(z.string()).default([]),
+  festivals: z
+    .array(
+      z.object({ month: z.number().int().min(1), day: z.number().int().min(1), name: z.string().min(1) }),
+    )
+    .default([]),
+  dawn: z.number().int().min(0).max(23).default(6),
+  dusk: z.number().int().min(0).max(23).default(19),
+});
+export type CalendarDef = z.infer<typeof CalendarDef>;
+
+export const NamingDef = z.object({
+  id: LocalId,
+  name: z.string().min(1),
+  cultures: z
+    .array(
+      z.object({
+        id: LocalId,
+        name: z.string().min(1),
+        given: z.array(z.string().min(1)).min(1),
+        family: z.array(z.string().min(1)).default([]),
+        style: z.string().default(""),
+      }),
+    )
+    .min(1),
+});
+export type NamingDef = z.infer<typeof NamingDef>;
+
+export const RecipeDef = z.object({
+  id: LocalId,
+  name: z.string().min(1),
+  description: z.string().default(""),
+  inputs: z.array(z.object({ item: ContentRef, qty: z.number().int().positive().default(1) })).min(1),
+  tools: z.array(ContentRef).default([]),
+  skill: ContentRef,
+  difficulty: Difficulty.default("normal"),
+  minutes: z.number().int().positive(),
+  output: z.object({ item: ContentRef, qty: z.number().int().positive().default(1) }),
+  complex: z.boolean().default(false),
+});
+export type RecipeDef = z.infer<typeof RecipeDef>;
+
+export const DiseaseDef = z.object({
+  id: LocalId,
+  name: z.string().min(1),
+  description: z.string().min(1),
+  vector: z.string().min(1),
+  onsetHours: z.number().int().positive(),
+  stages: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        endCheck: Difficulty.default("normal"),
+        penalty: z.number().int().nonnegative().default(0),
+        condition: ContentRef.optional(),
+      }),
+    )
+    .min(1),
+  symptoms: z.array(z.string()).default([]),
+  contagion: z.number().min(0).max(1).default(0),
+  cure: z.string().default(""),
+});
+export type DiseaseDef = z.infer<typeof DiseaseDef>;
+
 export const PregenDef = z.object({
   id: LocalId,
   name: z.string().min(1),
@@ -268,8 +496,21 @@ export type CompiledPack = {
   ancestries: Record<string, AncestryDef & { id: string }>;
   bodyPlans: Record<string, BodyPlanDef>;
   archetypes: Record<string, ArchetypeDef & { id: string }>;
+  /** Class data (spec 04). Empty unless the pack supports class progression. */
+  classes: Record<string, ClassDef & { id: string }>;
   pregens: Record<string, PregenDef & { id: string }>;
   creatures: Record<string, CreatureDef & { id: string }>;
+  /** Spells for the spellcasting plugin. */
+  spells: Record<string, SpellDef & { id: string }>;
+  lootTables: Record<string, LootTableDef & { id: string }>;
+  recipes: Record<string, RecipeDef & { id: string }>;
+  diseases: Record<string, DiseaseDef & { id: string }>;
+  /** Singleton pack data; null when the pack doesn't define it. */
+  economy: (EconomyDef & { id: string }) | null;
+  calendar: (CalendarDef & { id: string }) | null;
+  naming: (NamingDef & { id: string }) | null;
+  /** Validated plugin configs, by plugin ID. */
+  pluginConfigs: Record<string, unknown>;
   items: {
     weapons: Record<string, WeaponDef & { id: string }>;
     armor: Record<string, ArmorDef & { id: string }>;

@@ -94,6 +94,7 @@ export const CORE_CONDITIONS: readonly ConditionDef[] = [
   { id: "core:down", name: "Down" },
   { id: "core:hidden", name: "Hidden" },
   { id: "core:in-cover", name: "In Cover", variants: ["partial", "full"] },
+  { id: "core:warded", name: "Warded" },
   {
     id: "core:intoxicated",
     name: "Intoxicated",

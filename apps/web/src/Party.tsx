@@ -9,7 +9,7 @@ const MODE: Record<ProgressionView["mode"], string> = {
   useBased:
     "Skills improve when you use them under pressure; chapters and arcs bring talents and attributes.",
   hybrid: "Earn half XP to spend, and skills also improve when used under pressure.",
-  classes: "Class levels.",
+  classes: "Class levels: training and features come with XP; attribute points are spent at levels 4 and 8.",
 };
 
 function Buy({
@@ -145,6 +145,39 @@ function Advance({
   const fieldOption = m.fieldSkills.find((f) => f.id === field);
   return (
     <>
+      {m.classInfo && (
+        <div className="sheet-section class-track">
+          <h3>
+            {m.classInfo.name} · level {m.classInfo.level}
+          </h3>
+          {m.classInfo.xpForNext !== null ? (
+            <>
+              <p className="small muted">
+                {m.classInfo.xpIntoLevel} XP into this level · {m.classInfo.xpForNext} to the next
+              </p>
+              <progress
+                aria-label={`Progress to level ${m.classInfo.level + 1}`}
+                value={m.classInfo.xpIntoLevel}
+                max={m.classInfo.xpIntoLevel + m.classInfo.xpForNext}
+              />
+            </>
+          ) : (
+            <p className="small muted">The highest class level.</p>
+          )}
+          {m.classInfo.features.length > 0 && (
+            <ul className="class-features">
+              {m.classInfo.features.map((f) => (
+                <li key={`${f.level}-${f.name}`}>
+                  <strong>
+                    Level {f.level}: {f.name}
+                  </strong>{" "}
+                  <span className="muted small">{f.description}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
       <p className="xp-line">
         <strong>{m.xp.available} XP</strong> to spend · {m.xp.earned} earned
         {m.pending.attributes + m.pending.talents > 0 && (
@@ -181,7 +214,7 @@ function Advance({
           {m.skills.map((s) => (
             <li key={s.id}>
               <span>{s.name}</span>
-              <span className="advance-value">{s.value}%</span>
+              <span className="advance-value">{s.display ?? `${s.value}%`}</span>
               <Buy
                 label={`Raise ${s.name}`}
                 cost={s.cost}

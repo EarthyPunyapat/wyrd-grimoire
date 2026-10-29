@@ -161,6 +161,15 @@ export const SpeakAction = z.object({
 export const SurrenderAction = z.object({ type: z.literal("surrender") });
 export const FleeAction = z.object({ type: z.literal("flee") });
 export const EndTurnAction = z.object({ type: z.literal("endTurn") });
+/** Casting a known spell (spec 05, spellcasting plugin); legal in exploration and combat. */
+export const CastAction = z.object({
+  type: z.literal("cast"),
+  spellId: Id,
+  /** An actor target, or the zone an area/tag spell is aimed at. */
+  targetId: Id.optional(),
+  zoneId: Id.optional(),
+});
+export type CastAction = z.infer<typeof CastAction>;
 
 export const CombatAction = z.discriminatedUnion("type", [
   StrikeAction,
@@ -185,6 +194,7 @@ export const CombatAction = z.discriminatedUnion("type", [
   SurrenderAction,
   FleeAction,
   EndTurnAction,
+  CastAction,
 ]);
 export type CombatAction = z.infer<typeof CombatAction>;
 export type CombatActionInput = z.input<typeof CombatAction>;

@@ -23,6 +23,65 @@ export const SubsystemToggles = z.object({
 });
 export type SubsystemToggles = z.infer<typeof SubsystemToggles>;
 
+/** The three presets (spec 11). A custom campaign starts from one and exposes every toggle. */
+export const SUBSYSTEM_PRESETS = {
+  story: SubsystemToggles.parse({
+    inventory: "abstract",
+    money: "wealthLevels",
+    injuries: "simple",
+    bleeding: false,
+    infection: false,
+    fractures: false,
+    permanentInjuries: false,
+    timeDetail: false,
+    factionReputation: true,
+    weatherEffects: false,
+    travelEncounters: "reduced",
+    lightingAndVision: false,
+    languageBarriers: false,
+    ammo: false,
+    durability: false,
+    crafting: false,
+    survival: false,
+    disease: false,
+  }),
+  standard: SubsystemToggles.parse({}),
+  simulation: SubsystemToggles.parse({
+    inventory: "slots",
+    money: "haggling",
+    injuries: "realistic",
+    bleeding: true,
+    infection: true,
+    fractures: true,
+    permanentInjuries: true,
+    timeDetail: true,
+    factionReputation: true,
+    weatherEffects: true,
+    travelEncounters: "on",
+    lightingAndVision: true,
+    languageBarriers: true,
+    ammo: true,
+    durability: true,
+    crafting: true,
+    survival: true,
+    disease: true,
+  }),
+} as const satisfies Record<"story" | "standard" | "simulation", SubsystemToggles>;
+export type PresetName = keyof typeof SUBSYSTEM_PRESETS;
+
+/** The toggles a named preset sets. */
+export function presetToggles(name: PresetName): SubsystemToggles {
+  return SubsystemToggles.parse(SUBSYSTEM_PRESETS[name]);
+}
+
+/** Which preset these toggles are exactly equal to, if any. */
+export function presetForToggles(toggles: SubsystemToggles): PresetName | null {
+  for (const name of Object.keys(SUBSYSTEM_PRESETS) as PresetName[]) {
+    if (JSON.stringify(toggles) === JSON.stringify(SUBSYSTEM_PRESETS[name])) return name;
+  }
+  return null;
+}
+
 export const CampaignSettings = z.object({
   structural: z
     .object({

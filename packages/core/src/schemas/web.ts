@@ -2,6 +2,7 @@ import { z } from "zod";
 import { GuardSummary } from "./canon.ts";
 import { CombatView } from "./combat.ts";
 import { MechanicsLine } from "./common.ts";
+import { CampaignSettings } from "./settings.ts";
 import { CharacterSheet } from "./sheet.ts";
 export const ConnectionStatus = z.object({
   offline: z.boolean(),
@@ -35,7 +36,11 @@ export const QuickStartInput = z
       .string()
       .regex(/^[a-z-]+$/)
       .default("human"),
-    progression: z.enum(["classless", "useBased", "hybrid"]).default("classless"),
+    progression: z.enum(["classless", "useBased", "hybrid", "classes"]).default("classless"),
+    /** Chosen at creation and locked (spec 12). */
+    resolution: z.enum(["d100", "d20"]).default("d100"),
+    /** Can only be turned on at creation (spec 12). */
+    hardcore: z.boolean().default(false),
     /** Which authored test world to start in. */
     world: z.enum(["ashford-ferry", "tavern-brawl"]).default("ashford-ferry"),
   })
@@ -95,7 +100,15 @@ export const GameView = z.object({
   backgroundName: z.string(),
   speakers: z.record(z.string(), z.string()).default({}),
   pc: CharacterSheet,
-  skills: z.array(z.object({ id: z.string(), name: z.string(), value: z.number() })),
+  skills: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      value: z.number(),
+      /** How the sheet shows it: "62%" on d100, "+2" on d20. */
+      display: z.string().optional(),
+    }),
+  ),
   scene: z
     .object({
       location: z.string(),
@@ -113,6 +126,8 @@ export const GameView = z.object({
   address: z.string().default("traveller"),
   /** Entities the PC knows, for reference cards on names in the narration (spec 13). */
   known: z.array(z.object({ id: z.string(), name: z.string(), kind: z.string() })).default([]),
+  /** The locked dice system (spec 12); the sheet shows d20 modifiers instead of percentages. */
+  resolution: z.enum(["d100", "d20"]).default("d100"),
   /** Set when the PC has died in a hardcore campaign: the obituary and the Legacy offer. */
   ended: z
     .object({ reason: z.literal("death"), obituary: z.string() })
@@ -146,6 +161,19 @@ export const WebStreamEvent = z.discriminatedUnion("type", [
   z.object({ type: z.literal("turn.completed"), turnId: z.string() }),
   z.object({ type: z.literal("error"), message: z.string(), retryable: z.boolean() }),
 ]);
+
+// ── Campaign settings (spec 12): the locked paths are refused by the engine, not just greyed out ──
+export const SettingsLock = z.object({ path: z.string(), label: z.string(), reason: z.string() });
+export type SettingsLock = z.infer<typeof SettingsLock>;
+export const CampaignSettingsView = z.object({
+  settings: CampaignSettings,
+  locks: z.array(SettingsLock),
+  presets: z.array(z.enum(["story", "standard", "simulation", "custom"])),
+  /** Whether the campaign's pack supports class progression. */
+  classesSupported: z.boolean().default(false),
+});
+export type CampaignSettingsView = z.infer<typeof CampaignSettingsView>;
+export const SettingsUpdate = z.object({ settings: CampaignSettings }).strict();
 
 // ── M5: Journal, Codex and Map (spec 13), all filtered to what the PC knows ─────────────────────
 export const CodexEntry = z.object({

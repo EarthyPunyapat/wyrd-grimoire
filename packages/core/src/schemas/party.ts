@@ -12,11 +12,30 @@ export const ProgressionMember = z.object({
   pending: z.object({ attributes: z.number(), talents: z.number() }),
   marks: z.array(z.string()),
   attributes: z.array(z.object({ id: z.string(), name: z.string(), value: z.number(), ...Priced })),
-  skills: z.array(z.object({ id: z.string(), name: z.string(), value: z.number(), ...Priced })),
+  skills: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      value: z.number(),
+      display: z.string().optional(),
+      ...Priced,
+    }),
+  ),
   talents: z.array(
     z.object({ id: z.string(), name: z.string(), tier: z.number(), description: z.string(), ...Priced }),
   ),
   fieldSkills: z.array(z.object({ id: z.string(), name: z.string(), ...Priced })),
+  /** Class mode only: the character's class, level and the features gained so far. */
+  classInfo: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      level: z.number(),
+      xpIntoLevel: z.number(),
+      xpForNext: z.number().nullable(),
+      features: z.array(z.object({ level: z.number(), name: z.string(), description: z.string() })),
+    })
+    .optional(),
   /** Companions only: how they feel about the PC and how they're controlled (spec 04 approval). */
   companion: z
     .object({

@@ -250,6 +250,7 @@ export function describeAction(raw: ActionInput, nameOf: (id: string) => string)
     targetId?: string;
     toZoneId?: string;
     weaponId?: string;
+    spellId?: string;
     effect?: string;
     propId?: string;
     description?: string;
@@ -268,6 +269,7 @@ export function describeAction(raw: ActionInput, nameOf: (id: string) => string)
     trip: () => `Trip ${nameOf(c.targetId!)}`,
     grapple: () => `Grapple ${nameOf(c.targetId!)}`,
     disarm: () => `Disarm ${nameOf(c.targetId!)}`,
+    cast: () => `Cast ${(c.spellId ?? "a spell").split(":").pop()}`,
     stunt: () => c.description || `Stunt: ${c.effect}`,
     intimidate: () => `Intimidate ${nameOf(c.targetId!)}`,
     rally: () => `Rally ${nameOf(c.targetId!)}`,
@@ -299,6 +301,8 @@ export function describeAction(raw: ActionInput, nameOf: (id: string) => string)
       return `Ask ${nameOf(a.targetId)} to join you`;
     case "travel":
       return `Travel to ${nameOf(a.toSiteId)}${a.pace && a.pace !== "normal" ? ` (${a.pace})` : ""}`;
+    case "cast":
+      return `Cast ${(a.spellId ?? "a spell").split(":").pop()}`;
   }
 }
 

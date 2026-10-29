@@ -4,6 +4,7 @@
   suggestedAttributes: { str: 7, agi: 6, end: 7, int: 4, awa: 5, wil: 5, pre: 5 }
   skills: { melee: 70, dodge: 50, athletics: 45, intimidation: 35, perception: 30, streetwise: 25, survival: 25, medicine: 20 }
   talent: line-veteran
+  class: fighter
   kit:
     - { item: arming-sword }
     - { item: padded-jack }
@@ -20,6 +21,8 @@
   suggestedAttributes: { str: 3, agi: 5, end: 5, int: 7, awa: 6, wil: 7, pre: 6 }
   skills: { spellcasting/elemental: 70, arcana: 60, insight: 30, perception: 30, medicine: 30, survival: 30, lore/history: 30, persuasion: 20 }
   talent: hedge-lore
+  class: mage
+  spells: [spark-lash, mend-flesh, candle-glow, iron-skin]
   kit:
     - { item: dagger }
     - { item: backpack }
@@ -35,6 +38,7 @@
   suggestedAttributes: { str: 4, agi: 7, end: 5, int: 5, awa: 7, wil: 4, pre: 7 }
   skills: { sleight-of-hand: 70, stealth: 60, deception: 50, perception: 40, acrobatics: 30, streetwise: 30, melee: 20 }
   talent: light-fingers
+  class: rogue
   kit:
     - { item: dagger }
     - { item: lockpicks }
@@ -49,6 +53,7 @@
   suggestedAttributes: { str: 5, agi: 4, end: 6, int: 5, awa: 6, wil: 7, pre: 6 }
   skills: { faith: 70, medicine: 50, persuasion: 45, insight: 45, survival: 30, lore/religion: 30, melee: 30 }
   talent: road-blessed
+  class: priest
   kit:
     - { item: cudgel }
     - { item: prayer-beads }
@@ -65,6 +70,7 @@
   suggestedAttributes: { str: 6, agi: 7, end: 6, int: 4, awa: 7, wil: 5, pre: 4 }
   skills: { ranged: 70, survival: 60, perception: 50, stealth: 45, athletics: 30, navigation: 25, melee: 20 }
   talent: tracker
+  class: ranger
   kit:
     - { item: shortbow }
     - { item: arrows, qty: 2 }
@@ -81,6 +87,7 @@
   suggestedAttributes: { str: 3, agi: 4, end: 5, int: 7, awa: 7, wil: 6, pre: 7 }
   skills: { lore/history: 70, investigation: 60, language/old-script: 40, insight: 40, medicine: 30, persuasion: 30, arcana: 30 }
   talent: well-read
+  class: bard
   kit:
     - { item: dagger }
     - { item: quill-and-ink }

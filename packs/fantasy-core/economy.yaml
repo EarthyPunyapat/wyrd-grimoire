@@ -1,0 +1,31 @@
+id: coin-and-caravan
+name: Coin and Caravan
+baseUnit: copper
+denominations:
+  - { name: Copper Mark, value: 1 }
+  - { name: Silver Crown, value: 20 }
+  - { name: Gold Sovereign, value: 400 }
+priceByTag:
+  food: 1
+  lodging: 1
+  weapon: 1
+  armour: 1
+  tool: 1
+  medical: 1.2
+  illicit: 1.8
+regionalModifiers:
+  city: 1.1
+  village: 0.9
+  wilds: 1.4
+  dwarven: 0.95
+wealthLevels:
+  - { level: 1, name: Destitute, minCoins: 0 }
+  - { level: 2, name: Poor, minCoins: 20 }
+  - { level: 3, name: Comfortable, minCoins: 200 }
+  - { level: 4, name: Wealthy, minCoins: 2000 }
+  - { level: 5, name: Rich, minCoins: 20000 }
+seasonalDrift:
+  spring: 0.95
+  summer: 1
+  autumn: 0.9
+  winter: 1.25

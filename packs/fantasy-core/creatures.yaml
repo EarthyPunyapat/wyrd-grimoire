@@ -1,7 +1,9 @@
-# Stat blocks for people and beasts. Original content. Skills are trained points.
+# Stat blocks for people, beasts and the restless dead. Original content. Skills are trained points.
+# People
 - id: bandit
   name: Bandit
   description: A hungry road-thief with a cudgel and more nerve than skill.
+  size: medium
   attributes: { str: 5, agi: 5, end: 5, int: 4, awa: 5, wil: 4, pre: 4 }
   skills: { melee: 25, dodge: 15, athletics: 15, intimidation: 15, stealth: 15 }
   kit: [{ item: cudgel }, { item: padded-jack }]
@@ -10,6 +12,7 @@
 - id: bandit-archer
   name: Bandit Archer
   description: A poacher turned robber who would rather shoot from the dark than stand and fight.
+  size: medium
   attributes: { str: 4, agi: 6, end: 4, int: 4, awa: 6, wil: 4, pre: 3 }
   skills: { ranged: 30, dodge: 15, stealth: 25, perception: 15, melee: 10 }
   kit: [{ item: shortbow }, { item: arrows }, { item: dagger }]
@@ -18,6 +21,7 @@
 - id: bandit-captain
   name: Bandit Captain
   description: A former soldier who leads with a sword and keeps the others in line with a look.
+  size: medium
   attributes: { str: 6, agi: 6, end: 6, int: 5, awa: 5, wil: 6, pre: 6 }
   skills: { melee: 40, dodge: 20, athletics: 20, intimidation: 35, perception: 15 }
   kit: [{ item: arming-sword }, { item: leather-armor }, { item: open-helmet }]
@@ -26,6 +30,7 @@
 - id: thug
   name: Tavern Thug
   description: A big local who settles arguments with his fists and the nearest stool.
+  size: medium
   attributes: { str: 7, agi: 4, end: 6, int: 3, awa: 4, wil: 4, pre: 4 }
   skills: { unarmed: 30, melee: 20, athletics: 25, intimidation: 20 }
   kit: [{ item: cudgel }]
@@ -34,6 +39,7 @@
 - id: town-guard
   name: Town Guard
   description: A watchman with a spear, a helmet and orders to keep the peace.
+  size: medium
   attributes: { str: 5, agi: 5, end: 6, int: 4, awa: 5, wil: 5, pre: 4 }
   skills: { melee: 30, dodge: 20, athletics: 15, perception: 20 }
   kit: [{ item: spear }, { item: padded-jack }, { item: open-helmet }]
@@ -42,11 +48,85 @@
 - id: cultist
   name: Cultist
   description: A hollow-eyed devotee with a ritual knife and no fear of dying.
+  size: medium
   attributes: { str: 4, agi: 5, end: 4, int: 5, awa: 4, wil: 7, pre: 5 }
   skills: { melee: 25, dodge: 10, stealth: 20 }
   kit: [{ item: dagger }]
   tactics: berserk
   intent: capture
+- id: cutthroat
+  name: Cutthroat
+  description: A patient knife in a narrow street, paid by someone who never gives a name.
+  size: medium
+  attributes: { str: 5, agi: 7, end: 5, int: 4, awa: 6, wil: 4, pre: 5 }
+  skills: { melee: 35, stealth: 35, dodge: 25, sleight-of-hand: 20, perception: 20, athletics: 15 }
+  kit: [{ item: dagger }, { item: leather-armor }, { item: rope }]
+  tactics: cunning
+  intent: kill
+- id: soldier
+  name: Soldier
+  description: A drilled infantryman in a lord's colours, as tired of the march as of the enemy.
+  size: medium
+  attributes: { str: 6, agi: 5, end: 6, int: 4, awa: 5, wil: 6, pre: 4 }
+  skills: { melee: 40, dodge: 20, athletics: 25, perception: 25, intimidation: 20 }
+  kit: [{ item: spear }, { item: dagger }, { item: mail-hauberk }, { item: open-helmet }]
+  tactics: protector
+  intent: kill
+- id: priest
+  name: Roadside Priest
+  description: A roadside preacher who promises fire on the wicked and watches the crowd a little too closely.
+  size: medium
+  attributes: { str: 4, agi: 4, end: 5, int: 5, awa: 5, wil: 8, pre: 7 }
+  skills: { faith: 45, persuasion: 35, intimidation: 30, insight: 20, medicine: 20, lore/religion: 25 }
+  kit: [{ item: cudgel }, { item: prayer-beads }, { item: bandages }]
+  tactics: cunning
+  intent: driveOff
+- id: hedge-witch
+  name: Hedge Witch
+  description: A cottage healer with a sharp tongue, a sharp knife and no patience for boots in her garden.
+  size: medium
+  attributes: { str: 3, agi: 5, end: 5, int: 7, awa: 6, wil: 7, pre: 5 }
+  skills: { arcana: 40, spellcasting/elemental: 35, spellcasting/warding: 30, medicine: 35, survival: 25, insight: 25, perception: 20 }
+  kit: [{ item: dagger }, { item: healers-kit }, { item: bandages }]
+  tactics: caster
+  intent: driveOff
+- id: mercenary-captain
+  name: Mercenary Captain
+  description: A contractor in a good coat who counts lives in coin and spends other people's.
+  size: medium
+  attributes: { str: 6, agi: 6, end: 6, int: 6, awa: 6, wil: 7, pre: 7 }
+  skills: { melee: 45, dodge: 30, intimidation: 40, perception: 30, athletics: 25, streetwise: 30, persuasion: 25 }
+  kit: [{ item: arming-sword }, { item: dagger }, { item: mail-hauberk }, { item: open-helmet }]
+  tactics: cunning
+  intent: capture
+- id: militia
+  name: Militia
+  description: A farmer with a spear, a borrowed helmet and a very clear idea of what stands behind him.
+  size: medium
+  attributes: { str: 5, agi: 5, end: 6, int: 3, awa: 5, wil: 5, pre: 4 }
+  skills: { melee: 25, athletics: 20, perception: 20, survival: 25, dodge: 10 }
+  kit: [{ item: spear }, { item: padded-jack }, { item: open-helmet }]
+  tactics: protector
+  intent: driveOff
+- id: bounty-hunter
+  name: Bounty Hunter
+  description: A patient professional with a writ in one pocket and irons in the other.
+  size: medium
+  attributes: { str: 6, agi: 6, end: 6, int: 5, awa: 7, wil: 6, pre: 5 }
+  skills: { ranged: 40, melee: 30, perception: 35, survival: 30, stealth: 25, intimidation: 30, athletics: 20 }
+  kit: [{ item: light-crossbow }, { item: crossbow-bolts }, { item: cudgel }, { item: leather-armor }]
+  tactics: sniper
+  intent: capture
+- id: grave-robber
+  name: Grave Robber
+  description: A lantern-scavenger who knows which graves were dug shallow and which were never dug at all.
+  size: medium
+  attributes: { str: 5, agi: 5, end: 5, int: 4, awa: 6, wil: 4, pre: 4 }
+  skills: { stealth: 30, melee: 25, perception: 25, sleight-of-hand: 20, lore/religion: 15, athletics: 15 }
+  kit: [{ item: dagger }, { item: torch }, { item: rope }, { item: backpack }]
+  tactics: cowardly
+  intent: rob
+# Beasts
 - id: wolf
   name: Wolf
   description: A grey hunter that circles, bites low and pulls the weak down.
@@ -95,11 +175,144 @@
   naturalArmor: { covers: [head, body, right-foreleg, left-foreleg, right-hindleg, left-hindleg], protection: { cut: 2, pierce: 2, blunt: 1 } }
   tactics: aggressive
   intent: driveOff
+- id: stag
+  name: Red Stag
+  description: A crown of antlers above the bracken, and a temper that arrives before the warning.
+  size: large
+  bodyPlan: quadruped
+  attributes: { str: 6, agi: 7, end: 6, int: 1, awa: 6, wil: 5, pre: 2 }
+  skills: { unarmed: 30, athletics: 30, dodge: 20, perception: 25, stealth: 20 }
+  naturalWeapons:
+    - { id: antlers, name: Antlers, skill: unarmed, damage: 1d6, damageType: pierce, armorPiercing: 1, hands: 1, ranges: { engaged: 0 } }
+  naturalArmor: { covers: [head, body, right-foreleg, left-foreleg, right-hindleg, left-hindleg], protection: { cut: 1, pierce: 1, blunt: 0 } }
+  tactics: defensive
+  intent: driveOff
+- id: giant-spider
+  name: Giant Spider
+  description: A hand-span of shadow that turns out to be a leg, then another, then far too many.
+  size: small
+  bodyPlan: quadruped
+  attributes: { str: 3, agi: 8, end: 3, int: 1, awa: 7, wil: 4, pre: 1 }
+  skills: { unarmed: 25, stealth: 40, athletics: 25, perception: 30, acrobatics: 20 }
+  naturalWeapons:
+    - { id: bite, name: Bite, skill: unarmed, damage: 1d4, damageType: pierce, armorPiercing: 1, hands: 1, ranges: { engaged: 0 } }
+  naturalArmor: { covers: [head, body, right-foreleg, left-foreleg, right-hindleg, left-hindleg], protection: { cut: 2, pierce: 2, blunt: 1 } }
+  tactics: cunning
+  intent: prey
+- id: serpent
+  name: Marsh Serpent
+  description: A length of wet rope in the reeds until it lifts its head and remembers that you are warm.
+  size: medium
+  bodyPlan: quadruped
+  attributes: { str: 4, agi: 7, end: 5, int: 1, awa: 6, wil: 4, pre: 1 }
+  skills: { unarmed: 30, stealth: 35, athletics: 25, perception: 20 }
+  naturalWeapons:
+    - { id: bite, name: Bite, skill: unarmed, damage: 1d6, damageType: pierce, armorPiercing: 1, hands: 1, ranges: { engaged: 0 } }
+    - { id: constrict, name: Constrict, skill: unarmed, damage: 1d4, damageType: blunt, hands: 1, ranges: { engaged: 0 } }
+  naturalArmor: { covers: [head, body], protection: { cut: 1, pierce: 2, blunt: 0 } }
+  tactics: cunning
+  intent: prey
+- id: war-dog
+  name: War Dog
+  description: A mastiff bred for the yard and taught, badly, to enjoy the noise of a fight.
+  size: medium
+  bodyPlan: quadruped
+  attributes: { str: 5, agi: 6, end: 5, int: 2, awa: 7, wil: 5, pre: 2 }
+  skills: { unarmed: 30, perception: 30, athletics: 25, intimidation: 20 }
+  naturalWeapons:
+    - { id: bite, name: Bite, skill: unarmed, damage: 1d6, damageType: pierce, hands: 1, ranges: { engaged: 0 } }
+  tactics: protector
+  intent: kill
+# Restless dead
 - id: barrow-wight
   name: Barrow Wight
   description: A dead thing in rotted grave-goods, cold to the touch and slow to stop.
+  size: medium
   attributes: { str: 6, agi: 4, end: 8, int: 3, awa: 5, wil: 9, pre: 6 }
   skills: { melee: 35, intimidation: 40, perception: 20 }
   kit: [{ item: arming-sword }, { item: mail-hauberk }]
   tactics: aggressive
+  intent: kill
+- id: skeleton
+  name: Skeleton
+  description: Old bones strung on an oath that outlasted the flesh, still gripping the weapon it died with.
+  size: medium
+  attributes: { str: 5, agi: 4, end: 6, int: 1, awa: 5, wil: 6, pre: 1 }
+  skills: { melee: 30, perception: 20, athletics: 15, stealth: 15 }
+  kit: [{ item: spear }]
+  naturalWeapons:
+    - { id: claw, name: Claw, skill: unarmed, damage: 1d4, damageType: cut, hands: 1, ranges: { engaged: 0 } }
+  naturalArmor: { covers: [head, torso, right-arm, left-arm, right-leg, left-leg], protection: { cut: 1, pierce: 2, blunt: 0 } }
+  tactics: aggressive
+  intent: kill
+- id: ghoul
+  name: Ghoul
+  description: A grave-thin figure with a jaw too wide for its face, following the smell of the living.
+  size: medium
+  attributes: { str: 6, agi: 6, end: 6, int: 2, awa: 7, wil: 5, pre: 1 }
+  skills: { unarmed: 35, stealth: 30, athletics: 25, perception: 30, dodge: 20 }
+  naturalWeapons:
+    - { id: claw, name: Claw, skill: unarmed, damage: 1d6, damageType: cut, hands: 1, ranges: { engaged: 0 } }
+    - { id: bite, name: Bite, skill: unarmed, damage: 1d6, damageType: pierce, hands: 1, ranges: { engaged: 0 } }
+  tactics: berserk
+  intent: kill
+- id: wraith
+  name: Wraith
+  description: A cold smear of grief that remembers being a person and resents everything still breathing.
+  size: medium
+  attributes: { str: 4, agi: 5, end: 8, int: 3, awa: 6, wil: 9, pre: 4 }
+  skills: { unarmed: 35, intimidation: 40, stealth: 30, perception: 25, insight: 20 }
+  naturalWeapons:
+    - { id: grave-chill, name: Grave Chill, skill: unarmed, damage: 1d6, damageType: frost, armorPiercing: 2, hands: 1, ranges: { engaged: 0 } }
+  naturalArmor: { covers: [head, torso, right-arm, left-arm, right-leg, left-leg], protection: { cut: 2, pierce: 2, blunt: 1 } }
+  tactics: cunning
+  intent: kill
+# Larger threats
+- id: ogre
+  name: Ogre
+  description: A hill-sized appetite in a coat of stitched hides, fond of tolls, teeth and other people's cattle.
+  size: large
+  attributes: { str: 9, agi: 3, end: 9, int: 2, awa: 4, wil: 5, pre: 3 }
+  skills: { unarmed: 45, melee: 35, athletics: 35, intimidation: 40, perception: 15 }
+  naturalWeapons:
+    - { id: fist, name: Fist, skill: unarmed, damage: 1d8, damageType: blunt, hands: 1, ranges: { engaged: 0 } }
+  naturalArmor: { covers: [head, torso, right-arm, left-arm, right-leg, left-leg], protection: { cut: 2, pierce: 1, blunt: 1 } }
+  tactics: aggressive
+  intent: rob
+- id: troll
+  name: Troll
+  description: A long-armed thing of stone-grey skin whose wounds close like wet clay while it watches you.
+  size: large
+  attributes: { str: 9, agi: 4, end: 10, int: 2, awa: 5, wil: 6, pre: 3 }
+  skills: { unarmed: 45, athletics: 35, perception: 20, stealth: 20, intimidation: 30 }
+  naturalWeapons:
+    - { id: claw, name: Claw, skill: unarmed, damage: 2d6, damageType: cut, hands: 1, ranges: { engaged: 0 } }
+    - { id: bite, name: Bite, skill: unarmed, damage: 1d8, damageType: pierce, hands: 1, ranges: { engaged: 0 } }
+  naturalArmor: { covers: [head, torso, right-arm, left-arm, right-leg, left-leg], protection: { cut: 2, pierce: 2, blunt: 1 } }
+  tactics: berserk
+  intent: kill
+- id: wyvern
+  name: Wyvern
+  description: A cliff-nesting hunter with a wingspan like a barn roof and a tail that ends in a barb.
+  size: large
+  bodyPlan: quadruped
+  attributes: { str: 8, agi: 5, end: 8, int: 2, awa: 7, wil: 5, pre: 3 }
+  skills: { unarmed: 45, athletics: 35, perception: 35, stealth: 20, dodge: 20 }
+  naturalWeapons:
+    - { id: bite, name: Bite, skill: unarmed, damage: 1d10, damageType: pierce, hands: 1, ranges: { engaged: 0 } }
+    - { id: sting, name: Sting, skill: unarmed, damage: 1d6, damageType: pierce, armorPiercing: 2, hands: 1, ranges: { engaged: 0 } }
+  naturalArmor: { covers: [head, body, right-foreleg, left-foreleg, right-hindleg, left-hindleg], protection: { cut: 3, pierce: 3, blunt: 1 } }
+  tactics: aggressive
+  intent: prey
+- id: bog-thing
+  name: Bog Thing
+  description: A mound of peat and reeds that stands up, trailing water, roots and the belongings of the last traveller who stepped on it.
+  size: large
+  attributes: { str: 8, agi: 2, end: 9, int: 1, awa: 4, wil: 6, pre: 1 }
+  skills: { unarmed: 40, athletics: 25, stealth: 30, perception: 15, intimidation: 25 }
+  naturalWeapons:
+    - { id: sodden-limb, name: Sodden Limb, skill: unarmed, damage: 1d8, damageType: blunt, hands: 1, ranges: { engaged: 0 } }
+    - { id: grasp, name: Drowning Grasp, skill: unarmed, damage: 1d4, damageType: blunt, hands: 1, ranges: { engaged: 0 } }
+  naturalArmor: { covers: [head, torso, right-arm, left-arm, right-leg, left-leg], protection: { cut: 1, pierce: 2, blunt: 1 } }
+  tactics: cunning
   intent: kill

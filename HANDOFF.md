@@ -173,6 +173,26 @@ character), generated from established world/character context, persisted, playe
 updated with identity changes. This remains unimplemented and is recorded in the M5 roadmap and
 spec 13, including cross-genre acceptance and protection against revealing secret identities.
 
+## M7 — Breadth (branch `m7-breadth`, stacked on `m6-characters`) — IN PROGRESS
+
+Work stopped mid-milestone for handoff. The plan is `docs/superpowers/plans/2026-10-29-m7-roadmap.md`.
+
+**Done and in the working tree (one commit):**
+- Settings presets/locks: full subsystem toggles, `SUBSYSTEM_PRESETS`, `GET/PUT /api/campaigns/:id/settings`, a settings view with lock reasons, the campaign Settings dialog (greyed locked fields), and a mid-campaign toggle sweep in `apps/server/test/settings.test.ts`. D110.
+- Pack breadth schemas/loader: classes, spells, loot tables, economy, calendar, naming, recipes and diseases; `spellcasting` is the first known plugin with a validated config. D111.
+- Class progression: XP thresholds, automatic training/features, `ClassLevelGained`, creation class mapping, Party class track. D112.
+- d20: resolution at creation, locked; d20 modifier display in GameView/Party/Sheet; a d20 turn through the API test. D113.
+- fantasy-core content: 30 spells (4 starter spells on the hedge-wizard), 42 talents, 25 weapons, 10 armours, 60 gear, 30 creatures, 6 classes, economy/calendar/naming/loot/recipes/diseases. Pack validates.
+- Spellcasting engine module (`packages/engine/src/plugins/spellcasting.ts`), `cast` action in exploration/combat, strain, wards, miscasts and most effect kinds.
+
+**Not finished / known gaps:**
+- `cast` is not yet in the parser digest/prompt or offline parser, and spell learning (talents/teachers/grimoires) is not built. `summon` is a narrative beat only.
+- Step F (Living World/news/downtime), Step G (subsystem enforcement in play), Step H (timeline/export/backups) and the full content polish are untouched.
+- `origin/fix/npc-reactions` is a clean M6 follow-up commit (6458b8f) that this branch does **not** contain. Recommended: fast-forward `m6-characters` to it, then rebase `m7-breadth` onto that before continuing.
+- M7 acceptance boxes are still unticked; no whole-branch review has run.
+
+`bun run build && bun run check && bun run test:e2e` was the gate used; re-run it before continuing.
+
 ## M6 — Characters and companions (branch `m6-characters`, stacked on `m5-world-memory`)
 
 **Built (steps A–F of `docs/superpowers/plans/2026-10-29-m6-roadmap.md`; decisions D104–D109).**

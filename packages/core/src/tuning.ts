@@ -187,6 +187,21 @@ export type Tuning = {
     improvement: { alwaysAt: number; gainDie: number; restMinutes: number };
     /** Use-based: a new talent every N chapter closes. */
     talentEveryChapters: number;
+    /** Classes (spec 04): level XP thresholds, per-level training and feature levels. */
+    classes: {
+      maxLevel: number;
+      xpPerLevel: number;
+      skillPointsPerLevel: number;
+      maxPerSkillPerLevel: number;
+      anySkillPoints: number;
+      attributeLevels: number[];
+    };
+  };
+  /** Spellcasting plugin (spec 05): strain by tier and when magic exhausts the caster. */
+  spellcasting: {
+    strainByTier: Record<1 | 2 | 3, number>;
+    exhaustAt: number;
+    miscastDamageDie: number;
   };
   /** Companions (spec 04): party size, willingness to join, approval caps and thresholds. */
   companions: {
@@ -444,7 +459,16 @@ export const defaultTuning: Tuning = {
     fieldSkill: { cost: 2, trained: 10 },
     improvement: { alwaysAt: 96, gainDie: 10, restMinutes: 480 },
     talentEveryChapters: 2,
+    classes: {
+      maxLevel: 10,
+      xpPerLevel: 10,
+      skillPointsPerLevel: 20,
+      maxPerSkillPerLevel: 10,
+      anySkillPoints: 5,
+      attributeLevels: [4, 8],
+    },
   },
+  spellcasting: { strainByTier: { 1: 1, 2: 2, 3: 4 }, exhaustAt: 6, miscastDamageDie: 6 },
   companions: {
     max: 3,
     willingAttitude: 25,

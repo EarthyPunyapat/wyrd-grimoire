@@ -34,6 +34,7 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<Mode>("review");
   const [progression, setProgression] = useState<"classless" | "useBased" | "hybrid">("classless");
+  const [resolution, setResolution] = useState<"d100" | "d20">("d100");
   const [step, setStep] = useState(0);
   const creation = useCreation(world?.id);
   const editing = mode !== "review";
@@ -95,7 +96,7 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
             const created = await api(
               "/campaigns",
               CreatedCampaign.parse,
-              StartGeneratedCampaign.parse({ draftId: world.id, progression }),
+              StartGeneratedCampaign.parse({ draftId: world.id, progression, resolution }),
             );
             onCreate(created.id);
           } else {
@@ -108,6 +109,7 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
                 ancestry,
                 archetype,
                 progression,
+                resolution,
               }),
             );
             onCreate(created.id);
@@ -297,6 +299,17 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
               <option value="classless">Spend experience freely</option>
               <option value="useBased">Improve skills by using them</option>
               <option value="hybrid">Both, at half experience</option>
+            </select>
+          </label>
+          <label>
+            Dice <span className="muted">(fixed once the story starts)</span>
+            <select
+              value={resolution}
+              onChange={(e) => setResolution(e.target.value as typeof resolution)}
+              disabled={busy}
+            >
+              <option value="d100">d100 roll-under</option>
+              <option value="d20">d20 with modifiers</option>
             </select>
           </label>
           <h3>Your opening</h3>

@@ -3,6 +3,9 @@ import { defaultTuning, draft, type EventDraft } from "@wyrd/core";
 import type { CreationContent } from "../src/creation.ts";
 import {
   buyAdvancement,
+  classLevelEvents,
+  classLevelForXp,
+  classXpForLevel,
   closeEvents,
   improvementRolls,
   priceOf,
@@ -12,6 +15,7 @@ import {
   turnMarks,
   xpAvailable,
 } from "../src/progression.ts";
+import { reduce } from "../src/reduce.ts";
 import { unwrap } from "../src/result.ts";
 import { attrs, catalog } from "./fixtures.ts";
 import { Sim } from "./sim.ts";
@@ -36,6 +40,20 @@ const content: CreationContent = {
       prerequisites: { attributes: {}, skills: {}, talents: ["test:tough"] },
     },
   },
+  classes: {
+    "test:fighter": {
+      id: "test:fighter",
+      name: "Fighter",
+      description: "x",
+      skills: ["core:melee", "core:athletics"],
+      features: [
+        { level: 2, name: "Shield Line", description: "Hold.", talent: "test:tough" },
+        { level: 4, name: "Veteran", description: "Steady." },
+        { level: 8, name: "Legend", description: "Known." },
+      ],
+      archetypes: [],
+    },
+  },
 };
 
 function party(progression: "classless" | "useBased" | "hybrid" = "classless") {
@@ -45,6 +63,90 @@ function party(progression: "classless" | "useBased" | "hybrid" = "classless") {
   return s;
 }
 const xp = (amount: number) => draft("XpAwarded", { amount, source: "quest", reason: "test" }, "engine");
+
+describe("class progression (spec 04)", () => {
+  const levels = defaultTuning.progression.classes;
+  test("XP thresholds follow 10 × n(n−1)/2 and cap at the maximum level", () => {
+    expect([1, 2, 3, 4, 5, 10, 12].map((n) => classXpForLevel(n, defaultTuning))).toEqual([
+      0, 10, 30, 60, 100, 450, 450,
+    ]);
+    expect(classLevelForXp(0, defaultTuning)).toBe(1);
+    expect(classLevelForXp(9, defaultTuning)).toBe(1);
+    expect(classLevelForXp(10, defaultTuning)).toBe(2);
+    expect(classLevelForXp(99, defaultTuning)).toBe(4);
+    expect(classLevelForXp(450, defaultTuning)).toBe(10);
+    expect(classLevelForXp(9999, defaultTuning)).toBe(10);
+  });
+
+  test("a level trains class skills, broadens one other and grants class features", () => {
+    const s = new Sim({ structural: { progression: "classes" } });
+    s.addActor("pc", "pc", {
+      attributes: attrs({ end: 6 }),
+      skills: { "core:melee": { trained: 30 }, "core:stealth": { trained: 20 } },
+      progression: { classId: "test:fighter", classLevels: { "test:fighter": 1 } },
+    });
+    s.commit([xp(10)]);
+    const events = classLevelEvents(s.state, content, defaultTuning);
+    expect(events).toHaveLength(1);
+    expect(events[0]!.type).toBe("ClassLevelGained");
+    s.commit(events);
+    const pc = s.state.actors.pc!.sheet;
+    expect(pc.progression.classLevels["test:fighter"]).toBe(2);
+    // 20 points across the two class skills, at most 10 each this level.
+    expect(pc.skills["core:melee"]!.trained).toBe(40);
+    expect(pc.skills["core:athletics"]!.trained).toBe(10);
+    // +5 to the best skill outside the class.
+    expect(pc.skills["core:stealth"]!.trained).toBe(25);
+    // The level-2 feature's talent is granted.
+    expect(pc.talents).toContain("test:tough");
+    expect(levels.skillPointsPerLevel).toBe(20);
+  });
+
+  test("levels 4 and 8 give an attribute pick, and class mode has no XP purchases", () => {
+    const s = new Sim({ structural: { progression: "classes" } });
+    s.addActor("pc", "pc", {
+      attributes: attrs({ end: 6 }),
+      skills: { "core:melee": { trained: 30 } },
+      progression: { classId: "test:fighter", classLevels: { "test:fighter": 1 } },
+    });
+    s.commit([xp(60)]);
+    s.commit(classLevelEvents(s.state, content, defaultTuning));
+    const pc = s.state.actors.pc!.sheet;
+    expect(pc.progression.classLevels["test:fighter"]).toBe(4);
+    expect(pc.progression.pendingAttributes).toBe(1);
+    expect(priceOf(s.state, "pc", { kind: "skill", id: "core:melee" }, content, defaultTuning).ok).toBe(
+      false,
+    );
+    expect(
+      unwrap(priceOf(s.state, "pc", { kind: "attribute", id: "end" }, content, defaultTuning)).cost,
+    ).toBe(0);
+    s.commit(unwrap(buyAdvancement(s.state, "pc", { kind: "attribute", id: "end" }, content, defaultTuning)));
+    expect(s.state.actors.pc!.sheet.attributes.end).toBe(7);
+    expect(s.state.actors.pc!.sheet.progression.pendingAttributes).toBe(0);
+  });
+
+  test("class levels replay from the event log and never grant HP", () => {
+    const s = new Sim({ structural: { progression: "classes" } });
+    s.addActor("pc", "pc", {
+      attributes: attrs({ end: 6 }),
+      skills: { "core:melee": { trained: 30 } },
+      progression: { classId: "test:fighter", classLevels: { "test:fighter": 1 } },
+    });
+    const hp = s.state.actors.pc!.sheet.derived.hpMax;
+    s.commit([xp(450)]);
+    const events = classLevelEvents(s.state, content, defaultTuning);
+    expect(events).toHaveLength(9);
+    s.commit(events);
+    expect(s.state.actors.pc!.sheet.progression.classLevels["test:fighter"]).toBe(10);
+    expect(s.state.actors.pc!.sheet.derived.hpMax).toBe(hp);
+    // Folding the same log from scratch gives the same sheet.
+    let replayed: typeof s.state | undefined;
+    for (const e of s.events) {
+      replayed = reduce(replayed as never, e as never);
+    }
+    expect(replayed!.actors.pc!.sheet).toEqual(s.state.actors.pc!.sheet);
+  });
+});
 
 describe("costs (spec 04 classless table)", () => {
   test("skill steps cost 1/2/3/4 XP by value, and stop at 90 without Mastery", () => {

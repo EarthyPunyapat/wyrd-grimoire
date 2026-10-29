@@ -94,6 +94,8 @@ const handlers: { [K in Exclude<EventType, "CampaignCreated">]: Handler<K> } = {
   LuckRegained: (s, e) =>
     updateStatus(s, e.payload.actorId, (st) => ({ ...st, luck: st.luck + e.payload.amount })),
 
+  SpellCast: (s, e) =>
+    e.payload.rngAfter ? { ...s, campaign: { ...s.campaign, rngState: e.payload.rngAfter } } : s,
   ConditionApplied: (s, e) =>
     updateStatus(s, e.payload.actorId, (st) => ({
       ...st,
@@ -149,6 +151,32 @@ const handlers: { [K in Exclude<EventType, "CampaignCreated">]: Handler<K> } = {
       }
       const trained = (sheet.skills[id]?.trained ?? 0) + amount;
       return { ...sheet, progression, skills: { ...sheet.skills, [id]: { trained } } };
+    }),
+  ClassLevelGained: (s, e) =>
+    updateSheet(s, e.payload.actorId, (sheet) => {
+      const p = sheet.progression;
+      let skills = sheet.skills;
+      for (const t of e.payload.training)
+        skills = { ...skills, [t.skillId]: { trained: (skills[t.skillId]?.trained ?? 0) + t.amount } };
+      if (e.payload.anySkill) {
+        const { skillId, amount } = e.payload.anySkill;
+        skills = { ...skills, [skillId]: { trained: (skills[skillId]?.trained ?? 0) + amount } };
+      }
+      const talents = [...sheet.talents];
+      for (const t of e.payload.talents) if (!talents.includes(t)) talents.push(t);
+      return {
+        ...sheet,
+        skills,
+        talents,
+        progression: {
+          ...p,
+          classLevels: {
+            ...(p.classLevels ?? {}),
+            [e.payload.classId]: Math.max(p.classLevels?.[e.payload.classId] ?? 1, e.payload.level),
+          },
+          pendingAttributes: (p.pendingAttributes ?? 0) + e.payload.attributes,
+        },
+      };
     }),
   SkillMarked: (s, e) =>
     updateSheet(s, e.payload.actorId, (sheet) =>
@@ -287,6 +315,26 @@ const handlers: { [K in Exclude<EventType, "CampaignCreated">]: Handler<K> } = {
   FactAsserted: (s) => s,
   SceneOpened: (s, e) => ({ ...s, scene: e.payload.scene }),
   SceneClosed: (s) => ({ ...s, scene: null }),
+  ZoneTagChanged: (s, e) => {
+    if (!s.scene || s.scene.id !== e.payload.sceneId) return s;
+    const { zoneId, tag, added } = e.payload;
+    return {
+      ...s,
+      scene: {
+        ...s.scene,
+        zones: s.scene.zones.map((z) =>
+          z.id === zoneId
+            ? {
+                ...z,
+                tags: added
+                  ? [...new Set([...(z.tags ?? []), tag])]
+                  : (z.tags ?? []).filter((t) => t !== tag),
+              }
+            : z,
+        ),
+      },
+    };
+  },
   EntityMoved: (s, e) => {
     const { entityId, toZoneId } = e.payload;
     if (!s.scene) throw new Error("EntityMoved outside a scene");

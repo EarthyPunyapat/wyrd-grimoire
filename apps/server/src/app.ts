@@ -27,6 +27,7 @@ import {
   type GameState,
   legacyEvents,
   obituary,
+  RESOLUTION_MODULES,
   reduce,
   skillLabel,
   skillValue,
@@ -75,6 +76,7 @@ import { evaluateDraft, mountCreation, pregenDraft, StoredDraft } from "./creati
 import { EXAMPLE_WORLD } from "./example-world.ts";
 import { ModelServices, mountModels } from "./models.ts";
 import { mountParty, profileNewCompanions, recruitSheet } from "./party.ts";
+import { mountSettings } from "./settings.ts";
 import { addressOf, mountWorld } from "./world-views.ts";
 
 const SESSION_TTL = 30 * 24 * 60 * 60 * 1000;
@@ -226,6 +228,7 @@ export function createApp(options: Options) {
     router: () => (options.offline ? null : models.router()),
   });
   mountParty(app, { campaign: (id) => campaign(id), body, running: (id) => !!store.running(id) });
+  mountSettings(app, { campaign: (id) => campaign(id), store, body });
   mountWorld(app, {
     campaign: (id) => campaign(id),
     store,
@@ -328,6 +331,8 @@ export function createApp(options: Options) {
         bible,
         hooks,
         input.progression,
+        input.resolution,
+        input.hardcore,
       );
       store.saveCreationDraft(input.draftId, { ...saved.data, campaignId: id });
       return c.json({ id }, 201);
@@ -343,6 +348,8 @@ export function createApp(options: Options) {
       name,
       characterName,
       progression,
+      resolution,
+      hardcore,
       ...input
     } = await body(c, QuickStartInput);
     const sheet = pregen
@@ -363,6 +370,8 @@ export function createApp(options: Options) {
       [],
       hooks,
       progression,
+      resolution,
+      hardcore,
     );
     return c.json({ id }, 201);
   });
@@ -424,12 +433,16 @@ export function createApp(options: Options) {
     world: WorldDef,
     extra: EventDraft[] = [],
     hooks?: { ids: string[]; events: EventDraft[] },
-    progression: "classless" | "useBased" | "hybrid" = "classless",
+    progression: "classless" | "useBased" | "hybrid" | "classes" = "classless",
+    resolution: "d100" | "d20" = "d100",
+    hardcore = false,
   ) {
+    if (progression === "classes" && !pack.manifest.supports.progression.includes("classes"))
+      throw new HTTPException(422, { message: "This world's pack has no class data" });
     const created = unwrap(
       createCampaign({
         name,
-        settings: { structural: { progression } },
+        settings: { structural: { progression, resolution, hardcore } },
         packIds: [pack.manifest.id],
         packHash: pack.hash,
         seed: options.seed ?? randomBytes(16).toString("hex"),
@@ -517,11 +530,15 @@ export function createApp(options: Options) {
         backgroundName: gamePack.archetypes[pc.archetypeId ?? ""]?.name ?? "",
         pc,
         speakers,
-        skills: Object.keys(pc.skills).map((id) => ({
-          id,
-          name: skillLabel(id, skills),
-          value: skillValue(pc, id, skills, defaultTuning),
-        })),
+        skills: Object.keys(pc.skills).map((id) => {
+          const value = skillValue(pc, id, skills, defaultTuning);
+          return {
+            id,
+            name: skillLabel(id, skills),
+            value,
+            display: RESOLUTION_MODULES[state.campaign.settings.structural.resolution].displaySkill(value),
+          };
+        }),
         scene: scene
           ? {
               location: canon.entity(scene.locationId)?.name ?? "Unknown place",
@@ -560,6 +577,7 @@ export function createApp(options: Options) {
           : ["Look around", "Search the area", "Wait 10 minutes"],
         offline: options.offline,
         combat: view.combat,
+        resolution: state.campaign.settings.structural.resolution,
         ended: view.ended,
         address: addressOf(canon),
         known: Object.keys(state.knowledge.entities).flatMap((kid) => {
@@ -637,7 +655,13 @@ export function createApp(options: Options) {
     const ctx = makeTurnContext(
       state,
       canon,
-      { skills: skillCatalog([gamePack]), tuning: defaultTuning },
+      {
+        skills: skillCatalog([gamePack]),
+        tuning: defaultTuning,
+        classes: gamePack.classes,
+        spells: gamePack.spells,
+        plugins: gamePack.pluginConfigs,
+      },
       combatContent(gamePack),
     );
     let ended: { reason: "death"; obituary: string } | null = null;
@@ -696,7 +720,13 @@ export function createApp(options: Options) {
       store: game,
       canon,
       router: models.router(),
-      rules: { skills: skillCatalog([frozen]), tuning: defaultTuning },
+      rules: {
+        skills: skillCatalog([frozen]),
+        tuning: defaultTuning,
+        classes: frozen.classes,
+        spells: frozen.spells,
+        plugins: frozen.pluginConfigs,
+      },
       content: combatContent(frozen),
       recruitSheet: (npcId, state) =>
         recruitSheet(frozen, canon.entity(npcId) ?? null, npcId, state.campaign.settings),

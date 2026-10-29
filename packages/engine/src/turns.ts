@@ -9,7 +9,7 @@ import {
 } from "./combat/index.ts";
 import { companionBeats } from "./companions.ts";
 import { type ExplorationContext, type PlanError, resolvePlan, validatePlan } from "./exploration.ts";
-import { restImprovements, turnAwards, turnMarks } from "./progression.ts";
+import { classLevelEvents, restImprovements, turnAwards, turnMarks } from "./progression.ts";
 import { fail, ok, type Result } from "./result.ts";
 import type { GameState } from "./state.ts";
 import { Working } from "./working.ts";
@@ -68,6 +68,10 @@ export function resolveTurn(
     ...turnAwards(state, w.state, turn, ctx.kindOf ?? (() => undefined), ctx.tuning),
   ];
   w.apply(progress);
+  // Class levels follow from the XP just awarded (spec 04): training and features as events.
+  const classUps = classLevelEvents(w.state, { skills: ctx.skills, classes: ctx.classes }, ctx.tuning);
+  w.apply(classUps);
+  progress.push(...classUps);
   const rested = restImprovements(w.state, turn, ctx, ctx.tuning);
   w.apply(rested);
   // Owed companion scenes (a confrontation, a departure) and this scene's banter (spec 04).

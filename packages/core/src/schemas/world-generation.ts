@@ -67,7 +67,11 @@ export const StartGeneratedCampaign = z
     ancestry: ContentId.optional(),
     archetype: ContentId.optional(),
     /** Chosen at creation and locked (spec 04, 12). Class mode needs a pack with classes. */
-    progression: z.enum(["classless", "useBased", "hybrid"]).default("classless"),
+    progression: z.enum(["classless", "useBased", "hybrid", "classes"]).default("classless"),
+    /** Chosen at creation and locked (spec 12): d100 roll-under or d20. */
+    resolution: z.enum(["d100", "d20"]).default("d100"),
+    /** Can only be turned on at creation (spec 12). */
+    hardcore: z.boolean().default(false),
   })
   .strict();
 export const GeneratedWorldPreview = z.object({

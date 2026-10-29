@@ -1,7 +1,8 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import type { GameView } from "@wyrd/core";
+import { defaultCampaignSettings, type GameView } from "@wyrd/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.ts";
+import { CampaignSettingsPanel } from "./CampaignSettings.tsx";
 import { CombatPanel, CombatStrip } from "./Combat.tsx";
 import { NarrativeText, narrationContext, RefContext } from "./Narration.tsx";
 import { Party } from "./Party.tsx";
@@ -24,6 +25,7 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
   const [input, setInput] = useState("");
   const [sheet, setSheet] = useState(false);
   const [combatOpen, setCombatOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [tab, setTab] = useState<Tab>(view.combat ? "combat" : "sheet");
   const [panelOpen, setPanelOpen] = useState<Tab | null>(null);
   const [codexFocus, setCodexFocus] = useState<string | null>(null);
@@ -117,6 +119,15 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
                 .toString()
                 .padStart(2, "0")}
               :{(view.gameTime % 60).toString().padStart(2, "0")}
+              <button
+                type="button"
+                className="location-settings"
+                aria-label="Campaign settings"
+                title="Campaign settings"
+                onClick={() => setSettingsOpen(true)}
+              >
+                ⚙
+              </button>
             </span>
           </div>
           <div className="story-scroll">
@@ -344,6 +355,25 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
               <Dialog.Description className="sr-only">Your party, journal, codex and map.</Dialog.Description>
               {panelOpen && panel(panelOpen)}
               <Dialog.Close className="dialog-close" aria-label="Close panel">
+                ×
+              </Dialog.Close>
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
+        <Dialog.Root open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <Dialog.Portal>
+            <Dialog.Overlay className="overlay" />
+            <Dialog.Content className="dialog settings-dialog">
+              <Dialog.Title>Campaign settings</Dialog.Title>
+              <Dialog.Description>
+                Presets, subsystems, content dials and narration. Locked choices stay greyed out.
+              </Dialog.Description>
+              <CampaignSettingsPanel
+                campaignId={view.id}
+                initial={defaultCampaignSettings()}
+                onSaved={() => void play.refresh()}
+              />
+              <Dialog.Close className="dialog-close" aria-label="Close campaign settings">
                 ×
               </Dialog.Close>
             </Dialog.Content>

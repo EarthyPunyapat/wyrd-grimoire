@@ -13,5 +13,6 @@ export function creationContent(packs: readonly CompiledPack[]): CreationContent
     talents: Object.assign({}, ...packs.map((p) => p.talents)),
     ancestries: Object.assign({}, ...packs.map((p) => p.ancestries)),
     archetypes: Object.assign({}, ...packs.map((p) => p.archetypes)),
+    classes: Object.assign({}, ...packs.map((p) => p.classes ?? {})),
   };
 }

@@ -75,6 +75,17 @@ export const eventPayloadSchemas = {
     talents: z.number().int().nonnegative().default(0),
     reason: z.string(),
   }),
+  /** A class level (spec 04): training, any-skill points, attributes and class features. */
+  ClassLevelGained: z.object({
+    actorId: ActorId,
+    classId: z.string().min(1),
+    level: z.number().int().min(1).max(10),
+    training: z.array(z.object({ skillId: z.string(), amount: z.number().int().positive() })),
+    anySkill: z.object({ skillId: z.string(), amount: z.number().int().positive() }).optional(),
+    attributes: z.number().int().nonnegative().default(0),
+    talents: z.array(z.string()).default([]),
+    features: z.array(z.string()).default([]),
+  }),
   ConditionApplied: z.object({ actorId: ActorId, condition: ConditionInstance }),
   ConditionRemoved: z.object({ actorId: ActorId, conditionId: ContentId, reason: z.string().optional() }),
   EquipmentChanged: z.object({ actorId: ActorId, equipment: Equipment }),
@@ -99,7 +110,7 @@ export const eventPayloadSchemas = {
     actorId: ActorId,
     hp: z.number().int().nonnegative(),
     delta: z.number().int(),
-    cause: z.enum(["damage", "bleeding", "healing"]),
+    cause: z.enum(["damage", "bleeding", "healing", "strain"]),
   }),
   WoundInflicted: z.object({ actorId: ActorId, wound: Wound }),
   /** `hpMaxReduction` is the new severity's reduction, computed by the emitter; the reducer has no tuning. */
@@ -119,6 +130,13 @@ export const eventPayloadSchemas = {
   FactAsserted: z.object({ fact: Fact }),
   SceneOpened: z.object({ scene: SceneState }),
   SceneClosed: z.object({ sceneId: z.string(), reason: z.string() }),
+  /** A spell's lingering effect on a zone: fog, fire, ice, silence (spellcasting plugin). */
+  ZoneTagChanged: z.object({
+    sceneId: z.string(),
+    zoneId: z.string(),
+    tag: z.string().min(1),
+    added: z.boolean().default(true),
+  }),
   EntityMoved: z.object({ entityId: z.string(), toZoneId: z.string() }),
 
   // Turns: what the player typed, how it resolved, and what was narrated.
@@ -126,6 +144,19 @@ export const eventPayloadSchemas = {
   TurnCompleted: TurnCompletedPayload,
   NarrationCommitted: NarrationPayload,
   NarrationRerolled: NarrationPayload,
+
+  // Spellcasting (M7, the first plugin): one event records the cast, its strain and any miscast.
+  SpellCast: z.object({
+    actorId: ActorId,
+    spellId: ContentId,
+    school: z.string(),
+    tier: z.number().int().min(1).max(3),
+    targetId: ActorId.nullable().optional(),
+    strain: z.number().int().nonnegative(),
+    success: z.boolean(),
+    miscast: z.string().optional(),
+    rngAfter: RngStateSchema.optional(),
+  }),
 
   // Combat (M4)
   ...combatEventSchemas,

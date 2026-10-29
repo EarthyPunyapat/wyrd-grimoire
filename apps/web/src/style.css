@@ -415,3 +415,20 @@ progress::-webkit-progress-value { background: var(--accent); }
 .companion-card .approval-word { font-family: var(--font-display); font-size: 1.2rem; margin: 0 0 .25rem; }
 .companion-card meter.approval { width: 100%; height: 12px; margin-bottom: .75rem; }
 .party-hint { margin-top: 1.5rem; }
+
+/* Campaign settings (M7) */
+.location-settings { min-height: 28px; padding: .1rem .35rem; margin-left: .5rem; border-color: transparent; }
+.settings-dialog { max-width: 52rem; max-height: 88vh; overflow-y: auto; }
+.settings-panel fieldset { border: 1px solid var(--line); border-radius: 6px; margin: 1rem 0; padding: .75rem 1rem 1rem; }
+.settings-panel legend { padding: 0 .4rem; font-family: var(--font-display); font-size: 1.05rem; }
+.settings-panel label { display: flex; flex-direction: column; gap: .2rem; margin: .5rem 0; }
+.settings-panel .form-row { display: flex; flex-wrap: wrap; gap: .75rem; }
+.settings-panel .form-row > label { flex: 1 1 12rem; }
+.settings-panel .toggle-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: .25rem .75rem; }
+.settings-panel .toggle { flex-direction: row; align-items: flex-start; gap: .5rem; }
+.settings-panel .toggle input { margin-top: .3rem; }
+.settings-panel .locked-setting { opacity: .65; }
+.settings-panel .settings-actions { display: flex; align-items: center; gap: 1rem; margin-top: 1rem; }
+.settings-panel .field { display: flex; flex-direction: column; gap: .2rem; flex: 1 1 12rem; }
+.settings-panel .field label { font-weight: 600; }
+.settings-panel .form-row > .field { flex: 1 1 12rem; }

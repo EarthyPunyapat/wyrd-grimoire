@@ -20,7 +20,8 @@ import type { GameState } from "./state.ts";
 export type Purchase = { kind: "skill" | "attribute" | "talent" | "fieldSkill"; id: string };
 
 const mode = (state: GameState) => state.campaign.settings.structural.progression;
-const earnsXp = (state: GameState) => mode(state) === "classless" || mode(state) === "hybrid";
+const earnsXp = (state: GameState) =>
+  mode(state) === "classless" || mode(state) === "hybrid" || mode(state) === "classes";
 const marksSkills = (state: GameState) => mode(state) === "useBased" || mode(state) === "hybrid";
 const party = (state: GameState): ActorId[] =>
   [state.party.pcId, ...state.party.companionIds].filter(
@@ -228,6 +229,130 @@ export function closeEvents(
   return out;
 }
 
+/** The total XP needed for a class level (spec 04): level n needs 10 × n(n−1)/2. */
+export function classXpForLevel(level: number, tuning: Tuning): number {
+  const n = Math.max(1, Math.min(tuning.progression.classes.maxLevel, level));
+  return tuning.progression.classes.xpPerLevel * ((n * (n - 1)) / 2);
+}
+
+/** The class level a character's total earned XP reaches. */
+export function classLevelForXp(xp: number, tuning: Tuning): number {
+  let level = 1;
+  while (level < tuning.progression.classes.maxLevel && xp >= classXpForLevel(level + 1, tuning)) level++;
+  return level;
+}
+
+/**
+ * Class levels from XP (spec 04): each level trains the class skills, adds a little to one other
+ * skill, and grants the level's class features; levels 4 and 8 give an attribute point to spend.
+ * Everything is emitted so class progress replays exactly and the reducer needs no content.
+ */
+export function classLevelEvents(
+  state: GameState,
+  content: {
+    classes?: Record<
+      string,
+      {
+        id: string;
+        name: string;
+        skills: string[];
+        features: Array<{ level: number; name: string; talent?: string }>;
+      }
+    >;
+    skills: SkillCatalog;
+  },
+  tuning: Tuning,
+): EventDraft[] {
+  if (state.campaign.settings.structural.progression !== "classes") return [];
+  const classes = content.classes ?? {};
+  const c = tuning.progression.classes;
+  const out: EventDraft[] = [];
+  for (const id of party(state)) {
+    const sheet = state.actors[id]!.sheet;
+    const classId = sheet.progression.classId ?? Object.keys(classes)[0];
+    const cls = classId ? classes[classId] : undefined;
+    if (!classId || !cls) continue;
+    const current = sheet.progression.classLevels?.[classId] ?? 1;
+    const target = classLevelForXp(sheet.progression.xpEarned, tuning);
+    if (target <= current) continue;
+    // Training already applied by earlier levels in this same batch.
+    const trained = new Map(Object.entries(sheet.skills).map(([skill, v]) => [skill, v.trained]));
+    const skillAt = (skill: string) => {
+      try {
+        return Math.min(
+          tuning.skillCap,
+          skillValue(
+            { ...sheet, skills: Object.fromEntries([...trained].map(([k, v]) => [k, { trained: v }])) },
+            skill,
+            content.skills,
+            tuning,
+          ),
+        );
+      } catch {
+        return 0;
+      }
+    };
+    for (let level = current + 1; level <= target; level++) {
+      const training: Array<{ skillId: string; amount: number }> = [];
+      let left = c.skillPointsPerLevel;
+      const classSkills = [...new Set(cls.skills)].sort(
+        (a, b) => skillAt(a) - skillAt(b) || a.localeCompare(b),
+      );
+      for (const skill of classSkills) {
+        if (left <= 0) break;
+        const room = Math.max(0, tuning.skillCap - skillAt(skill));
+        const amount = Math.min(c.maxPerSkillPerLevel, left, room);
+        if (amount > 0) {
+          training.push({ skillId: skill, amount });
+          trained.set(skill, (trained.get(skill) ?? 0) + amount);
+          left -= amount;
+        }
+      }
+      // Any leftover class points go to the next class skill, then the first skill with room.
+      if (left > 0) {
+        const fallback = Object.keys(sheet.skills).find((s) => tuning.skillCap - skillAt(s) > 0);
+        if (fallback) {
+          const amount = Math.min(left, tuning.skillCap - skillAt(fallback));
+          training.push({ skillId: fallback, amount });
+          trained.set(fallback, (trained.get(fallback) ?? 0) + amount);
+          left -= amount;
+        }
+      }
+      // +5 to any skill: broaden the character's best non-class skill when there is room.
+      let anySkill: { skillId: string; amount: number } | undefined;
+      const candidates = Object.keys(sheet.skills)
+        .filter((s) => !cls.skills.includes(s))
+        .sort((a, b) => skillAt(b) - skillAt(a) || a.localeCompare(b));
+      const pick = candidates.find((s) => tuning.skillCap - skillAt(s) > 0) ?? classSkills[0];
+      if (pick) {
+        const amount = Math.min(c.anySkillPoints, tuning.skillCap - skillAt(pick));
+        if (amount > 0) {
+          anySkill = { skillId: pick, amount };
+          trained.set(pick, (trained.get(pick) ?? 0) + amount);
+        }
+      }
+      const features = cls.features.filter((f) => f.level === level);
+      out.push(
+        draft(
+          "ClassLevelGained",
+          {
+            actorId: id,
+            classId,
+            level,
+            training,
+            ...(anySkill ? { anySkill } : {}),
+            attributes: c.attributeLevels.includes(level) ? 1 : 0,
+            talents: features.flatMap((f) => (f.talent ? [f.talent] : [])),
+            features: features.map((f) => f.name),
+          },
+          "engine",
+        ),
+      );
+    }
+  }
+  return out;
+}
+
 /** What a purchase costs and whether it's allowed, with the reason when it isn't. */
 export function priceOf(
   state: GameState,
@@ -242,10 +367,14 @@ export function priceOf(
   const sheet = actor.sheet;
   const p = tuning.progression;
   const m = mode(state);
-  if (m === "classes") return fail("CLASSES_UNSUPPORTED", "Class levels arrive with class packs");
   const free =
     (purchase.kind === "attribute" && sheet.progression.pendingAttributes > 0) ||
     (purchase.kind === "talent" && sheet.progression.pendingTalents > 0);
+  if (m === "classes" && !free)
+    return fail(
+      "CLASSES_TRAINING",
+      "Class levels grant training and features automatically; only level-up attribute picks are spent here",
+    );
   if (!free && !earnsXp(state))
     return fail(
       "USE_BASED",

@@ -7,6 +7,7 @@ import {
   type CampaignSettings,
   CharacterSheet,
   type CharacterSheetInput,
+  type ClassDef,
   type DraftSheet,
   type ItemCatalog,
   localIdOf,
@@ -71,6 +72,8 @@ export type CreationContent = {
   talents: Record<string, Omit<TalentDef, "id"> & { id: string }>;
   ancestries: Record<string, Omit<AncestryDef, "id"> & { id: string }>;
   archetypes: Record<string, Omit<ArchetypeDef, "id"> & { id: string }>;
+  /** Class data for class progression; absent when the pack has none. */
+  classes?: Record<string, Omit<ClassDef, "id"> & { id: string }>;
 };
 
 /**
@@ -288,6 +291,18 @@ export function draftFromArchetype(ancestry: string, archetype: Archetype, name 
   };
 }
 
+/** In class mode, a new character starts at level 1 of their archetype's class (or the first class). */
+export function classProgressAtCreation(
+  settings: CampaignSettings,
+  archetype: Archetype | undefined,
+  content: CreationContent,
+): { classId?: string; classLevels: Record<string, number> } {
+  if (settings.structural.progression !== "classes") return { classLevels: {} };
+  const classes = content.classes ?? {};
+  const id = archetype?.class ?? Object.keys(classes)[0];
+  return id && classes[id] ? { classId: id, classLevels: { [id]: 1 } } : { classLevels: {} };
+}
+
 /** A pregenerated character's draft: the archetype's numbers plus the pregen's person. */
 export function draftFromPregen(pregen: PregenDef, archetype: Archetype): DraftSheet {
   const base = draftFromArchetype(pregen.ancestry, archetype, pregen.name);
@@ -333,6 +348,8 @@ export function sheetFromDraft(
       attributes: draft.attributes,
       skills: Object.fromEntries(Object.entries(draft.skills).map(([sk, trained]) => [sk, { trained }])),
       talents: draft.talents,
+      spells: archetype?.spells ?? [],
+      progression: classProgressAtCreation(settings, archetype, content),
       equipment: startingEquipment(archetype?.kit ?? [], items),
     },
     settings,

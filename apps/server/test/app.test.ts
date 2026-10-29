@@ -125,7 +125,7 @@ test("campaign quick start persists and GameView excludes world truth and hidden
   expect(data.pc.identity.name).toBe("Wren");
   expect(data.scene?.location).toBeTruthy();
   const text = JSON.stringify(data);
-  for (const forbidden of ["world-bible", "rngState", "importance", "secret", 'resolution"', "forbidden"])
+  for (const forbidden of ["world-bible", "rngState", "importance", "secret", "forbidden"])
     expect(text).not.toContain(forbidden);
   expect((await request(server, "/campaigns", undefined, cookie)).status).toBe(200);
   expect(server.store.campaigns()).toHaveLength(1);

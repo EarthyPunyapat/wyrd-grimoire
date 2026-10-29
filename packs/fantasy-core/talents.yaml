@@ -1,4 +1,8 @@
-# Tier 1 archetype talents
+# Talents. Three tiers: tier 1 is available at creation, tier 2 rewards focus,
+# and tier 3 is a capstone that takes a career to reach.
+
+# ── Tier 1: origins and aptitudes ─────────────────────────────────────────────
+
 - id: line-veteran
   name: Line Veteran
   tier: 1
@@ -23,7 +27,6 @@
   name: Well-Read
   tier: 1
   description: You have read more than is good for you. With a day among books, Lore checks to recall a fact gain a boon.
-# Tier 1 free picks
 - id: tough-as-roots
   name: Tough as Roots
   tier: 1
@@ -55,7 +58,56 @@
   description: Fear and charms slide off you. +10 to Willpower checks to resist fear or magic.
   prerequisites:
     attributes: { wil: 6 }
-# Tier 2
+- id: sure-foot
+  name: Sure Foot
+  tier: 1
+  description: Rough ground, wet stone and a moving deck are all the same to you. You gain a boon on Acrobatics checks to keep your footing, and broken ground does not slow you.
+  prerequisites:
+    attributes: { agi: 6 }
+- id: night-eyes
+  name: Night Eyes
+  tier: 1
+  description: Starlight is enough for you. You take no penalty for dim light, and gain a boon on Perception checks to spot movement or a shape in the dark.
+  prerequisites:
+    attributes: { awa: 6 }
+    skills: { perception: 30 }
+- id: weather-eye
+  name: Weather Eye
+  tier: 1
+  description: You can smell a storm coming off the hills a day before it arrives. Once per day, ask the GM what the weather will do for the next day; you also gain a boon on Survival checks to find shelter.
+  prerequisites:
+    attributes: { awa: 5 }
+    skills: { survival: 30 }
+- id: field-dressing
+  name: Field Dressing
+  tier: 1
+  description: Your hands stay steady over someone else's blood. When you use first aid, reduce Bleeding by one extra level on a success, and gain a boon on Medicine checks to stabilise a dying character.
+  prerequisites:
+    attributes: { int: 5 }
+    skills: { medicine: 30 }
+- id: fire-keeper
+  name: Fire Keeper
+  tier: 1
+  description: A fire is a promise you know how to keep. You gain a boon on Survival checks to light and shelter a fire in wet or windy country, and a fire you tend burns twice as long on the same fuel.
+  prerequisites:
+    skills: { survival: 30 }
+- id: rough-and-tumble
+  name: Rough and Tumble
+  tier: 1
+  description: Tavern floors and muddy yards taught you what a blade never will. You gain a boon on unarmed attacks to Grapple or Shove, and once per fight you may stand up from Prone without spending AP.
+  prerequisites:
+    attributes: { str: 5 }
+    skills: { unarmed: 30 }
+- id: haggler
+  name: Haggler
+  tier: 1
+  description: You know what a thing is worth and what a seller will take. When you buy or sell in a market, shift the price a tenth in your favour, and gain a boon on Streetwise checks to find a buyer or a fence.
+  prerequisites:
+    attributes: { pre: 5 }
+    skills: { streetwise: 30 }
+
+# ── Tier 2: specialisation ────────────────────────────────────────────────────
+
 - id: second-wind
   name: Second Wind
   tier: 2
@@ -63,3 +115,165 @@
   prerequisites:
     attributes: { end: 6 }
     talents: [tough-as-roots]
+- id: turn-the-blow
+  name: Turn the Blow
+  tier: 2
+  description: You turn a parried blow into an opening. Once per fight, when an attack misses you while you have a weapon readied, you may Shove the attacker without spending AP.
+  prerequisites:
+    attributes: { str: 6 }
+    skills: { melee: 50 }
+    talents: [line-veteran]
+- id: find-the-gap
+  name: Find the Gap
+  tier: 2
+  description: You look at armour and see the strap, the seam and the gap. When you strike a target that is flanked, Prone or unaware of you, your attack ignores 2 points of armour.
+  prerequisites:
+    skills: { melee: 60, perception: 40 }
+- id: bloodied-but-standing
+  name: Bloodied but Standing
+  tier: 2
+  description: Pain sharpens you instead of dulling you. While below half your maximum HP, you gain +10 to Willpower checks and ignore the first level of Bleeding you gain each fight.
+  prerequisites:
+    attributes: { end: 6 }
+    talents: [tough-as-roots]
+- id: spell-sense
+  name: Spell Sense
+  tier: 2
+  description: The air prickles before a working takes hold. You feel active magic within a stone's throw, and gain a boon on Arcana checks to identify a spell, sigil or enchanted object.
+  prerequisites:
+    skills: { arcana: 50 }
+    talents: [hedge-lore]
+- id: quick-chant
+  name: Quick Chant
+  tier: 2
+  description: You have pared your workings down to the bone. Once per fight, when you cast a spell, you may reduce its AP cost by 1, to a minimum of 1.
+  prerequisites:
+    skills: { arcana: 50 }
+    talents: [hedge-lore]
+- id: ember-hand
+  name: Ember Hand
+  tier: 2
+  description: Fire answers your hand more readily than it should. When a spell you cast deals burn damage, the target catches; it takes 2 damage at the start of its next turn unless it spends an action smothering the flame.
+  prerequisites:
+    skills: { spellcasting/elemental: 60 }
+    talents: [hedge-lore]
+- id: litany-of-steadiness
+  name: Litany of Steadiness
+  tier: 2
+  description: You have prayed through fear and found your voice on the other side. Once per scene, recite a litany; you and allies who can hear you gain +10 to checks against Frightened until the end of the round.
+  prerequisites:
+    skills: { faith: 60 }
+    talents: [iron-will]
+- id: read-the-room
+  name: Read the Room
+  tier: 2
+  description: You read a room the way a hunter reads a trail. When you enter a social scene, you may ask the GM who holds power here and what they want; you also gain a boon on Insight checks to catch a lie.
+  prerequisites:
+    skills: { insight: 50 }
+    talents: [silver-tongue]
+- id: quiet-word
+  name: Quiet Word
+  tier: 2
+  description: A few soft words can turn a blade. Once per scene, make a Deception or Persuasion check to calm a hostile soul or draw a guard's eye elsewhere; on a success they leave you be for the rest of the scene unless you give them cause.
+  prerequisites:
+    skills: { deception: 50 }
+    talents: [silver-tongue]
+- id: pathfinder
+  name: Pathfinder
+  tier: 2
+  description: You carry the shape of a country in your head. When you lead a party overland, travel takes a quarter less time, and you gain a boon on Navigation checks to retrace a route or find a shortcut.
+  prerequisites:
+    skills: { navigation: 50 }
+    talents: [tracker]
+- id: forager
+  name: Forager
+  tier: 2
+  description: You know where the land hides its table. An hour's work feeds and waters a party of four, and you gain a boon on Survival checks to find clean water or edible plants.
+  prerequisites:
+    skills: { survival: 50 }
+    talents: [weather-eye]
+- id: hide-worker
+  name: Hide Worker
+  tier: 2
+  description: You know what a hide wants to become. You gain a boon on Craft checks to tan, cut and stitch leather, and with an hour's work you can repair a leather or hide garment, restoring 1 point of its protection.
+  prerequisites:
+    skills: { craft/leatherwork: 50, survival: 40 }
+- id: tinker
+  name: Tinker
+  tier: 2
+  description: Broken things tell you how they broke. You gain a boon on Mechanics checks to repair, disarm or sabotage a mechanism, and once per day you can jury-rig a tool or weapon to work for one more scene.
+  prerequisites:
+    skills: { mechanics: 50, craft/metalwork: 40 }
+- id: field-medic
+  name: Field Medic
+  tier: 2
+  description: You have sewn more men than cloth. You gain a boon on Medicine checks to treat wounds, and treating a wound takes you half the usual time.
+  prerequisites:
+    skills: { medicine: 60 }
+    talents: [field-dressing]
+
+# ── Tier 3: capstones ─────────────────────────────────────────────────────────
+
+- id: veteran-of-the-line
+  name: Veteran of the Line
+  tier: 3
+  description: Your line holds because you are in it. Allies within a pace gain +10 to checks against Frightened and to resist being knocked Prone, and once per fight you may call a rally that lets one ally stand or steady themselves without spending AP.
+  prerequisites:
+    skills: { melee: 70 }
+    talents: [line-veteran, second-wind]
+- id: unbroken
+  name: Unbroken
+  tier: 3
+  description: The fight has taken everything you have, and you are still here. The first time each fight you would be reduced to 0 HP, you stay standing at 1 HP instead; you still take the wound.
+  prerequisites:
+    attributes: { end: 7 }
+    talents: [bloodied-but-standing, iron-will]
+- id: ghost-step
+  name: Ghost Step
+  tier: 3
+  description: You move the way smoke moves, without seeming to cross the space between. You gain a boon on Stealth checks to move silently, and once per scene you can vanish from notice while you have cover or shadow, even if someone is watching.
+  prerequisites:
+    skills: { stealth: 70, acrobatics: 60 }
+    talents: [sure-foot]
+- id: the-long-hunt
+  name: The Long Hunt
+  tier: 3
+  description: You have followed quarry until it forgot it was being followed. You gain a boon on Survival checks to track, learn the condition and pace of your quarry after an hour on the trail, and weather does not erase a trail you have read.
+  prerequisites:
+    skills: { survival: 70 }
+    talents: [tracker, pathfinder]
+- id: keeper-of-names
+  name: Keeper of Names
+  tier: 3
+  description: You know the old names, and names have weight. Once per day, name a place, person or thing and ask the GM one true thing about it; you gain a boon on Lore checks to recall or identify such things.
+  prerequisites:
+    skills: { lore/history: 70 }
+    talents: [well-read, spell-sense]
+- id: voice-of-the-hall
+  name: Voice of the Hall
+  tier: 3
+  description: When you speak, a room goes quiet. Once per scene, address a crowd and make a Persuasion check against its mood; on a success they listen, and take your side on one matter at least for the night.
+  prerequisites:
+    skills: { persuasion: 70 }
+    talents: [silver-tongue, read-the-room]
+- id: second-sight
+  name: Second Sight
+  tier: 3
+  description: You see the seams where the world has been worked. You can detect magic at will within line of sight, sense when a spell is cast nearby, and gain a boon on Arcana checks to read a working.
+  prerequisites:
+    skills: { arcana: 70 }
+    talents: [spell-sense, iron-will]
+- id: the-makers-mark
+  name: The Maker's Mark
+  tier: 3
+  description: Your work outlives you, and people know it. Items you make sell for twice the usual price, and once between adventures you can improvise a tool or part for any trade from what is at hand; it works until the next dawn.
+  prerequisites:
+    skills: { mechanics: 70 }
+    talents: [tinker]
+- id: road-warden
+  name: Road Warden
+  tier: 3
+  description: You can walk a party through country that would otherwise kill them. When you lead a journey, you gain a boon on Survival and Navigation checks to avoid hazards, find shelter and keep the company together.
+  prerequisites:
+    skills: { survival: 70 }
+    talents: [pathfinder, weather-eye]

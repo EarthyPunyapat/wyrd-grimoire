@@ -9,6 +9,7 @@ import {
 } from "@wyrd/core";
 import { resolveCheck, resolveOpposedCheck } from "../checks.ts";
 import { applyCondition, removeCondition } from "../conditions.ts";
+import { castProblem, resolveCast } from "../plugins/spellcasting.ts";
 import { isSuccess } from "../resolution/index.ts";
 import { fail, ok, type Result } from "../result.ts";
 import type { GameState } from "../state.ts";
@@ -41,6 +42,12 @@ export function apCost(state: GameState, actorId: ActorId, a: CombatAction, ctx:
     const held = sheetOf(state, actorId).equipment.held;
     const w = weaponById(ctx, held.main) ?? weaponById(ctx, held.off);
     return w?.reloadAp ?? 0;
+  }
+  if (a.type === "cast") {
+    const spell =
+      ctx.spells?.[a.spellId] ??
+      Object.values(ctx.spells ?? {}).find((s) => s.id.split(":").pop() === a.spellId.split(":").pop());
+    return spell?.apCost ?? 1;
   }
   if (a.type === "move") {
     const here = zoneOf(state, actorId);
@@ -114,6 +121,10 @@ export function validateCombatAction(
   const prone = hasCondition(state, actorId, "core:prone");
 
   switch (a.type) {
+    case "cast": {
+      const p = castProblem(state, actorId, a, ctx);
+      return p ? err(p.code, p.message) : null;
+    }
     case "strike": {
       const p = strikeProblem({ state }, actorId, a.targetId, ctx, a.weaponId, a.calledLocation);
       if (!p) return null;
@@ -411,6 +422,10 @@ export function resolveCombatAction(
   patch(w, actorId, { ap: Math.max(0, me.ap - cost) });
 
   switch (a.type) {
+    case "cast": {
+      const r = resolveCast(w, actorId, a, ctx, true);
+      return r.ok ? ok([r.value.step]) : r;
+    }
     case "strike": {
       const r = resolveStrike(w, actorId, a.targetId, ctx, {
         ...(a.weaponId ? { weaponId: a.weaponId } : {}),
@@ -813,6 +828,21 @@ export function legalActions(
     for (const n of here ? neighbours(state, here) : [])
       add({ type: "move", toZoneId: n.zoneId }, `Move to ${ctx.nameOf(n.zoneId)}`);
   }
+  const known = sheetOf(state, actorId).spells ?? [];
+  for (const spell of Object.values(ctx.spells ?? {}))
+    if (known.includes(spell.id)) {
+      const target = Object.values(combatOf(state).combatants).find(
+        (c) => c.side !== me.side && canAct(state, c.actorId),
+      );
+      add(
+        {
+          type: "cast",
+          spellId: spell.id,
+          ...(spell.target === "actor" && target ? { targetId: target.actorId } : {}),
+        },
+        `Cast ${spell.name}`,
+      );
+    }
   add({ type: "aim" }, "Aim");
   add({ type: "takeCover" }, "Take cover");
   add({ type: "defend" }, "Defend");

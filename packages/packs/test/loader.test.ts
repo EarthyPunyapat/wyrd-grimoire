@@ -141,7 +141,7 @@ describe("pack validate errors", () => {
   test("unknown plugins and incompatible engine ranges", () => {
     const d = copy();
     edit(d, "pack.yaml", (s) =>
-      s.replace("plugins: []", "plugins:\n  - id: spellcasting").replace(">=1.0.0 <2.0.0", ">=2.0.0"),
+      s.replace("id: spellcasting", "id: firearms").replace(">=1.0.0 <2.0.0", ">=2.0.0"),
     );
     expect(errorCodes(d).sort()).toEqual(["ENGINE_INCOMPATIBLE", "PLUGIN_UNKNOWN"]);
   });

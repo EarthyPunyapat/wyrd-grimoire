@@ -1,0 +1,23 @@
+- id: river-fever
+  name: River Fever
+  description: A shaking fever caught from bad water and wet nights.
+  vector: contaminated water
+  onsetHours: 24
+  stages:
+    - { name: Shaking, endCheck: normal, penalty: 10 }
+    - { name: Burning, endCheck: hard, penalty: 20, condition: core:exhausted }
+    - { name: Wasting, endCheck: extreme, penalty: 30 }
+  symptoms: [chills, headache, weakness]
+  contagion: 0.1
+  cure: Rest, clean water and a week of care.
+- id: wound-rot
+  name: Wound Rot
+  description: A wound gone bad, smelling of old iron and sweet decay.
+  vector: untreated wound
+  onsetHours: 48
+  stages:
+    - { name: Redness, endCheck: normal, penalty: 10 }
+    - { name: Fever, endCheck: hard, penalty: 20, condition: core:exhausted }
+  symptoms: [redness, swelling, fever]
+  contagion: 0
+  cure: Cleaning, cutting away the dead flesh, and rest.

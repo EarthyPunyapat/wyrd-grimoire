@@ -60,6 +60,8 @@ export const ProgressionState = z.object({
   xpEarned: z.number().int().nonnegative().default(0),
   xpSpent: z.number().int().nonnegative().default(0),
   marks: z.array(SkillId).default([]),
+  /** The character's class in class mode, and every class's level (multiclassing later). */
+  classId: ContentId.optional(),
   classLevels: z.record(z.string(), z.number().int().min(1)).default({}),
   /** Use-based grants waiting to be chosen: attribute points (arc closes) and talents (chapters). */
   pendingAttributes: z.number().int().nonnegative().default(0),
@@ -96,6 +98,8 @@ export const CharacterSheet = z.object({
   /** Trained points per skill; the skill's value is untrained (attribute × 3) + trained. */
   skills: z.record(SkillId, z.object({ trained: z.number().int().nonnegative() })).default({}),
   talents: z.array(ContentId).default([]),
+  /** Spells the character knows (spellcasting plugin, spec 05). */
+  spells: z.array(ContentId).default([]),
   languages: z.array(z.string()).default([]),
   derived: DerivedStats,
   status: z.object({

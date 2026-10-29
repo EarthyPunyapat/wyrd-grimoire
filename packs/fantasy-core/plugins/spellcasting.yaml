@@ -1,0 +1,16 @@
+# The spellcasting plugin's fantasy-core configuration (spec 05).
+schools: [elemental, healing, illusion, warding]
+strainThreshold: 3
+miscasts:
+  elemental:
+    - { name: Backlash, description: "The fire turns inward.", damage: 1d6, condition: core:bleeding }
+    - { name: Wild Flame, description: "The spell finds the nearest dry thing.", attention: true }
+  healing:
+    - { name: Reversed Flow, description: "The wound closes around something that should not be there.", damage: 1d4 }
+    - { name: Sympathetic Ache, description: "The caster feels the wound instead.", condition: core:dazed }
+  illusion:
+    - { name: Unmasked, description: "The illusion drops and every eye turns.", attention: true }
+    - { name: Seen Double, description: "The caster cannot tell which of two things is real.", condition: core:dazed }
+  warding:
+    - { name: Cracked Ward, description: "The ward shatters with a sound like a bell.", attention: true }
+    - { name: Turned Edge, description: "The protection bites the one who raised it.", damage: 1d4 }

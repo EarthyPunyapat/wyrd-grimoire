@@ -138,6 +138,31 @@ test("model routes save, connection stays host-side, and usage is confined to se
   ).toHaveValue("test-local-model");
 });
 
+test("campaign settings apply presets and grey out locked choices", async ({ page }) => {
+  await create(page);
+  await page.getByRole("button", { name: "Campaign settings" }).click();
+  const dialog = page.getByRole("dialog", { name: "Campaign settings" });
+  await expect(dialog.getByLabel("Dice", { exact: true })).toBeDisabled();
+  await expect(dialog.getByLabel("Progression", { exact: true })).toBeDisabled();
+  await expect(
+    dialog.getByText("Locked: The dice system is chosen at creation", { exact: false }),
+  ).toBeVisible();
+  await dialog.getByLabel("Preset").selectOption("story");
+  await expect(dialog.getByLabel("Preset")).toHaveValue("story");
+  await dialog.getByLabel("Difficulty").selectOption("hard");
+  await dialog.getByRole("button", { name: "Save campaign settings" }).click();
+  await expect(dialog.getByRole("button", { name: "Save campaign settings" })).toBeDisabled();
+  await dialog.getByRole("button", { name: "Close campaign settings" }).click();
+  await page.getByRole("button", { name: "Campaign settings" }).click();
+  const reopened = page.getByRole("dialog", { name: "Campaign settings" });
+  await expect(reopened.getByLabel("Preset")).toHaveValue("story");
+  await expect(reopened.getByLabel("Difficulty")).toHaveValue("hard");
+  // Changing one toggle makes the preset custom, as the spec says.
+  await reopened.getByLabel("Faction reputation").uncheck();
+  await expect(reopened.getByLabel("Preset")).toHaveValue("custom");
+  await reopened.getByRole("button", { name: "Save campaign settings" }).click();
+});
+
 test("story and settings fit narrow phones, tablets and desktop", async ({ page }) => {
   await create(page);
   for (const width of [320, 768, 1200]) {

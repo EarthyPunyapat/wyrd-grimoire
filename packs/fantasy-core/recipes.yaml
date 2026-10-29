@@ -1,0 +1,30 @@
+- id: field-dressing
+  name: Field Dressing
+  description: Clean linen and a steady hand.
+  inputs:
+    - { item: bandages, qty: 2 }
+  tools: [healers-kit]
+  skill: medicine
+  difficulty: easy
+  minutes: 10
+  output: { item: bandages, qty: 3 }
+- id: torch-bundle
+  name: Torch Bundle
+  description: Pitch, rags and a dry afternoon.
+  inputs:
+    - { item: rope, qty: 1 }
+  tools: [flint-and-steel]
+  skill: survival
+  difficulty: easy
+  minutes: 30
+  output: { item: torch, qty: 4 }
+- id: simple-ward
+  name: Simple Ward
+  description: A charm of rowan and salt against small harm.
+  inputs:
+    - { item: prayer-beads, qty: 1 }
+  tools: []
+  skill: arcana
+  difficulty: normal
+  minutes: 60
+  output: { item: prayer-beads, qty: 1 }

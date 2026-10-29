@@ -29,6 +29,8 @@ export type HitInput = {
   targetId: ActorId;
   /** null = unarmed */
   weaponId: ContentId | null;
+  /** A spell's damage instead of a weapon's (spellcasting plugin, spec 05). */
+  damage?: { dice: string; damageType: string; armorPiercing?: number };
   degree: "success" | "critSuccess";
   calledLocation?: string;
 };
@@ -143,7 +145,14 @@ export function resolveHit(state: GameState, hit: HitInput, ctx: InjuryContext):
 
   const t = ctx.tuning.combat;
   let weapon: { damage: string; damageType: string; armorPiercing: number; strengthBonus: boolean };
-  if (hit.weaponId === null) {
+  if (hit.damage) {
+    weapon = {
+      damage: hit.damage.dice,
+      damageType: hit.damage.damageType,
+      armorPiercing: hit.damage.armorPiercing ?? 0,
+      strengthBonus: false,
+    };
+  } else if (hit.weaponId === null) {
     weapon = { ...t.unarmed, armorPiercing: 0, strengthBonus: true };
   } else {
     const def = Object.hasOwn(ctx.items.weapons, hit.weaponId) ? ctx.items.weapons[hit.weaponId] : undefined;
@@ -183,10 +192,11 @@ export function resolveHit(state: GameState, hit: HitInput, ctx: InjuryContext):
   const raw = Math.max(0, dice.total + strBonus);
 
   // 3. Armour and the location multiplier.
+  const ward = target.sheet.status.conditions.find((c) => c.id === "core:warded");
   const { protection, final } = computeDamage(
     {
       raw,
-      protection: protectionAt(worn, location.id, weapon.damageType, t.maxArmourLayers),
+      protection: protectionAt(worn, location.id, weapon.damageType, t.maxArmourLayers) + (ward?.level ?? 0),
       armorPiercing: weapon.armorPiercing,
       crit,
       multiplier: location.multiplier,

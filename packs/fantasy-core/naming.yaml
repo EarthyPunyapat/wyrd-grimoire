@@ -1,0 +1,18 @@
+id: common-tongues
+name: Common Tongues
+cultures:
+  - id: lowland
+    name: Lowland
+    given: [Wren, Mira, Harl, Tamsin, Osric, Perrin, Elsbeth, Corin, Maud, Rowan, Sedge, Lira]
+    family: [Ashford, Fenwick, Marrow, Quill, Reed, Tanner, Vale, Weller, Barrow, Thorne]
+    style: "Plain trade-town names, short and worn smooth."
+  - id: highland
+    name: Highland
+    given: [Bryn, Cadoc, Eira, Gareth, Lowri, Meriadoc, Nia, Rhys, Sian, Tegan]
+    family: [ap Celyn, ap Gwyn, ferch Llinos, Mac Allan, Mac Bride, O'Rourke]
+    style: "Clipped patronymics and hard consonants."
+  - id: old-imperial
+    name: Old Imperial
+    given: [Aurelia, Cassius, Drusus, Livia, Octavia, Severus, Tullia, Varro]
+    family: [Albinus, Corvus, Fabius, Marcellus, Petronius, Vespillo]
+    style: "Formal, latinate and a little too grand for a market town."

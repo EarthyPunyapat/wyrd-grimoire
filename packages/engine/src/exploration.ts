@@ -16,6 +16,7 @@ import {
   SceneState,
 } from "@wyrd/core";
 import { resolveCheck, resolveOpposedCheck } from "./checks.ts";
+import { castProblem, resolveCast } from "./plugins/spellcasting.ts";
 import { isSuccess } from "./resolution/index.ts";
 import { fail, ok, type Result } from "./result.ts";
 import { lookupSkill } from "./skills.ts";
@@ -77,6 +78,7 @@ const DEFAULT_MINUTES: Record<ExplorationAction["type"], number> = {
   strike: 0,
   travel: 0,
   recruit: 1,
+  cast: 1,
 };
 
 /** Difficulty range the parser may propose for a free-form check; harder steps need rule tables. */
@@ -335,6 +337,11 @@ function validateOne(
         ]);
       return null;
     }
+    case "cast": {
+      const problem = castProblem(state, actorId, a, ctx as never);
+      if (problem) return err(problem.code, problem.message);
+      return null;
+    }
     case "talk": {
       if (!present(scene, a.targetId))
         return err("TARGET_NOT_PRESENT", `${a.targetId} isn't here to talk to`, lookAround);
@@ -558,6 +565,20 @@ export function resolvePlan(
           ),
         ]);
         step("success", `${ctx.nameOf(id)} agrees to travel with ${actorName}.`);
+        break;
+      }
+      case "cast": {
+        const cast = resolveCast(w, plan.actorId, action, ctx as never, false);
+        if (!cast.ok) return cast;
+        steps.push({
+          index,
+          action,
+          outcome: cast.value.step.outcome,
+          summary: cast.value.step.summary,
+          ...(cast.value.step.lines[0] ? { mechanics: cast.value.step.lines[0] } : {}),
+          ...(cast.value.step.lines.length ? { lines: cast.value.step.lines } : {}),
+        });
+        beats.push(cast.value.step.summary);
         break;
       }
       case "strike":

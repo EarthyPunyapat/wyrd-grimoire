@@ -1,0 +1,12 @@
+id: the-harvest-reckoning
+name: The Harvest Reckoning
+daysPerMonth: 30
+monthNames: [Thaw, Seedtime, Greening, Highsun, Haymonth, Harvest, Leaffall, Mistmonth, Frost, Deepwinter, Longnight, Thawing]
+seasons: [spring, spring, spring, summer, summer, summer, autumn, autumn, autumn, winter, winter, winter]
+festivals:
+  - { month: 1, day: 1, name: First Thaw }
+  - { month: 4, day: 15, name: Highsun Fair }
+  - { month: 6, day: 30, name: Harvest Home }
+  - { month: 10, day: 12, name: Longnight Vigil }
+dawn: 6
+dusk: 19

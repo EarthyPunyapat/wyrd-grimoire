@@ -6,14 +6,23 @@ import {
   ArchetypeDef,
   ArmorDef,
   BodyPlanDef,
+  CalendarDef,
+  ClassDef,
   type CompiledPack,
   CreatureDef,
+  DiseaseDef,
+  EconomyDef,
   GearDef,
   HUMANOID_BODY_PLAN,
+  LootTableDef,
   localIdOf,
+  NamingDef,
   PackManifest,
   PregenDef,
+  RecipeDef,
   SkillDef,
+  SpellcastingConfig,
+  SpellDef,
   stableStringify,
   TalentDef,
   WeaponDef,
@@ -35,8 +44,11 @@ export type PackIssue = {
 
 export type LoadResult = { pack: CompiledPack | null; issues: PackIssue[] };
 
-/** Plugins that exist in this build. Spellcasting lands in M7; until then packs may list none. */
-export const KNOWN_PLUGINS: ReadonlySet<string> = new Set();
+/** Plugins that exist in this build, with the schema their pack config is validated against. */
+export const PLUGIN_CONFIG_SCHEMAS = {
+  spellcasting: SpellcastingConfig,
+} as const;
+export const KNOWN_PLUGINS: ReadonlySet<string> = new Set(Object.keys(PLUGIN_CONFIG_SCHEMAS));
 
 const CONTENT_FILES = {
   skills: { file: "skills.yaml", schema: SkillDef },
@@ -49,6 +61,18 @@ const CONTENT_FILES = {
   armor: { file: "items/armor.yaml", schema: ArmorDef },
   gear: { file: "items/gear.yaml", schema: GearDef },
   creatures: { file: "creatures.yaml", schema: CreatureDef },
+  classes: { file: "classes.yaml", schema: ClassDef },
+  spells: { file: "spells.yaml", schema: SpellDef },
+  lootTables: { file: "loot-tables.yaml", schema: LootTableDef },
+  recipes: { file: "recipes.yaml", schema: RecipeDef },
+  diseases: { file: "diseases.yaml", schema: DiseaseDef },
+} as const;
+
+/** Content that is one object per pack rather than a list. */
+const SINGLETON_FILES = {
+  economy: { file: "economy.yaml", schema: EconomyDef },
+  calendar: { file: "calendar.yaml", schema: CalendarDef },
+  naming: { file: "naming.yaml", schema: NamingDef },
 } as const;
 
 type Kind = keyof typeof CONTENT_FILES;
@@ -162,6 +186,39 @@ export function loadPack(dir: string): LoadResult {
     });
   }
 
+  // Singleton content (economy, calendar, naming) and plugin configs.
+  const singletons: Record<string, { id: string } | null> = {};
+  for (const kind of Object.keys(SINGLETON_FILES) as (keyof typeof SINGLETON_FILES)[]) {
+    const { file, schema } = SINGLETON_FILES[kind];
+    const raw = readYaml(file, false);
+    if (raw === undefined || raw === null) {
+      singletons[kind] = null;
+      continue;
+    }
+    const parsed = schema.safeParse(raw);
+    if (!parsed.success) {
+      for (const i of parsed.error.issues) error("SCHEMA", file, i.message, i.path.join("."));
+      singletons[kind] = null;
+      continue;
+    }
+    const id = `${ns}:${parsed.data.id}`;
+    singletons[kind] = { ...parsed.data, id };
+    origin.set(id, { file, path: "0" });
+  }
+  const pluginConfigs: Record<string, unknown> = {};
+  for (const [i, plugin] of manifest.plugins.entries()) {
+    if (!KNOWN_PLUGINS.has(plugin.id)) continue;
+    const schema = PLUGIN_CONFIG_SCHEMAS[plugin.id as keyof typeof PLUGIN_CONFIG_SCHEMAS];
+    const file = plugin.config ?? `plugins/${plugin.id}.yaml`;
+    const parsed = schema.safeParse(readYaml(file, false) ?? {});
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues)
+        error("PLUGIN_CONFIG", file, issue.message, [i, ...issue.path].join("."));
+      continue;
+    }
+    pluginConfigs[plugin.id] = parsed.data;
+  }
+
   // Reference resolution. Skills resolve to this pack first, then the core skills.
   const skills = { ...CORE_SKILL_CATALOG, ...content.skills };
   const qualify = (ref: string) => (ref.includes(":") ? ref : `${ns}:${ref}`);
@@ -226,6 +283,16 @@ export function loadPack(dir: string): LoadResult {
     const talent = ref(content.talents, a.talent);
     if (!talent) badRef(a.id, "talent", "Talent", a.talent);
     a.talent = talent ?? a.talent;
+    if (a.class) {
+      const cls = ref(content.classes, a.class);
+      if (!cls) badRef(a.id, "class", "Class", a.class);
+      a.class = cls ?? a.class;
+    }
+    a.spells = a.spells.map((spellRef, i) => {
+      const spell = ref(content.spells, spellRef);
+      if (!spell) badRef(a.id, `spells.${i}`, "Spell", spellRef);
+      return spell ?? spellRef;
+    });
     a.kit = a.kit.map((k, i) => {
       const item = ref(allItems, k.item);
       if (!item) badRef(a.id, `kit.${i}.item`, "Item", k.item);
@@ -306,6 +373,87 @@ export function loadPack(dir: string): LoadResult {
     }
   }
 
+  for (const cls of Object.values(content.classes)) {
+    cls.skills = cls.skills.map((s) => {
+      const resolved = resolveSkill(s);
+      if (!resolved) badRef(cls.id, `skills.${s}`, "Skill", s);
+      return resolved ?? s;
+    });
+    cls.archetypes = cls.archetypes.map((a) => {
+      const resolved = ref(content.archetypes, a);
+      if (!resolved) badRef(cls.id, `archetypes.${a}`, "Archetype", a);
+      return resolved ?? a;
+    });
+    cls.features = cls.features.map((f, i) => {
+      if (!f.talent) return f;
+      const resolved = ref(content.talents, f.talent);
+      if (!resolved) badRef(cls.id, `features.${i}.talent`, "Talent", f.talent);
+      return { ...f, talent: resolved ?? f.talent };
+    });
+  }
+  if (manifest.supports.progression.includes("classes") && Object.keys(content.classes).length === 0) {
+    error(
+      "CLASSES_MISSING",
+      "pack.yaml",
+      "The pack claims class progression but has no classes.yaml",
+      "supports.progression",
+    );
+  }
+  for (const spell of Object.values(content.spells)) {
+    const s = resolveSkill(spell.check);
+    if (!s) badRef(spell.id, "check", "Skill", spell.check);
+    spell.check = s ?? spell.check;
+    spell.effects = spell.effects.map((effect, i) => {
+      if (effect.kind === "summon") {
+        const creature = ref(content.creatures, effect.creature);
+        if (!creature) badRef(spell.id, `effects.${i}.creature`, "Creature", effect.creature);
+        return { ...effect, creature: creature ?? effect.creature };
+      }
+      return effect;
+    });
+  }
+  for (const table of Object.values(content.lootTables)) {
+    table.entries = table.entries.map((entry, i) => {
+      const item = ref(allItems, entry.item);
+      if (!item) badRef(table.id, `entries.${i}.item`, "Item", entry.item);
+      return { ...entry, item: item ?? entry.item };
+    });
+  }
+  for (const recipe of Object.values(content.recipes)) {
+    const s = resolveSkill(recipe.skill);
+    if (!s) badRef(recipe.id, "skill", "Skill", recipe.skill);
+    recipe.skill = s ?? recipe.skill;
+    recipe.inputs = recipe.inputs.map((input, i) => {
+      const item = ref(allItems, input.item);
+      if (!item) badRef(recipe.id, `inputs.${i}.item`, "Item", input.item);
+      return { ...input, item: item ?? input.item };
+    });
+    recipe.tools = recipe.tools.map((tool, i) => {
+      const item = ref(allItems, tool);
+      if (!item) badRef(recipe.id, `tools.${i}`, "Item", tool);
+      return item ?? tool;
+    });
+    const output = ref(allItems, recipe.output.item);
+    if (!output) badRef(recipe.id, "output.item", "Item", recipe.output.item);
+    recipe.output = { ...recipe.output, item: output ?? recipe.output.item };
+  }
+  for (const [id, config] of Object.entries(pluginConfigs)) {
+    const spellcasting = config as SpellcastingConfig;
+    if (id === "spellcasting") {
+      for (const [school, results] of Object.entries(spellcasting.miscasts)) {
+        for (const [i, result] of (results ?? []).entries()) {
+          if (result.condition && !/^[a-z0-9-]+:[a-z0-9-]+$/.test(result.condition))
+            error(
+              "PLUGIN_CONFIG",
+              `plugins/${id}.yaml`,
+              `Bad condition "${result.condition}"`,
+              `miscasts.${school}.${i}`,
+            );
+        }
+      }
+    }
+  }
+
   const body: Omit<CompiledPack, "hash"> = {
     manifest,
     tone,
@@ -314,8 +462,17 @@ export function loadPack(dir: string): LoadResult {
     ancestries: content.ancestries,
     bodyPlans: content.bodyPlans,
     archetypes: content.archetypes,
+    classes: content.classes,
     pregens: content.pregens,
     creatures: content.creatures,
+    spells: content.spells,
+    lootTables: content.lootTables,
+    recipes: content.recipes,
+    diseases: content.diseases,
+    economy: (singletons.economy as (EconomyDef & { id: string }) | null) ?? null,
+    calendar: (singletons.calendar as (CalendarDef & { id: string }) | null) ?? null,
+    naming: (singletons.naming as (NamingDef & { id: string }) | null) ?? null,
+    pluginConfigs,
     items: { weapons: content.weapons, armor: content.armor, gear: content.gear },
   };
   const hash = createHash("sha256").update(stableStringify(body)).digest("hex");

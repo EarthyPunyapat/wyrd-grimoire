@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { COMBAT_ACTION_TYPES, StrikeAction } from "./combat.ts";
+import { CastAction, COMBAT_ACTION_TYPES, StrikeAction } from "./combat.ts";
 import { AttributeId, Degree, Difficulty, MechanicsLine } from "./common.ts";
 
 /**
@@ -76,12 +76,13 @@ export const ExplorationAction = z.discriminatedUnion("type", [
   StrikeAction,
   TravelAction,
   RecruitAction,
+  CastAction,
 ]);
 export type ExplorationAction = z.infer<typeof ExplorationAction>;
 export type ExplorationActionInput = z.input<typeof ExplorationAction>;
 
 export const ACTIONS_BY_MODE = {
-  exploration: ["check", "examine", "search", "interact", "move", "wait", "talk", "strike", "travel"],
+  exploration: ["check", "examine", "search", "interact", "move", "wait", "talk", "strike", "travel", "cast"],
   combat: COMBAT_ACTION_TYPES,
 } as const;
 

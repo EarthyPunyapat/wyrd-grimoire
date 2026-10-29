@@ -1,4 +1,11 @@
-import { CampaignSettings, draft, type EventDraft, stableStringify } from "@wyrd/core";
+import {
+  CampaignSettings,
+  draft,
+  type EventDraft,
+  type PresetName,
+  presetToggles,
+  stableStringify,
+} from "@wyrd/core";
 import { fail, ok, type Result, type RuleError } from "./result.ts";
 import type { GameState } from "./state.ts";
 
@@ -24,6 +31,55 @@ export function changedPaths(a: unknown, b: unknown, prefix = ""): string[] {
     return keys.flatMap((k) => changedPaths(a[k], b[k], prefix ? `${prefix}.${k}` : k));
   }
   return stableStringify(a) === stableStringify(b) ? [] : [prefix];
+}
+
+export type SettingsLock = { path: string; label: string; reason: string };
+
+/**
+ * What this campaign can no longer change (spec 12), with the reason the settings screen shows.
+ * The engine is the authority: the API refuses these paths even if a client enables them.
+ */
+export function settingsLocks(
+  current: CampaignSettings,
+  options: { allowClasses?: boolean } = {},
+): SettingsLock[] {
+  const locks: SettingsLock[] = [
+    {
+      path: "structural.resolution",
+      label: "Dice",
+      reason: "The dice system is chosen at creation; changing it would rescale every skill",
+    },
+    {
+      path: "structural.progression",
+      label: "Progression",
+      reason: "The progression mode is chosen at creation; its state isn't convertible",
+    },
+  ];
+  if (!current.structural.hardcore)
+    locks.push({
+      path: "structural.hardcore",
+      label: "Hardcore",
+      reason: "Hardcore can only be turned on when the campaign is created",
+    });
+  if (options.allowClasses === false && current.structural.progression !== "classes")
+    locks.push({
+      path: "structural.progression.classes",
+      label: "Classes",
+      reason: "This campaign's pack has no class data",
+    });
+  if (current.flags.softcore)
+    locks.push({
+      path: "flags.softcore",
+      label: "Softcore mark",
+      reason: "Leaving hardcore is permanent",
+    });
+  if (current.flags.cheatEdited)
+    locks.push({
+      path: "flags.cheatEdited",
+      label: "Modified campaign",
+      reason: "The cheat-edit mark is permanent",
+    });
+  return locks;
 }
 
 /**
@@ -58,14 +114,38 @@ export function validateSettingsChange(current: CampaignSettings, next: Campaign
   return errors;
 }
 
-/** Applies a settings patch, enforcing locks. Turning hardcore off sets the permanent softcore flag. */
-export function changeSettings(state: GameState, patch: SettingsPatch): Result<EventDraft[]> {
+/**
+ * Applies a settings patch, enforcing locks. Selecting a preset with no explicit subsystem patch
+ * sets that preset's toggles; changing toggles by hand marks the campaign "custom (from X)".
+ * Turning hardcore off sets the permanent softcore flag.
+ */
+export function changeSettings(
+  state: GameState,
+  patch: SettingsPatch,
+  options: { allowClasses?: boolean } = {},
+): Result<EventDraft[]> {
   const current = state.campaign.settings;
-  const parsed = CampaignSettings.safeParse(merge(current, patch));
+  const merged = merge(current, patch) as Record<string, unknown>;
+  // A preset is a shorthand for its toggles. An explicit subsystem change always wins.
+  if (patch.preset && patch.preset !== "custom") {
+    const sameSubsystems =
+      !patch.subsystems || stableStringify(patch.subsystems) === stableStringify(current.subsystems);
+    if (sameSubsystems) merged.subsystems = presetToggles(patch.preset as PresetName);
+  }
+  const parsed = CampaignSettings.safeParse(merged);
   if (!parsed.success) return fail("SETTINGS_INVALID", parsed.error.message);
   let next = parsed.data;
+  if (next.structural.progression === "classes" && options.allowClasses === false)
+    return fail("CLASSES_UNSUPPORTED", "This campaign's pack has no class data");
   if (current.structural.hardcore && !next.structural.hardcore) {
     next = { ...next, flags: { ...next.flags, softcore: true } };
+  }
+  // Changing toggles by hand makes the preset custom; picking one keeps its name.
+  if (
+    next.preset !== "custom" &&
+    stableStringify(next.subsystems) !== stableStringify(presetToggles(next.preset))
+  ) {
+    next = { ...next, preset: "custom" };
   }
   const errors = validateSettingsChange(current, next);
   if (errors.length > 0) return { ok: false, errors };

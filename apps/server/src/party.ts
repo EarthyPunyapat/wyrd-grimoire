@@ -14,10 +14,12 @@ import {
 import {
   buyAdvancement,
   type CreationContent,
+  classLevelForXp,
   draftFromArchetype,
   type GameState,
   type Purchase,
   priceOf,
+  RESOLUTION_MODULES,
   sheetFromDraft,
   skillLabel,
   skillValue,
@@ -99,12 +101,16 @@ export function progressionView(state: GameState, content: CreationContent) {
           value: sheet.attributes[a],
           ...price({ kind: "attribute", id: a }),
         })),
-        skills: Object.keys(sheet.skills).map((s) => ({
-          id: s,
-          name: skillLabel(s, content.skills),
-          value: skillValue(sheet, s, content.skills, defaultTuning),
-          ...price({ kind: "skill", id: s }),
-        })),
+        skills: Object.keys(sheet.skills).map((s) => {
+          const value = skillValue(sheet, s, content.skills, defaultTuning);
+          return {
+            id: s,
+            name: skillLabel(s, content.skills),
+            value,
+            display: RESOLUTION_MODULES[state.campaign.settings.structural.resolution].displaySkill(value),
+            ...price({ kind: "skill", id: s }),
+          };
+        }),
         talents: Object.values(content.talents)
           .filter((t) => !sheet.talents.includes(t.id))
           .map((t) => ({
@@ -117,6 +123,7 @@ export function progressionView(state: GameState, content: CreationContent) {
         fieldSkills: Object.values(content.skills)
           .filter((s) => s.field)
           .map((s) => ({ id: s.id, name: s.name, ...price({ kind: "fieldSkill", id: `${s.id}/x` }) })),
+        ...(classInfo(state, id, content) ? { classInfo: classInfo(state, id, content) } : {}),
         ...(state.companions?.[id] ? { companion: companionSummary(state.companions[id]!) } : {}),
       },
     ];
@@ -127,6 +134,29 @@ export function progressionView(state: GameState, content: CreationContent) {
       : [{ name: state.actors[c.id]?.sheet.identity.name ?? c.id, status: c.status }],
   );
   return ProgressionView.parse({ mode: state.campaign.settings.structural.progression, members, former });
+}
+
+/** The class track for the Party tab (spec 04): level, progress to the next and features so far. */
+function classInfo(state: GameState, id: string, content: CreationContent) {
+  const sheet = state.actors[id]?.sheet;
+  if (!sheet || state.campaign.settings.structural.progression !== "classes") return undefined;
+  const classId = sheet.progression.classId ?? Object.keys(content.classes ?? {})[0];
+  const cls = classId ? content.classes?.[classId] : undefined;
+  if (!classId || !cls) return undefined;
+  const tuning = defaultTuning.progression.classes;
+  const level = classLevelForXp(sheet.progression.xpEarned, defaultTuning);
+  const start = tuning.xpPerLevel * ((level * (level - 1)) / 2);
+  const next = level < tuning.maxLevel ? tuning.xpPerLevel * (((level + 1) * level) / 2) : null;
+  return {
+    id: classId,
+    name: cls.name,
+    level,
+    xpIntoLevel: sheet.progression.xpEarned - start,
+    xpForNext: next === null ? null : next - sheet.progression.xpEarned,
+    features: cls.features
+      .filter((f) => f.level <= level)
+      .map((f) => ({ level: f.level, name: f.name, description: f.description })),
+  };
 }
 
 const words = (text: string) => new Set(text.toLowerCase().match(/[a-z]{4,}/g) ?? []);

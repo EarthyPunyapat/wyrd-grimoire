@@ -30,3 +30,55 @@
   protection: { cut: 5, pierce: 4, blunt: 3 }
   penalties:
     - { skill: perception, value: -10 }
+- id: leather-cap
+  name: Leather Cap
+  description: A boiled leather skullcap; better than a hat, worse than a helmet.
+  weightKg: 0.4
+  price: 12
+  covers: [head]
+  protection: { cut: 2, pierce: 1, blunt: 1 }
+- id: mail-coif
+  name: Mail Coif
+  description: A hood of riveted rings that turns a blade from the neck and jaw.
+  weightKg: 2
+  price: 180
+  covers: [head]
+  protection: { cut: 6, pierce: 4, blunt: 2 }
+  penalties:
+    - { skill: perception, value: -10 }
+- id: arming-doublet
+  name: Arming Doublet
+  description: Quilted linen worn under armour, or alone by those who expect trouble but not war.
+  weightKg: 2
+  price: 70
+  covers: [torso]
+  protection: { cut: 2, pierce: 1, blunt: 2 }
+- id: scale-hauberk
+  name: Scale Hauberk
+  description: Overlapping iron scales sewn to a leather coat; heavier than mail and cheaper to mend.
+  weightKg: 9
+  price: 420
+  covers: [torso, right-arm, left-arm]
+  protection: { cut: 5, pierce: 4, blunt: 3 }
+  penalties:
+    - { skill: stealth, value: -10 }
+    - { skill: athletics, value: -5 }
+- id: cuirass
+  name: Steel Cuirass
+  description: A shaped breastplate and backplate, fitted to one body and no other.
+  weightKg: 8
+  price: 380
+  covers: [torso]
+  protection: { cut: 7, pierce: 6, blunt: 3 }
+  penalties:
+    - { skill: stealth, value: -10 }
+    - { skill: acrobatics, value: -10 }
+- id: greaves
+  name: Greaves
+  description: Steel plates strapped over the shins; most fights end at the legs.
+  weightKg: 3
+  price: 110
+  covers: [right-leg, left-leg]
+  protection: { cut: 4, pierce: 3, blunt: 2 }
+  penalties:
+    - { skill: athletics, value: -5 }

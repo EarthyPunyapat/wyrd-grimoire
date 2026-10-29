@@ -4,6 +4,7 @@ import type {
   CharacterSheet,
   CheckRequest,
   CheckResult,
+  ClassDef,
   Clock,
   CombatState,
   CompanionState,
@@ -16,6 +17,7 @@ import type {
   RngState,
   Rumor,
   SceneState,
+  SpellDef,
   Threat,
   Tuning,
 } from "@wyrd/core";
@@ -77,4 +79,13 @@ export type GameState = {
 };
 
 /** What rules functions need beyond state: content and tuning. Never IO. */
-export type RulesContext = { skills: SkillCatalog; tuning: Tuning };
+export type RulesContext = {
+  skills: SkillCatalog;
+  tuning: Tuning;
+  /** Class data for class progression; absent outside packs that support it. */
+  classes?: Record<string, ClassDef & { id: string }>;
+  /** Spells for the spellcasting plugin; absent when the pack has none. */
+  spells?: Record<string, SpellDef & { id: string }>;
+  /** Validated plugin configs from the frozen pack, by plugin ID. */
+  plugins?: Record<string, unknown>;
+};

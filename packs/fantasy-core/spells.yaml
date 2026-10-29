@@ -1,0 +1,418 @@
+# Elemental
+- id: spark-lash
+  name: Spark Lash
+  description: A whip of blue fire that leaps from the caster's hand.
+  school: elemental
+  tier: 1
+  apCost: 1
+  range: close
+  target: actor
+  check: spellcasting/elemental
+  difficulty: normal
+  effects:
+    - { kind: damage, dice: 1d6, damageType: burn }
+  components: [a pinch of ash]
+- id: cinder-spit
+  name: Cinder Spit
+  description: The caster spits a gob of bright cinder that bursts against a foe; it burns little, but the soot blinds.
+  school: elemental
+  tier: 1
+  apCost: 1
+  range: close
+  target: actor
+  check: spellcasting/elemental
+  difficulty: normal
+  effects:
+    - { kind: damage, dice: 1d4, damageType: burn }
+    - { kind: applyCondition, condition: core:blinded, level: 1, note: "soot and sparks" }
+  components: [a coal]
+- id: wind-shove
+  name: Wind Shove
+  description: A hard, flat breath of wind slams into a body and sends it stumbling; it is more push than harm.
+  school: elemental
+  tier: 1
+  apCost: 1
+  range: near
+  target: actor
+  check: spellcasting/elemental
+  difficulty: normal
+  effects:
+    - { kind: moveTarget, metres: 3 }
+    - { kind: damage, dice: 1d4, damageType: blunt }
+- id: rime-touch
+  name: Rime Touch
+  description: Frost crawls from the caster's fingers into whatever they touch; the cold steals breath and wits together.
+  school: elemental
+  tier: 1
+  apCost: 2
+  range: engaged
+  target: actor
+  check: spellcasting/elemental
+  difficulty: normal
+  effects:
+    - { kind: damage, dice: 1d6, damageType: cold }
+    - { kind: applyCondition, condition: core:dazed, level: 1 }
+  components: [a pinch of salt]
+- id: ember-veil
+  name: Ember Veil
+  description: A rolling sheet of hot smoke and sparks, thick enough to hide behind and painful to breathe.
+  school: elemental
+  tier: 2
+  apCost: 2
+  range: near
+  target: area
+  check: spellcasting/elemental
+  difficulty: normal
+  effects:
+    - { kind: damage, dice: 1d4, damageType: burn }
+    - { kind: applyCondition, condition: core:blinded, level: 1, note: "smoke" }
+  components: [green wood shavings]
+- id: stone-burst
+  name: Stone Burst
+  description: The ground buckles and spits a fistful of shale; the shove is as useful as the hurt.
+  school: elemental
+  tier: 2
+  apCost: 2
+  range: near
+  target: area
+  check: spellcasting/elemental
+  difficulty: normal
+  effects:
+    - { kind: damage, dice: 1d8, damageType: blunt }
+    - { kind: applyCondition, condition: core:prone, level: 1 }
+  components: [a fistful of gravel]
+- id: kiln-blast
+  name: Kiln Blast
+  description: The caster opens a hand and lets out the dry heat of a sealed kiln; it is brief, close and cruel.
+  school: elemental
+  tier: 3
+  apCost: 3
+  range: close
+  target: area
+  check: spellcasting/elemental
+  difficulty: normal
+  effects:
+    - { kind: damage, dice: 2d6, damageType: burn }
+  components: [a fired clay shard]
+- id: quake-step
+  name: Quake Step
+  description: A stamped foot sends a shudder through the earth; the ground breaks and men go down with it.
+  school: elemental
+  tier: 3
+  apCost: 3
+  range: near
+  target: area
+  check: spellcasting/elemental
+  difficulty: normal
+  effects:
+    - { kind: damage, dice: 1d8, damageType: blunt }
+    - { kind: applyCondition, condition: core:prone, level: 1 }
+    - { kind: zoneTag, tag: broken-ground, duration: 3 }
+  components: [a stone from a landslide]
+
+# Healing
+- id: mend-flesh
+  name: Mend Flesh
+  description: Warm light closes a wound from the inside.
+  school: healing
+  tier: 1
+  apCost: 2
+  range: engaged
+  target: actor
+  check: spellcasting/healing
+  difficulty: normal
+  effects:
+    - { kind: heal, dice: 1d6 }
+  components: [clean linen]
+- id: staunch-bleed
+  name: Staunch Bleed
+  description: A pressed palm and a muttered word slow the blood to a seep; the wound remains, but the man will not bleed out.
+  school: healing
+  tier: 1
+  apCost: 1
+  range: engaged
+  target: actor
+  check: spellcasting/healing
+  difficulty: normal
+  effects:
+    - { kind: removeCondition, condition: core:bleeding }
+    - { kind: heal, dice: 1d4 }
+  components: [clean linen]
+- id: clear-sight
+  name: Clear Sight
+  description: Cool water and a spoken charm wash the grit from a companion's eyes; the world comes back in pieces, then all at once.
+  school: healing
+  tier: 1
+  apCost: 1
+  range: engaged
+  target: actor
+  check: spellcasting/healing
+  difficulty: normal
+  effects:
+    - { kind: removeCondition, condition: core:blinded }
+  components: [a bowl of clean water]
+- id: soothe-fever
+  name: Soothe Fever
+  description: A hand on the brow draws the ache of long exhaustion out like a splinter; the patient still needs rest, but can stand.
+  school: healing
+  tier: 1
+  apCost: 1
+  range: close
+  target: actor
+  check: spellcasting/healing
+  difficulty: normal
+  effects:
+    - { kind: removeCondition, condition: core:exhausted }
+  components: [willow bark]
+- id: knit-bone
+  name: Knit Bone
+  description: The caster sets both hands on a break and speaks to the bone; it grinds, it holds, and the pain fades to a dull throb.
+  school: healing
+  tier: 2
+  apCost: 2
+  range: engaged
+  target: actor
+  check: spellcasting/healing
+  difficulty: normal
+  effects:
+    - { kind: heal, dice: 1d8 }
+  components: [a splint and linen]
+- id: fever-sweat
+  name: Fever Sweat
+  description: A sweat breaks across the patient and the fever goes with it; they wake clear-eyed and very hungry.
+  school: healing
+  tier: 2
+  apCost: 2
+  range: close
+  target: actor
+  check: spellcasting/healing
+  difficulty: normal
+  effects:
+    - { kind: removeCondition, condition: core:exhausted }
+    - { kind: heal, dice: 1d6 }
+  components: [a wool blanket]
+- id: borrowed-breath
+  name: Borrowed Breath
+  description: The caster gives a portion of their own wind to another; deep hurts close, and the caster pays for it in the morning.
+  school: healing
+  tier: 3
+  apCost: 3
+  range: engaged
+  target: actor
+  check: spellcasting/healing
+  difficulty: normal
+  effects:
+    - { kind: heal, dice: 2d8 }
+    - { kind: removeCondition, condition: core:bleeding }
+  components: [a feather]
+- id: shared-breath
+  name: Shared Breath
+  description: A calm breath passes around a circle of the wounded, carrying away the worst of the fear and the bleeding.
+  school: healing
+  tier: 3
+  apCost: 3
+  range: near
+  target: area
+  check: spellcasting/healing
+  difficulty: normal
+  effects:
+    - { kind: heal, dice: 1d6 }
+    - { kind: removeCondition, condition: core:frightened }
+
+# Illusion
+- id: candle-glow
+  name: Candle Glow
+  description: A small light that follows the caster and reveals what hides in the dark.
+  school: illusion
+  tier: 1
+  apCost: 1
+  range: engaged
+  target: self
+  check: spellcasting/illusion
+  difficulty: easy
+  effects:
+    - { kind: detect, what: hidden }
+  duration: 60
+- id: mummers-mask
+  name: Mummer's Mask
+  description: A borrowed face, stitched from memory and a little will; it holds only until someone looks too closely.
+  school: illusion
+  tier: 1
+  apCost: 1
+  range: engaged
+  target: self
+  check: spellcasting/illusion
+  difficulty: normal
+  effects:
+    - { kind: illusion, difficulty: normal }
+  components: [a ribbon from a mummer's mask]
+  duration: 10
+- id: false-trail
+  name: False Trail
+  description: Bent grass and broken twigs lie in a direction the caster chooses; a tracker may follow it for an hour before the lie runs out.
+  school: illusion
+  tier: 1
+  apCost: 2
+  range: close
+  target: zone
+  check: spellcasting/illusion
+  difficulty: normal
+  effects:
+    - { kind: illusion, difficulty: normal }
+    - { kind: zoneTag, tag: false-trail, duration: 60 }
+  components: [a handful of loose earth]
+- id: shadow-shroud
+  name: Shadow Shroud
+  description: The caster gathers the dimness around them like a borrowed cloak; it hides the shape from the eye, not the body from the arrow.
+  school: illusion
+  tier: 2
+  apCost: 2
+  range: engaged
+  target: self
+  check: spellcasting/illusion
+  difficulty: normal
+  effects:
+    - { kind: illusion, difficulty: normal }
+    - { kind: applyCondition, condition: core:in-cover, level: 1, note: "while still" }
+  components: [a scrap of black cloth]
+  duration: 10
+- id: will-o-wisp
+  name: Will-o-Wisp
+  description: A cold light bobs ahead, exactly where the caster wants eyes to go; it is hard not to follow a light in the dark.
+  school: illusion
+  tier: 2
+  apCost: 2
+  range: near
+  target: actor
+  check: spellcasting/illusion
+  difficulty: normal
+  effects:
+    - { kind: illusion, difficulty: normal }
+    - { kind: moveTarget, metres: 3 }
+  components: [a marsh reed]
+  duration: 5
+- id: hollow-crowd
+  name: Hollow Crowd
+  description: A press of silent figures appears at the edge of sight, all turning at once; the mind stumbles trying to count them.
+  school: illusion
+  tier: 3
+  apCost: 3
+  range: near
+  target: area
+  check: spellcasting/illusion
+  difficulty: hard
+  effects:
+    - { kind: illusion, difficulty: hard }
+    - { kind: applyCondition, condition: core:dazed, level: 1 }
+  components: [a cracked hand-mirror]
+  duration: 5
+- id: unseen-door
+  name: Unseen Door
+  description: The eye slides over a door as if it were wall; the door itself is still there, and still opens.
+  school: illusion
+  tier: 3
+  apCost: 3
+  range: close
+  target: zone
+  check: spellcasting/illusion
+  difficulty: hard
+  effects:
+    - { kind: illusion, difficulty: hard }
+    - { kind: zoneTag, tag: concealed-opening, duration: 60 }
+  components: [chalk]
+
+# Warding
+- id: hedge-sign
+  name: Hedge Sign
+  description: A scratched sign of salt and ash, drawn in the air; it turns aside small hurts and makes the skin feel too tight.
+  school: warding
+  tier: 1
+  apCost: 1
+  range: engaged
+  target: self
+  check: spellcasting/warding
+  difficulty: easy
+  effects:
+    - { kind: ward, protection: 1, damageTypes: [cut, pierce, blunt, burn], duration: 10 }
+  components: [salt and ash]
+- id: iron-skin
+  name: Iron Skin
+  description: The caster's skin hardens like cooled metal.
+  school: warding
+  tier: 2
+  apCost: 2
+  range: engaged
+  target: self
+  check: spellcasting/warding
+  difficulty: normal
+  effects:
+    - { kind: ward, protection: 3, damageTypes: [cut, pierce, blunt], duration: 10 }
+  components: [a nail from a dead man's door]
+- id: turn-the-blade
+  name: Turn the Blade
+  description: The air around the target grows slick and heavy at the edge; blades slide from their course, though force still lands.
+  school: warding
+  tier: 2
+  apCost: 2
+  range: close
+  target: actor
+  check: spellcasting/warding
+  difficulty: normal
+  effects:
+    - { kind: ward, protection: 2, damageTypes: [cut, pierce], duration: 5 }
+  components: [a bent nail]
+- id: still-the-flame
+  name: Still the Flame
+  description: A damp, cool mantle settles over the target; fire finds no purchase, and smoke forgets to bite.
+  school: warding
+  tier: 2
+  apCost: 2
+  range: close
+  target: actor
+  check: spellcasting/warding
+  difficulty: normal
+  effects:
+    - { kind: ward, protection: 3, damageTypes: [burn], duration: 10 }
+  components: [wet ash]
+- id: threshold-salt
+  name: Threshold Salt
+  description: Salt and iron laid along a threshold; a line meant to hold a room, not an army.
+  school: warding
+  tier: 2
+  apCost: 2
+  range: near
+  target: zone
+  check: spellcasting/warding
+  difficulty: normal
+  effects:
+    - { kind: zoneTag, tag: warded-threshold, duration: 60 }
+    - { kind: ward, protection: 2, damageTypes: [cut, pierce, blunt], duration: 60 }
+  components: [salt and iron filings]
+- id: stone-bulwark
+  name: Stone Bulwark
+  description: The ground remembers being a wall; a slab of rock and packed earth rises at the caster's word.
+  school: warding
+  tier: 3
+  apCost: 3
+  range: close
+  target: area
+  check: spellcasting/warding
+  difficulty: hard
+  effects:
+    - { kind: ward, protection: 4, damageTypes: [cut, pierce, blunt], duration: 10 }
+    - { kind: zoneTag, tag: raised-stone, duration: 10 }
+  components: [a stone worn smooth by hands]
+- id: hallowed-ground
+  name: Hallowed Ground
+  description: A circle is marked and a name is spoken; within it, the air is quiet and the body is harder to hurt.
+  school: warding
+  tier: 3
+  apCost: 3
+  range: near
+  target: area
+  check: spellcasting/warding
+  difficulty: hard
+  effects:
+    - { kind: ward, protection: 4, damageTypes: [cut, pierce, blunt, burn, cold], duration: 5 }
+    - { kind: zoneTag, tag: hallowed-ground, duration: 5 }
+  components: [a worn prayer token]

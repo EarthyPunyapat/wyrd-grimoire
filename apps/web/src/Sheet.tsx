@@ -51,7 +51,7 @@ export function Sheet({ view }: { view: GameView }) {
           {view.skills.map((skill) => (
             <div key={skill.id}>
               <dt>{skill.name}</dt>
-              <dd>{skill.value}%</dd>
+              <dd>{skill.display ?? `${skill.value}%`}</dd>
             </div>
           ))}
         </dl>

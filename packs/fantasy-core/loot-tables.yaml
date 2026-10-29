@@ -1,0 +1,28 @@
+- id: common-purse
+  name: Common Purse
+  description: What a poor traveller carries.
+  tags: [settlement, bandit]
+  rolls: 1
+  entries:
+    - { item: rations, weight: 3, qtyMin: 1, qtyMax: 3, coins: { min: 2, max: 12 } }
+    - { item: bandages, weight: 2, qtyMin: 1, qtyMax: 2 }
+    - { item: torch, weight: 1, qtyMin: 1, qtyMax: 2 }
+- id: soldier-purse
+  name: Soldier's Purse
+  description: Pay, kit and the small comforts of a fighting company.
+  tags: [battlefield, soldier]
+  rolls: 1
+  entries:
+    - { item: arming-sword, weight: 1 }
+    - { item: dagger, weight: 2 }
+    - { item: padded-jack, weight: 1 }
+    - { item: rations, weight: 2, qtyMin: 1, qtyMax: 3, coins: { min: 10, max: 40 } }
+- id: hedge-wizard-purse
+  name: Hedge Wizard's Satchel
+  description: Reagents, notes and things better left wrapped.
+  tags: [arcane, mage]
+  rolls: 1
+  entries:
+    - { item: quill-and-ink, weight: 2 }
+    - { item: bandages, weight: 2, qtyMin: 1, qtyMax: 3 }
+    - { item: healers-kit, weight: 1, coins: { min: 5, max: 30 } }

@@ -71,6 +71,7 @@ const content: CreationContent = {
       suggestedAttributes: { str: 7, agi: 6, end: 6, int: 4, awa: 5, wil: 5, pre: 4 },
       skills: { "core:melee": 40 },
       talent: "test:tough",
+      spells: [],
       kit: [],
       backstoryPrompts: [],
     },
