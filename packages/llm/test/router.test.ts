@@ -5,7 +5,13 @@ import { join } from "node:path";
 import { CassetteProvider } from "../src/cassette.ts";
 import { collect } from "../src/collect.ts";
 import { FakeProvider } from "../src/fake.ts";
-import { type FallbackNotice, presetRouting, RoleRouter, type Routing } from "../src/router.ts";
+import {
+  type FallbackNotice,
+  presetRouting,
+  ROLE_TIMEOUTS_MS,
+  RoleRouter,
+  type Routing,
+} from "../src/router.ts";
 import type { ChatProvider, GenerateEvent, GenerateRequest } from "../src/types.ts";
 import { estimateCost, MemoryUsageSink } from "../src/usage.ts";
 
@@ -280,4 +286,9 @@ describe("cassettes", () => {
     );
     expect(CassetteProvider.keyOf({ ...a, model: "n" })).not.toBe(CassetteProvider.keyOf(a));
   });
+});
+
+test("world generation gets enough time for a whole world", () => {
+  // Real deepseek-flash world calls took 17–24 s and the larger ones were cut off at the old 30 s.
+  expect(ROLE_TIMEOUTS_MS.worldGen).toBeGreaterThanOrEqual(120_000);
 });

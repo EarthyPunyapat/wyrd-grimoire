@@ -13,7 +13,8 @@ export const ROLE_TIMEOUTS_MS: Record<Role, number> = {
   parser: 20_000,
   narrator: 60_000,
   npcDialogue: 60_000,
-  worldGen: 30_000,
+  // A whole world is one large tool call; deepseek-flash takes 17–24 s and longer worlds ran past 30 s.
+  worldGen: 120_000,
   sessionZero: 60_000,
   guard: 20_000,
   gm: 90_000,
