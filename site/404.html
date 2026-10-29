@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Page not found · Wyrd Grimoire</title>
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#000000" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400&family=Geist:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: #000;
+        color: #f4f3ee;
+        font-family: "Geist", system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      main {
+        max-width: 680px;
+      }
+
+      p.eyebrow {
+        margin: 0;
+        font-family: "Geist Mono", monospace;
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #6b6b6b;
+      }
+
+      h1 {
+        margin: 8px 0 0;
+        font-size: clamp(36px, 7vw, 60px);
+        line-height: 1.05;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        text-wrap: balance;
+        background: linear-gradient(to right, #ffffff, #9b9b9b);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      p.body {
+        margin: 24px 0 0;
+        max-width: 680px;
+        color: #9b9b9b;
+        font-size: 18px;
+        line-height: 28px;
+        text-wrap: pretty;
+      }
+
+      a.back {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 40px;
+        padding: 8px 12px;
+        border-radius: 9999px;
+        background: #f4f3ee;
+        color: #0b0b0b;
+        font-size: 16px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: transform 300ms var(--ease), background-color 300ms var(--ease);
+      }
+
+      a.back:hover {
+        background: #dedcd2;
+      }
+
+      a.back:active {
+        transform: scale(0.98);
+      }
+
+      :focus-visible {
+        outline: 2px solid #f4f3ee;
+        outline-offset: 3px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition-duration: 1ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">404</p>
+      <h1>This page is not in the grimoire</h1>
+      <p class="body">
+        The dice rolled a critical failure on that address. The page may have moved, or it may never have
+        existed outside a rumour.
+      </p>
+      <a class="back" href="/">Back to the front page</a>
+    </main>
+  </body>
+</html>

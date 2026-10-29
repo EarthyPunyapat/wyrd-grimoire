@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy · Wyrd Grimoire</title>
+    <meta
+      name="description"
+      content="Wyrd Grimoire runs on your own machine. What stays local, and what leaves it when you connect a model provider."
+    />
+    <meta name="theme-color" content="#000000" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400&family=Geist:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="legal.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <a class="back" href="index.html">← Back</a>
+      <p class="eyebrow">Privacy</p>
+      <h1>Your campaigns stay on your machine</h1>
+
+      <p>
+        Wyrd Grimoire is a self hosted application. It is not a service, there is no account, and nothing
+        is sent to whoever maintains the project.
+      </p>
+
+      <h2>What stays local</h2>
+      <ul>
+        <li>Each campaign is one SQLite file plus a media folder, under your own home directory.</li>
+        <li>Your passcode, provider keys and OAuth tokens live in a secrets folder that is never logged.</li>
+        <li>Model settings and usage records are stored in your local database.</li>
+      </ul>
+
+      <h2>What leaves, and only when you ask it to</h2>
+      <p>
+        If you connect a model provider, the text of your turn and the context the engine assembles are
+        sent to that provider. That is how narration happens. Which provider receives it depends on the
+        route you configure:
+      </p>
+      <ul>
+        <li><strong>ChatGPT plan</strong> requests go to OpenAI under your account.</li>
+        <li><strong>DeepSeek, Anthropic or any OpenAI compatible server</strong> go to that host.</li>
+        <li><strong>Ollama</strong> or a local server keeps everything on your own network.</li>
+      </ul>
+      <p>
+        In every case the provider's terms and retention apply to what you send them. You can run the whole
+        thing offline, with no model calls at all, using the offline preview.
+      </p>
+
+      <h2>This page</h2>
+      <p>
+        The page you are reading is static. It sets no cookies, loads no analytics, and embeds no tracking
+        pixels. It loads one typeface from Google Fonts, which means your browser contacts Google to fetch
+        that file.
+      </p>
+
+      <h2>Removing your data</h2>
+      <p>
+        Delete the campaign file and the secrets folder. There is no copy anywhere else to clean up.
+      </p>
+
+      <footer>
+        <a href="index.html">Home</a>
+        <a href="terms.html">Terms</a>
+        <a href="https://github.com/EarthyPunyapat/wyrd-grimoire/blob/main/LICENSE">MIT licence</a>
+      </footer>
+    </main>
+  </body>
+</html>
