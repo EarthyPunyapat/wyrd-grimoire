@@ -197,7 +197,7 @@ export class CampaignStore<S extends { campaign: { gameTime: number } }> {
   }
 
   branches(): Branch[] {
-    const ids = this.db.query("SELECT id FROM branches ORDER BY created_at, id").all() as { id: string }[];
+    const ids = this.db.query("SELECT id FROM branches ORDER BY created_at, rowid").all() as { id: string }[];
     return ids.map((r) => this.branch(r.id));
   }
 
