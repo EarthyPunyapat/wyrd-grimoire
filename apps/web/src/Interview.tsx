@@ -70,6 +70,7 @@ export function Interview({
   const [answer, setAnswer] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const end = useRef<HTMLLIElement>(null);
 
   async function send(text?: string) {
@@ -83,6 +84,7 @@ export function Interview({
       );
       setInterview(next.interview);
       setCreation(next.creation);
+      setNotice(next.notice ?? "");
       onView(next.creation);
       setAnswer("");
     } catch (e) {
@@ -108,6 +110,7 @@ export function Interview({
             Offline interviewer: fixed questions, not AI. Connect models for a real conversation.
           </p>
         )}
+        {notice && <p className="muted small">{notice}</p>}
         {/* biome-ignore lint/a11y/noNoninteractiveTabindex: the log scrolls and must be reachable by keyboard */}
         <div className="interview-log" role="log" aria-label="Conversation" tabIndex={0}>
           <ol>

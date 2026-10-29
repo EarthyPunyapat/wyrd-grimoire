@@ -89,6 +89,8 @@ export const CreationView = z.object({
   /** Skill values (untrained + trained) for every trained skill, as the engine computes them. */
   skillValues: z.record(z.string(), z.number()),
   options: CreationOptions,
+  /** Set when a model call failed and an offline stand-in answered instead. */
+  notice: z.string().optional(),
 });
 export type CreationView = z.infer<typeof CreationView>;
 
@@ -158,7 +160,12 @@ export const InterviewState = z.object({
 });
 export type InterviewState = z.infer<typeof InterviewState>;
 export const InterviewAnswer = z.object({ answer: z.string().trim().min(1).max(2000).optional() }).strict();
-export const InterviewView = z.object({ interview: InterviewState, creation: CreationView });
+export const InterviewView = z.object({
+  interview: InterviewState,
+  creation: CreationView,
+  /** Set when a model call failed and an offline stand-in answered instead. */
+  notice: z.string().optional(),
+});
 export type InterviewView = z.infer<typeof InterviewView>;
 
 /** Fields the wizard's "suggest" buttons fill (spec 04 form path). */
