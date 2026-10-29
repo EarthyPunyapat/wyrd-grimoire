@@ -21,6 +21,32 @@ const routerFor = (fake: FakeProvider) =>
     routing: { worldGen: { provider: "fake", model: "test", fallbacks: [] } },
   });
 
+const EXTRAS = {
+  abilities: [
+    {
+      id: "wisp-light",
+      name: "Marsh light",
+      description: "Shape a small light",
+      level: 1,
+      cost: "Concentration",
+      rank: 1,
+    },
+  ],
+  characters: [
+    { name: "Watcher", motivation: "Keep travellers safe", action: "Marks safe paths", paceDays: 1 },
+  ],
+  canonEvents: [
+    {
+      name: "The lights rise",
+      days: 2,
+      subject: "Marsh",
+      predicate: "lights",
+      value: "risen",
+      interventionPredicate: "lightsStopped",
+    },
+  ],
+};
+
 test("source creation reuses recorded-wiki research, then builds the bible, powers and timeline", async () => {
   const fake = new FakeProvider([
     {
@@ -33,44 +59,21 @@ test("source creation reuses recorded-wiki research, then builds the bible, powe
       },
     },
     {
-      match: (r) => r.tools?.[0]?.name === "propose_source",
+      match: (r) => r.tools?.[0]?.name === "propose_world",
+      reply: { toolCall: { name: "propose_world", args: EXAMPLE_WORLD } },
+    },
+    {
+      match: (r) => r.tools?.[0]?.name === "propose_source_bible",
       reply: {
         toolCall: {
-          name: "propose_source",
-          args: {
-            proposal: EXAMPLE_WORLD,
-            bible: offlineBible({ worldName: "Wisp", openingSite: "Marsh", threat: false }),
-            abilities: [
-              {
-                id: "wisp-light",
-                name: "Marsh light",
-                description: "Shape a small light",
-                level: 1,
-                cost: "Concentration",
-                rank: 1,
-              },
-            ],
-            characters: [
-              {
-                name: "Watcher",
-                motivation: "Keep travellers safe",
-                action: "Marks safe paths",
-                paceDays: 1,
-              },
-            ],
-            canonEvents: [
-              {
-                name: "The lights rise",
-                days: 2,
-                subject: "Marsh",
-                predicate: "lights",
-                value: "risen",
-                interventionPredicate: "lightsStopped",
-              },
-            ],
-          },
+          name: "propose_source_bible",
+          args: offlineBible({ worldName: "Wisp", openingSite: "Marsh", threat: false }),
         },
       },
+    },
+    {
+      match: (r) => r.tools?.[0]?.name === "propose_source_extras",
+      reply: { toolCall: { name: "propose_source_extras", args: EXTRAS } },
     },
   ]);
   const router = routerFor(fake);
@@ -84,7 +87,47 @@ test("source creation reuses recorded-wiki research, then builds the bible, powe
   expect(result.research.confidence).toBe("high");
   expect(result.research.evidence?.quote).toContain("wikipedia.org");
   expect(fake.calls()[1]!.messages[0]!.content).toContain("Marsh lights lure");
-  expect(fake.calls()[1]!.instructions).toContain("greatest hits");
+  expect(fake.calls()[1]!.instructions).toContain("Will-o'-the-wisp");
+});
+
+// A real deepseek-flash run filled only the proposal of the old single giant call and left bible,
+// abilities, characters and canonEvents undefined, so creation failed outright.
+test("a source world is still created when the bible and the extras calls fail", async () => {
+  const fake = new FakeProvider([
+    {
+      match: (r) => r.tools?.[0]?.name === "propose_lore",
+      reply: {
+        toolCall: {
+          name: "propose_lore",
+          args: { facts: ["Marsh lights lure travellers away from paths."] },
+        },
+      },
+    },
+    {
+      match: (r) => r.tools?.[0]?.name === "propose_world",
+      reply: { toolCall: { name: "propose_world", args: EXAMPLE_WORLD } },
+    },
+    {
+      match: (r) => r.tools?.[0]?.name === "propose_source_bible",
+      reply: { toolCall: { name: "propose_source_bible", args: {} } },
+    },
+    {
+      match: (r) => r.tools?.[0]?.name === "propose_source_extras",
+      reply: { error: { code: "invalid_output", retryable: true } },
+    },
+  ]);
+  const router = routerFor(fake);
+  const lore = new LoreResearch({
+    router,
+    cache: { get: () => null, put: () => {} },
+    client: new MediaWikiClient({ fetch: async () => Response.json(wikipedia) }),
+  });
+  const result = await researchSource(router, input, lore);
+  expect(result.proposal.worldName).toBe(EXAMPLE_WORLD.worldName);
+  expect(result.bible).toBeUndefined();
+  expect(result.abilities).toEqual([]);
+  expect(result.characters).toEqual([]);
+  expect(result.canonEvents).toEqual([]);
 });
 
 test("GM proposes survival on for apocalypse and off for cosmic settings", async () => {
