@@ -50,3 +50,61 @@ test("the sheet editor shows broken rules live and starts the edited character",
   const campaigns = await page.evaluate(async () => (await fetch("/api/campaigns")).json());
   expect(campaigns.map((c: { characterName: string }) => c.characterName)).toContain("Ines Varga");
 });
+
+test("the form wizard walks every step, with a suggestion, into the sheet editor", async ({ page }) => {
+  await world(page, "Wizard Test");
+  await page.getByRole("button", { name: /Build step by step/ }).click();
+  const wizard = page.getByRole("region", { name: "Build your character step by step" });
+  await expect(wizard.getByText("STEP 1 OF 6")).toBeVisible();
+  const before = await wizard.getByLabel("Name", { exact: true }).inputValue();
+  await wizard.getByRole("button", { name: "Suggest a name" }).click();
+  await expect(wizard.getByLabel("Name", { exact: true })).not.toHaveValue(before);
+  const steps = ["Attributes", "Skills", "Talents and gear", "Looks and backstory", "Hooks"];
+  for (const [i, next] of steps.entries()) {
+    await wizard.getByRole("button", { name: `Next: ${next} →` }).click();
+    await expect(wizard.getByText(`STEP ${i + 2} OF 6 · ${next.toUpperCase()}`)).toBeVisible();
+  }
+  await wizard.getByRole("button", { name: "Suggest a hook" }).click();
+  await expect(wizard.getByLabel("Hook name")).toHaveCount(1);
+  await wizard.getByRole("button", { name: "Review the whole sheet →" }).click();
+  await expect(page.getByRole("region", { name: "Build your character" })).toBeVisible();
+  await page.getByRole("button", { name: "Begin adventure →" }).click();
+  await expect(page.getByRole("heading", { name: "Relay Nine" })).toBeVisible();
+});
+
+test("session zero builds the character from answers with a live sheet beside the chat", async ({
+  page,
+}, info) => {
+  await world(page, "Interview Test");
+  await page.getByRole("button", { name: /Talk it through/ }).click();
+  const chat = page.getByRole("region", { name: "Session zero" });
+  const sheet = page.getByRole("complementary", { name: "Your character so far" });
+  const answers = [
+    "A tired engineer who keeps the reactor running.",
+    "Born on the station.",
+    "Fixing things nobody else can.",
+    "To find out why the relay went dark.",
+    "My sister, Juno Reyes.",
+    "Director Hale, who blames me.",
+    "I owe the Quartermaster.",
+    "A burn scar across my left hand.",
+  ];
+  for (const answer of answers) {
+    await expect(chat.getByLabel("Your answer")).toBeEnabled();
+    await chat.getByLabel("Your answer").fill(answer);
+    await chat.getByRole("button", { name: "Answer" }).click();
+  }
+  await expect(sheet).toContainText("Juno Reyes");
+  await expect(sheet).toContainText("Director Hale");
+  await expect(chat).toContainText("Look over the sheet");
+  await page.screenshot({ path: info.outputPath("m6-session-zero.png"), fullPage: true });
+  if (info.project.name !== "phone") {
+    const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+    expect(accessibility.violations).toEqual([]);
+  }
+  await chat.getByRole("button", { name: "Review the sheet →" }).click();
+  const editor = page.getByRole("region", { name: "Build your character" });
+  await expect(editor.getByLabel("Hook name").first()).toHaveValue("Juno Reyes");
+  await page.getByRole("button", { name: "Begin adventure →" }).click();
+  await expect(page.getByRole("heading", { name: "Relay Nine" })).toBeVisible();
+});

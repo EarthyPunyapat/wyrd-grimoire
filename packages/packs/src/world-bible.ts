@@ -20,7 +20,7 @@ const slug = (s: string) =>
     .slice(0, 40) || "x";
 
 /** Stable, collision-free ids for generated canon (`site:the-drowned-mill`, `-2` on clashes). */
-class Ids {
+export class Ids {
   private readonly used = new Set<string>();
   constructor(taken: Iterable<string> = []) {
     for (const t of taken) this.used.add(t);
@@ -33,7 +33,7 @@ class Ids {
   }
 }
 
-const entity = (e: Partial<Entity> & Pick<Entity, "id" | "kind" | "name">): Entity => ({
+export const entity = (e: Partial<Entity> & Pick<Entity, "id" | "kind" | "name">): Entity => ({
   aliases: [],
   detail: "stub",
   summary: "",
@@ -42,7 +42,7 @@ const entity = (e: Partial<Entity> & Pick<Entity, "id" | "kind" | "name">): Enti
   importance: 2,
   ...e,
 });
-const fact = (f: Partial<Fact> & Pick<Fact, "id" | "entityId" | "predicate" | "value">): Fact => ({
+export const fact = (f: Partial<Fact> & Pick<Fact, "id" | "entityId" | "predicate" | "value">): Fact => ({
   source: "model",
   visibility: "public",
   importance: 2,

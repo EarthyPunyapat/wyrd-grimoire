@@ -55,19 +55,20 @@ Use the supplied character name if present, otherwise suggest an appropriate nam
   return parsed.data;
 }
 
-/** One structured worldGen call: a single forced tool, a zod-validated answer, or an error. */
-async function propose<T>(
+/** One structured call (worldGen unless another role is named): a forced tool, a zod-validated answer, or an error. */
+export async function propose<T>(
   router: RoleRouter,
   name: string,
   schema: z.ZodType<T>,
   instructions: string,
   content: unknown,
   promptVersion: string,
+  role: "worldGen" | "sessionZero" = "worldGen",
 ): Promise<T> {
   const json = z.toJSONSchema(schema);
   delete json.$schema;
   const result = await router.complete(
-    "worldGen",
+    role,
     {
       instructions,
       messages: [{ role: "user", content: JSON.stringify(content) }],

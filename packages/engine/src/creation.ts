@@ -11,6 +11,7 @@ import {
   type ItemCatalog,
   localIdOf,
   type PregenDef,
+  type SessionZeroProposals,
   type TalentDef,
   type Tuning,
 } from "@wyrd/core";
@@ -333,3 +334,111 @@ export function sheetFromDraft(
     tuning,
   );
 }
+
+/** Which validator paths belong to each part of a proposal. */
+const PROPOSAL_PATHS: Record<keyof SessionZeroProposals, (path: string) => boolean> = {
+  identity: (p) =>
+    p.startsWith("identity") || p === "archetypeId" || p === "bodyPlan" || p.startsWith("attributes"),
+  attributes: (p) => p.startsWith("attributes") || p === "talents",
+  skills: (p) => p.startsWith("skills") || p === "talents",
+  talents: (p) => p === "talents",
+  appearance: () => false,
+  hooks: () => false,
+};
+
+/**
+ * Applies session-zero proposals part by part (spec 04): a part that would break a creation rule it
+ * touches is refused and reported, and the rest still apply. Unknown origins, backgrounds, skills
+ * and talents are refused by the same check.
+ */
+export function applyProposals(
+  draft: DraftSheet,
+  proposals: SessionZeroProposals,
+  content: CreationContent,
+  items: ItemCatalog,
+  settings: CampaignSettings,
+  tuning: Tuning,
+): { draft: DraftSheet; refused: string[] } {
+  const refused: string[] = [];
+  const errors = (d: DraftSheet) =>
+    validateCreation(
+      sheetFromDraft("pc", d, content, items, settings, tuning),
+      content,
+      settings,
+      tuning,
+    ).filter((i) => i.severity === "error");
+  let current = draft;
+  for (const part of ["identity", "attributes", "skills", "talents", "appearance", "hooks"] as const) {
+    const value = proposals[part];
+    if (!value) continue;
+    let next: DraftSheet;
+    switch (part) {
+      case "identity": {
+        const v = value as NonNullable<SessionZeroProposals["identity"]>;
+        const archetype = v.archetype ? content.archetypes[v.archetype] : undefined;
+        if (v.archetype && !archetype) {
+          refused.push(`identity: unknown background ${v.archetype}`);
+          continue;
+        }
+        next =
+          archetype && archetype.id !== current.archetype
+            ? { ...draftFromArchetype(current.ancestry, archetype), ...pick(current) }
+            : current;
+        next = {
+          ...next,
+          ...(v.name ? { name: v.name } : {}),
+          ...(v.pronouns !== undefined ? { pronouns: v.pronouns } : {}),
+          ...(v.ancestry ? { ancestry: v.ancestry } : {}),
+          ...(v.personality ? { personality: v.personality } : {}),
+          ...(v.backstory !== undefined ? { backstory: v.backstory } : {}),
+        };
+        break;
+      }
+      case "attributes":
+        next = { ...current, attributes: { ...current.attributes, ...(value as Partial<Attributes>) } };
+        break;
+      case "skills":
+        next = { ...current, skills: { ...(value as Record<string, number>) } };
+        break;
+      case "talents": {
+        const background = content.archetypes[current.archetype]?.talent;
+        next = {
+          ...current,
+          talents: [
+            ...(background ? [background] : []),
+            ...(value as string[]).filter((t) => t !== background),
+          ],
+        };
+        break;
+      }
+      case "appearance": {
+        const v = value as NonNullable<SessionZeroProposals["appearance"]>;
+        next = {
+          ...current,
+          appearance: { ...current.appearance, ...v, marks: v.marks ?? current.appearance.marks },
+        };
+        break;
+      }
+      case "hooks":
+        next = { ...current, hooks: value as DraftSheet["hooks"] };
+        break;
+    }
+    const before = new Set(errors(current).map((i) => `${i.code}:${i.path}`));
+    const added = errors(next).filter(
+      (i) => PROPOSAL_PATHS[part](i.path ?? "") && !before.has(`${i.code}:${i.path}`),
+    );
+    if (added.length) refused.push(`${part}: ${added.map((i) => i.message).join("; ")}`);
+    else current = next;
+  }
+  return { draft: current, refused };
+}
+
+/** The person-level fields a background change keeps. */
+const pick = (d: DraftSheet) => ({
+  name: d.name,
+  pronouns: d.pronouns,
+  appearance: d.appearance,
+  personality: d.personality,
+  backstory: d.backstory,
+  hooks: d.hooks,
+});

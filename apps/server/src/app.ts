@@ -40,6 +40,7 @@ import {
   offlineBible,
   offlineElaboration,
   offlineLocation,
+  placeHooks,
   type RoleRouter,
   SecretStore,
   TurnPipeline,
@@ -50,7 +51,9 @@ import {
   bibleEvents,
   compileGeneratedWorld,
   creationContent,
+  defaultPlacements,
   generatedWorldPreview,
+  hookEvents,
   loadPack,
   loadWorld,
   locationEvents,
@@ -214,7 +217,11 @@ export function createApp(options: Options) {
     return c.json({ ok: true });
   });
   mountModels(app, models);
-  mountCreation(app, { store, body });
+  mountCreation(app, {
+    store,
+    body,
+    router: () => (options.offline ? null : models.router()),
+  });
   mountWorld(app, {
     campaign: (id) => campaign(id),
     store,
@@ -281,6 +288,7 @@ export function createApp(options: Options) {
       generating = false;
     }
   });
+  const starting = new Set<string>();
   app.post("/api/campaigns", async (c) => {
     const input = await body(c, StartGeneratedCampaign);
     const saved = StoredDraft.safeParse(store.creationDraft(input.draftId));
@@ -296,15 +304,31 @@ export function createApp(options: Options) {
         : saved.data.sheet;
     if (!sheet)
       throw new HTTPException(422, { message: "Choose an origin and background, or build a character" });
-    const id = createGame(
-      saved.data.input.name,
-      input.ancestry && input.archetype ? sheet : { ...sheet, name: sheet.name || characterName },
-      pack,
-      world,
-      saved.data.bible ? (w) => bibleEvents(saved.data.bible!, w, defaultTuning) : undefined,
-    );
-    store.saveCreationDraft(input.draftId, { ...saved.data, campaignId: id });
-    return c.json({ id }, 201);
+    // Placing hooks awaits a model, so a second click must not start a second campaign meanwhile.
+    if (starting.has(input.draftId))
+      throw new HTTPException(409, { message: "Your campaign is already being prepared" });
+    starting.add(input.draftId);
+    try {
+      const bible = saved.data.bible ? bibleEvents(saved.data.bible, world, defaultTuning) : [];
+      const hooks = await hookPlan(
+        sheet,
+        [...worldEvents(world, []), ...bible],
+        world,
+        saved.data.bible?.startSite,
+      );
+      const id = createGame(
+        saved.data.input.name,
+        input.ancestry && input.archetype ? sheet : { ...sheet, name: sheet.name || characterName },
+        pack,
+        world,
+        bible,
+        hooks,
+      );
+      store.saveCreationDraft(input.draftId, { ...saved.data, campaignId: id });
+      return c.json({ id }, 201);
+    } finally {
+      starting.delete(input.draftId);
+    }
   });
   // Explicit authored test fixture; the normal web flow never chooses fantasy-core implicitly.
   app.post("/api/campaigns/quick-start", async (c) => {
@@ -317,7 +341,9 @@ export function createApp(options: Options) {
           `${pack.manifest.id}:${input.archetype}`,
           "",
         );
-    const id = createGame(name, { ...sheet, name: characterName || sheet.name }, pack, worlds[worldId]!);
+    const world = worlds[worldId]!;
+    const hooks = await hookPlan(sheet, worldEvents(world, []), world);
+    const id = createGame(name, { ...sheet, name: characterName || sheet.name }, pack, world, [], hooks);
     return c.json({ id }, 201);
   });
   /** A draft from an origin and background, with the background's kit (spec 04 quick start). */
@@ -340,12 +366,44 @@ export function createApp(options: Options) {
       throw new HTTPException(422, { message: `This character isn't valid yet: ${problem.message}` });
     return sheet;
   }
+  /**
+   * Backstory hooks → canon (spec 04): the worldGen role places them in the world (stage 2), or a
+   * fixed placement does offline and on failure.
+   */
+  async function hookPlan(
+    character: DraftSheet,
+    existing: EventDraft[],
+    world: WorldDef,
+    startSite?: string,
+  ) {
+    if (!character.hooks.length) return undefined;
+    const fallback = defaultPlacements(character.hooks, existing, startSite);
+    const names = (kind: string) =>
+      existing.flatMap((e) =>
+        e.type === "EntityCreated" && (e.payload as { entity: Entity }).entity.kind === kind
+          ? [(e.payload as { entity: Entity }).entity.name]
+          : [],
+      );
+    const router = options.offline ? null : models.router();
+    const placements =
+      router && names("site").length
+        ? await placeHooks(router, {
+            world: { name: world.name, premise: world.premise },
+            sites: names("site"),
+            startSite: startSite ?? null,
+            factions: names("faction"),
+            hooks: character.hooks,
+          }).catch(() => fallback)
+        : fallback;
+    return hookEvents(character.hooks, "pc", existing, placements, world.gameTime);
+  }
   function createGame(
     name: string,
     character: DraftSheet,
     pack: CompiledPack,
     world: WorldDef,
-    extra?: (world: WorldDef) => EventDraft[],
+    extra: EventDraft[] = [],
+    hooks?: { ids: string[]; events: EventDraft[] },
   ) {
     const created = unwrap(
       createCampaign({
@@ -355,7 +413,8 @@ export function createApp(options: Options) {
         seed: options.seed ?? randomBytes(16).toString("hex"),
       }),
     );
-    const sheet = buildPc("pc", character, pack, created.payload.settings);
+    const built = buildPc("pc", character, pack, created.payload.settings);
+    const sheet = hooks ? { ...built, identity: { ...built.identity, hookIds: hooks.ids } } : built;
     const id = randomUUID();
     const dir = join(options.home, "campaigns", id);
     mkdirSync(dir, { recursive: true });
@@ -376,7 +435,8 @@ export function createApp(options: Options) {
           }),
         }),
         ...worldEvents(world, [sheet.id]),
-        ...(extra?.(world) ?? []),
+        ...extra,
+        ...(hooks?.events ?? []),
       ]);
       store.addCampaign({
         id,

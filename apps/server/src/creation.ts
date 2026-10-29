@@ -5,11 +5,16 @@ import {
   CreationView,
   DraftSheet,
   defaultTuning,
+  InterviewAnswer,
+  InterviewState,
+  InterviewView,
+  SuggestInput,
   WorldBible,
   WorldPitch,
   WorldProposal,
 } from "@wyrd/core";
 import {
+  applyProposals,
   type CreationIssue,
   draftFromArchetype,
   draftFromPregen,
@@ -17,6 +22,14 @@ import {
   skillValue,
   validateCreation,
 } from "@wyrd/engine";
+import {
+  interviewStep,
+  offlineInterviewStep,
+  offlineSuggestion,
+  type RoleRouter,
+  type SessionZeroContext,
+  suggestField,
+} from "@wyrd/llm";
 import { compileGeneratedWorld, creationContent } from "@wyrd/packs";
 import type { AppStore } from "@wyrd/storage";
 import type { Hono } from "hono";
@@ -34,6 +47,8 @@ export const StoredDraft = z.object({
   campaignId: z.string().optional(),
   /** The character as the sheet editor last saved it; absent until the player opens the editor. */
   sheet: DraftSheet.optional(),
+  /** The session-zero interview, if the player chose that path. */
+  interview: InterviewState.optional(),
 });
 export type StoredDraft = z.infer<typeof StoredDraft>;
 
@@ -144,6 +159,8 @@ export function pregenDraft(pack: CompiledPack, pregenId: string): DraftSheet {
 type Deps = {
   store: AppStore;
   body: <T>(c: { req: { json(): Promise<unknown> } }, schema: z.ZodType<T>) => Promise<T>;
+  /** The model router, or null offline (the labelled stand-ins answer instead). */
+  router: () => RoleRouter | null;
 };
 
 export function mountCreation(app: Hono<AppEnvironment>, d: Deps) {
@@ -155,19 +172,40 @@ export function mountCreation(app: Hono<AppEnvironment>, d: Deps) {
   };
   const view = (saved: StoredDraft, pack: CompiledPack, draft: DraftSheet) =>
     creationView(draft, pack, saved.proposal.originLabel);
+  const current = (saved: StoredDraft, pack: CompiledPack) =>
+    saved.sheet ??
+    draftFromArchetype(
+      Object.keys(pack.ancestries)[0]!,
+      Object.values(creationContent([pack]).archetypes)[0]!,
+      saved.input.characterName || saved.proposal.suggestedCharacterName,
+    );
+  const context = (saved: StoredDraft, pack: CompiledPack, draft: DraftSheet): SessionZeroContext => ({
+    world: { name: saved.proposal.worldName, premise: saved.proposal.premise, tone: saved.proposal.tone },
+    options: creationOptions(pack, saved.proposal.originLabel),
+    draft,
+  });
+  const apply = (pack: CompiledPack, draft: DraftSheet, proposals: Parameters<typeof applyProposals>[1]) =>
+    applyProposals(draft, proposals, creationContent([pack]), pack.items, CREATION_SETTINGS, defaultTuning);
+  const busy = new Set<string>();
+  /** One model call per draft at a time. */
+  async function exclusive<T>(id: string, run: () => Promise<T>): Promise<T> {
+    if (busy.has(id)) throw new HTTPException(409, { message: "Still thinking about the last answer" });
+    busy.add(id);
+    try {
+      return await run();
+    } finally {
+      busy.delete(id);
+    }
+  }
+  const unavailable = () =>
+    new HTTPException(502, {
+      message: "The interviewer couldn't answer. Try again, or check model settings.",
+    });
 
   // The sheet editor (spec 04): every creation path ends here, and the validator is the only gate.
   app.get("/api/world-drafts/:id/creation", (c) => {
     const { saved, pack } = load(c.req.param("id"));
-    const archetype = Object.values(creationContent([pack]).archetypes)[0]!;
-    const draft =
-      saved.sheet ??
-      draftFromArchetype(
-        Object.keys(pack.ancestries)[0]!,
-        archetype,
-        saved.input.characterName || saved.proposal.suggestedCharacterName,
-      );
-    return c.json(view(saved, pack, draft));
+    return c.json(view(saved, pack, current(saved, pack)));
   });
   app.put("/api/world-drafts/:id/sheet", async (c) => {
     const id = c.req.param("id");
@@ -176,5 +214,63 @@ export function mountCreation(app: Hono<AppEnvironment>, d: Deps) {
     const draft = await d.body(c, DraftSheet);
     d.store.saveCreationDraft(id, { ...saved, sheet: draft });
     return c.json(view(saved, pack, draft));
+  });
+
+  // Session zero (spec 04): each answer gets one interviewer step; the engine applies what fits.
+  app.post("/api/world-drafts/:id/interview", async (c) => {
+    const id = c.req.param("id");
+    const { answer } = await d.body(c, InterviewAnswer);
+    return exclusive(id, async () => {
+      const { saved, pack } = load(id);
+      if (saved.campaignId) throw new HTTPException(409, { message: "This campaign has already started" });
+      const router = d.router();
+      const before = saved.interview ?? InterviewState.parse({ offline: !router });
+      if (!answer && before.messages.length)
+        return c.json(
+          InterviewView.parse({ interview: before, creation: view(saved, pack, current(saved, pack)) }),
+        );
+      const interview = {
+        ...before,
+        messages: [...before.messages, ...(answer ? [{ from: "player" as const, text: answer }] : [])],
+      };
+      const draft = current(saved, pack);
+      const ctx = context(saved, pack, draft);
+      const step = router
+        ? await interviewStep(router, ctx, interview).catch(() => {
+            throw unavailable();
+          })
+        : offlineInterviewStep(ctx, interview);
+      const applied = apply(pack, draft, step.proposals);
+      const next = InterviewState.parse({
+        ...interview,
+        messages: [...interview.messages, { from: "interviewer", text: step.message }],
+        done: step.done,
+        refused: applied.refused,
+      });
+      d.store.saveCreationDraft(id, { ...saved, sheet: applied.draft, interview: next });
+      return c.json(InterviewView.parse({ interview: next, creation: view(saved, pack, applied.draft) }));
+    });
+  });
+  // The form wizard's "suggest" buttons (spec 04): one field per call.
+  app.post("/api/world-drafts/:id/suggest", async (c) => {
+    const id = c.req.param("id");
+    const { field } = await d.body(c, SuggestInput);
+    return exclusive(id, async () => {
+      const { saved, pack } = load(id);
+      if (saved.campaignId) throw new HTTPException(409, { message: "This campaign has already started" });
+      const router = d.router();
+      const draft = current(saved, pack);
+      const ctx = context(saved, pack, draft);
+      const proposals = router
+        ? await suggestField(router, ctx, field).catch(() => {
+            throw new HTTPException(502, {
+              message: "No suggestion this time. Try again, or check model settings.",
+            });
+          })
+        : offlineSuggestion(ctx, field);
+      const applied = apply(pack, draft, proposals);
+      d.store.saveCreationDraft(id, { ...saved, sheet: applied.draft });
+      return c.json(view(saved, pack, applied.draft));
+    });
   });
 }

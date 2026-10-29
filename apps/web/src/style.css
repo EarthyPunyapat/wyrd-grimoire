@@ -373,3 +373,29 @@ progress::-webkit-progress-value { background: var(--accent); }
   .add-skill { grid-template-columns: 1fr; }
   .skill-edit li { grid-template-columns: minmax(0, 1fr) 4.5rem 3rem 44px; }
 }
+.dialog:has(.interview), .dialog:has(.path-buttons) { width: min(900px, calc(100% - 2rem)); }
+.sheet-editor .suggest { justify-self: start; min-height: 36px; font-size: .8rem; border-style: dashed; }
+.suggest-row { display: flex; flex-wrap: wrap; gap: .5rem; }
+.wizard-nav { display: flex; justify-content: space-between; gap: .75rem; flex-wrap: wrap; margin-top: 1rem; }
+.paths { border: 1px solid var(--line); border-radius: 4px; padding: 1rem; margin: 0 0 1.5rem; }
+.paths legend { padding: 0 .4rem; color: var(--accent); font-size: .85rem; }
+.paths .small { font-size: .8rem; }
+.path-buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .75rem; }
+.path-buttons button { display: grid; gap: .35rem; text-align: left; padding: .9rem 1rem; }
+.path-buttons span { font-size: .8rem; color: var(--ink-muted); }
+.interview { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 1.5rem; }
+.interview-chat { display: grid; gap: .75rem; align-content: start; }
+.interview-log { max-height: 46dvh; overflow-y: auto; }
+.interview-log ol { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+.interview-log li { padding: .7rem .9rem; border-radius: 4px; line-height: 1.55; font-family: var(--font-body); }
+.interview-log .interviewer { background: var(--accent-soft); }
+.interview-log .player { border: 1px solid var(--line); margin-left: 2rem; }
+.interview-actions { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: space-between; }
+.interview-sheet { border: 1px solid var(--line); border-radius: 4px; padding: 1rem; align-self: start; }
+.interview-sheet h3 { font-family: var(--font-display); font-size: 1.4rem; font-weight: 400; margin-bottom: .25rem; }
+.interview-sheet .small, .interview-chat .small { font-size: .8rem; }
+.interview-sheet ul { padding-left: 1.1rem; }
+.mini-attributes { display: grid; grid-template-columns: repeat(7, 1fr); gap: .25rem; margin: .75rem 0; text-align: center; }
+.mini-attributes dt { font-size: .6rem; font-weight: 600; letter-spacing: .05em; }
+.mini-attributes dd { margin: 0; font-family: var(--font-display); font-size: 1.1rem; }
+@media (max-width: 720px) { .interview { grid-template-columns: 1fr; } .interview-log { max-height: none; } }

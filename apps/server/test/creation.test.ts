@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CreationView, GameView, GeneratedWorldPreview } from "@wyrd/core";
+import { CodexView, CreationView, GameView, GeneratedWorldPreview, InterviewView } from "@wyrd/core";
 import { createApp } from "../src/app.ts";
 
 const homes: string[] = [];
@@ -81,4 +81,68 @@ test("quick start can begin with a pack pregen, keeping its person and the arche
   expect(view.pc.talents).toEqual(["fantasy-core:hedge-lore", "fantasy-core:iron-will"]);
   expect(view.pc.equipment.carried.map((c) => c.item)).toContain("fantasy-core:healers-kit");
   expect((await call("/campaigns/quick-start", { name: "Nobody", pregen: "nobody" })).status).toBe(422);
+});
+
+test("session zero interviews, fills the sheet as answers arrive, and its hooks are placed in the world", async () => {
+  const { call } = await setup();
+  const world = GeneratedWorldPreview.parse(
+    await (await call("/world-drafts", { name: "Interview", pitch: "A station mystery" })).json(),
+  );
+  let view = InterviewView.parse(await (await call(`/world-drafts/${world.id}/interview`, {})).json());
+  expect(view.interview.offline).toBe(true);
+  expect(view.interview.messages.at(-1)!.text).toContain("who is your character");
+  const answers = [
+    "A tired engineer who keeps the reactor running.",
+    "Born on the station, never been planetside.",
+    "Fixing things nobody else can.",
+    "To find out why the relay went dark.",
+    "My sister, Juno Reyes, who runs the docks.",
+    "Director Hale, who blames me for the accident.",
+    "I owe the Quartermaster for my transfer papers.",
+    "A burn scar across my left hand.",
+  ];
+  for (const answer of answers) {
+    view = InterviewView.parse(await (await call(`/world-drafts/${world.id}/interview`, { answer })).json());
+  }
+  expect(view.interview.done).toBe(true);
+  const draft = view.creation.draft;
+  expect(draft.hooks.map((h) => [h.kind, h.name])).toEqual([
+    ["bond", "Juno Reyes"],
+    ["rival", "Director Hale"],
+    ["debt", "Quartermaster"],
+  ]);
+  expect(draft.appearance.marks).toEqual(["A burn scar across my left hand."]);
+  expect(draft.backstory).toContain("reactor");
+  expect(view.creation.issues.filter((i) => i.severity === "error")).toEqual([]);
+
+  const started = await call("/campaigns", { draftId: world.id });
+  expect(started.status).toBe(201);
+  const { id } = (await started.json()) as { id: string };
+  const game = GameView.parse(await (await call(`/campaigns/${id}/view`)).json());
+  expect(game.pc.identity.hookIds).toHaveLength(3);
+  const codex = CodexView.parse(await (await call(`/campaigns/${id}/codex`)).json());
+  const juno = codex.entries.find((e) => e.name === "Juno Reyes")!;
+  expect(juno).toBeDefined();
+  const journal = await (await call(`/campaigns/${id}/journal`)).text();
+  expect(journal).toContain("What you owe Quartermaster");
+  // People from the past are placed at a site of the wider world, away from the start.
+  const map = await (await call(`/campaigns/${id}/map`)).json();
+  expect(map.sites.length).toBeGreaterThan(1);
+});
+
+test("the wizard's suggest buttons fill one field through the engine", async () => {
+  const { call } = await setup();
+  const world = GeneratedWorldPreview.parse(
+    await (await call("/world-drafts", { name: "Suggest", pitch: "A station mystery" })).json(),
+  );
+  const before = CreationView.parse(await (await call(`/world-drafts/${world.id}/creation`)).json());
+  const named = CreationView.parse(
+    await (await call(`/world-drafts/${world.id}/suggest`, { field: "name" })).json(),
+  );
+  expect(named.draft.name).not.toBe(before.draft.name);
+  const hooked = CreationView.parse(
+    await (await call(`/world-drafts/${world.id}/suggest`, { field: "hooks" })).json(),
+  );
+  expect(hooked.draft.hooks).toHaveLength(1);
+  expect(hooked.draft.attributes).toEqual(before.draft.attributes);
 });
