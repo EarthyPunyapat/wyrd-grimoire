@@ -1,8 +1,12 @@
 import { z } from "zod";
 import { DiceExpr } from "../dice.ts";
 import type { LocationKind } from "../tuning.ts";
+import { CalendarDef } from "./calendar.ts";
 import { AttributeId, RangeBand } from "./common.ts";
 import { BackstoryHook } from "./creation.ts";
+import { LootTableDef } from "./loot.ts";
+import { NamingStyleDef } from "./naming.ts";
+import { RecipeDef } from "./recipes.ts";
 import { AppearanceFacts } from "./sheet.ts";
 
 /**
@@ -275,6 +279,12 @@ export type CompiledPack = {
     armor: Record<string, ArmorDef & { id: string }>;
     gear: Record<string, GearDef & { id: string }>;
   };
+  /** Pack calendar (spec 06); absent means the tuning calendar. */
+  calendar?: CalendarDef;
+  /** Loot tables, naming styles and recipes (M7). Optional so older frozen packs still load. */
+  lootTables?: Record<string, LootTableDef & { id: string }>;
+  naming?: Record<string, NamingStyleDef & { id: string }>;
+  recipes?: Record<string, RecipeDef & { id: string }>;
   hash: string;
 };
 

@@ -11,6 +11,7 @@ import type {
   Edge,
   FactionState,
   KnowledgeEntry,
+  LivingState,
   NpcMemory,
   QuestState,
   RngState,
@@ -69,6 +70,8 @@ export type GameState = {
   /** NPC minds (spec 07): memories and dispositions, by NPC id. */
   minds: Record<string, { memories: NpcMemory[]; dispositions: Record<string, Disposition> }>;
   rumors: Record<string, Rumor>;
+  /** Living World (M7): news, NPC life state, the job board and festivals held. Optional for old states. */
+  living?: LivingState;
   /** What the PC knows (spec 07): facts and entities, each with how they learned it. */
   knowledge: { facts: Record<string, KnowledgeEntry>; entities: Record<string, KnowledgeEntry> };
   threat: Threat | null;

@@ -1,4 +1,4 @@
-import type { Difficulty, PenaltyScope } from "./schemas/common.ts";
+import type { Degree, Difficulty, PenaltyScope } from "./schemas/common.ts";
 
 export type LocationKind = "head" | "torso" | "arm" | "leg";
 
@@ -196,6 +196,43 @@ export type Tuning = {
     approvalPerEvent: number;
     approvalPerScene: number;
     thresholds: { confront: number; leave: number; quest: number; loyal: number };
+  };
+  /** Living World (spec 06): weekly faction goals, NPC life events, festivals and the job board. */
+  living: {
+    /** Base weekly chance a faction goal clock advances; scaled by resources vs opposition. */
+    goalChance: number;
+    /** Opposition on the 1–5 resource scale when no rival faction is known. */
+    oppositionBaseline: number;
+    /** New goal clocks get this many segments. */
+    goalSegments: { min: number; max: number };
+    /** Weekly chance that some NPC life event happens. */
+    lifeEventChance: number;
+    /** NPCs at or above this age can die of old age. */
+    oldAge: number;
+    /** Job board size after a weekly refresh. */
+    jobBoard: { min: number; max: number };
+    /** News items kept in state; older ones are dropped. */
+    maxNews: number;
+    /** Job postings kept in state. */
+    maxJobBoard: number;
+    /** Generic faction goal names (pack worldgen can replace them later). */
+    goalNames: string[];
+    /** Generic job titles for the board. */
+    jobTitles: string[];
+  };
+  /** Downtime (spec 06): time costs and outcome tables. */
+  downtime: {
+    minutes: Record<"train" | "craft" | "work" | "research" | "carouse" | "recover", number>;
+    /** Coins earned for a day's work by degree. */
+    workPay: Record<Degree, number>;
+    /** HP restored by care by degree. */
+    recoverHp: Record<Degree, number>;
+    /** Segments in a new research clock. */
+    researchSegments: number;
+    /** Chance that carousing turns up a rumour (else just a quiet night). */
+    carouseRumourChance: number;
+    /** Chance that carousing brings trouble (intoxication) even on a good night. */
+    carouseTroubleChance: number;
   };
   snapshotEvery: number;
 };
@@ -451,6 +488,44 @@ export const defaultTuning: Tuning = {
     approvalPerEvent: 10,
     approvalPerScene: 20,
     thresholds: { confront: -50, leave: -75, quest: 50, loyal: 75 },
+  },
+  living: {
+    goalChance: 0.35,
+    oppositionBaseline: 2,
+    goalSegments: { min: 3, max: 6 },
+    lifeEventChance: 0.25,
+    oldAge: 65,
+    jobBoard: { min: 1, max: 3 },
+    maxNews: 60,
+    maxJobBoard: 8,
+    goalNames: [
+      "open a new trade route",
+      "settle an old feud",
+      "win the next election",
+      "raise a new hall",
+      "buy out a rival",
+      "secure a marriage alliance",
+      "clear the roads of bandits",
+      "found a guild chapter",
+    ],
+    jobTitles: [
+      "Escort a wagon",
+      "Clear out a cellar",
+      "Find a missing goat",
+      "Guard a warehouse",
+      "Deliver a sealed letter",
+      "Search the old well",
+      "Stand watch at the fair",
+      "Recover a pledged ring",
+    ],
+  },
+  downtime: {
+    minutes: { train: 480, craft: 240, work: 480, research: 360, carouse: 240, recover: 480 },
+    workPay: { critSuccess: 20, success: 12, failure: 4, critFailure: 0 },
+    recoverHp: { critSuccess: 6, success: 4, failure: 2, critFailure: 0 },
+    researchSegments: 4,
+    carouseRumourChance: 0.8,
+    carouseTroubleChance: 0.2,
   },
   snapshotEvery: 200,
 };
