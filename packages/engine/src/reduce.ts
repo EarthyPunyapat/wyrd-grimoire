@@ -1,9 +1,15 @@
 import { CompanionState, EconomyState, type EventEnvelope, type EventType, InventoryState } from "@wyrd/core";
+import { avatarHandlers } from "./reduce/avatars.ts";
+import { canonHandlers } from "./reduce/canon-clocks.ts";
 import { classHandlers } from "./reduce/classes.ts";
+import { delegationHandlers } from "./reduce/delegation.ts";
 import { gmHandlers } from "./reduce/gm.ts";
 import { clamp, clampHp, companion, mind, updateSheet, updateStatus } from "./reduce/helpers.ts";
 import { injuryHandlers } from "./reduce/injury.ts";
+import { levelHandlers } from "./reduce/levels.ts";
 import { livingHandlers } from "./reduce/living.ts";
+import { loreHandlers } from "./reduce/lore.ts";
+import { skipHandlers } from "./reduce/skips.ts";
 import { spellHandlers } from "./reduce/spellcasting.ts";
 import { subsystemHandlers } from "./reduce/subsystems.ts";
 import { survivalHandlers } from "./reduce/survival.ts";
@@ -27,7 +33,13 @@ type DomainKey =
   | keyof typeof spellHandlers
   | keyof typeof livingHandlers
   | keyof typeof subsystemHandlers
-  | keyof typeof survivalHandlers;
+  | keyof typeof survivalHandlers
+  | keyof typeof levelHandlers
+  | keyof typeof avatarHandlers
+  | keyof typeof loreHandlers
+  | keyof typeof canonHandlers
+  | keyof typeof skipHandlers
+  | keyof typeof delegationHandlers;
 
 /** One handler per event type; the mapped type makes a missing handler a compile error. */
 const baseHandlers: Omit<Handlers, DomainKey> = {
@@ -448,6 +460,12 @@ const handlers: Handlers = {
   ...livingHandlers,
   ...subsystemHandlers,
   ...survivalHandlers,
+  ...levelHandlers,
+  ...avatarHandlers,
+  ...loreHandlers,
+  ...canonHandlers,
+  ...skipHandlers,
+  ...delegationHandlers,
 };
 
 export const HANDLED_EVENT_TYPES: readonly EventType[] = [

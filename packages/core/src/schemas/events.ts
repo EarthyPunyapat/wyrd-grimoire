@@ -3,10 +3,16 @@ import { Entity, Fact, NarrationPayload, SceneState, TurnCompletedPayload } from
 import { CheckResolvedPayload } from "./check.ts";
 import { combatEventSchemas } from "./combat.ts";
 import { ActorId, ContentId, RngStateSchema } from "./common.ts";
+import { avatarEventSchemas } from "./domains/avatars.ts";
+import { canonEventSchemas } from "./domains/canon-clocks.ts";
 import { classEventSchemas } from "./domains/classes.ts";
+import { delegationEventSchemas } from "./domains/delegation.ts";
 import { gmEventSchemas } from "./domains/gm.ts";
 import { injuryEventSchemas } from "./domains/injury.ts";
+import { levelEventSchemas } from "./domains/levels.ts";
 import { livingEventSchemas } from "./domains/living.ts";
+import { loreEventSchemas } from "./domains/lore.ts";
+import { skipEventSchemas } from "./domains/skips.ts";
 import { spellEventSchemas } from "./domains/spellcasting.ts";
 import { subsystemEventSchemas } from "./domains/subsystems.ts";
 import { survivalEventSchemas } from "./domains/survival.ts";
@@ -154,6 +160,13 @@ export const eventPayloadSchemas = {
   ...gmEventSchemas,
   ...classEventSchemas,
   ...injuryEventSchemas,
+  // Wyrd 2.0 step 3, one module per workstream (roadmap spine)
+  ...levelEventSchemas,
+  ...avatarEventSchemas,
+  ...loreEventSchemas,
+  ...canonEventSchemas,
+  ...skipEventSchemas,
+  ...delegationEventSchemas,
 } as const;
 
 export type EventType = keyof typeof eventPayloadSchemas;
