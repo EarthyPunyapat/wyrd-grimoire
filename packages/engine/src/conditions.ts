@@ -108,6 +108,16 @@ export const CORE_CONDITIONS: readonly ConditionDef[] = [
     },
   },
   { id: "core:inspired", name: "Inspired", onCheck: () => ({ boons: 1, consumed: true }) },
+  // Survival (spec 11): each need's escalation ladder. Their no-recovery and END-check rules
+  // live in the daily tick; the condition carries the check penalty.
+  { id: "core:hungry", name: "Hungry", onCheck: () => mod("Hungry", -10) },
+  { id: "core:starving", name: "Starving", onCheck: () => mod("Starving", -20) },
+  { id: "core:thirsty", name: "Thirsty", onCheck: () => mod("Thirsty", -10) },
+  { id: "core:dehydrated", name: "Dehydrated", onCheck: () => mod("Dehydrated", -30) },
+  { id: "core:cold", name: "Cold", onCheck: () => mod("Cold", -10) },
+  { id: "core:hot", name: "Hot", onCheck: () => mod("Hot", -10) },
+  { id: "core:hypothermic", name: "Hypothermic", onCheck: () => mod("Hypothermic", -20) },
+  { id: "core:heatstroke", name: "Heatstroke", onCheck: () => mod("Heatstroke", -20) },
 ];
 
 export const CONDITIONS: Record<string, ConditionDef> = Object.fromEntries(

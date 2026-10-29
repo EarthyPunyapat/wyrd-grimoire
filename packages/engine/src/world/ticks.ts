@@ -1,5 +1,15 @@
-import { type ActorId, draft, type EventDraft, Rng, type Rumor, type Tuning } from "@wyrd/core";
+import {
+  type ActorId,
+  type DiseaseDef,
+  draft,
+  type EventDraft,
+  type ItemCatalog,
+  Rng,
+  type Rumor,
+  type Tuning,
+} from "@wyrd/core";
 import type { GameState, RulesContext } from "../state.ts";
+import { survivalDaily } from "../survival.ts";
 import { Working } from "../working.ts";
 
 /** What world ticks need from canon (the caller supplies it; the engine never reads storage). */
@@ -7,6 +17,10 @@ export type WorldContext = RulesContext & {
   nameOf: (id: string) => string;
   /** Regions with their climate; `current` marks the open scene's region (its weather shows in the scene). */
   regions?: () => Array<{ id: string; climate: string; current?: boolean }>;
+  /** Pack items, for survival tags (food, water, light, warm). */
+  items?: ItemCatalog;
+  /** Pack diseases by namespaced id. */
+  diseases?: Record<string, DiseaseDef>;
 };
 
 const MINUTES = { hour: 60, day: 1440, week: 10080 } as const;
@@ -279,6 +293,7 @@ export function runTicks(state: GameState, ctx: WorldContext): EventDraft[] {
       factionGoals(w, rng, ctx);
       threatPace(w, d, ctx);
       weather(w, rng, ctx);
+      survivalDaily(w, ctx, d);
       w.apply([
         draft("TickCompleted", { kind: "day", at: d * MINUTES.day, rngAfter: [...rng.state] }, "engine"),
       ]);

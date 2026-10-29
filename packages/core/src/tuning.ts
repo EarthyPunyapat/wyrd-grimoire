@@ -1,4 +1,5 @@
 import type { Difficulty, PenaltyScope } from "./schemas/common.ts";
+import type { NeedLadder, NeedStageDef, ScheduleEntry, WeatherKind } from "./schemas/survival.ts";
 
 export type LocationKind = "head" | "torso" | "arm" | "leg";
 
@@ -196,6 +197,69 @@ export type Tuning = {
     approvalPerEvent: number;
     approvalPerScene: number;
     thresholds: { confront: number; leave: number; quest: number; loyal: number };
+  };
+  /** Survival, disease, weather effects, lighting and language barriers (spec 11, M7). */
+  survival: {
+    /** One ration a day. */
+    rationPerDay: number;
+    /** Litres of water a day by climate; the exertion bonus is added on top. */
+    litresPerDay: Record<string, number>;
+    /** A waterskin holds this many litres, so hot climates need more than one. */
+    litresPerWaterskin: number;
+    exertionBonusLitres: number;
+    sleep: { minHours: number; maxHours: number; assumedHours: number; awakeHoursPerDay: number };
+    /** Exposure: clothing warmth vs the temperature the weather and season give. */
+    exposure: {
+      baseWarmth: number;
+      /** Worn item tags that add warmth. */
+      warmthByTag: Record<string, number>;
+      coldBelow: number;
+      hotAbove: number;
+      /** Temperature steps beyond the threshold that make the second (severe) stage. */
+      severeAt: number;
+      /** Temperature by season, added to the weather's own. */
+      seasonTemperature: Record<string, number>;
+    };
+    /** Escalation ladders; the first stage whose `at` is reached applies. */
+    stages: Record<NeedLadder, NeedStageDef[]>;
+    /** HP regained on a day of rest when no need blocks recovery. */
+    dailyHeal: number;
+    forage: {
+      difficulty: Difficulty;
+      huntDifficulty: Difficulty;
+      /** Difficulty steps added or removed by season. */
+      seasonShift: Record<string, number>;
+      /** Rations found or killed on a success. */
+      yield: [number, number];
+      /** Rations gathered on a critical success. */
+      critYield: [number, number];
+    };
+    disease: { checkDifficulty: Difficulty; maxChecksPerDay: number };
+    weather: {
+      /** What each weather family does. Missing rows are harmless. */
+      effects: Partial<
+        Record<
+          WeatherKind,
+          {
+            rangedPenalty: number;
+            perceptionPenalty: number;
+            travelFactor: number;
+            blocksRoutes: boolean;
+          }
+        >
+      >;
+      /** Degrees relative to comfortable, by weather family. */
+      temperature: Partial<Record<WeatherKind, number>>;
+    };
+    light: { dimPenalty: number; darkPenalty: number; torchMinutes: number; lanternMinutes: number };
+    language: {
+      commonTongue: string;
+      /** Language check to understand an unknown tongue; Insight to read gestures. */
+      checkDifficulty: Difficulty;
+      insightDifficulty: Difficulty;
+    };
+    /** Time detail: shop and archetype hours, by archetype name. */
+    schedules: Record<string, ScheduleEntry>;
   };
   snapshotEvery: number;
 };
@@ -451,6 +515,129 @@ export const defaultTuning: Tuning = {
     approvalPerEvent: 10,
     approvalPerScene: 20,
     thresholds: { confront: -50, leave: -75, quest: 50, loyal: 75 },
+  },
+  survival: {
+    rationPerDay: 1,
+    litresPerDay: { temperate: 2.5, cold: 2, arid: 4, tropical: 3.5, marine: 2.5, indoor: 2 },
+    litresPerWaterskin: 2,
+    exertionBonusLitres: 1,
+    sleep: { minHours: 6, maxHours: 8, assumedHours: 8, awakeHoursPerDay: 16 },
+    exposure: {
+      baseWarmth: 1,
+      warmthByTag: { warm: 2, winter: 2, cloak: 1, light: 0, armour: 0 },
+      coldBelow: -1,
+      hotAbove: 2,
+      severeAt: 2,
+      seasonTemperature: { spring: 0, summer: 2, autumn: 0, winter: -3 },
+    },
+    stages: {
+      food: [
+        { id: "hungry", name: "Hungry", at: 1, penalty: -10, condition: "core:hungry" },
+        {
+          id: "starving",
+          name: "Starving",
+          at: 3,
+          penalty: -20,
+          condition: "core:starving",
+          noRecovery: true,
+          checkEveryHours: 24,
+          checkDifficulty: "normal",
+          failureDamage: 1,
+        },
+      ],
+      water: [
+        { id: "thirsty", name: "Thirsty", at: 1, penalty: -10, condition: "core:thirsty" },
+        {
+          id: "dehydrated",
+          name: "Dehydrated",
+          at: 2,
+          penalty: -30,
+          condition: "core:dehydrated",
+          noRecovery: true,
+          checkEveryHours: 6,
+          checkDifficulty: "hard",
+          failureDamage: 1,
+        },
+      ],
+      sleep: [
+        { id: "tired", name: "Tired", at: 16, penalty: -10, condition: "core:exhausted", level: 1 },
+        { id: "weary", name: "Weary", at: 40, penalty: -20, condition: "core:exhausted", level: 2 },
+        { id: "worn", name: "Worn down", at: 64, penalty: -30, condition: "core:exhausted", level: 3 },
+        { id: "spent", name: "Spent", at: 88, penalty: -40, condition: "core:exhausted", level: 4 },
+        { id: "collapsed", name: "Collapsed", at: 112, penalty: -50, condition: "core:exhausted", level: 5 },
+      ],
+      cold: [
+        { id: "cold", name: "Cold", at: 1, penalty: -10, condition: "core:cold" },
+        {
+          id: "hypothermic",
+          name: "Hypothermic",
+          at: 2,
+          penalty: -20,
+          condition: "core:hypothermic",
+          noRecovery: true,
+          checkEveryHours: 1,
+          checkDifficulty: "hard",
+          failureDamage: 1,
+        },
+      ],
+      hot: [
+        { id: "hot", name: "Hot", at: 1, penalty: -10, condition: "core:hot" },
+        {
+          id: "heatstroke",
+          name: "Heatstroke",
+          at: 2,
+          penalty: -20,
+          condition: "core:heatstroke",
+          noRecovery: true,
+          checkEveryHours: 1,
+          checkDifficulty: "hard",
+          failureDamage: 1,
+        },
+      ],
+    },
+    dailyHeal: 1,
+    forage: {
+      difficulty: "normal",
+      huntDifficulty: "hard",
+      seasonShift: { spring: -1, summer: 0, autumn: -1, winter: 1 },
+      yield: [1, 2],
+      critYield: [2, 3],
+    },
+    disease: { checkDifficulty: "normal", maxChecksPerDay: 4 },
+    weather: {
+      effects: {
+        clear: { rangedPenalty: 0, perceptionPenalty: 0, travelFactor: 1, blocksRoutes: false },
+        overcast: { rangedPenalty: 0, perceptionPenalty: 0, travelFactor: 1, blocksRoutes: false },
+        rain: { rangedPenalty: -10, perceptionPenalty: -10, travelFactor: 1.15, blocksRoutes: false },
+        fog: { rangedPenalty: -20, perceptionPenalty: -20, travelFactor: 1.25, blocksRoutes: false },
+        wind: { rangedPenalty: -10, perceptionPenalty: -10, travelFactor: 1.1, blocksRoutes: false },
+        snow: { rangedPenalty: 0, perceptionPenalty: -10, travelFactor: 1.5, blocksRoutes: false },
+        storm: { rangedPenalty: -20, perceptionPenalty: -20, travelFactor: 1.75, blocksRoutes: true },
+        heat: { rangedPenalty: 0, perceptionPenalty: 0, travelFactor: 1.1, blocksRoutes: false },
+        mud: { rangedPenalty: 0, perceptionPenalty: 0, travelFactor: 1.5, blocksRoutes: false },
+      },
+      temperature: {
+        clear: 0,
+        overcast: -1,
+        rain: -1,
+        fog: -1,
+        wind: -1,
+        snow: -3,
+        storm: -2,
+        heat: 4,
+        mud: 0,
+      },
+    },
+    light: { dimPenalty: -20, darkPenalty: -40, torchMinutes: 60, lanternMinutes: 240 },
+    language: { commonTongue: "common", checkDifficulty: "normal", insightDifficulty: "normal" },
+    schedules: {
+      shopkeeper: { archetype: "shopkeeper", openHour: 8, closeHour: 18, note: "keeps shop hours" },
+      tavern: { archetype: "tavern", openHour: 11, closeHour: 2, note: "fills at night" },
+      guard: { archetype: "guard", openHour: 6, closeHour: 18, note: "day shift" },
+      guardNight: { archetype: "guard", openHour: 18, closeHour: 6, note: "night shift" },
+      smith: { archetype: "smith", openHour: 7, closeHour: 17, note: "works by daylight" },
+      priest: { archetype: "priest", openHour: 6, closeHour: 20, note: "keeps the temple" },
+    },
   },
   snapshotEvery: 200,
 };

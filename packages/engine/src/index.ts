@@ -17,6 +17,7 @@ export * from "./resolution/index.ts";
 export * from "./result.ts";
 export * from "./settings.ts";
 export * from "./skills.ts";
+export * from "./survival.ts";
 export * from "./state.ts";
 export * from "./turns.ts";
 export * from "./version.ts";
