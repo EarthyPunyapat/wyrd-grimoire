@@ -11,6 +11,7 @@ import { Mechanics, Passage } from "./Passage.tsx";
 import { Sheet } from "./Sheet.tsx";
 import { Timeline } from "./Timeline.tsx";
 import { clearThemeVars, themeVars } from "./theme.ts";
+import { useCampaignSettings } from "./use-campaign-settings.ts";
 import { usePlay } from "./use-play.ts";
 import { Codex, Journal, WorldMap } from "./World.tsx";
 
@@ -55,7 +56,14 @@ export function Play({
   const [legacyName, setLegacyName] = useState("");
   const [legacyError, setLegacyError] = useState("");
   const [campaignSettings, setCampaignSettings] = useState(false);
-  const [math, setMath] = useState(localStorage.getItem("wyrd-math") !== "false");
+  // The campaign's setting seeds the device once; after that the checkbox owns this device.
+  const [mathChoice, setMathChoice] = useState<boolean | null>(() => {
+    const stored = localStorage.getItem("wyrd-math");
+    return stored === null ? null : stored === "true";
+  });
+  const settings = useCampaignSettings(view.id);
+  const math = mathChoice ?? settings?.narration.showMath ?? true;
+  const suggestions = settings?.narration.suggestions ?? true;
   const textarea = useRef<HTMLTextAreaElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const play = usePlay(view, onView);
@@ -301,22 +309,24 @@ export function Play({
             }}
           >
             <div className="composer-inner">
-              <fieldset className="suggestions">
-                <legend className="sr-only">Suggested actions</legend>
-                {view.suggestions.map((s) => (
-                  <button
-                    type="button"
-                    key={s}
-                    disabled={play.busy}
-                    onClick={() => {
-                      setInput(s);
-                      textarea.current?.focus();
-                    }}
-                  >
-                    {s} <span aria-hidden="true">↗</span>
-                  </button>
-                ))}
-              </fieldset>
+              {suggestions && (
+                <fieldset className="suggestions">
+                  <legend className="sr-only">Suggested actions</legend>
+                  {view.suggestions.map((s) => (
+                    <button
+                      type="button"
+                      key={s}
+                      disabled={play.busy}
+                      onClick={() => {
+                        setInput(s);
+                        textarea.current?.focus();
+                      }}
+                    >
+                      {s} <span aria-hidden="true">↗</span>
+                    </button>
+                  ))}
+                </fieldset>
+              )}
               <div className="input-row">
                 <label className="sr-only" htmlFor="action-input">
                   What do you do?
@@ -348,7 +358,7 @@ export function Play({
                     type="checkbox"
                     checked={math}
                     onChange={(e) => {
-                      setMath(e.target.checked);
+                      setMathChoice(e.target.checked);
                       localStorage.setItem("wyrd-math", String(e.target.checked));
                     }}
                   />
