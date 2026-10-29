@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { AttributeId, ContentId, ResolutionId } from "./common.ts";
 import { Ability, Level } from "./domains/levels.ts";
+import { CampaignImport } from "./import.ts";
 import { ReactionProfile } from "./scene-responses.ts";
 import {
   CampaignPreset,
@@ -140,6 +141,8 @@ export const StartGeneratedCampaign = z
     storyMode: z.enum(["threatClock", "livingWorld"]).default("threatClock"),
     resolution: ResolutionId.default("d100"),
     hardcore: z.boolean().default(false),
+    /** A reviewed ChatGPT campaign import (D142): the character, companions and history kept. */
+    import: CampaignImport.optional(),
   })
   .strict();
 export const GeneratedWorldPreview = z.object({

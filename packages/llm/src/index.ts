@@ -6,6 +6,8 @@ export * from "./chatgpt-auth.ts";
 export * from "./collect.ts";
 export * from "./companions.ts";
 export * from "./fake.ts";
+export * from "./import/chatgpt-share.ts";
+export * from "./import/extract.ts";
 export * from "./lore/mediawiki.ts";
 export * from "./lore/research.ts";
 export * from "./lore/summarise.ts";

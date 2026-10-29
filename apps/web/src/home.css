@@ -852,3 +852,19 @@
     animation: none;
   }
 }
+
+/* "Bring a character from ChatGPT" (D142): a quiet, ruled section of the creation review. */
+.import-panel { display: grid; gap: var(--space-3, 12px); margin: 0 0 var(--space-5, 22px); padding: 12px 0 0; border: 0; border-top: 1px solid var(--line); }
+.import-panel legend { font: 12px var(--font-chrome, monospace); color: var(--ink-muted); padding: 0 0 6px; }
+.import-panel label { display: grid; gap: 6px; font: 12px var(--font-chrome, monospace); color: var(--ink-muted); }
+.import-panel textarea,
+.import-panel input:not([type="checkbox"]) { background: transparent; color: var(--ink); border: 0; border-bottom: 1px solid var(--line-strong, var(--line)); border-radius: 0; padding: 8px 0; font: 15px var(--font-read, serif); }
+.import-panel button { justify-self: start; min-height: 44px; }
+.import-review { display: grid; gap: 10px; }
+.import-review fieldset { border: 0; border-top: 1px solid var(--line); margin: 0; padding: 8px 0 0; }
+.import-review ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.import-review li label { display: flex; gap: 10px; align-items: baseline; min-height: 32px; color: var(--ink); font: 15px / 1.4 var(--font-read, serif); }
+.import-review .import-name { color: var(--gold, inherit); }
+.import-review .import-detail { color: var(--ink-muted); font: 12px var(--font-chrome, monospace); }
+.import-review .import-pc strong { font: italic 22px var(--font-read, serif); }
+.import-review .import-backstory { margin: 0; max-width: 66ch; color: var(--ink); font: 15px / 1.6 var(--font-read, serif); max-height: 12em; overflow-y: auto; }

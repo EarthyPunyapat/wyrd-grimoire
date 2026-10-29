@@ -1,4 +1,5 @@
 import {
+  type CampaignImport,
   type CampaignPreset,
   type CampaignSettings,
   CreatedCampaign,
@@ -14,6 +15,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { api, streamApi } from "./api.ts";
 import { CreationReviewEditor } from "./CreationReview.tsx";
+import { ImportPanel } from "./ImportPanel.tsx";
 import { Interview } from "./Interview.tsx";
 import { type Section, SheetEditor, withArchetype } from "./SheetEditor.tsx";
 import { useCreation } from "./use-creation.ts";
@@ -86,6 +88,7 @@ export function NewCampaign({
   const [saved] = useState(() => (draftId ? null : loadSavedDraft()));
   const restoredWorld = saved?.world ? GeneratedWorldPreview.safeParse(saved.world) : null;
   const [name, setName] = useState(typeof saved?.name === "string" ? saved.name : "");
+  const [imported, setImported] = useState<CampaignImport | null>(null);
   const [characterName, setCharacterName] = useState(
     typeof saved?.characterName === "string" ? saved.characterName : "",
   );
@@ -359,6 +362,7 @@ export function NewCampaign({
                 storyMode,
                 resolution,
                 hardcore,
+                ...(imported ? { import: imported } : {}),
               }),
             );
             localStorage.removeItem(DRAFT_KEY);
@@ -378,6 +382,7 @@ export function NewCampaign({
                 storyMode,
                 resolution,
                 hardcore,
+                ...(imported ? { import: imported } : {}),
               }),
             );
             localStorage.removeItem(DRAFT_KEY);
@@ -684,6 +689,7 @@ export function NewCampaign({
               Leave the character name blank to use {world.suggestedCharacterName}.
             </p>
           )}
+          <ImportPanel onChange={setImported} />
           <fieldset className="paths">
             <legend>How would you like to make your character?</legend>
             <p className="muted small">

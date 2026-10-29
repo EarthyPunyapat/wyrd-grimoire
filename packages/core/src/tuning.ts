@@ -33,6 +33,8 @@ export type WoundEffect = {
  * Spec numbers are defaults, not constants: rules code reads them from a Tuning value.
  */
 export type Tuning = {
+  /** ChatGPT campaign import (D142): how much condensed chat text the extraction model reads. */
+  import: { condenseChars: number };
   delegation: {
     durationMinutes: number;
     skill: string;
@@ -431,6 +433,7 @@ export type Tuning = {
 };
 
 export const defaultTuning: Tuning = {
+  import: { condenseChars: 120_000 },
   delegation: {
     durationMinutes: 1440,
     skill: "core:insight",
