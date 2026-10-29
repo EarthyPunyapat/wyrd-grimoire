@@ -188,6 +188,15 @@ export type Tuning = {
     /** Use-based: a new talent every N chapter closes. */
     talentEveryChapters: number;
   };
+  /** Companions (spec 04): party size, willingness to join, approval caps and thresholds. */
+  companions: {
+    max: number;
+    /** An NPC joins only with at least this attitude toward the PC, a bond edge, or a recruit objective. */
+    willingAttitude: number;
+    approvalPerEvent: number;
+    approvalPerScene: number;
+    thresholds: { confront: number; leave: number; quest: number; loyal: number };
+  };
   snapshotEvery: number;
 };
 
@@ -435,6 +444,13 @@ export const defaultTuning: Tuning = {
     fieldSkill: { cost: 2, trained: 10 },
     improvement: { alwaysAt: 96, gainDie: 10, restMinutes: 480 },
     talentEveryChapters: 2,
+  },
+  companions: {
+    max: 3,
+    willingAttitude: 25,
+    approvalPerEvent: 10,
+    approvalPerScene: 20,
+    thresholds: { confront: -50, leave: -75, quest: 50, loyal: 75 },
   },
   snapshotEvery: 200,
 };

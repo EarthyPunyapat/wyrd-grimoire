@@ -2,6 +2,7 @@ import {
   ATTRIBUTE_IDS,
   ATTRIBUTE_NAMES,
   type AttributeId,
+  type CharacterSheet,
   type CheckRequestInput,
   type Difficulty,
   draft,
@@ -28,6 +29,8 @@ import { toldEvents } from "./world/knowledge.ts";
  * `nameOf`, never from storage.
  */
 export type ExplorationContext = RulesContext & {
+  /** A full sheet for an NPC who joins the party and isn't an actor yet (spec 04 recruiting). */
+  recruitSheet?: (npcId: string) => CharacterSheet | null;
   /** Display name for an actor, entity, zone or prop ID. */
   nameOf: (id: string) => string;
   /** Minutes each kind of action takes. */
@@ -73,6 +76,7 @@ const DEFAULT_MINUTES: Record<ExplorationAction["type"], number> = {
   talk: 1,
   strike: 0,
   travel: 0,
+  recruit: 1,
 };
 
 /** Difficulty range the parser may propose for a free-form check; harder steps need rule tables. */
@@ -158,6 +162,30 @@ function reachable(scene: SceneState, from: string): Map<string, number> {
     }
   }
   return dist;
+}
+
+/**
+ * Whether an NPC would join (spec 04): they like the PC enough, share a bond (a friend or family
+ * edge, such as a backstory hook), or an active quest asks for them to be recruited.
+ */
+export function willingToJoin(state: GameState, npcId: string, ctx: RulesContext): boolean {
+  const pc = state.party.pcId;
+  if (!pc) return false;
+  const attitude = state.minds[npcId]?.dispositions[pc]?.attitude ?? 0;
+  if (attitude >= ctx.tuning.companions.willingAttitude) return true;
+  const bonded = state.edges.some(
+    (e) =>
+      ["friend", "family", "bond", "loyalTo"].includes(e.type) &&
+      ((e.from === npcId && e.to === pc) || (e.from === pc && e.to === npcId)),
+  );
+  if (bonded) return true;
+  return Object.values(state.quests).some(
+    (q) =>
+      q.status === "active" &&
+      q.stages[q.stage]?.objectives.some(
+        (o) => o.kind === "npcState" && o.npcId === npcId && o.state === "recruited",
+      ),
+  );
 }
 
 function validateOne(
@@ -287,6 +315,24 @@ function validateOne(
         return err("TARGET_NOT_PRESENT", `${a.targetId} isn't here to attack`, lookAround);
       if (a.targetId === actorId) return err("TARGET_SELF", "You can't attack yourself");
       return null;
+    case "recruit": {
+      if (!present(scene, a.targetId))
+        return err("TARGET_NOT_PRESENT", `${a.targetId} isn't here to ask`, lookAround);
+      if (a.targetId === actorId || a.targetId === state.party.pcId)
+        return err("RECRUIT_SELF", "You're already in your own party");
+      if (state.party.companionIds.includes(a.targetId))
+        return err("ALREADY_COMPANION", `${ctx.nameOf(a.targetId)} already travels with you`);
+      if (state.actors[a.targetId]?.dead) return err("TARGET_DEAD", `${ctx.nameOf(a.targetId)} is dead`);
+      if (state.party.companionIds.length >= ctx.tuning.companions.max)
+        return err("PARTY_FULL", `At most ${ctx.tuning.companions.max} companions travel with you at once`);
+      if (!state.actors[a.targetId] && !ctx.recruitSheet?.(a.targetId))
+        return err("CANT_RECRUIT", `${ctx.nameOf(a.targetId)} can't join a party`);
+      if (!willingToJoin(state, a.targetId, ctx))
+        return err("NOT_WILLING", `${ctx.nameOf(a.targetId)} isn't ready to join you; win them over first`, [
+          { type: "talk", targetId: a.targetId, utterance: "Will you come with me?", approach: "persuade" },
+        ]);
+      return null;
+    }
     case "talk": {
       if (!present(scene, a.targetId))
         return err("TARGET_NOT_PRESENT", `${a.targetId} isn't here to talk to`, lookAround);
@@ -482,6 +528,34 @@ export function resolvePlan(
         );
         if (!r.ok) return r;
         stoppedAt = index + 1 < plan.actions.length ? index + 1 : undefined;
+        break;
+      }
+      case "recruit": {
+        const id = action.targetId;
+        const sheet = w.state.actors[id] ? undefined : (ctx.recruitSheet?.(id) ?? undefined);
+        w.apply([
+          draft(
+            "CompanionJoined",
+            { companionId: id, reason: action.reason, ...(sheet ? { sheet } : {}) },
+            "engine",
+          ),
+          draft(
+            "FactAsserted",
+            {
+              fact: {
+                id: `fact:${id}:joined:${w.state.campaign.gameTime}`,
+                entityId: id,
+                predicate: "joinedPartyBecause",
+                value: action.reason,
+                source: "model",
+                visibility: "public",
+                importance: 4,
+              },
+            },
+            "engine",
+          ),
+        ]);
+        step("success", `${ctx.nameOf(id)} agrees to travel with ${actorName}.`);
         break;
       }
       case "strike":

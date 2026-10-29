@@ -1,4 +1,4 @@
-import type { CharacterSheet, EventEnvelope, EventType } from "@wyrd/core";
+import { type CharacterSheet, CompanionState, type EventEnvelope, type EventType } from "@wyrd/core";
 import { effectiveHpMax } from "./injury/hp.ts";
 import type { ActorState, GameState } from "./state.ts";
 
@@ -18,6 +18,13 @@ function updateSheet(
   const actor = state.actors[actorId];
   if (!actor) throw new Error(`Event refers to unknown actor ${actorId}`);
   return { ...state, actors: { ...state.actors, [actorId]: { ...actor, sheet: fn(actor.sheet) } } };
+}
+
+function companion(state: GameState, id: string, fn: (c: CompanionState) => CompanionState): GameState {
+  // Snapshots from before M6 have no companions map.
+  const c = state.companions?.[id];
+  if (!c) throw new Error(`Event refers to unknown companion ${id}`);
+  return { ...state, companions: { ...state.companions, [id]: fn(c) } };
 }
 
 /** Keeps current HP within the sheet's effective max, which wounds can lower. */
@@ -167,6 +174,65 @@ const handlers: { [K in Exclude<EventType, "CampaignCreated">]: Handler<K> } = {
         pendingTalents: sheet.progression.pendingTalents + e.payload.talents,
       },
     })),
+  // Companions (spec 04).
+  CompanionJoined: (s, e) => {
+    const { companionId: id, reason, sheet } = e.payload;
+    const existing = s.actors[id];
+    if (!existing && !sheet) throw new Error(`Companion ${id} has no sheet`);
+    const actor: ActorState = existing
+      ? { ...existing, role: "companion" }
+      : { role: "companion", sheet: sheet! };
+    const record = CompanionState.parse({ id, reason, joinedAt: s.campaign.gameTime });
+    return {
+      ...s,
+      actors: { ...s.actors, [id]: actor },
+      party: { ...s.party, companionIds: [...s.party.companionIds.filter((c) => c !== id), id] },
+      companions: { ...(s.companions ?? {}), [id]: record },
+    };
+  },
+  CompanionProfiled: (s, e) =>
+    companion(s, e.payload.companionId, (c) => ({ ...c, profile: e.payload.profile })),
+  ApprovalChanged: (s, e) =>
+    companion(s, e.payload.companionId, (c) => {
+      const sceneId = e.payload.sceneId;
+      const scene = sceneId
+        ? { id: sceneId, total: (c.scene?.id === sceneId ? c.scene.total : 0) + e.payload.delta }
+        : c.scene;
+      return {
+        ...c,
+        approval: Math.max(-100, Math.min(100, c.approval + e.payload.delta)),
+        ...(scene ? { scene } : {}),
+      };
+    }),
+  CompanionMilestone: (s, e) =>
+    companion(s, e.payload.companionId, (c) => ({
+      ...c,
+      [e.payload.milestone]: true,
+      ...(e.payload.beat ? { beat: e.payload.beat } : {}),
+    })),
+  CompanionLeft: (s, e) => {
+    const id = e.payload.companionId;
+    const next = companion(s, id, (c) => ({ ...c, status: "left", beat: e.payload.beat }));
+    const actor = next.actors[id];
+    return {
+      ...next,
+      party: { ...next.party, companionIds: next.party.companionIds.filter((c) => c !== id) },
+      actors: actor ? { ...next.actors, [id]: { ...actor, role: "npc" } } : next.actors,
+    };
+  },
+  CompanionControlSet: (s, e) =>
+    companion(s, e.payload.companionId, (c) => ({
+      ...c,
+      control: e.payload.control,
+      directive: e.payload.directive,
+    })),
+  CompanionBeatTold: (s, e) =>
+    companion(s, e.payload.companionId, (c) => {
+      const { beat: _told, ...rest } = c;
+      return rest;
+    }),
+  BanterPlayed: (s, e) =>
+    companion(s, e.payload.companionId, (c) => ({ ...c, lastBanterScene: e.payload.sceneId })),
   EquipmentChanged: (s, e) =>
     updateSheet(s, e.payload.actorId, (sheet) => ({ ...sheet, equipment: e.payload.equipment })),
 
@@ -234,7 +300,18 @@ const handlers: { [K in Exclude<EventType, "CampaignCreated">]: Handler<K> } = {
   ActorDied: (s, e) => {
     const actor = s.actors[e.payload.actorId];
     if (!actor) throw new Error(`No actor ${e.payload.actorId}`);
-    return { ...s, actors: { ...s.actors, [e.payload.actorId]: { ...actor, dead: true } } };
+    const id = e.payload.actorId;
+    const fallen = s.companions?.[id];
+    return {
+      ...s,
+      actors: { ...s.actors, [id]: { ...actor, dead: true } },
+      ...(fallen
+        ? {
+            companions: { ...s.companions, [id]: { ...fallen, status: "dead" as const } },
+            party: { ...s.party, companionIds: s.party.companionIds.filter((c) => c !== id) },
+          }
+        : {}),
+    };
   },
   EntityLeftScene: (s, e) => {
     if (!s.scene) return s;
@@ -385,6 +462,7 @@ function initialState(e: EventEnvelope<"CampaignCreated">): GameState {
     },
     mode: "exploration",
     party: { pcId: null, companionIds: [] },
+    companions: {},
     actors: {},
     scene: null,
     combat: null,

@@ -4,6 +4,7 @@ export * from "./adapters/openai-compatible.ts";
 export * from "./cassette.ts";
 export * from "./chatgpt-auth.ts";
 export * from "./collect.ts";
+export * from "./companions.ts";
 export * from "./fake.ts";
 export * from "./offline.ts";
 export * from "./offline-world.ts";

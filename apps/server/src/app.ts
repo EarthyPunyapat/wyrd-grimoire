@@ -18,6 +18,7 @@ import {
   WorldPitch,
 } from "@wyrd/core";
 import {
+  actingActor,
   closeEvents,
   combatView,
   createActor,
@@ -73,7 +74,7 @@ import type { z } from "zod";
 import { evaluateDraft, mountCreation, pregenDraft, StoredDraft } from "./creation.ts";
 import { EXAMPLE_WORLD } from "./example-world.ts";
 import { ModelServices, mountModels } from "./models.ts";
-import { mountParty } from "./party.ts";
+import { mountParty, profileNewCompanions, recruitSheet } from "./party.ts";
 import { addressOf, mountWorld } from "./world-views.ts";
 
 const SESSION_TTL = 30 * 24 * 60 * 60 * 1000;
@@ -650,7 +651,7 @@ export function createApp(options: Options) {
         : "an unknown place";
       ended = { reason: "death", obituary: obituary(state, pcId, cause, place, ctx.nameOf) };
     }
-    return { combat: combatView(state, pcId, ctx), ended };
+    return { combat: combatView(state, actingActor(state) ?? pcId, ctx), ended };
   }
   // Legacy (spec 03): after a hardcore death, a new character in the same world.
   app.post("/api/campaigns/:id/legacy", async (c) => {
@@ -697,6 +698,8 @@ export function createApp(options: Options) {
       router: models.router(),
       rules: { skills: skillCatalog([frozen]), tuning: defaultTuning },
       content: combatContent(frozen),
+      recruitSheet: (npcId, state) =>
+        recruitSheet(frozen, canon.entity(npcId) ?? null, npcId, state.campaign.settings),
       lazy: lazyFor(game, canon),
       tone: frozen.tone,
       worldBible: canon.entity("concept:world-bible")?.summary ?? "",
@@ -722,6 +725,8 @@ export function createApp(options: Options) {
         if (target) await pipeline.reroll(target, emit);
         else {
           await pipeline.run({ input, ...(actions ? { actions } : {}), onEvent: emit });
+          // A companion who just joined gets their values and personal quest (spec 04).
+          await profileNewCompanions(game, options.offline ? null : models.router()).catch(() => undefined);
           // Memory pyramid (spec 07): close scenes, chapters and arcs as their boundaries pass.
           await writeSummaries(game, canon, options.offline ? null : models.router(), {
             gameTime: game.state().campaign.gameTime,

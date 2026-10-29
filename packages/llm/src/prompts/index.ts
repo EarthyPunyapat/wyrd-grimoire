@@ -3,7 +3,7 @@
  * in the usage log; changing one means running that role's eval suite (spec 15) and bumping it.
  */
 
-export const PARSER_VERSION = "parser@2";
+export const PARSER_VERSION = "parser@3";
 export const NARRATOR_VERSION = "narrator@3";
 export const GUARD_VERSION = "guard@2";
 export const OOC_VERSION = "ooc@1";
@@ -23,6 +23,7 @@ Rules for actions:
 - Speech in quotes becomes a "talk" action. Pick the approach (persuade, deceive, intimidate, charm) only when the player is clearly trying to change someone's mind; otherwise "neutral".
 - If the player refers to something that isn't listed but could plausibly be here, use "examine" or "search" with an "area" instead of a target ID.
 - Attacking someone outside a fight ("strike") starts one.
+- Asking someone to come along, join up or travel with the player is "recruit".
 - In a fight, map free text onto combat actions in order: "kick the table over, duck behind it, shoot the archer" is a stunt (createCover on the table), takeCover, then strike the archer. Use only the combat actions listed, the IDs shown, and fit the plan in the AP left; anything with no matching effect is a stunt whose description says what the player wanted.
 - If an earlier attempt was rejected, fix exactly what the engine's errors say, using its legal alternatives where they fit.`;
 
@@ -36,6 +37,8 @@ export const EXPLORATION_RULES_DIGEST = `Mode: exploration. Available actions:
 - talk { targetId, utterance, approach }: say something. Approaches other than neutral roll Persuasion, Deception or Intimidation.
 - strike { targetId }: attack someone. This starts a fight.
 - travel { toSiteId, pace }: journey to another site along a listed road (careful, normal or fast). Takes hours or days.
+- recruit { targetId, reason }: ask someone present to join the party, with a one-sentence reason they'd come. The engine refuses unless they're willing (they like the player enough, share a bond, or a quest calls for it).
+Companions: when the player tells a companion to do something ("Mira, pick the lock"), set actorId to that companion's ID and plan their actions.
 Checks: d100 roll-under (or d20, per campaign). Degrees: critical success, success, failure, critical failure. Difficulty shifts the target: easy +20, normal 0, hard −20, extreme −40.`;
 
 export const COMBAT_RULES_DIGEST = `Mode: combat. Each turn the player's character has 3 action points (AP) and one reaction. Actions (AP):
@@ -71,7 +74,7 @@ Report:
 - linesCrossed: a quote that crosses one of the player's content lines.
 - witnessObservations: for each group of people present who saw or heard something notable this turn (their IDs), one sentence from their point of view ("The stranger knifed Harl and ran").
 - objectiveMet: a narrative quest objective this passage genuinely completes, with the quote as evidence.
-- approvalDeltas: leave empty unless companions are present and clearly react.
+- approvalDeltas: for each companion present who witnessed something they care about this turn (see their values, likes and dislikes), a delta from -10 to +10 with a short reason. Leave empty when nothing they care about happened.
 Report nothing for prose style. Empty lists are a good report.`;
 
 export const OOC_INSTRUCTIONS = `You answer a player's out-of-character question about a text role-playing game: its rules, a recap of recent events, or their character's status. Be brief (at most 120 words), factual and friendly. Use only the rules and context given; if you don't know, say so. Never change anything in the game.`;

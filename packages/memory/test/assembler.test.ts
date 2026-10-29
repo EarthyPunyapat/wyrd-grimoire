@@ -91,6 +91,7 @@ function state(): GameState {
     },
     mode: "exploration",
     party: { pcId: "pc", companionIds: [] },
+    companions: {},
     actors: { pc: { role: "pc", sheet } },
     scene: SceneState.parse({
       id: "s1",

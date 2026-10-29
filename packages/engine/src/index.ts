@@ -1,6 +1,7 @@
 export * from "./campaign.ts";
 export * from "./checks.ts";
 export * from "./combat/index.ts";
+export * from "./companions.ts";
 export * from "./conditions.ts";
 export * from "./creation.ts";
 export * from "./derived.ts";

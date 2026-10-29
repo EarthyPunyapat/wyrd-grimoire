@@ -7,6 +7,7 @@ import {
   toCombatActions,
   validateCombatPlan,
 } from "./combat/index.ts";
+import { companionBeats } from "./companions.ts";
 import { type ExplorationContext, type PlanError, resolvePlan, validatePlan } from "./exploration.ts";
 import { restImprovements, turnAwards, turnMarks } from "./progression.ts";
 import { fail, ok, type Result } from "./result.ts";
@@ -67,9 +68,14 @@ export function resolveTurn(
     ...turnAwards(state, w.state, turn, ctx.kindOf ?? (() => undefined), ctx.tuning),
   ];
   w.apply(progress);
-  progress.push(...restImprovements(w.state, turn, ctx, ctx.tuning));
-  const resolution = after.beats.length
-    ? { ...r.value.resolution, requiredBeats: [...r.value.resolution.requiredBeats, ...after.beats] }
+  const rested = restImprovements(w.state, turn, ctx, ctx.tuning);
+  w.apply(rested);
+  // Owed companion scenes (a confrontation, a departure) and this scene's banter (spec 04).
+  const owed = companionBeats(w.state, ctx.nameOf);
+  progress.push(...rested, ...owed.events);
+  const beats = [...after.beats, ...owed.beats];
+  const resolution = beats.length
+    ? { ...r.value.resolution, requiredBeats: [...r.value.resolution.requiredBeats, ...beats] }
     : r.value.resolution;
   return ok({ events: [...turn, ...progress], resolution });
 }

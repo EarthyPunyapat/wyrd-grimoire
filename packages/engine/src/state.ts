@@ -6,6 +6,7 @@ import type {
   CheckResult,
   Clock,
   CombatState,
+  CompanionState,
   Disposition,
   Edge,
   FactionState,
@@ -51,6 +52,8 @@ export type GameState = {
   };
   mode: "exploration" | "dialogue" | "combat" | "downtime" | "creation";
   party: { pcId: ActorId | null; companionIds: ActorId[] };
+  /** Companions (spec 04): approval, control, profile, by actor id; those who left stay on record. */
+  companions: Record<ActorId, CompanionState>;
   actors: Record<ActorId, ActorState>;
   scene: SceneState | null;
   combat: CombatState | null;

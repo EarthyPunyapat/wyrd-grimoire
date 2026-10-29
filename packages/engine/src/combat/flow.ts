@@ -220,7 +220,8 @@ export function startCombat(state: GameState, input: StartInput, ctx: CombatCont
           surprised: surprised.has(r.id),
           fleeing: false,
           initiative: rank[r.result.degree] * 1000 + r.result.margin,
-          controlled: r.id === pcId,
+          // Manually controlled companions take their turns from the player's input (spec 04 control).
+          controlled: r.id === pcId || state.companions?.[r.id]?.control === "manual",
           loaded: true,
           size: creature?.size ?? "medium",
         };

@@ -39,6 +39,96 @@ function Buy({
   );
 }
 
+const DIRECTIVES = {
+  follow: "Follow my lead",
+  aggressive: "Press the attack",
+  defensive: "Stay safe",
+  support: "Look after the wounded",
+  hold: "Hold position",
+} as const;
+
+/** A companion's standing with the PC and how they act in a fight (spec 04 approval and control). */
+function CompanionCard({
+  m,
+  busy,
+  onControl,
+}: {
+  m: ProgressionMember;
+  busy: boolean;
+  onControl: (control: "ai" | "manual", directive: keyof typeof DIRECTIVES) => void;
+}) {
+  const c = m.companion!;
+  const math = localStorage.getItem("wyrd-math") === "true";
+  return (
+    <div className="sheet-section companion-card">
+      <h3>How {m.name} feels about you</h3>
+      <p className="approval-word">
+        {c.mood}
+        {math && <span className="muted"> ({c.approval})</span>}
+      </p>
+      <meter
+        className="approval"
+        aria-label={`Approval: ${c.mood}`}
+        min={-100}
+        max={100}
+        low={-50}
+        high={50}
+        optimum={100}
+        value={c.approval}
+      />
+      {c.values.length > 0 && (
+        <p className="small">
+          <strong>Values</strong> {c.values.join(", ")}
+          {c.likes.length > 0 && (
+            <>
+              {" "}
+              · <strong>likes</strong> {c.likes.join(", ")}
+            </>
+          )}
+          {c.dislikes.length > 0 && (
+            <>
+              {" "}
+              · <strong>dislikes</strong> {c.dislikes.join(", ")}
+            </>
+          )}
+        </p>
+      )}
+      <div className="form-row">
+        <label>
+          In a fight
+          <select
+            value={c.control}
+            disabled={busy}
+            onChange={(e) => onControl(e.target.value as "ai" | "manual", c.directive)}
+          >
+            <option value="ai">They decide</option>
+            <option value="manual">I give the orders</option>
+          </select>
+        </label>
+        <label>
+          Standing order
+          <select
+            value={c.directive}
+            disabled={busy || c.control === "manual"}
+            onChange={(e) => onControl(c.control, e.target.value as keyof typeof DIRECTIVES)}
+          >
+            {Object.entries(DIRECTIVES).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {c.control === "manual" && (
+        <p className="muted small">
+          On {m.name}'s turn, say what they do: "{m.name} shoots the archer".
+        </p>
+      )}
+    </div>
+  );
+}
+
 /** One member's spend screen (spec 04): every option priced by the engine, with the reason when blocked. */
 function Advance({
   m,
@@ -181,6 +271,25 @@ export function Party({
   const [problem, setProblem] = useState("");
   if (!data) return <div className="sheet-content">{error ? <p className="error">{error}</p> : null}</div>;
   const member = data.members.find((m) => m.actorId === who) ?? data.members[0];
+  const control = async (control: "ai" | "manual", directive: keyof typeof DIRECTIVES) => {
+    if (!member) return;
+    setBusy(true);
+    setProblem("");
+    try {
+      setData(
+        await api(
+          `/campaigns/${campaignId}/companions/${encodeURIComponent(member.actorId)}`,
+          parseProgression,
+          { control, directive },
+          "PUT",
+        ),
+      );
+    } catch (e) {
+      setProblem((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
   const buy = async (kind: "skill" | "attribute" | "talent" | "fieldSkill", id: string) => {
     if (!member) return;
     setBusy(true);
@@ -224,7 +333,19 @@ export function Party({
           {problem}
         </p>
       )}
+      {member?.companion && <CompanionCard m={member} busy={busy} onControl={(c, d) => void control(c, d)} />}
       {member && <Advance key={member.actorId} m={member} busy={busy} buy={(k, id) => void buy(k, id)} />}
+      {data.members.length === 1 && (
+        <p className="muted small party-hint">
+          You travel alone. Win someone over and ask them to come along; up to three can join you.
+        </p>
+      )}
+      {data.former.length > 0 && (
+        <p className="muted small">
+          Once with you:{" "}
+          {data.former.map((f) => `${f.name} (${f.status === "dead" ? "fallen" : "left"})`).join(", ")}
+        </p>
+      )}
     </section>
   );
 }

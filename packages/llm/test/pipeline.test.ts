@@ -104,7 +104,13 @@ const GOOD_MOVE = [
 ];
 
 let ids = 0;
-function setup(rulesList: FakeRule[], opts: { plan?: FakeRule[] } = {}) {
+function setup(
+  rulesList: FakeRule[],
+  opts: {
+    plan?: FakeRule[];
+    recruitSheet?: ConstructorParameters<typeof TurnPipeline>[0]["recruitSheet"];
+  } = {},
+) {
   const fake = new FakeProvider(rulesList, "deepseek");
   const plan = new FakeProvider(opts.plan ?? [], "plan");
   const usage = new MemoryUsageSink();
@@ -128,6 +134,7 @@ function setup(rulesList: FakeRule[], opts: { plan?: FakeRule[] } = {}) {
     worldBible: "A river valley.",
     newId: () => `ID${String(++ids).padStart(6, "0")}`,
     campaignId: store.campaignId,
+    ...(opts.recruitSheet ? { recruitSheet: opts.recruitSheet } : {}),
   });
   const events: TurnStreamEvent[] = [];
   return { fake, plan, usage, pipeline, events, onEvent: (e: TurnStreamEvent) => events.push(e) };
@@ -181,7 +188,7 @@ describe("exploration turn end to end (FakeProvider)", () => {
     expect(t.events.map((e) => e.type)).toEqual(["turn.accepted", "narration.final", "turn.completed"]);
     // One usage record per call: parser, narrator, guard.
     expect(t.usage.records.map((u) => [u.role, u.promptVersion, u.turnId])).toEqual([
-      ["parser", "parser@2", r.turnId],
+      ["parser", "parser@3", r.turnId],
       ["narrator", "narrator@3", r.turnId],
       ["guard", "guard@2", r.turnId],
     ]);
@@ -541,5 +548,49 @@ describe("combat turns (FakeProvider)", () => {
       expect(JSON.stringify(last.tools)).toContain("takeCover");
       expect(JSON.stringify(last.messages)).toContain("The fight:");
     }
+  });
+});
+
+describe("companions through the pipeline (spec 04)", () => {
+  test("the parser's recruit joins a willing NPC, and the guard's approval deltas apply with caps", async () => {
+    store.append([
+      draft("RelationshipChanged", { edge: { from: "pc", to: "npc:wenna", type: "friend", strength: 0.8 } }),
+    ]);
+    const wenna = buildSheet(
+      {
+        id: "npc:wenna",
+        identity: { name: "Wenna", ancestry: "fantasy-core:human" },
+        attributes: { str: 6, agi: 5, end: 6, int: 5, awa: 6, wil: 5, pre: 5 },
+      },
+      store.state().campaign.settings,
+      defaultTuning,
+    );
+    const t = setup(
+      [
+        {
+          role: "parser",
+          match: (r) => lastUser(r).includes("come with me"),
+          reply: propose([
+            { type: "recruit", targetId: "npc:wenna", reason: "She owes Wren for the ferry rescue." },
+          ]),
+        },
+        { role: "parser", reply: propose([{ type: "move", toZoneId: "z:jetty" }]) },
+        { role: "narrator", reply: { text: "Wenna shrugs on her coat." } },
+        {
+          role: "guard",
+          match: (r) => lastUser(r).includes("Wenna shrugs"),
+          reply: report({
+            approvalDeltas: [{ companionId: "npc:wenna", delta: 25, reason: "Wren kept their word." }],
+          }),
+        },
+        { role: "guard", reply: report() },
+      ],
+      { recruitSheet: (id) => (id === "npc:wenna" ? wenna : null) },
+    );
+    const r = await t.pipeline.run({ input: "Wenna, come with me.", onEvent: t.onEvent });
+    expect(r.status).toBe("resolved");
+    expect(store.state().party.companionIds).toEqual(["npc:wenna"]);
+    // The guard proposed +25; one event moves approval at most 10.
+    expect(store.state().companions["npc:wenna"]!.approval).toBe(10);
   });
 });

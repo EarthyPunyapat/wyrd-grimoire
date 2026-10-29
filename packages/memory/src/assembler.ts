@@ -128,6 +128,21 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
   ]);
 
   // 6. PC and party, compact.
+  const companionLine = (c: GameState["companions"][string] | undefined, r: string) => {
+    if (!c?.profile) return null;
+    const mood =
+      c.approval >= 50
+        ? "warm"
+        : c.approval <= -50
+          ? "close to leaving"
+          : c.approval < 0
+            ? "uneasy"
+            : "steady";
+    const cares = `values ${c.profile.values.join(", ")}; likes ${c.profile.likes.join(", ") || "—"}; dislikes ${c.profile.dislikes.join(", ") || "—"}`;
+    return r === "guard"
+      ? `  ${cares}; approval ${c.approval}`
+      : `  ${cares}; feeling toward the PC: ${mood}`;
+  };
   const party = [state.party.pcId, ...state.party.companionIds].filter((x): x is string => !!x);
   const partyText = party
     .map((id) => {
@@ -163,6 +178,8 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
         sh.identity.appearance.build || sh.identity.appearance.hair
           ? `  looks: ${[sh.identity.appearance.build, sh.identity.appearance.hair, sh.identity.appearance.clothingStyle].filter(Boolean).join(", ")}`
           : null,
+        // Companions' values drive the guard's approval deltas (spec 04 approval).
+        companionLine(state.companions?.[id], role),
       ]
         .filter(Boolean)
         .join("\n");

@@ -3,6 +3,7 @@ import { Entity, Fact, NarrationPayload, SceneState, TurnCompletedPayload } from
 import { CheckResolvedPayload } from "./check.ts";
 import { combatEventSchemas } from "./combat.ts";
 import { ActorId, ContentId, RngStateSchema } from "./common.ts";
+import { partyEventSchemas } from "./party.ts";
 import { CampaignSettings } from "./settings.ts";
 import { CharacterSheet, ConditionInstance, DerivedStats, Equipment, Wound, WoundSeverity } from "./sheet.ts";
 import { worldEventSchemas } from "./world.ts";
@@ -130,6 +131,7 @@ export const eventPayloadSchemas = {
   ...combatEventSchemas,
   // World and memory (M5)
   ...worldEventSchemas,
+  ...partyEventSchemas,
 } as const;
 
 export type EventType = keyof typeof eventPayloadSchemas;

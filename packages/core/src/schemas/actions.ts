@@ -56,6 +56,14 @@ export const TravelAction = z.object({
   pace: z.enum(["careful", "normal", "fast"]).default("normal"),
 });
 
+/** Ask someone present to join the party (spec 04 recruiting); the engine checks they're willing. */
+export const RecruitAction = z.object({
+  type: z.literal("recruit"),
+  targetId: Id,
+  /** Why they join, in a sentence: recorded in canon. */
+  reason: z.string().trim().min(1).max(300),
+});
+
 export const ExplorationAction = z.discriminatedUnion("type", [
   CheckAction,
   ExamineAction,
@@ -67,6 +75,7 @@ export const ExplorationAction = z.discriminatedUnion("type", [
   /** Attacking someone outside a fight starts one (spec 03); the turn then resolves as combat. */
   StrikeAction,
   TravelAction,
+  RecruitAction,
 ]);
 export type ExplorationAction = z.infer<typeof ExplorationAction>;
 export type ExplorationActionInput = z.input<typeof ExplorationAction>;

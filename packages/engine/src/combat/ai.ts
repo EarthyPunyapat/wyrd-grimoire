@@ -36,7 +36,7 @@ export function chooseActions(state: GameState, actorId: ActorId, ctx: CombatCon
   let best: { plan: CombatAction[]; score: number } = { plan: [{ type: "endTurn" }], score: 0 };
   for (const plan of plans) {
     if (!fits(state, actorId, plan, ctx)) continue;
-    const base = scorePlan(state, actorId, plan, ctx, depth);
+    const base = scorePlan(state, actorId, plan, ctx, depth) * directiveWeight(state, actorId, plan);
     const score =
       base *
       (1 +
@@ -45,6 +45,26 @@ export function chooseActions(state: GameState, actorId: ActorId, ctx: CombatCon
     if (score > best.score) best = { plan, score };
   }
   return best.plan;
+}
+
+/**
+ * A companion's standing order (spec 04 directives) tilts the utility: aggressive favours strikes,
+ * defensive favours defending and cover, support favours first aid, hold never moves.
+ */
+function directiveWeight(state: GameState, actorId: ActorId, plan: CombatAction[]): number {
+  const directive = state.companions?.[actorId]?.directive;
+  if (!directive || directive === "follow") return 1;
+  const has = (...types: string[]) => plan.some((a) => types.includes(a.type));
+  switch (directive) {
+    case "aggressive":
+      return has("strike") ? 1.4 : has("defend", "takeCover") ? 0.5 : 1;
+    case "defensive":
+      return has("defend", "takeCover", "disengage") ? 2 : has("strike") ? 0.7 : 1;
+    case "support":
+      return has("firstAid") ? 3 : 1;
+    case "hold":
+      return has("move", "engage") ? 0 : 1;
+  }
 }
 
 /** The first action must be legal now; the AP of the whole plan must fit. Later steps are re-checked as they run. */

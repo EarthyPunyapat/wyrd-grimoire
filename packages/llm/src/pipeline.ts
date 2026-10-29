@@ -1,5 +1,6 @@
 import type { BodyPlanDef, CompiledPack, CreatureDef, ItemCatalog, SceneInput } from "@wyrd/core";
 import {
+  type CharacterSheet,
   type Clarification,
   draft,
   Entity,
@@ -12,6 +13,8 @@ import {
   type Resolution,
 } from "@wyrd/core";
 import {
+  actingActor,
+  approvalEvents,
   type CombatInfo,
   combatView,
   type GameState,
@@ -20,6 +23,7 @@ import {
   resolveTurn,
   type TurnContext,
   type TurnPlanError,
+  turnAwards,
   validateTurn,
   Working,
 } from "@wyrd/engine";
@@ -102,6 +106,8 @@ export type PipelineDeps = {
   campaignId?: string;
   /** Combat content from the campaign's frozen pack: items, body plans and stat blocks. */
   content?: CombatContent;
+  /** A full sheet for an NPC who joins the party (spec 04 recruiting); missing = nobody can join. */
+  recruitSheet?: (npcId: string, state: GameState) => CharacterSheet | null;
   /** Lazy generation (spec 06): canon events for a site's arrival place, or a stub's details. */
   lazy?: {
     location(siteId: string): Promise<EventDraft[]>;
@@ -126,7 +132,7 @@ export function makeTurnContext(
   canon: Pick<CanonSource, "entity" | "factsAbout">,
   rules: RulesContext,
   content?: CombatContent,
-  opts: { canGenerate?: boolean } = {},
+  opts: { canGenerate?: boolean; recruitSheet?: (npcId: string) => CharacterSheet | null } = {},
 ): TurnContext {
   const c = content ?? { items: { weapons: {}, armor: {}, gear: {} }, bodyPlans: {}, creatures: {} };
   const itemName = (id: string) =>
@@ -134,6 +140,7 @@ export function makeTurnContext(
   return {
     ...rules,
     ...c,
+    ...(opts.recruitSheet ? { recruitSheet: opts.recruitSheet } : {}),
     nameOf: (id) =>
       state.actors[id]?.sheet.identity.name ??
       canon.entity(id)?.name ??
@@ -288,6 +295,8 @@ export function describeAction(raw: ActionInput, nameOf: (id: string) => string)
       return `Say to ${nameOf(a.targetId)}: "${a.utterance}"`;
     case "strike":
       return `Attack ${nameOf(a.targetId)}`;
+    case "recruit":
+      return `Ask ${nameOf(a.targetId)} to join you`;
     case "travel":
       return `Travel to ${nameOf(a.toSiteId)}${a.pace && a.pace !== "normal" ? ` (${a.pace})` : ""}`;
   }
@@ -318,7 +327,11 @@ export class TurnPipeline {
     id;
 
   private turnCtx(state: GameState): TurnContext {
-    return makeTurnContext(state, this.d.canon, this.d.rules, this.d.content, { canGenerate: !!this.d.lazy });
+    const recruit = this.d.recruitSheet;
+    return makeTurnContext(state, this.d.canon, this.d.rules, this.d.content, {
+      canGenerate: !!this.d.lazy,
+      ...(recruit ? { recruitSheet: (npcId: string) => recruit(npcId, state) } : {}),
+    });
   }
 
   /**
@@ -379,7 +392,7 @@ export class TurnPipeline {
   private combatText(state: GameState): string | undefined {
     const pcId = state.party.pcId;
     if (!state.combat || !pcId) return undefined;
-    const v = combatView(state, pcId, this.turnCtx(state));
+    const v = combatView(state, actingActor(state) ?? pcId, this.turnCtx(state));
     if (!v) return undefined;
     const lines = [
       `Round ${v.round}. ${v.yourTurn ? `It's the player's turn: ${v.ap.current} AP left.` : "Not the player's turn yet."}`,
@@ -447,8 +460,10 @@ export class TurnPipeline {
     let repairs = 0;
     let lastErrors: TurnPlanError[] = [];
 
+    // In a fight, a manually controlled companion's turn takes the player's input (spec 04).
+    const acting = actingActor(state) ?? pcId;
     if (t.actions) {
-      plan = { actorId: pcId, actions: t.actions, intent: t.input };
+      plan = { actorId: acting, actions: t.actions, intent: t.input };
     } else {
       const parserPrompt = this.prompt("parser", state, { input: t.input });
       const messages: Message[] = [{ role: "user", content: parserPrompt.context }];
@@ -498,7 +513,7 @@ export class TurnPipeline {
         } else if (tc.name === "propose_actions") {
           const parsed = (mode === "combat" ? ProposeCombatActions : ProposeActions).safeParse(tc.args);
           if (parsed.success) {
-            const actorId = parsed.data.actorId ?? pcId;
+            const actorId = parsed.data.actorId ?? acting;
             const v = validateTurn(state, actorId, parsed.data.actions, ctx);
             if (v.ok) {
               plan = { actorId, actions: parsed.data.actions, intent: parsed.data.intent };
@@ -575,6 +590,7 @@ export class TurnPipeline {
     const narrState = resolution.combat ? afterEvents(state, ruleEvents) : state;
     const voiced = await this.voice(narrState, t.input, resolution, call, emit);
     const canonDrafts = this.canonFromGuard(narrState, voiced.report);
+    canonDrafts.push(...this.afterGuard(state, ruleEvents, canonDrafts, voiced.report, ctx));
 
     const completed = draft("TurnCompleted", {
       status: "resolved",
@@ -704,6 +720,26 @@ export class TurnPipeline {
         guard: { checked: report !== null, regenerated, flagged },
       },
     };
+  }
+
+  /**
+   * What the guard's report changes after the rules (spec 04): XP for quest stages it confirmed, and
+   * companions' approval for what they witnessed, with any threshold that crosses.
+   */
+  private afterGuard(
+    state: GameState,
+    ruleEvents: EventDraft[],
+    canonDrafts: EventDraft[],
+    report: GuardReportV1 | null,
+    ctx: TurnContext,
+  ): EventDraft[] {
+    const ruled = afterEvents(state, ruleEvents);
+    const guarded = afterEvents(ruled, canonDrafts);
+    const xp = turnAwards(ruled, guarded, canonDrafts, ctx.kindOf ?? (() => undefined), ctx.tuning);
+    const approvals = report?.approvalDeltas.length
+      ? approvalEvents(afterEvents(guarded, xp), report.approvalDeltas, ctx.nameOf, ctx.tuning)
+      : [];
+    return [...xp, ...approvals];
   }
 
   /** New named entities become canon stubs at the current location; new facts attach to known entities. */

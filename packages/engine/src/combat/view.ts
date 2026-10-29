@@ -50,6 +50,11 @@ export function combatView(state: GameState, pcId: ActorId, ctx: CombatContext):
         return `I ${a.type.replace(/([A-Z])/g, " $1").toLowerCase()}`;
     }
   };
+  // A manually controlled companion's options read as orders: "Mira will attack the bandit".
+  const voice = (text: string) =>
+    pcId === state.party.pcId
+      ? text
+      : text.replace(/^I /, `${ctx.nameOf(pcId)} will `).replace(/\bmy wounds\b/, "their wounds");
   return {
     round: combat.round,
     currentActorId: current,
@@ -95,7 +100,7 @@ export function combatView(state: GameState, pcId: ActorId, ctx: CombatContext):
           ap: a.ap,
           legal: a.legal && current === pcId,
           ...(a.reason ? { reason: a.reason } : current !== pcId ? { reason: "Not your turn" } : {}),
-          fill: fill(a.action as { type: string; targetId?: string; toZoneId?: string }),
+          fill: voice(fill(a.action as { type: string; targetId?: string; toZoneId?: string })),
         }))
       : [],
   };
