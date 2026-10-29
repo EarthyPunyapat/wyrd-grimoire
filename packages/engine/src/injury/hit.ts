@@ -15,6 +15,7 @@ import {
 } from "@wyrd/core";
 import { resolveCheck } from "../checks.ts";
 import { applyCondition, removeCondition } from "../conditions.ts";
+import { degradeItem } from "../inventory.ts";
 import { isSuccess } from "../resolution/index.ts";
 import { fail, ok, type Result, unwrap } from "../result.ts";
 import type { GameState, RulesContext } from "../state.ts";
@@ -278,6 +279,14 @@ export function resolveHit(state: GameState, hit: HitInput, ctx: InjuryContext):
     existing.some(
       (x) => x.location === location.id && (x.severity === "critical" || x.severity === "lethal"),
     );
+
+  // Armour takes a beating when a hit gets through it (spec 11, Durability).
+  for (const armor of worn) {
+    if (!armor.covers.includes(location.id)) continue;
+    const protection = armor.protection[damageType] ?? 0;
+    if (final >= protection + ctx.tuning.durability.armourExcess)
+      w.apply(degradeItem(w.state, hit.targetId, armor.id, "a heavy blow"));
+  }
 
   // 8. Wound and effects. Simple injuries keep only the flat penalty, plus Down on a critical.
   w.apply([draft("WoundInflicted", { actorId: hit.targetId, wound }, "engine")]);

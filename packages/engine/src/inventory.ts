@@ -9,7 +9,6 @@ import {
   type ItemCatalog,
   type ItemCondition,
   localIdOf,
-  type Rng,
   type Tuning,
   type WeaponDef,
 } from "@wyrd/core";
@@ -161,7 +160,6 @@ export function recoverAmmo(
   state: GameState,
   actorId: ActorId,
   ctx: InventoryContext,
-  rng: Rng,
   reason = "search for spent ammunition",
 ): EventDraft[] {
   if (!state.campaign.settings.subsystems.ammo) return [];
@@ -173,8 +171,8 @@ export function recoverAmmo(
     const isAmmo = item ? AMMO_LOCAL.test(localIdOf(item.id)) : AMMO_LOCAL.test(localIdOf(itemId));
     if (!isAmmo) continue;
     if (/bullet/.test(localIdOf(itemId))) continue;
-    let recovered = 0;
-    for (let i = 0; i < spent; i++) if (rng.int(1, 100) <= 50) recovered++;
+    // Half of what was shot, rounded up: deterministic, so replay is exact.
+    const recovered = Math.ceil(spent / 2);
     if (recovered > 0)
       events.push(
         draft(

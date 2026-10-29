@@ -10,6 +10,7 @@ import {
   type EventDraft,
   ExplorationAction,
   type ExplorationActionInput,
+  type ItemCatalog,
   type Modifier,
   type Resolution,
   type ResolvedStep,
@@ -19,6 +20,7 @@ import {
 } from "@wyrd/core";
 import { resolveCheck, resolveOpposedCheck } from "./checks.ts";
 import { rest } from "./injury/healing.ts";
+import { recoverAmmo } from "./inventory.ts";
 import { castSpell } from "./plugins/spellcasting.ts";
 import { isSuccess } from "./resolution/index.ts";
 import { fail, ok, type Result } from "./result.ts";
@@ -43,6 +45,8 @@ export type ExplorationContext = RulesContext & {
   travel?: TravelLookups;
   /** Pack spells, for the cast action (spec 05); missing = no magic here. */
   spells?: Record<string, SpellDef>;
+  /** Pack items, for ammo recovery and weight. */
+  items?: ItemCatalog;
   /** Creature name by namespaced id, for summons. */
   creatureName?: (id: string) => string | undefined;
 };
@@ -532,6 +536,7 @@ export function resolvePlan(
           `searches ${what}`,
         );
         if (!r.ok) return r;
+        if (ctx.items) w.apply(recoverAmmo(w.state, plan.actorId, { items: ctx.items, tuning: ctx.tuning }));
         break;
       }
       case "interact":
