@@ -1,0 +1,9 @@
+{
+  "parse": {
+    "title": "Marsh light",
+    "pageid": 1,
+    "wikitext": {
+      "*": "{{Infobox|name=Marsh light|nested={{other|x}}}}\n== Folklore ==\nThe '''light''' follows [[Marsh|wet ground]] at dusk.<ref>Source text</ref>\n[[Category:Lights]]\n<!-- hidden -->\n[https://example.org A source]"
+    }
+  }
+}

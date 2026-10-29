@@ -40,6 +40,7 @@ import {
   contentViolations,
 } from "@wyrd/memory";
 import { runGmTurn } from "./gm/loop.ts";
+import type { LoreLookup } from "./lore/research.ts";
 import {
   COMBAT_RULES_DIGEST,
   EXPLORATION_RULES_DIGEST,
@@ -118,6 +119,7 @@ export type TurnResult = {
 };
 
 export type PipelineDeps = {
+  lore?: LoreLookup;
   store: TurnStore;
   canon: TurnCanon;
   router: RoleRouter;

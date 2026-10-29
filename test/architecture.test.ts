@@ -4,7 +4,7 @@
  */
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 
 const ROOT = join(import.meta.dir, "..");
 
@@ -30,6 +30,22 @@ function walk(dir: string): string[] {
 const importsOf = (file: string) =>
   [...readFileSync(file, "utf8").matchAll(/(?:from\s+|import\s*\()\s*["']([^"']+)["']/g)].map((m) => m[1]!);
 
+// Nested domain/tool modules may climb several directories while remaining in their package.
+function escapesPackage(packageRoot: string, file: string, spec: string): boolean {
+  if (!spec.startsWith(".")) return false;
+  const target = relative(packageRoot, resolve(dirname(file), spec));
+  return target === ".." || target.startsWith("../");
+}
+
+test("relative import boundary follows the resolved package path", () => {
+  const root = join(ROOT, "packages/llm");
+  const file = join(root, "src/gm/tools/lore.ts");
+  expect(escapesPackage(root, file, "../../lore/mediawiki.ts")).toBe(false);
+  expect(escapesPackage(root, join(root, "src/lore/mediawiki.ts"), "../../package.json")).toBe(false);
+  expect(escapesPackage(root, file, "../../../../storage/src/index.ts")).toBe(true);
+  expect(escapesPackage(root, join(root, "src/index.ts"), "../../engine/src/index.ts")).toBe(true);
+});
+
 const packages = readdirSync(join(ROOT, "packages")).filter((p) =>
   statSync(join(ROOT, "packages", p)).isDirectory(),
 );
@@ -49,7 +65,7 @@ describe("dependency rules", () => {
           const internal = spec.match(/^@wyrd\/([^/]+)/);
           if (internal && !allowed.has(`@wyrd/${internal[1]}`))
             violations.push(`${relative(ROOT, file)} → ${spec}`);
-          if (spec.startsWith("../../"))
+          if (escapesPackage(join(ROOT, "packages", pkg), file, spec))
             violations.push(`${relative(ROOT, file)} reaches into another package: ${spec}`);
         }
       }

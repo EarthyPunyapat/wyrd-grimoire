@@ -60,6 +60,8 @@ import {
   generateStartingKit,
   generateWorld,
   generateWorldBible,
+  LoreResearch,
+  type MediaWikiClient,
   makeTurnContext,
   offlineBible,
   offlineElaboration,
@@ -86,7 +88,7 @@ import {
   withPlayerGear,
   worldEvents,
 } from "@wyrd/packs";
-import { AppStore, backupCampaign, CampaignStore, CanonQueries } from "@wyrd/storage";
+import { AppStore, backupCampaign, CampaignStore, CanonQueries, LoreCache } from "@wyrd/storage";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
@@ -112,6 +114,8 @@ type Options = {
   offline: boolean;
   packDir?: string;
   router?: RoleRouter;
+  /** Inject wiki IO for offline fixtures. */
+  loreClient?: Pick<MediaWikiClient, "fetchPage" | "search">;
   now?: () => number;
   /** Tests only: seed every new campaign's dice the same way. */
   seed?: string;
@@ -1079,6 +1083,13 @@ export function createApp(options: Options) {
       store: game,
       canon,
       router: models.router(),
+      lore: options.offline
+        ? undefined
+        : new LoreResearch({
+            router: models.router(),
+            cache: new LoreCache(options.home),
+            client: options.loreClient,
+          }),
       rules: { skills: skillCatalog([frozen]), tuning: defaultTuning, classes: frozen.classes },
       content: combatContent(frozen),
       recruitSheet: (npcId, state) =>

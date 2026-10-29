@@ -54,7 +54,7 @@ When the router has a `gm` route, a new turn runs the GM loop instead of parser 
 
 Tools: `roll`, `act`, `change_state`, `retcon`, `lookup_lore`, `observe`, `time_skip`, `show_card`, `offer_choices`. `act` and `roll` wrap `validateTurn`/`resolveTurn`, so exploration, travel, combat, reactions and world ticks are reused. `change_state` and `retcon` emit ordinary events plus `ItemDefined`, `RetconApplied` and `RetconUndone`. Each change is validated independently: an unknown id rejects only that change, with the reason in the tool result.
 
-Only known entities and their public facts reach `lookup_lore`, `observe` or the GM context. A retcon card carries `Undo`, available until the player's next turn; Undo appends the stored inverse events and `RetconUndone`, and a later attempt returns `409 Undo is only available until your next turn`.
+Only known campaign entities and their public facts reach `lookup_lore`, `observe` or the GM context. `lookup_lore` can additionally research external wiki lore (D136): selected-world canon → global summary cache → wiki → low-confidence model knowledge, with researching progress before async work. Campaign secrets are never included in the external research prompt. A retcon card carries `Undo`, available until the player's next turn; Undo appends the stored inverse events and `RetconUndone`, and a later attempt returns `409 Undo is only available until your next turn`.
 
 If the first GM call fails after every fallback, the turn reruns through the classic pipeline and emits `fallback`. A later-round failure keeps the rounds already committed, marks `gm.backup`, and finishes with the prose so far. Choices follow `narration.choices` (`gm` default): the GM's latest choices become the suggestion chips.
 

@@ -2,8 +2,9 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { GameView } from "@wyrd/core";
+import { CodexView, GameView } from "@wyrd/core";
 import { FakeProvider, type FakeReply, type FakeRule, RoleRouter } from "@wyrd/llm";
+import { LoreCache } from "@wyrd/storage";
 import { createApp } from "../src/app.ts";
 
 const homes: string[] = [];
@@ -13,7 +14,11 @@ afterEach(() => {
   for (const home of homes.splice(0)) rmSync(home, { recursive: true, force: true });
 });
 
-async function setup(rules: FakeRule[], plan?: FakeProvider) {
+async function setup(
+  rules: FakeRule[],
+  plan?: FakeProvider,
+  loreClient?: Parameters<typeof createApp>[0]["loreClient"],
+) {
   const home = mkdtempSync(join(tmpdir(), "wyrd-gm-turns-"));
   homes.push(home);
   const fake = new FakeProvider(rules, "fake");
@@ -30,7 +35,7 @@ async function setup(rules: FakeRule[], plan?: FakeProvider) {
         : {}),
     },
   });
-  const server = createApp({ home, offline: false, router, seed: "gm" });
+  const server = createApp({ home, offline: false, router, seed: "gm", loreClient });
   servers.push(server);
   const request = (
     path: string,
@@ -61,7 +66,7 @@ async function setup(rules: FakeRule[], plan?: FakeProvider) {
     const stream = await (await request(`/campaigns/${id}/turns/${turnId}/stream`, undefined, cookie)).text();
     return { turnId, stream };
   };
-  return { server, fake, plan, id, cookie, request, view, turn };
+  return { home, server, fake, plan, id, cookie, request, view, turn };
 }
 
 const toolResults = (req: { messages: { role: string }[] }) =>
@@ -213,4 +218,51 @@ test("backup flag reaches the view", async () => {
   expect(stream).toContain("event: model.backup");
   const view = await s.view();
   expect(view.turns.at(-1)!.backup).toBe(true);
+});
+
+test("server lookup uses global summaries offline and makes correctable lore visible in Codex", async () => {
+  let requests = 0;
+  const s = await setup(
+    [
+      {
+        role: "gm",
+        match: (req) => toolResults(req) < 2,
+        reply: call("lookup_lore", { query: "Marsh light", wiki: "dc.fandom.com" }),
+      },
+      { role: "gm", reply: { text: "The marsh lights lure walkers from the path." } },
+    ],
+    undefined,
+    {
+      fetchPage: async () => {
+        requests++;
+        throw new Error("Tests must not access wikis");
+      },
+      search: async () => {
+        requests++;
+        throw new Error("Tests must not access wikis");
+      },
+    },
+  );
+  new LoreCache(s.home).put("dc.fandom.com", "Marsh light", {
+    title: "Marsh light",
+    url: "https://dc.fandom.com/wiki/Marsh_light",
+    fetchedAt: "2026-10-29T00:00:00.000Z",
+    text: "Marsh lights lure walkers off safe paths.",
+  });
+  const { stream } = await s.turn("What are marsh lights?", "lore-1");
+  expect(stream).toContain('"phase":"researching"');
+  expect(requests).toBe(0);
+  const results = s.fake
+    .calls("gm")
+    .at(-1)!
+    .messages.filter((m) => m.role === "tool");
+  expect(results).toHaveLength(2);
+  expect(results.every((m) => m.content.includes("Marsh lights lure walkers off safe paths."))).toBe(true);
+  const codex = CodexView.parse(
+    await (await s.request(`/campaigns/${s.id}/codex`, undefined, s.cookie)).json(),
+  );
+  const entries = codex.entries.filter((e) => e.name === "Marsh light");
+  expect(entries).toHaveLength(1);
+  expect(entries[0]!.facts[0]!.value).toContain("Marsh lights lure walkers off safe paths.");
+  expect(entries[0]!.facts[0]!.editable).toBe(true);
 });

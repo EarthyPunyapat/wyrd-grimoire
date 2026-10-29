@@ -20,7 +20,7 @@ export function gmToolDefs(o: { inCombat: boolean }): ToolDef[] {
 const none = (): ToolEffects => ({ drafts: [], mechanics: [], cards: [], choices: [] });
 
 /** Executes one GM tool call against the working state. Never throws: failures are results. */
-export function executeTool(call: ToolCall, x: ToolContext): ToolOutcome {
+export async function executeTool(call: ToolCall, x: ToolContext): Promise<ToolOutcome> {
   const fail = (errors: unknown): ToolOutcome => ({
     ok: false,
     result: JSON.stringify({ ok: false, errors }),
@@ -31,7 +31,7 @@ export function executeTool(call: ToolCall, x: ToolContext): ToolOutcome {
   const parsed = tool.schema.safeParse(call.args);
   if (!parsed.success) return fail(z.prettifyError(parsed.error));
   try {
-    const run = tool.run(parsed.data, x);
+    const run = await tool.run(parsed.data, x);
     return {
       ok: run.ok,
       result: JSON.stringify({ ok: run.ok, ...run.body }),

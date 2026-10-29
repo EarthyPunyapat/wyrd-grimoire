@@ -4,7 +4,6 @@ import {
   ChangeStateArgs,
   type Choice,
   draft,
-  LookupArgs,
   ObserveArgs,
   OfferChoicesArgs,
   RetconArgs,
@@ -111,27 +110,6 @@ registerGmTool({
   description: "GM mode: rewrite the world as the player asked; the player sees a Retcon card with Undo.",
   schema: RetconArgs,
   run: (a, x) => changes("retcon", a, x),
-});
-
-registerGmTool({
-  name: "lookup_lore",
-  description: "Look up what the player knows about a name or topic.",
-  schema: LookupArgs,
-  run: (a, x) => {
-    const known = knownEntities(x.state);
-    const found = x.canon
-      .findByName(a.query)
-      .filter((e) => known.has(e.id))
-      .slice(0, 5)
-      .map((e) => ({
-        id: e.id,
-        kind: e.kind,
-        name: e.name,
-        summary: e.summary,
-        facts: publicFacts(x, e.id),
-      }));
-    return { ok: true, body: { found }, effects: { progress: { phase: "researching", detail: a.query } } };
-  },
 });
 
 registerGmTool({

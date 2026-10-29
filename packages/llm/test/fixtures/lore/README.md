@@ -1,0 +1,1 @@
+Offline MediaWiki cassettes. wikipedia.json preserves the API envelope recorded on 2026-10-29 from en.wikipedia.org (Will-o'-the-wisp); its article text is replaced with original test prose. Search and Fandom parse fixtures use documented response shapes and original text (live Fandom access returned HTTP 402). No real wiki is contacted by tests.

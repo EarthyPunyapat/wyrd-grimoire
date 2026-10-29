@@ -33,6 +33,16 @@ export type WoundEffect = {
  * Spec numbers are defaults, not constants: rules code reads them from a Tuning value.
  */
 export type Tuning = {
+  lore: {
+    requestIntervalMs: number;
+    requestTimeoutMs: number;
+    searchLimit: number;
+    canonLimit: number;
+    maxSourceChars: number;
+    maxFacts: number;
+    maxFactChars: number;
+    maxVerbatimWords: number;
+  };
   version: number;
   /** Percent shift per difficulty step (d100). */
   difficultyShift: Record<Difficulty, number>;
@@ -398,6 +408,16 @@ export type Tuning = {
 };
 
 export const defaultTuning: Tuning = {
+  lore: {
+    requestIntervalMs: 1000,
+    requestTimeoutMs: 15000,
+    searchLimit: 5,
+    canonLimit: 5,
+    maxSourceChars: 40000,
+    maxFacts: 12,
+    maxFactChars: 1500,
+    maxVerbatimWords: 25,
+  },
   sceneReactions: defaultSceneReactionTuning,
   structuredOutput: { repairs: 2 },
   version: 1,
