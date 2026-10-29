@@ -60,11 +60,14 @@ export function ModelSettings() {
   // Load the model list for providers already assigned, so a real dropdown is ready.
   useEffect(() => {
     if (!config) return;
-    const ids = new Set(
-      [...Object.values(config.models), ...Object.values(config.routing)].flatMap((value) =>
-        value?.provider ? [value.provider] : [],
-      ),
-    );
+    const ids = new Set<string>();
+    if (config.preset === "single") {
+      const primary = config.models.deepseek?.provider;
+      if (primary) ids.add(primary);
+    } else {
+      for (const value of [...Object.values(config.models), ...Object.values(config.routing)])
+        if (value?.provider) ids.add(value.provider);
+    }
     for (const id of ids) if (!(id in models)) void loadModels(id);
   }, [config, models, loadModels]);
   async function act(work: () => Promise<void>) {

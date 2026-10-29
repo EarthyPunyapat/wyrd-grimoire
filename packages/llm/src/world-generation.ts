@@ -48,30 +48,39 @@ Keep premise, zone descriptions, people descriptions and opening safe for the pl
 Use the supplied character name if present, otherwise suggest an appropriate name. Keep this small: an opening site, not an encyclopedia.`;
   let instructions = proseInstructions(base, content, "world");
   for (let attempt = 0; attempt < 2; attempt++) {
-    const result = await router.complete(
-      "worldGen",
-      {
-        instructions,
-        messages: [{ role: "user", content: JSON.stringify(WorldPitch.parse(input)) }],
-        tools: [
-          {
-            name: "propose_world",
-            description: "Propose the world and character options for review.",
-            parameters: schema,
-          },
-        ],
-        toolChoice: { name: "propose_world" },
-      },
-      { promptVersion: "world-opening@2", maxChars: 60000, maxOutputTokens: 16384 },
-    );
+    let result: Awaited<ReturnType<RoleRouter["complete"]>>;
+    try {
+      result = await router.complete(
+        "worldGen",
+        {
+          instructions,
+          messages: [{ role: "user", content: JSON.stringify(WorldPitch.parse(input)) }],
+          tools: [
+            {
+              name: "propose_world",
+              description: "Propose the world and character options for review.",
+              parameters: schema,
+            },
+          ],
+          toolChoice: { name: "propose_world" },
+        },
+        { promptVersion: "world-opening@2", maxChars: 60000, maxOutputTokens: 16384 },
+      );
+    } catch (error) {
+      const retryable = error instanceof ProviderError && error.code === "invalid_output" && attempt === 0;
+      if (retryable) continue;
+      throw error;
+    }
     const call = result.toolCalls.length === 1 && result.toolCalls[0];
     const parsed = call && call.name === "propose_world" ? WorldProposal.safeParse(call.args) : undefined;
-    if (!parsed?.success)
+    if (!parsed?.success) {
+      if (attempt === 0) continue;
       throw new ProviderError(
         "invalid_output",
         "The generated world did not match the creation format. Try generating again.",
         false,
       );
+    }
     const crossed = proposalLinesCrossed(content, parsed.data);
     if (!crossed.length) return parsed.data;
     if (attempt === 1) throw crossedError();
