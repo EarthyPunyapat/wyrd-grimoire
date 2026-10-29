@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { mkdirSync, rmSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   type CampaignPreset,
@@ -134,10 +134,32 @@ export function visibleSpells(state: GameState, pack: CompiledPack, pcId: string
     }));
 }
 
+/** Read the player's house-style examples from WYRD_HOME/style/house/*.md; failure means none. */
+function houseStyleExamples(home: string): string[] {
+  const dir = join(home, "style", "house");
+  try {
+    return readdirSync(dir)
+      .filter((name) => name.endsWith(".md"))
+      .sort()
+      .map((name) => {
+        try {
+          return readFileSync(join(dir, name), "utf8").trim();
+        } catch {
+          return "";
+        }
+      })
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 export function createApp(options: Options) {
   mkdirSync(options.home, { recursive: true });
   const store = new AppStore(join(options.home, "app.db"));
   store.recover();
+  // The player's own house-style examples, read once at launch (D144). Missing files mean none.
+  const styleExamples = houseStyleExamples(options.home);
   const secrets = new SecretStore(join(options.home, "secrets"));
   const now = options.now ?? Date.now;
   const packDir = options.packDir ?? resolve(import.meta.dir, "../../../packs/fantasy-core");
@@ -993,6 +1015,7 @@ export function createApp(options: Options) {
       lazy: lazyFor(game, canon),
       tone: frozen.tone,
       worldBible: canon.entity("concept:world-bible")?.summary ?? "",
+      styleExamples,
       campaignId: game.campaignId,
       newId: () => {
         if (firstId) {
