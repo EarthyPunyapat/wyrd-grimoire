@@ -316,7 +316,7 @@ export function Party({
   };
   return (
     <section className="sheet-content party" aria-label="Party">
-      <div className="eyebrow">THE PARTY</div>
+      <div className="eyebrow">The party</div>
       <p className="muted small">{MODE[data.mode]}</p>
       {data.members.length > 1 && (
         <fieldset className="member-tabs">

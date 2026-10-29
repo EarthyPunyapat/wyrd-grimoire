@@ -10,6 +10,7 @@ import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/500.css";
 import "./tokens.css";
 import "./reader.css";
+import "./menus.css";
 
 const root = document.getElementById("root");
 const nonce = document.querySelector<HTMLMetaElement>('meta[name="wyrd-style-nonce"]')?.content;

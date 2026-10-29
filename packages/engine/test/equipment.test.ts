@@ -8,7 +8,7 @@ import {
   type KitEntry,
   WeaponDef,
 } from "@wyrd/core";
-import { startingEquipment, validateEquipment } from "../src/equipment.ts";
+import { moveEquipment, startingEquipment, validateEquipment } from "../src/equipment.ts";
 import { makeSheet, Sim } from "./sim.ts";
 
 // A small catalog with namespaced ids, shaped like the fantasy-core items it stands in for. The
@@ -140,6 +140,68 @@ describe("validateEquipment", () => {
       carried: [],
     };
     expect(codes(eq)).toEqual(["ITEM_NOT_CARRIED"]);
+  });
+});
+
+describe("moveEquipment", () => {
+  const carried = (sim: Sim, itemId: string, qty = 1) =>
+    sim.commit([
+      draft("ItemTransferred", {
+        actorId: "pc",
+        itemId,
+        qty,
+        location: { kind: "carried" },
+        reason: "test",
+      }),
+    ]);
+  const equipped = (sim: Sim) => sim.state.actors.pc!.sheet.equipment;
+
+  test("wield, wear and stow are one validated equipment change each", () => {
+    const sim = new Sim();
+    sim.addActor("pc", "pc");
+    carried(sim, "fantasy-core:dagger");
+    carried(sim, "fantasy-core:mail-hauberk");
+
+    const wield = moveEquipment(sim.state, "pc", "fantasy-core:dagger", "main", items);
+    expect(wield.ok).toBe(true);
+    if (wield.ok) sim.commit(wield.value);
+    expect(equipped(sim).held.main).toBe("fantasy-core:dagger");
+
+    const wear = moveEquipment(sim.state, "pc", "fantasy-core:mail-hauberk", "worn", items);
+    expect(wear.ok).toBe(true);
+    if (wear.ok) sim.commit(wear.value);
+    expect(equipped(sim).worn).toEqual(["fantasy-core:mail-hauberk"]);
+
+    const stow = moveEquipment(sim.state, "pc", "fantasy-core:dagger", "carried", items);
+    expect(stow.ok).toBe(true);
+    if (stow.ok) sim.commit(stow.value);
+    expect(equipped(sim).held.main).toBeNull();
+    expect(equipped(sim).carried).toContainEqual({ item: "fantasy-core:dagger", qty: 1 });
+  });
+
+  test("the off hand takes a one-handed weapon and refuses a two-handed one", () => {
+    const sim = new Sim();
+    sim.addActor("pc", "pc");
+    carried(sim, "fantasy-core:dagger");
+    carried(sim, "fantasy-core:light-crossbow");
+    const oneHanded = moveEquipment(sim.state, "pc", "fantasy-core:dagger", "off", items);
+    expect(oneHanded.ok).toBe(true);
+    const twoHanded = moveEquipment(sim.state, "pc", "fantasy-core:light-crossbow", "off", items);
+    expect(twoHanded.ok).toBe(false);
+    if (!twoHanded.ok) expect(twoHanded.errors[0]!.code).toBe("TWO_HANDED_OFF");
+  });
+
+  test("gear cannot be wielded or worn, and an uncarried item is refused", () => {
+    const sim = new Sim();
+    sim.addActor("pc", "pc");
+    carried(sim, "fantasy-core:rope");
+    for (const to of ["main", "off", "worn"] as const) {
+      const out = moveEquipment(sim.state, "pc", "fantasy-core:rope", to, items);
+      expect(out.ok).toBe(false);
+    }
+    const missing = moveEquipment(sim.state, "pc", "fantasy-core:lockpicks", "main", items);
+    expect(missing.ok).toBe(false);
+    if (!missing.ok) expect(missing.errors[0]!.code).toBe("ITEM_NOT_CARRIED");
   });
 });
 

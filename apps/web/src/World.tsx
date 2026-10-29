@@ -25,7 +25,55 @@ const parseJournal = (d: unknown) => JournalView.parse(d);
 const parseCodex = (d: unknown) => CodexView.parse(d);
 const parseMap = (d: unknown) => MapView.parse(d);
 
-/** Journal (spec 07): recap, quests, leads, clocks, rumours, the summary pyramid and notes. */
+/** Quest lines for the Quests tab (U4). */
+function QuestList({ quests }: { quests: JournalView["quests"] }) {
+  if (!quests.length) return <p className="small muted">No quests taken on yet.</p>;
+  return (
+    <ul className="quests">
+      {quests.map((q) => (
+        <li key={q.id} className={q.status}>
+          <strong>{q.title}</strong> <span className="small">({q.status})</span>
+          <p className="small">{q.stage}</p>
+          <ul>
+            {q.objectives.map((o) => (
+              <li key={o.text}>
+                {o.met ? "☑" : "☐"} {o.text}
+              </li>
+            ))}
+          </ul>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Quests as their own status-screen tab (spec §12, U4). */
+export function Quests({ campaignId, stamp }: { campaignId: string; stamp: number }) {
+  const { data, error } = usePanel(`/campaigns/${campaignId}/journal`, parseJournal, stamp);
+  if (error)
+    return (
+      <p role="alert" className="error panel-pad">
+        {error}
+      </p>
+    );
+  if (!data) return <p className="panel-pad muted">Opening the quest list…</p>;
+  const open = data.quests.filter((q) => q.status !== "done" && q.status !== "failed");
+  const closed = data.quests.filter((q) => q.status === "done" || q.status === "failed");
+  return (
+    <section className="world-panel quest-panel" aria-label="Quests">
+      <h3>Open quests</h3>
+      <QuestList quests={open} />
+      {closed.length > 0 && (
+        <>
+          <h3>Closed</h3>
+          <QuestList quests={closed} />
+        </>
+      )}
+    </section>
+  );
+}
+
+/** Journal (spec 07): recap, leads, clocks, rumours, the summary pyramid and notes. */
 export function Journal({ campaignId, stamp }: { campaignId: string; stamp: number }) {
   const { data, setData, error, reload } = usePanel(`/campaigns/${campaignId}/journal`, parseJournal, stamp);
   const [notes, setNotes] = useState<string | null>(null);
@@ -45,26 +93,6 @@ export function Journal({ campaignId, stamp }: { campaignId: string; stamp: numb
           <h3>Previously</h3>
           <p>{data.recap.replace(/^Previously… /, "")}</p>
         </div>
-      )}
-      <h3>Quests</h3>
-      {data.quests.length ? (
-        <ul className="quests">
-          {data.quests.map((q) => (
-            <li key={q.id} className={q.status}>
-              <strong>{q.title}</strong> <span className="small">({q.status})</span>
-              <p className="small">{q.stage}</p>
-              <ul>
-                {q.objectives.map((o) => (
-                  <li key={o.text}>
-                    {o.met ? "☑" : "☐"} {o.text}
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="small muted">No quests taken on yet.</p>
       )}
       {data.leads.length > 0 && (
         <>

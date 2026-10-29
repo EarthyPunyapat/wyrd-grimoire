@@ -58,6 +58,17 @@ Built test-first on `w2-source`; merged to `main`. Plan: `docs/superpowers/plans
 - Offline tests use FakeProvider plus C's recorded wiki fixture. Coverage includes clocks/interventions/world isolation/replay, NPC actions, source research, apocalypse/cosmic review proposals, style instructions, same-turn evidence, creation/settings/downtime/rebuild and desktop/phone creation flows.
 - Validation: `bun run check` passed: typecheck, lint (existing warnings), **781 tests**, and fantasy-core pack validation. Build passed; full sequential Playwright: **47 passed, 3 existing skips** on desktop/phone. Combat goldens changed only the `CampaignCreated` hashes for the new default settings fields; combat outcomes are unchanged.
 
+## W2 UI U4 — the status screen (2026-10-30)
+
+Built on `w2-ui-menus`; plan `docs/superpowers/plans/2026-10-29-w2-ui-menus.md`, decision D157.
+
+- One full-screen status screen replaces the separate panels: Character, Inventory, Quests, Journal, Codex, Map, Timeline and Settings. C/I/Q/J/M open it on that tab; Esc, the close control and a Back to the story button return. The tablist supports arrows, Home and End, and keeps key hints as hints rather than names.
+- Inventory is a paper doll (main hand, off hand, worn armour) plus a sortable bag grid. Every item opens the same `ItemCard` the story uses. Equip, stow and sort are instant; Use, Give, Throw and Drop compose one story turn. Selling stays a shop action.
+- `moveEquipment` is the new engine rule: one validated `EquipmentChanged`, with carried quantities synced from the item stacks. `POST /api/campaigns/:id/inventory/move` serves the instant actions, and GameView derives each item's location from the sheet so the bag and card agree.
+- Styles are in `apps/web/src/menus.css`; item and chrome icons come from game-icons.net (CC BY 3.0), credited per icon in `NOTICE`.
+- Validation: `bun run check` passed (typecheck, lint warnings only, **803 tests**, fantasy-core pack validation). Build passed. Full sequential Playwright with one worker: **54 passed, 4 existing skips**; the new menus workflow passes desktop and phone including axe WCAG A/AA.
+- U5 (home and creation) and U6 (Cockpit/Chat presets) remain.
+
 ## W2 C — Lore from wikis (2026-10-29)
 
 Built test-first on `w2-lore`; merged to `main`. Plan: `docs/superpowers/plans/2026-10-29-w2-lore.md`.

@@ -14,7 +14,7 @@ export function Sheet({ view }: { view: GameView }) {
   };
   return (
     <div className="sheet-content">
-      <div className="eyebrow">YOUR CHARACTER</div>
+      <div className="eyebrow">Your character</div>
       <div className="character-heading">
         <div className="portrait" aria-hidden="true">
           {pc.identity.name.slice(0, 1)}

@@ -32,7 +32,7 @@ test("status strip names the character, place and time", () => {
 test("status strip menu keys are hints, never the accessible name", () => {
   const html = renderToStaticMarkup(<StatusStrip view={view} onMenu={noop} onSettings={noop} />);
   for (const [key, name] of [
-    ["C", "Sheet"],
+    ["C", "Character"],
     ["I", "Inventory"],
     ["J", "Journal"],
     ["M", "Map"],
@@ -178,7 +178,7 @@ test("an item card shows the icon, the gold name, the type line and the descript
   const html = renderToStaticMarkup(
     <Cards cards={[{ type: "item", itemId: "campaign:axiom-prime" }]} view={v} mechanics={[]} />,
   );
-  expect(html).toContain('class="item-icon"');
+  expect(html).toContain("item-icon");
   expect(html).toContain("AXIOM PRIME");
   expect(html).toContain("Gear · worn");
   expect(html).toContain("Self-forged Source ring.");
