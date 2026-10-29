@@ -47,6 +47,8 @@ export type Tuning = {
     eventSeverity: Record<string, "minor" | "major" | "critical">;
     newsSeverity: Record<string, "minor" | "major" | "critical">;
   };
+  /** ChatGPT campaign import (D142): how much condensed chat text the extraction model reads. */
+  import: { condenseChars: number };
   delegation: {
     durationMinutes: number;
     skill: string;
@@ -478,6 +480,7 @@ export const defaultTuning: Tuning = {
       FactAsserted: "minor",
     },
   },
+  import: { condenseChars: 120_000 },
   delegation: {
     durationMinutes: 1440,
     skill: "core:insight",

@@ -200,7 +200,7 @@ Built test-first on `w2-lore`; merged to `main`. Plan: `docs/superpowers/plans/2
 
 **W2 — Wyrd 2.0** (before M8). The owner played M7 and found it lacking next to their own ChatGPT RPG sessions, and a 72-question interview on 2026-10-29 redesigned the game.
 
-Step 2 and step 3 A/B/C/D/E/F are done, and UI 2.0 U3–U6 are built. Next: step 4 import and the replay/owner evaluation. A exports level/check/breakthrough helpers, C exports `LoreResearch`, D exports canon-clock advancement, and F exports delegation advancement/boundary/blocked-task helpers. E now owns the full skip loop and infinity observation.
+Step 2 and step 3 A/B/C/D/E/F are done, and UI 2.0 U3–U6 are built. Step 4 I (ChatGPT share import) has also landed on main. Next: the replay/owner evaluation. A exports level/check/breakthrough helpers, C exports `LoreResearch`, D exports canon-clock advancement, and F exports delegation advancement/boundary/blocked-task helpers. E now owns the full skip loop and infinity observation.
 
 Read these first:
 - the spec: `docs/superpowers/specs/2026-10-29-wyrd-2-design.md`

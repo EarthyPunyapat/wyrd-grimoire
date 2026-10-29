@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import {
   CampaignPatch,
   type CampaignPreset,
+  CampaignSettings,
   type CampaignSettingsInput,
   type CompiledPack,
   DowntimeRequest,
@@ -13,6 +14,7 @@ import {
   Entity,
   type EventDraft,
   GameView,
+  ImportRequest,
   LegacyInput,
   type Level,
   PasscodeInput,
@@ -72,6 +74,8 @@ import {
   combatContent,
   defaultCreationReview,
   elaborateEntity,
+  extractCampaignImport,
+  fetchSharedChat,
   generateCreationReview,
   generateLocation,
   generateStartingKit,
@@ -83,11 +87,13 @@ import {
   offlineBible,
   offlineElaboration,
   offlineLocation,
+  parseShareUrl,
   placeHooks,
   type ResearchedSource,
   type RoleRouter,
   researchSource,
   SecretStore,
+  type SharedChat,
   TurnPipeline,
   type TurnStreamEvent,
   writeSummaries,
@@ -119,6 +125,7 @@ import { mountCampaignSettings } from "./campaign-settings.ts";
 import { evaluateDraft, mountCreation, pregenDraft, StoredDraft } from "./creation.ts";
 import { EXAMPLE_WORLD } from "./example-world.ts";
 import { mountHistory } from "./history.ts";
+import { importEvents } from "./import.ts";
 import { ModelServices, mountModels } from "./models.ts";
 import { mountParty, profileNewCompanions, recruitSheet } from "./party.ts";
 import { sourceEvents } from "./source-creation.ts";
@@ -136,6 +143,8 @@ type Options = {
   router?: RoleRouter;
   /** Inject wiki IO for offline fixtures. */
   loreClient?: Pick<MediaWikiClient, "fetchPage" | "search">;
+  /** Inject the fetch used to read ChatGPT share links, for offline fixtures. */
+  shareFetch?: typeof fetch;
   now?: () => number;
   /** Tests only: seed every new campaign's dice the same way. */
   seed?: string;
@@ -512,6 +521,22 @@ export function createApp(options: Options) {
     await mark("save", "done");
     return preview;
   }
+  // ChatGPT campaign import (D142): read share links and draft the character, companions and history.
+  app.post("/api/import/chatgpt", async (c) => {
+    const input = await body(c, ImportRequest);
+    const urls = input.urls.map((u) => parseShareUrl(u));
+    if (urls.some((u) => !u))
+      throw new HTTPException(422, { message: "Only ChatGPT share links can be imported" });
+    if (options.offline) throw new HTTPException(422, { message: "Connect a model to read your chats." });
+    let chats: SharedChat[];
+    try {
+      chats = await Promise.all(urls.map((u) => fetchSharedChat(u!, options.shareFetch ?? fetch)));
+    } catch (e) {
+      throw new HTTPException(502, { message: `Could not read a share link: ${(e as Error).message}` });
+    }
+    const draftImport = await extractCampaignImport(models.router(), chats, { exclude: input.exclude });
+    return c.json(draftImport);
+  });
   app.post("/api/world-drafts", async (c) => {
     const input = await body(c, WorldPitch);
     if (generating)
@@ -564,12 +589,23 @@ export function createApp(options: Options) {
       throw new HTTPException(404, { message: "World draft not found. Generate your world first." });
     if (saved.data.campaignId) return c.json({ id: saved.data.campaignId }, 201);
     const { pack, world } = compileGeneratedWorld(saved.data.proposal, saved.data.kit);
-    const characterName = input.characterName || saved.data.proposal.suggestedCharacterName;
+    const characterName =
+      input.characterName || input.import?.pc.name || saved.data.proposal.suggestedCharacterName;
     // The quick path names an origin and background; the other paths start from the edited sheet.
-    const sheet =
+    const built =
       input.ancestry && input.archetype
         ? archetypeDraft(pack, input.ancestry, input.archetype, characterName)
         : saved.data.sheet;
+    // An imported character keeps their name, backstory and gear as player canon (D129, D142).
+    const sheet =
+      built && input.import
+        ? {
+            ...built,
+            name: input.import.pc.name,
+            backstory: input.import.pc.backstory,
+            gear: input.import.pc.gear,
+          }
+        : built;
     if (!sheet)
       throw new HTTPException(422, { message: "Choose an origin and background, or build a character" });
     // Placing hooks awaits a model, so a second click must not start a second campaign meanwhile.
@@ -630,11 +666,17 @@ export function createApp(options: Options) {
         input.ancestry && input.archetype ? sheet : { ...sheet, name: sheet.name || characterName },
         pack,
         world,
-        [...bible, ...sourced],
+        [
+          ...bible,
+          ...sourced,
+          ...(input.import
+            ? importEvents(input.import, { pcId: "pc", pack, settings: CampaignSettings.parse(settings) })
+            : []),
+        ],
         hooks,
         settings,
         saved.data.input.pitch,
-        review?.startingLevel,
+        input.import?.pc.level ?? review?.startingLevel,
       );
       store.saveCreationDraft(input.draftId, { ...saved.data, campaignId: id });
       return c.json({ id }, 201);
