@@ -1,4 +1,6 @@
 import {
+  type CampaignPreset,
+  type CampaignSettings,
   CreatedCampaign,
   CreationView,
   GeneratedWorldPreview,
@@ -33,7 +35,11 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<Mode>("review");
-  const [progression, setProgression] = useState<"classless" | "useBased" | "hybrid">("classless");
+  const [progression, setProgression] = useState<CampaignSettings["structural"]["progression"]>("classless");
+  const [preset, setPreset] = useState<CampaignPreset>("standard");
+  const [storyMode, setStoryMode] = useState<"threatClock" | "livingWorld">("threatClock");
+  const [resolution, setResolution] = useState<"d100" | "d20">("d100");
+  const [hardcore, setHardcore] = useState(false);
   const [step, setStep] = useState(0);
   const creation = useCreation(world?.id);
   const editing = mode !== "review";
@@ -90,12 +96,20 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
             setWorld(draft);
             setAncestry(draft.origins[0]!.id);
             setArchetype(draft.backgrounds[0]!.id);
+            setProgression(draft.progressions[0] ?? "classless");
           } else if (mode === "editor") {
             await creation.flush();
             const created = await api(
               "/campaigns",
               CreatedCampaign.parse,
-              StartGeneratedCampaign.parse({ draftId: world.id, progression }),
+              StartGeneratedCampaign.parse({
+                draftId: world.id,
+                progression,
+                preset,
+                storyMode,
+                resolution,
+                hardcore,
+              }),
             );
             onCreate(created.id);
           } else {
@@ -108,6 +122,10 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
                 ancestry,
                 archetype,
                 progression,
+                preset,
+                storyMode,
+                resolution,
+                hardcore,
               }),
             );
             onCreate(created.id);
@@ -287,18 +305,85 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
               </button>
             </div>
           </fieldset>
-          <label>
-            How characters grow <span className="muted">(fixed once the story starts)</span>
-            <select
-              value={progression}
-              onChange={(e) => setProgression(e.target.value as typeof progression)}
-              disabled={busy}
-            >
-              <option value="classless">Spend experience freely</option>
-              <option value="useBased">Improve skills by using them</option>
-              <option value="hybrid">Both, at half experience</option>
-            </select>
-          </label>
+          <fieldset className="rules">
+            <legend>Rules of play</legend>
+            <p className="muted small">
+              These shape the whole campaign. Dice and character growth are fixed once the story starts.
+            </p>
+            <div className="form-row">
+              <label>
+                Preset
+                <select
+                  aria-label="Preset"
+                  value={preset}
+                  onChange={(e) => setPreset(e.target.value as CampaignPreset)}
+                  disabled={busy}
+                >
+                  <option value="story">Story — light bookkeeping</option>
+                  <option value="standard">Standard — the full core rules</option>
+                  <option value="simulation">Simulation — every dial on</option>
+                  <option value="custom">Custom — start from Standard, then tune</option>
+                </select>
+              </label>
+              <label>
+                Story mode
+                <select
+                  aria-label="Story mode"
+                  value={storyMode}
+                  onChange={(e) => setStoryMode(e.target.value as typeof storyMode)}
+                  disabled={busy}
+                >
+                  <option value="threatClock">Threat clock — the danger closes in</option>
+                  <option value="livingWorld">Living world — factions act on their own</option>
+                </select>
+              </label>
+            </div>
+            <div className="form-row">
+              <label>
+                Dice
+                <select
+                  aria-label="Dice"
+                  value={resolution}
+                  onChange={(e) => setResolution(e.target.value as typeof resolution)}
+                  disabled={busy}
+                >
+                  <option value="d100">d100 — percentile checks</option>
+                  <option value="d20">d20 — the same odds, twenty-sided</option>
+                </select>
+              </label>
+              <label>
+                How characters grow <span className="muted">(fixed once the story starts)</span>
+                <select
+                  aria-label="How characters grow"
+                  value={progression}
+                  onChange={(e) => setProgression(e.target.value as typeof progression)}
+                  disabled={busy}
+                >
+                  {world.progressions.includes("classless") && (
+                    <option value="classless">Spend experience freely</option>
+                  )}
+                  {world.progressions.includes("useBased") && (
+                    <option value="useBased">Improve skills by using them</option>
+                  )}
+                  {world.progressions.includes("hybrid") && (
+                    <option value="hybrid">Both, at half experience</option>
+                  )}
+                  {world.progressions.includes("classes") && (
+                    <option value="classes">Classes and levels</option>
+                  )}
+                </select>
+              </label>
+            </div>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={hardcore}
+                onChange={(e) => setHardcore(e.target.checked)}
+                disabled={busy}
+              />
+              Hardcore — death is permanent, and turning this on can't be undone
+            </label>
+          </fieldset>
           <h3>Your opening</h3>
           <p>{world.opening}</p>
           <button

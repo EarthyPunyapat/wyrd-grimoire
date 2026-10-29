@@ -26,6 +26,39 @@ export function changedPaths(a: unknown, b: unknown, prefix = ""): string[] {
   return stableStringify(a) === stableStringify(b) ? [] : [prefix];
 }
 
+export const SETTING_LOCK_MESSAGES = {
+  resolution: "The dice system is chosen at creation and locked",
+  progression: "The progression mode is chosen at creation and locked",
+  hardcore: "Hardcore can only be turned on when the campaign is created",
+  softcore: "The softcore mark is permanent",
+  cheatEdited: "The cheat-edit mark is permanent",
+  companionDeath: "Companion death is always on in hardcore",
+} as const;
+
+/** A setting the settings screen greys out, with the reason it can't be changed. */
+export type SettingLock = { path: string; reason: string };
+
+/**
+ * The locks that apply to the current settings (spec 12), for the settings screen. Hardcore is
+ * only locked while it is off: turning it off is allowed, turning it on later is not. Companion
+ * death is locked while hardcore is on because it is forced.
+ */
+export function settingsLocks(settings: CampaignSettings): SettingLock[] {
+  const locks: SettingLock[] = [
+    { path: "structural.resolution", reason: SETTING_LOCK_MESSAGES.resolution },
+    { path: "structural.progression", reason: SETTING_LOCK_MESSAGES.progression },
+  ];
+  if (settings.structural.hardcore) {
+    locks.push({ path: "companionDeath", reason: SETTING_LOCK_MESSAGES.companionDeath });
+  } else {
+    locks.push({ path: "structural.hardcore", reason: SETTING_LOCK_MESSAGES.hardcore });
+  }
+  if (settings.flags.softcore) locks.push({ path: "flags.softcore", reason: SETTING_LOCK_MESSAGES.softcore });
+  if (settings.flags.cheatEdited)
+    locks.push({ path: "flags.cheatEdited", reason: SETTING_LOCK_MESSAGES.cheatEdited });
+  return locks;
+}
+
 /**
  * Lock rules (spec 12): dice and progression never change after creation; hardcore can be
  * turned off (which permanently marks the campaign softcore) but never on; the softcore and
@@ -35,24 +68,24 @@ export function validateSettingsChange(current: CampaignSettings, next: Campaign
   const errors: RuleError[] = [];
   const locked = (path: string, message: string) => errors.push({ code: "SETTING_LOCKED", path, message });
   if (next.structural.resolution !== current.structural.resolution) {
-    locked("structural.resolution", "The dice system is chosen at creation and locked");
+    locked("structural.resolution", SETTING_LOCK_MESSAGES.resolution);
   }
   if (next.structural.progression !== current.structural.progression) {
-    locked("structural.progression", "The progression mode is chosen at creation and locked");
+    locked("structural.progression", SETTING_LOCK_MESSAGES.progression);
   }
   if (next.structural.hardcore && !current.structural.hardcore) {
-    locked("structural.hardcore", "Hardcore can only be turned on when the campaign is created");
+    locked("structural.hardcore", SETTING_LOCK_MESSAGES.hardcore);
   }
   if (current.flags.softcore && !next.flags.softcore)
-    locked("flags.softcore", "The softcore mark is permanent");
+    locked("flags.softcore", SETTING_LOCK_MESSAGES.softcore);
   if (current.flags.cheatEdited && !next.flags.cheatEdited) {
-    locked("flags.cheatEdited", "The cheat-edit mark is permanent");
+    locked("flags.cheatEdited", SETTING_LOCK_MESSAGES.cheatEdited);
   }
   if (current.structural.hardcore && next.structural.hardcore && !next.companionDeath) {
     errors.push({
       code: "SETTING_FORCED",
       path: "companionDeath",
-      message: "Companion death is always on in hardcore",
+      message: SETTING_LOCK_MESSAGES.companionDeath,
     });
   }
   return errors;

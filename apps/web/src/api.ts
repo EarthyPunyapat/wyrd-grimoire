@@ -2,7 +2,7 @@ export async function api<T>(
   path: string,
   parse: (data: unknown) => T,
   body?: unknown,
-  method: "POST" | "PUT" = "POST",
+  method: "POST" | "PUT" | "PATCH" = "POST",
 ): Promise<T> {
   const response = await fetch(`/api${path}`, {
     credentials: "same-origin",

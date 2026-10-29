@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { AttributeId, ContentId } from "./common.ts";
+import { AttributeId, ContentId, ResolutionId } from "./common.ts";
+import { CampaignPreset, ProgressionMode } from "./settings.ts";
 
 const name = z.string().trim().min(1).max(100);
 const description = z.string().trim().min(1).max(1500);
@@ -67,7 +68,12 @@ export const StartGeneratedCampaign = z
     ancestry: ContentId.optional(),
     archetype: ContentId.optional(),
     /** Chosen at creation and locked (spec 04, 12). Class mode needs a pack with classes. */
-    progression: z.enum(["classless", "useBased", "hybrid"]).default("classless"),
+    progression: ProgressionMode.default("classless"),
+    /** The starting preset (spec 11) and structural choices (spec 12). */
+    preset: CampaignPreset.default("standard"),
+    storyMode: z.enum(["threatClock", "livingWorld"]).default("threatClock"),
+    resolution: ResolutionId.default("d100"),
+    hardcore: z.boolean().default(false),
   })
   .strict();
 export const GeneratedWorldPreview = z.object({
@@ -80,6 +86,8 @@ export const GeneratedWorldPreview = z.object({
   originLabel: z.enum(["Origin", "Ancestry", "Species"]),
   origins: z.array(z.object({ id: ContentId, name, description })),
   backgrounds: z.array(z.object({ id: ContentId, name, description })),
+  /** Progression modes the compiled pack supports, so the wizard only offers real choices. */
+  progressions: z.array(ProgressionMode).default(["classless"]),
   offline: z.boolean(),
 });
 export type GeneratedWorldPreview = z.infer<typeof GeneratedWorldPreview>;

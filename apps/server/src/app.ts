@@ -2,6 +2,8 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
+  type CampaignPreset,
+  type CampaignSettingsInput,
   type CompiledPack,
   type DraftSheet,
   defaultTuning,
@@ -11,7 +13,10 @@ import {
   GameView,
   LegacyInput,
   PasscodeInput,
+  type ProgressionMode,
+  presetSelection,
   QuickStartInput,
+  type ResolutionId,
   StartGeneratedCampaign,
   SubmitTurnInput,
   TurnCompletedPayload,
@@ -71,6 +76,7 @@ import { HTTPException } from "hono/http-exception";
 import { NONCE, type SecureHeadersVariables, secureHeaders } from "hono/secure-headers";
 import { streamSSE } from "hono/streaming";
 import type { z } from "zod";
+import { mountCampaignSettings } from "./campaign-settings.ts";
 import { evaluateDraft, mountCreation, pregenDraft, StoredDraft } from "./creation.ts";
 import { EXAMPLE_WORLD } from "./example-world.ts";
 import { ModelServices, mountModels } from "./models.ts";
@@ -226,6 +232,7 @@ export function createApp(options: Options) {
     router: () => (options.offline ? null : models.router()),
   });
   mountParty(app, { campaign: (id) => campaign(id), body, running: (id) => !!store.running(id) });
+  mountCampaignSettings(app, { campaign: (id) => campaign(id), body });
   mountWorld(app, {
     campaign: (id) => campaign(id),
     store,
@@ -320,6 +327,7 @@ export function createApp(options: Options) {
         world,
         saved.data.bible?.startSite,
       );
+      const settings = creationSettings(pack, input);
       const id = createGame(
         saved.data.input.name,
         input.ancestry && input.archetype ? sheet : { ...sheet, name: sheet.name || characterName },
@@ -327,7 +335,7 @@ export function createApp(options: Options) {
         world,
         bible,
         hooks,
-        input.progression,
+        settings,
       );
       store.saveCreationDraft(input.draftId, { ...saved.data, campaignId: id });
       return c.json({ id }, 201);
@@ -343,6 +351,10 @@ export function createApp(options: Options) {
       name,
       characterName,
       progression,
+      preset,
+      storyMode,
+      resolution,
+      hardcore,
       ...input
     } = await body(c, QuickStartInput);
     const sheet = pregen
@@ -362,7 +374,7 @@ export function createApp(options: Options) {
       world,
       [],
       hooks,
-      progression,
+      creationSettings(pack, { progression, preset, storyMode, resolution, hardcore }),
     );
     return c.json({ id }, 201);
   });
@@ -417,6 +429,31 @@ export function createApp(options: Options) {
         : fallback;
     return hookEvents(character.hooks, "pc", existing, placements, world.gameTime);
   }
+  /** Campaign settings from the wizard's rules choices (spec 11, 12), validated against the pack. */
+  function creationSettings(
+    pack: CompiledPack,
+    choice: {
+      preset: CampaignPreset;
+      storyMode: "threatClock" | "livingWorld";
+      resolution: ResolutionId;
+      progression: ProgressionMode;
+      hardcore: boolean;
+    },
+  ): CampaignSettingsInput {
+    if (!pack.manifest.supports.progression.includes(choice.progression))
+      throw new HTTPException(422, {
+        message: `This world does not support ${choice.progression} progression`,
+      });
+    return {
+      structural: {
+        resolution: choice.resolution,
+        progression: choice.progression,
+        hardcore: choice.hardcore,
+      },
+      story: { mode: choice.storyMode },
+      ...presetSelection(choice.preset),
+    };
+  }
   function createGame(
     name: string,
     character: DraftSheet,
@@ -424,12 +461,12 @@ export function createApp(options: Options) {
     world: WorldDef,
     extra: EventDraft[] = [],
     hooks?: { ids: string[]; events: EventDraft[] },
-    progression: "classless" | "useBased" | "hybrid" = "classless",
+    settings: CampaignSettingsInput = {},
   ) {
     const created = unwrap(
       createCampaign({
         name,
-        settings: { structural: { progression } },
+        settings,
         packIds: [pack.manifest.id],
         packHash: pack.hash,
         seed: options.seed ?? randomBytes(16).toString("hex"),

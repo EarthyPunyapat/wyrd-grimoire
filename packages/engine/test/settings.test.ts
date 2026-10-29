@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { unwrap } from "../src/result.ts";
-import { changeSettings } from "../src/settings.ts";
+import { changeSettings, SETTING_LOCK_MESSAGES, settingsLocks } from "../src/settings.ts";
 import { Sim } from "./sim.ts";
 
 describe("settings changes", () => {
@@ -66,6 +66,69 @@ describe("settings changes", () => {
     expect(changeSettings(s.state, { difficulty: "nightmare" as never })).toMatchObject({
       ok: false,
       errors: [{ code: "SETTINGS_INVALID" }],
+    });
+  });
+
+  test("every lock is reported with its path and reason", () => {
+    const s = new Sim();
+    const locks = settingsLocks(s.state.campaign.settings);
+    expect(locks).toEqual([
+      { path: "structural.resolution", reason: SETTING_LOCK_MESSAGES.resolution },
+      { path: "structural.progression", reason: SETTING_LOCK_MESSAGES.progression },
+      { path: "structural.hardcore", reason: SETTING_LOCK_MESSAGES.hardcore },
+    ]);
+    expect(
+      changeSettings(s.state, { structural: { resolution: "d20", progression: "classes" } }),
+    ).toMatchObject({
+      ok: false,
+      errors: [
+        { code: "SETTING_LOCKED", path: "structural.resolution" },
+        { code: "SETTING_LOCKED", path: "structural.progression" },
+      ],
+    });
+    // Sending the current value is not a change and is allowed.
+    expect(unwrap(changeSettings(s.state, { structural: { resolution: "d100" } }))).toEqual([]);
+  });
+
+  test("hardcore campaigns lock companion death, and turning hardcore off is one-way", () => {
+    const s = new Sim({ structural: { hardcore: true } });
+    expect(settingsLocks(s.state.campaign.settings)).toEqual([
+      { path: "structural.resolution", reason: SETTING_LOCK_MESSAGES.resolution },
+      { path: "structural.progression", reason: SETTING_LOCK_MESSAGES.progression },
+      { path: "companionDeath", reason: SETTING_LOCK_MESSAGES.companionDeath },
+    ]);
+    expect(changeSettings(s.state, { companionDeath: false })).toMatchObject({
+      ok: false,
+      errors: [{ code: "SETTING_FORCED", path: "companionDeath" }],
+    });
+    const off = unwrap(changeSettings(s.state, { structural: { hardcore: false } }));
+    expect(off).toHaveLength(1);
+    s.commit(off);
+    expect(s.state.campaign.settings.flags.softcore).toBe(true);
+    expect(s.state.campaign.settings.companionDeath).toBe(true);
+    expect(settingsLocks(s.state.campaign.settings).map((lock) => lock.path)).toContain("flags.softcore");
+    expect(changeSettings(s.state, { flags: { softcore: false } })).toMatchObject({
+      ok: false,
+      errors: [{ code: "SETTING_LOCKED", path: "flags.softcore" }],
+    });
+  });
+
+  test("companion death can be changed freely outside hardcore", () => {
+    const s = new Sim();
+    s.commit(unwrap(changeSettings(s.state, { companionDeath: true })));
+    expect(s.state.campaign.settings.companionDeath).toBe(true);
+    s.commit(unwrap(changeSettings(s.state, { companionDeath: false })));
+    expect(s.state.campaign.settings.companionDeath).toBe(false);
+  });
+
+  test("the cheat-edit mark is permanent", () => {
+    const s = new Sim();
+    const marked = unwrap(changeSettings(s.state, { flags: { cheatEdited: true } }));
+    s.commit(marked);
+    expect(settingsLocks(s.state.campaign.settings).map((lock) => lock.path)).toContain("flags.cheatEdited");
+    expect(changeSettings(s.state, { flags: { cheatEdited: false } })).toMatchObject({
+      ok: false,
+      errors: [{ code: "SETTING_LOCKED", path: "flags.cheatEdited" }],
     });
   });
 });
