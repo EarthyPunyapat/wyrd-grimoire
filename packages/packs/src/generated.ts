@@ -33,6 +33,8 @@ export function compileGeneratedWorld(raw: WorldProposal) {
       engine: ">=0.1.0",
       kind: "genre",
       description: p.premise,
+      // Generated worlds have no class data, but the other progression modes work from the sheet.
+      supports: { progression: ["classless", "useBased", "hybrid"] },
     }),
     tone: p.tone,
     skills: {},
@@ -141,6 +143,7 @@ export function generatedWorldPreview(
     suggestedCharacterName: proposal.suggestedCharacterName,
     originLabel: proposal.originLabel,
     offline,
+    progressions: pack.manifest.supports.progression,
     origins: Object.values(pack.ancestries).map(({ id, name, description }) => ({ id, name, description })),
     backgrounds: Object.values(pack.archetypes).map(({ id, name, description }) => ({
       id,

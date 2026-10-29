@@ -1,6 +1,7 @@
 export * from "./dice.ts";
 export * from "./ids.ts";
 export * from "./names.ts";
+export * from "./presets.ts";
 export * from "./rng.ts";
 export * from "./schemas/actions.ts";
 export * from "./schemas/canon.ts";

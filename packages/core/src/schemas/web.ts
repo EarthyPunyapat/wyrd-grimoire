@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { GuardSummary } from "./canon.ts";
 import { CombatView } from "./combat.ts";
-import { MechanicsLine } from "./common.ts";
+import { MechanicsLine, ResolutionId } from "./common.ts";
+import { BaseCampaignPreset, CampaignPreset, CampaignSettings, ProgressionMode } from "./settings.ts";
 import { CharacterSheet } from "./sheet.ts";
 export const ConnectionStatus = z.object({
   offline: z.boolean(),
@@ -35,7 +36,11 @@ export const QuickStartInput = z
       .string()
       .regex(/^[a-z-]+$/)
       .default("human"),
-    progression: z.enum(["classless", "useBased", "hybrid"]).default("classless"),
+    progression: ProgressionMode.default("classless"),
+    preset: CampaignPreset.default("standard"),
+    storyMode: z.enum(["threatClock", "livingWorld"]).default("threatClock"),
+    resolution: ResolutionId.default("d100"),
+    hardcore: z.boolean().default(false),
     /** Which authored test world to start in. */
     world: z.enum(["ashford-ferry", "tavern-brawl"]).default("ashford-ferry"),
   })
@@ -130,6 +135,20 @@ export const QuickStartOptions = z.object({
   archetypes: z.array(z.object({ id: z.string(), name: z.string() })),
   ancestries: z.array(z.object({ id: z.string(), name: z.string() })),
 });
+
+// ── Campaign settings (spec 12): the current settings, preset label and locked fields ────────────
+export const SettingsLock = z.object({ path: z.string(), reason: z.string() });
+export type SettingsLock = z.infer<typeof SettingsLock>;
+export const CampaignSettingsView = z.object({
+  settings: CampaignSettings,
+  preset: z.object({
+    id: CampaignPreset,
+    base: BaseCampaignPreset.nullable(),
+    label: z.string(),
+  }),
+  locks: z.array(SettingsLock),
+});
+export type CampaignSettingsView = z.infer<typeof CampaignSettingsView>;
 export const CreatedCampaign = z.object({ id: z.string() });
 export const AcceptedTurn = z.object({ turnId: z.string() });
 export const WebStreamEvent = z.discriminatedUnion("type", [

@@ -2,6 +2,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import type { GameView } from "@wyrd/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.ts";
+import { CampaignSettingsPanel } from "./CampaignSettings.tsx";
 import { CombatPanel, CombatStrip } from "./Combat.tsx";
 import { NarrativeText, narrationContext, RefContext } from "./Narration.tsx";
 import { Party } from "./Party.tsx";
@@ -29,6 +30,7 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
   const [codexFocus, setCodexFocus] = useState<string | null>(null);
   const [legacyName, setLegacyName] = useState("");
   const [legacyError, setLegacyError] = useState("");
+  const [campaignSettings, setCampaignSettings] = useState(false);
   const [math, setMath] = useState(localStorage.getItem("wyrd-math") === "true");
   const textarea = useRef<HTMLTextAreaElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
@@ -118,6 +120,9 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
                 .padStart(2, "0")}
               :{(view.gameTime % 60).toString().padStart(2, "0")}
             </span>
+            <button type="button" onClick={() => setCampaignSettings(true)}>
+              ⚙ Campaign settings
+            </button>
           </div>
           <div className="story-scroll">
             <div className="story-inner">
@@ -359,6 +364,21 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
               </Dialog.Description>
               {view.combat && <CombatPanel combat={view.combat} busy={play.busy} onFill={fill} />}
               <Dialog.Close className="dialog-close" aria-label="Close combat panel">
+                ×
+              </Dialog.Close>
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
+        <Dialog.Root open={campaignSettings} onOpenChange={setCampaignSettings}>
+          <Dialog.Portal>
+            <Dialog.Overlay className="overlay" />
+            <Dialog.Content className="dialog campaign-settings-dialog">
+              <Dialog.Title>Campaign settings</Dialog.Title>
+              <Dialog.Description className="sr-only">
+                Presets, rules, subsystems, content dials and narration for this campaign.
+              </Dialog.Description>
+              <CampaignSettingsPanel campaignId={view.id} />
+              <Dialog.Close className="dialog-close" aria-label="Close campaign settings">
                 ×
               </Dialog.Close>
             </Dialog.Content>

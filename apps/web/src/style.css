@@ -415,3 +415,23 @@ progress::-webkit-progress-value { background: var(--accent); }
 .companion-card .approval-word { font-family: var(--font-display); font-size: 1.2rem; margin: 0 0 .25rem; }
 .companion-card meter.approval { width: 100%; height: 12px; margin-bottom: .75rem; }
 .party-hint { margin-top: 1.5rem; }
+/* Campaign settings (spec 12): presets, locks and dials. */
+.dialog.campaign-settings-dialog { width: min(820px, calc(100% - 2rem)); }
+.campaign-settings { display: grid; gap: 1.25rem; }
+.campaign-settings fieldset { border: 1px solid var(--line); border-radius: 4px; padding: 1rem; display: grid; gap: .75rem; min-width: 0; margin: 0; }
+.campaign-settings legend { padding: 0 .4rem; color: var(--accent); font-size: .85rem; }
+.campaign-settings .small { font-size: .8rem; }
+.campaign-settings .lock-reason { display: block; font-size: .75rem; color: var(--ink-muted); font-style: italic; margin-top: .3rem; }
+.campaign-settings .locked-field select, .campaign-settings .locked-field input { opacity: .55; }
+.campaign-settings .checkbox { display: flex; align-items: center; gap: .5rem; font-size: .9rem; flex-wrap: wrap; }
+.campaign-settings .checkbox input { flex: 0 0 auto; }
+.campaign-settings .toggle-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .5rem .75rem; }
+.campaign-settings textarea { min-height: 3.5rem; }
+.preset-buttons { display: flex; flex-wrap: wrap; gap: .5rem; border: 0; padding: 0; margin: 0; }
+.preset-buttons button { flex: 1 1 8rem; }
+.preset-buttons [aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.location-bar button { min-height: 30px; padding: .15rem .55rem; font-size: .68rem; }
+.rules { border: 1px solid var(--line); border-radius: 4px; padding: 1rem; margin: 0 0 1.5rem; display: grid; gap: .75rem; }
+.rules legend { padding: 0 .4rem; color: var(--accent); font-size: .85rem; }
+.rules .small { font-size: .8rem; }
+.rules .checkbox { display: flex; align-items: center; gap: .5rem; font-size: .9rem; }
