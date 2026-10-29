@@ -108,7 +108,7 @@ export function Play({
           />
         );
       case "inventory":
-        return <Inventory view={view} />;
+        return <Inventory view={view} onChanged={() => void play.refresh()} />;
       default:
         return <Sheet view={view} />;
     }

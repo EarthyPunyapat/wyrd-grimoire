@@ -10,6 +10,7 @@ export const subsystemHandlers: Pick<
   | "CoinsChanged"
   | "ItemTransferred"
   | "ItemConditionChanged"
+  | "ShopOpened"
   | "ShopStockChanged"
   | "ShopRefreshed"
   | "BargainStruck"
@@ -95,6 +96,14 @@ export const subsystemHandlers: Pick<
           },
         },
       },
+    };
+  },
+
+  ShopOpened: (s, e) => {
+    const economy = economyOf(s);
+    return {
+      ...s,
+      economy: { ...economy, shops: { ...economy.shops, [e.payload.shop.id]: e.payload.shop } },
     };
   },
 

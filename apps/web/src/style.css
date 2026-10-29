@@ -453,3 +453,5 @@ progress::-webkit-progress-value { background: var(--accent); }
 .downtime-actions { display: flex; flex-wrap: wrap; align-items: end; gap: .5rem; }
 .downtime-actions label { flex: 1 1 12rem; display: grid; gap: .25rem; font-size: .85rem; }
 .downtime-actions button { min-height: 36px; }
+
+.small-link { min-height: 30px; padding: .15rem .5rem; font-size: .72rem; }

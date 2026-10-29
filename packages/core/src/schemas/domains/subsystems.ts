@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ActorId } from "../common.ts";
+import { ShopState } from "../inventory.ts";
 
 /**
  * Inventory and economy events (spec 11). The inventory projection is the detailed record; the
@@ -37,6 +38,8 @@ export const subsystemEventSchemas = {
     condition: z.enum(["pristine", "worn", "damaged", "broken"]),
     reason: z.string().min(1),
   }),
+  /** A shop opened in a settlement (campaign creation or world generation). */
+  ShopOpened: z.object({ shop: ShopState }),
   /** One shop line changed quantity (a purchase or a restock). */
   ShopStockChanged: z.object({
     shopId: Id,

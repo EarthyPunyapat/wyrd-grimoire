@@ -18,6 +18,7 @@ import {
   presetSelection,
   QuickStartInput,
   type ResolutionId,
+  ShopState,
   StartGeneratedCampaign,
   SubmitTurnInput,
   survivalOf,
@@ -26,6 +27,7 @@ import {
 } from "@wyrd/core";
 import {
   actingActor,
+  buy,
   capacityKg,
   carriedKg,
   closeEvents,
@@ -35,11 +37,13 @@ import {
   draftFromArchetype,
   encumbranceBand,
   type GameState,
+  haggle,
   legacyEvents,
   obituary,
   RESOLUTION_MODULES,
   reduce,
   resolveDowntime,
+  sell,
   skillLabel,
   skillValue,
   unwrap,
@@ -82,7 +86,7 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
 import { NONCE, type SecureHeadersVariables, secureHeaders } from "hono/secure-headers";
 import { streamSSE } from "hono/streaming";
-import type { z } from "zod";
+import { z } from "zod";
 import { mountCampaignSettings } from "./campaign-settings.ts";
 import { evaluateDraft, mountCreation, pregenDraft, StoredDraft } from "./creation.ts";
 import { EXAMPLE_WORLD } from "./example-world.ts";
@@ -497,6 +501,24 @@ export function createApp(options: Options) {
     );
     const built = buildPc("pc", character, pack, created.payload.settings);
     const sheet = hooks ? { ...built, identity: { ...built.identity, hookIds: hooks.ids } } : built;
+    const template = pack.economy?.shops[0];
+    const shop = template
+      ? ShopState.parse({
+          id: `shop:${template.id}`,
+          templateId: template.id,
+          name: template.name,
+          kind: template.kind,
+          settlement: template.settlement,
+          markup: template.markup,
+          merchant: {
+            id: `npc:merchant-${template.id}`,
+            name: template.merchant?.name ?? "the shopkeeper",
+            insight: template.merchant?.insight ?? 30,
+          },
+          stock: template.stock.map((line) => ({ itemId: line.item, qty: line.qty })),
+          lastRefresh: 0,
+        })
+      : null;
     const id = randomUUID();
     const dir = join(options.home, "campaigns", id);
     mkdirSync(dir, { recursive: true });
@@ -519,6 +541,12 @@ export function createApp(options: Options) {
         ...worldEvents(world, [sheet.id]),
         ...extra,
         ...(hooks?.events ?? []),
+        ...(shop ? [draft("ShopOpened", { shop }, "engine")] : []),
+        draft(
+          "CoinsChanged",
+          { actorId: sheet.id, delta: defaultTuning.economy.startingCoins, reason: "starting purse" },
+          "engine",
+        ),
       ]);
       store.addCampaign({
         id,
@@ -581,6 +609,36 @@ export function createApp(options: Options) {
         speakers,
         resolution,
         theme: gamePack.theme ?? null,
+        shop: (() => {
+          const shopState = Object.values(state.economy?.shops ?? {})[0];
+          if (!shopState) return null;
+          return {
+            id: shopState.id,
+            name: shopState.name,
+            attitude: shopState.attitude,
+            items: shopState.stock.map((line) => {
+              const item =
+                gamePack.items.weapons[line.itemId] ??
+                gamePack.items.armor[line.itemId] ??
+                gamePack.items.gear[line.itemId];
+              return {
+                id: line.itemId,
+                name: item?.name ?? line.itemId,
+                basePrice: line.price ?? item?.price ?? 0,
+                price: Math.max(
+                  1,
+                  Math.round(
+                    (line.price ?? item?.price ?? 0) *
+                      shopState.markup *
+                      shopState.priceModifier *
+                      (shopState.bargain?.actorId === pc.id ? shopState.bargain.modifier : 1),
+                  ),
+                ),
+                stock: line.qty,
+              };
+            }),
+          };
+        })(),
         survival: (() => {
           const sl = survivalOf(state.flags);
           const needs = sl.needs[pc.id];
@@ -962,6 +1020,41 @@ export function createApp(options: Options) {
       });
     game.append(out.value.events);
     return c.json(out.value.result);
+  });
+  app.post("/api/campaigns/:id/shop/:verb", async (c) => {
+    const id = c.req.param("id");
+    const verb = c.req.param("verb");
+    const game = campaign(id);
+    const state = game.state();
+    const pcId = state.party.pcId;
+    const shopState = Object.values(state.economy?.shops ?? {})[0];
+    if (!pcId || !shopState) throw new HTTPException(409, { message: "There is no shop here to trade with" });
+    const pack = game.packSnapshot()!.content as CompiledPack;
+    const canon = new CanonQueries(game);
+    const ctx = {
+      skills: skillCatalog([pack]),
+      tuning: defaultTuning,
+      nameOf: (eid: string) => state.actors[eid]?.sheet.identity.name ?? canon.entity(eid)?.name ?? eid,
+      items: pack.items,
+    };
+    const out =
+      verb === "haggle"
+        ? haggle(state, pcId, shopState.id, ctx)
+        : await (async () => {
+            const input = await body(
+              c,
+              z.object({ itemId: z.string().min(1), qty: z.number().int().positive().max(99) }),
+            );
+            return verb === "buy"
+              ? buy(state, pcId, shopState.id, input.itemId, input.qty, ctx)
+              : verb === "sell"
+                ? sell(state, pcId, shopState.id, input.itemId, input.qty, ctx)
+                : null;
+          })();
+    if (!out) throw new HTTPException(404, { message: "Unknown shop action" });
+    if (!out.ok) throw new HTTPException(409, { message: out.errors.map((e) => e.message).join("; ") });
+    game.append(out.value);
+    return c.json({ ok: true });
   });
   app.get("/api/campaigns/:id/turns/:turnId/stream", (c) => {
     const jobId = c.req.param("turnId");

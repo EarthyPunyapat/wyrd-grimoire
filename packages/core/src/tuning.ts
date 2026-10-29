@@ -232,6 +232,8 @@ export type Tuning = {
     bargainMinutes: number;
     /** A purchase above this fraction of the wealth band's top price lowers the level by one. */
     wealthDropAt: number;
+    /** Coins a new PC starts with (spec 11). */
+    startingCoins: number;
     selling: { min: number; max: number };
     /** Price multiplier the PC pays after haggling, by degree. */
     haggle: Record<"critSuccess" | "success" | "failure" | "critFailure", number>;
@@ -737,6 +739,7 @@ export const defaultTuning: Tuning = {
     shopRefreshDays: 7,
     bargainMinutes: 1440,
     wealthDropAt: 0.75,
+    startingCoins: 50,
     selling: { min: 0.4, max: 0.6 },
     haggle: { critSuccess: 0.8, success: 0.9, failure: 1, critFailure: 1.1 },
   },

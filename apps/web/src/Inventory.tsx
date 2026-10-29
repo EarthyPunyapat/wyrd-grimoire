@@ -1,8 +1,13 @@
 import type { GameView } from "@wyrd/core";
+import { useState } from "react";
+import { api } from "./api.ts";
 
 /** Inventory (spec 11, spec 13): what the PC carries, how heavy it is and what it costs to draw. */
-export function Inventory({ view }: { view: GameView }) {
+export function Inventory({ view, onChanged }: { view: GameView; onChanged?: () => void }) {
   const inv = view.inventory;
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+  const [error, setError] = useState("");
   const load = inv.capacityKg > 0 ? Math.min(100, (inv.weightKg / inv.capacityKg) * 100) : 0;
   const band =
     inv.band === "overloaded"
@@ -12,6 +17,22 @@ export function Inventory({ view }: { view: GameView }) {
         : inv.band === "burdened"
           ? "Burdened — −10 and slower travel"
           : "Unburdened";
+
+  const trade = async (verb: "buy" | "sell" | "haggle", body?: Record<string, unknown>) => {
+    setBusy(true);
+    setError("");
+    setNote("");
+    try {
+      await api(`/campaigns/${view.id}/shop/${verb}`, (d) => d, body ?? {}, "POST");
+      setNote(verb === "buy" ? "Bought." : verb === "sell" ? "Sold." : "You put on your best smile.");
+      onChanged?.();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <section className="world-panel" aria-label="Inventory">
       <div className="stat-label">
@@ -36,12 +57,53 @@ export function Inventory({ view }: { view: GameView }) {
               </strong>{" "}
               <span className="small muted">
                 {item.location} · {item.condition} · {item.quality}
-              </span>
+              </span>{" "}
+              {view.shop && (
+                <button
+                  type="button"
+                  className="small-link"
+                  disabled={busy}
+                  onClick={() => trade("sell", { itemId: item.id, qty: 1 })}
+                >
+                  Sell one
+                </button>
+              )}
             </li>
           ))}
         </ul>
       ) : (
         <p className="small muted">Nothing but what you stand in.</p>
+      )}
+      {view.shop && (
+        <>
+          <h3>{view.shop.name}</h3>
+          <ul className="inventory-list">
+            {view.shop.items
+              .filter((item) => item.stock > 0)
+              .map((item) => (
+                <li key={item.id}>
+                  <strong>{item.name}</strong> <span className="small muted">{item.stock} in stock</span>{" "}
+                  <button
+                    type="button"
+                    className="small-link"
+                    disabled={busy}
+                    onClick={() => trade("buy", { itemId: item.id, qty: 1 })}
+                  >
+                    Buy · {item.price}c
+                  </button>
+                </li>
+              ))}
+          </ul>
+          <button type="button" disabled={busy} onClick={() => trade("haggle")}>
+            Haggle
+          </button>
+        </>
+      )}
+      {note && <p className="small">{note}</p>}
+      {error && (
+        <p role="alert" className="error small">
+          {error}
+        </p>
       )}
       <p className="small muted">
         A belt slot takes 1 AP to draw in a fight; a pack takes 2. Only notable items are tracked in abstract

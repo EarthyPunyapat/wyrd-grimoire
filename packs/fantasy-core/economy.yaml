@@ -1,0 +1,44 @@
+# The fantasy-core economy (spec 11, Money): coins, selling, haggling, wealth bands, shops,
+# ammunition recovery and container capacities.
+currency:
+  name: coin
+  symbol: "c"
+  base: copper
+  denominations:
+    - { id: copper, name: Copper, value: 1 }
+    - { id: silver, name: Silver, value: 10 }
+    - { id: gold, name: Gold, value: 100 }
+
+selling: { min: 0.4, max: 0.6 }
+haggling: { success: 0.1, critSuccess: 0.2, critFailureAttitude: -10 }
+
+wealth:
+  - { level: 1, name: Destitute, maxPrice: 1 }
+  - { level: 2, name: Poor, maxPrice: 10 }
+  - { level: 3, name: Comfortable, maxPrice: 50 }
+  - { level: 4, name: Wealthy, maxPrice: 200 }
+  - { level: 5, name: Rich, maxPrice: 2000 }
+
+containers:
+  backpack: 20
+
+ammo:
+  arrow: { items: [arrows], weapons: [shortbow, longbow], recover: 0.5 }
+  bolt: { items: [crossbow-bolts], weapons: [light-crossbow, heavy-crossbow], recover: 0.5 }
+  sling-stone: { items: [sling-stones], weapons: [sling], recover: 0 }
+
+shops:
+  - id: river-market
+    name: The River Market
+    kind: general
+    settlement: village
+    markup: 1
+    merchant: { name: Mira Vell, insight: 30 }
+    stock:
+      - { item: rations, qty: 20 }
+      - { item: torch, qty: 20 }
+      - { item: rope, qty: 10 }
+      - { item: bandages, qty: 10 }
+      - { item: dagger, qty: 5 }
+      - { item: backpack, qty: 5 }
+      - { item: arrows, qty: 30 }

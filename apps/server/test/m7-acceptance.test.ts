@@ -167,3 +167,29 @@ test("downtime activities resolve through the API and advance game time", async 
   );
   expect(research.status).toBe(200);
 });
+
+test("the starting shop trades and haggles through the API", async () => {
+  const server = setup();
+  const cookie = await login(server);
+  const id = await quickStart(server, cookie, "Market Day");
+  let game = GameView.parse(await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json());
+  expect(game.shop).not.toBeNull();
+  expect(game.inventory.coins).toBe(50);
+  const item = game.shop!.items.find((i) => i.stock > 0 && i.price <= 50)!;
+  const bought = await request(server, `/campaigns/${id}/shop/buy`, { itemId: item.id, qty: 1 }, cookie);
+  expect(bought.status).toBe(200);
+  game = GameView.parse(await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json());
+  expect(game.inventory.coins).toBe(50 - item.price);
+  expect(game.inventory.items.some((i) => i.id === item.id)).toBe(true);
+  // Haggling is the Simulation money mode; turn it on first.
+  const mode = await request(
+    server,
+    `/campaigns/${id}/settings`,
+    { subsystems: { money: "haggling" } },
+    cookie,
+    "PATCH",
+  );
+  expect(mode.status).toBe(200);
+  const haggled = await request(server, `/campaigns/${id}/shop/haggle`, {}, cookie);
+  expect(haggled.status).toBe(200);
+});

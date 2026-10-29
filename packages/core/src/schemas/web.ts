@@ -133,6 +133,24 @@ export const GameView = z.object({
     .object({ reason: z.literal("death"), obituary: z.string() })
     .nullable()
     .default(null),
+  /** The shop at the current settlement (spec 11, Money); null when there is none. */
+  shop: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      attitude: z.number().int(),
+      items: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          basePrice: z.number().int().nonnegative(),
+          price: z.number().int().nonnegative(),
+          stock: z.number().int().nonnegative(),
+        }),
+      ),
+    })
+    .nullable()
+    .default(null),
   /** Pack theme tokens (spec 13); null when the pack has no theme.yaml. */
   theme: z.unknown().nullable().default(null),
   /** Survival state and recent notices (spec 11). Empty when the subsystems are off. */
