@@ -188,7 +188,7 @@ export class RoleRouter {
   }
 }
 
-export type Preset = "balanced" | "cheap" | "maxQuality" | "fullyLocal";
+export type Preset = "single" | "balanced" | "cheap" | "maxQuality" | "fullyLocal";
 
 /** Model IDs come from config (never hard-coded); a preset only decides which provider plays which role. */
 export type PresetModels = {
@@ -220,6 +220,8 @@ export function presetRouting(preset: Preset, m: PresetModels): Routing {
     const seen = new Set<string>();
     const list = ts.filter((t): t is Target => {
       if (!t) return false;
+      // A placeholder or empty model is not a usable route; let the next target win.
+      if (!t.model.trim() || t.model.startsWith("PICK-WITH")) return false;
       const key = `${t.provider}/${t.model}`;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -232,6 +234,9 @@ export function presetRouting(preset: Preset, m: PresetModels): Routing {
     const prose = PROSE_ROLES.has(role);
     let r: RoleRoute | undefined;
     switch (preset) {
+      case "single":
+        r = chain(m.deepseek, m.plan, m.local, m.best, m.anthropic);
+        break;
       case "balanced":
         r = prose ? chain(m.plan, m.deepseek, m.anthropic) : chain(m.deepseek, m.plan, m.local);
         break;

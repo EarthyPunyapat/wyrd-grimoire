@@ -333,7 +333,7 @@ export function createApp(options: Options) {
       } catch {
         throw new HTTPException(422, {
           message:
-            "World generation has no model assigned. Open Settings → Models and choose a model for world generation.",
+            "World generation has no model. In Settings → Models, choose ‘One model for everything’ or set the World generation role.",
         });
       }
     }

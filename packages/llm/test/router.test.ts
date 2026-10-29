@@ -211,6 +211,24 @@ describe("presets", () => {
     expect(r.parser).toEqual({ ...m.deepseek, fallbacks: [m.plan, m.local] });
     expect(r.guard?.provider).toBe("deepseek");
   });
+  test("single puts every job on the primary model", () => {
+    const r = presetRouting("single", m);
+    for (const role of ["parser", "narrator", "guard", "worldGen", "summarizer"] as const) {
+      expect(r[role]).toEqual({ ...m.deepseek, fallbacks: [m.plan, m.local] });
+    }
+  });
+  test("placeholder models never win a route", () => {
+    const r = presetRouting("balanced", {
+      plan: { provider: "chatgpt-plan", model: "PICK-WITH: sign in" },
+      deepseek: m.deepseek,
+    });
+    expect(r.narrator).toEqual({ ...m.deepseek, fallbacks: [] });
+    expect(r.worldGen).toEqual({ ...m.deepseek, fallbacks: [] });
+  });
+  test("single with only one model configured leaves other providers out", () => {
+    const r = presetRouting("single", { deepseek: m.deepseek });
+    expect(r.worldGen).toEqual({ ...m.deepseek, fallbacks: [] });
+  });
   test("fully local uses only the local model; unconfigured targets are skipped", () => {
     expect(presetRouting("fullyLocal", m).narrator).toEqual({ ...m.local, fallbacks: [] });
     expect(presetRouting("fullyLocal", {}).narrator).toBeUndefined();

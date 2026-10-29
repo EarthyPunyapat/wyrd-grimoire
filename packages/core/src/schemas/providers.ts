@@ -29,7 +29,7 @@ const Price = z.union([
 
 export const WyrdConfig = z.object({
   providers: z.record(z.string(), ProviderConfig),
-  preset: z.enum(["balanced", "cheap", "maxQuality", "fullyLocal"]).default("balanced"),
+  preset: z.enum(["single", "balanced", "cheap", "maxQuality", "fullyLocal"]).default("single"),
   /** Which provider and model fills each preset slot. Model IDs are always chosen by the user. */
   models: z
     .object({ plan: Target, deepseek: Target, anthropic: Target, local: Target, best: Target })

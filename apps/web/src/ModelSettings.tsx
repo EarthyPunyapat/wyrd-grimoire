@@ -10,13 +10,22 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "./api.ts";
 
 const slots = {
-  plan: "ChatGPT plan",
-  deepseek: "Fast parsing",
+  plan: "ChatGPT plan (prose)",
+  deepseek: "Fast model (parsing and checks)",
   local: "Local models",
   anthropic: "Anthropic",
   best: "Highest quality",
 } as const;
 type Slot = keyof typeof slots;
+const ROLES = [
+  ["parser", "Action parsing"],
+  ["narrator", "Narration"],
+  ["guard", "Canon guard"],
+  ["worldGen", "World generation"],
+  ["sessionZero", "Character interview"],
+  ["npcDialogue", "NPC dialogue"],
+  ["summarizer", "Summaries"],
+] as const;
 export function ModelSettings() {
   const [tab, setTab] = useState("Models");
   const [config, setConfig] = useState<WyrdConfig>();
@@ -52,7 +61,9 @@ export function ModelSettings() {
   useEffect(() => {
     if (!config) return;
     const ids = new Set(
-      Object.values(config.models).flatMap((value) => (value?.provider ? [value.provider] : [])),
+      [...Object.values(config.models), ...Object.values(config.routing)].flatMap((value) =>
+        value?.provider ? [value.provider] : [],
+      ),
     );
     for (const id of ids) if (!(id in models)) void loadModels(id);
   }, [config, models, loadModels]);
@@ -110,9 +121,15 @@ export function ModelSettings() {
           onSubmit={(e) => {
             e.preventDefault();
             void act(async () => {
-              for (const [slot, value] of Object.entries(config.models))
-                if (value && (!value.model.trim() || value.model.startsWith("PICK-WITH")))
-                  throw new Error(`Choose a model for ${slot}, or set that slot to Not used.`);
+              const used =
+                config.preset === "single"
+                  ? (["deepseek"] as Slot[])
+                  : (Object.keys(config.models) as Slot[]).filter((slot) => config.models[slot]);
+              for (const slot of used) {
+                const value = config.models[slot];
+                if (!value?.model.trim() || value.model.startsWith("PICK-WITH"))
+                  throw new Error(`Choose a model for ${slots[slot]}.`);
+              }
               setConfig(await api("/providers", WyrdConfig.parse, config, "PUT"));
               setConnection(await api("/connection", ConnectionStatus.parse));
               setMessage("Model settings saved. New turns will use these routes.");
@@ -120,15 +137,44 @@ export function ModelSettings() {
           }}
         >
           <p className="muted">
-            Balanced uses the fast model for actions and canon checks, and the ChatGPT plan for narration.
-            Fallbacks take over when a provider fails.
+            One model for everything sends every job — parsing, narration, world generation, guards and
+            summaries — to the Fast model below. Balanced splits prose onto the ChatGPT plan and keeps the
+            fast model for checks. Fallbacks take over when a provider fails.
           </p>
+          {config.providers.deepseek && (
+            <div className="connection-banner">
+              <strong>Only using DeepSeek?</strong>{" "}
+              <button
+                type="button"
+                onClick={() =>
+                  setConfig({
+                    ...config,
+                    preset: "single",
+                    models: {
+                      ...config.models,
+                      deepseek: {
+                        provider: "deepseek",
+                        model:
+                          (models.deepseek ?? []).find((m) => m.includes("flash")) ??
+                          (models.deepseek ?? [])[0] ??
+                          "deepseek-flash",
+                      },
+                    },
+                    routing: {},
+                  })
+                }
+              >
+                Use DeepSeek for everything
+              </button>
+            </div>
+          )}
           <label>
             Routing preset
             <select
               value={config.preset}
               onChange={(e) => setConfig({ ...config, preset: e.target.value as WyrdConfig["preset"] })}
             >
+              <option value="single">One model for everything</option>
               <option value="balanced">Balanced</option>
               <option value="cheap">Cheap</option>
               <option value="maxQuality">Maximum quality</option>
@@ -172,6 +218,7 @@ export function ModelSettings() {
           ))}
           {Object.entries(slots).map(([name, label]) => {
             const slot = name as Slot;
+            if (config.preset === "single" && slot !== "deepseek") return null;
             const chosen = config.models[slot];
             return (
               <fieldset className="model-slot" key={name}>
@@ -243,9 +290,9 @@ export function ModelSettings() {
           })}
           <details>
             <summary>Per-role overrides</summary>
-            {(["parser", "narrator", "guard"] as const).map((role) => (
+            {ROLES.map(([role, roleLabel]) => (
               <fieldset className="model-slot" key={role}>
-                <legend>{role}</legend>
+                <legend>{roleLabel}</legend>
                 <label>
                   Primary provider
                   <select
@@ -256,6 +303,7 @@ export function ModelSettings() {
                         routing[role] = { provider: e.target.value, model: "", fallbacks: [] };
                       else delete routing[role];
                       setConfig({ ...config, routing });
+                      if (e.target.value) void loadModels(e.target.value);
                     }}
                   >
                     <option value="">Use preset</option>
@@ -266,21 +314,47 @@ export function ModelSettings() {
                 </label>
                 {config.routing[role] && (
                   <>
-                    <label>
+                    <label htmlFor={`role-model-${role}`}>
                       Primary model
-                      <input
-                        value={config.routing[role].model}
-                        required
-                        onChange={(e) =>
-                          setConfig({
-                            ...config,
-                            routing: {
-                              ...config.routing,
-                              [role]: { ...config.routing[role]!, model: e.target.value },
-                            },
-                          })
-                        }
-                      />
+                      {(models[config.routing[role].provider] ?? []).length ? (
+                        <select
+                          id={`role-model-${role}`}
+                          value={config.routing[role].model}
+                          required
+                          onChange={(e) =>
+                            setConfig({
+                              ...config,
+                              routing: {
+                                ...config.routing,
+                                [role]: { ...config.routing[role]!, model: e.target.value },
+                              },
+                            })
+                          }
+                        >
+                          <option value="">Choose a model…</option>
+                          {(models[config.routing[role].provider] ?? []).map((id) => (
+                            <option key={id} value={id}>
+                              {id}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          id={`role-model-${role}`}
+                          value={config.routing[role].model}
+                          required
+                          onChange={(e) =>
+                            setConfig({
+                              ...config,
+                              routing: {
+                                ...config.routing,
+                                [role]: { ...config.routing[role]!, model: e.target.value },
+                              },
+                            })
+                          }
+                          placeholder="Model ID"
+                        />
+                      )}
                     </label>
                     <div className="form-row">
                       <label>
