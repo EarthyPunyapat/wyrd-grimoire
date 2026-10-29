@@ -1,6 +1,7 @@
 import type { Card, Choice, EventDraft, ItemCatalog, MechanicsLine } from "@wyrd/core";
 import type { GameState, TurnContext } from "@wyrd/engine";
 import type { CanonSource } from "@wyrd/memory";
+import type { LoreLookup } from "../lore/research.ts";
 
 export type ToolProgress = { phase: "rolling" | "researching" | "simulating"; detail?: string };
 
@@ -14,6 +15,8 @@ export type ToolEffects = {
 };
 
 export type ToolContext = {
+  lore?: LoreLookup;
+  onProgress?: (progress: ToolProgress) => void;
   state: GameState;
   pcId: string;
   turnId: string;

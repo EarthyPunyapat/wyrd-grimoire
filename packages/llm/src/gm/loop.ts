@@ -110,7 +110,9 @@ export async function runGmTurn(d: PipelineDeps, t: TurnInput, hooks: GmHooks): 
       ...(c.raw ? { raw: c.raw } : {}),
     });
     for (const call of c.toolCalls) {
-      const r = executeTool(call, {
+      const r = await executeTool(call, {
+        lore: d.lore,
+        onProgress: (progress) => emit({ type: "progress", ...progress }),
         state: working.state,
         pcId,
         turnId,

@@ -6,7 +6,7 @@ import { executeTool, gmToolDefs } from "../src/gm/tools.ts";
 afterEach(() => unregisterGmTool("ping"));
 const x = {} as Parameters<typeof executeTool>[1];
 
-test("a registered tool is offered and dispatched", () => {
+test("a registered tool is offered and dispatched", async () => {
   registerGmTool({
     name: "ping",
     description: "Answer pong.",
@@ -14,7 +14,7 @@ test("a registered tool is offered and dispatched", () => {
     run: (args) => ({ ok: true, body: { pong: args.n } }),
   });
   expect(gmToolDefs({ inCombat: false }).map((t) => t.name)).toContain("ping");
-  const r = executeTool({ id: "c1", name: "ping", args: { n: 2 } }, x);
+  const r = await executeTool({ id: "c1", name: "ping", args: { n: 2 } }, x);
   expect(r.ok).toBe(true);
   expect(JSON.parse(r.result)).toEqual({ ok: true, pong: 2 });
 });

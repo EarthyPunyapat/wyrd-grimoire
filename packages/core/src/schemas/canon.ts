@@ -41,7 +41,8 @@ export const Fact = z.object({
   /** Controlled vocabulary ("appearance.hair", "location", "owes", "secret", "personality"…) plus "note". */
   predicate: z.string().min(1),
   value: z.union([z.string(), z.number(), z.boolean(), z.record(z.string(), z.unknown())]),
-  source: z.enum(["engine", "model", "player", "pack"]),
+  source: z.enum(["engine", "model", "player", "pack", "lore"]),
+  confidence: z.enum(["high", "low"]).optional(),
   evidence: z.object({ eventIds: z.array(z.string()).default([]), quote: z.string().optional() }).optional(),
   visibility: z.enum(["public", "secret"]).default("public"),
   importance: z.number().int().min(1).max(5).default(2),

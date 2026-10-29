@@ -53,7 +53,8 @@ type Fact = {
   id: FactId; entityId: EntityId;
   predicate: string;          // controlled vocabulary ("appearance.hair", "location", "owes", "secret", "personality", …) plus "note"
   value: string | number | boolean | EntityId | object;
-  source: "engine" | "model" | "player" | "pack";
+  source: "engine" | "model" | "player" | "pack" | "lore";
+  confidence?: "high" | "low"; // lore: sourced page vs unverified model knowledge
   evidence?: { eventIds: string[]; quote?: string };
   visibility: "public" | "secret";
   importance: 1 | 2 | 3 | 4 | 5;
@@ -253,3 +254,12 @@ type GuardReport = {
 The engine can attach optional structured `response` metadata to an NPC’s witnessed memory: incident, round, acting character, response stage and observable result. This provides replayable reaction history without a wall-clock timer or a new parallel companion-approval system. The first witnessed assault changes applicable ordinary-NPC disposition; repeated warnings do not reset the incident or stack the same initial penalty every round.
 
 An engine-recorded incident observation is not duplicated by the guard for the same turn. Rerolling narration does not add witness memories. The narrator’s selected-speaker context contains relevant shared incidents and things the PC told that NPC, plus public characterization; it does not retrieve private NPC memory namespaces. Private NPC reasoning/disclosures require the isolated, validated dialogue path described above.
+
+
+## Wiki lore (W2, D136)
+
+`lookup_lore` reads known, public canon in the selected world before external research. Research uses globally cached summaries, then official Wikipedia/Fandom MediaWiki APIs, then unverified model knowledge (`confidence: "low"`, no invented citation). Sourced facts have `source: "lore"` and `evidence.quote` containing the page URL. Model proposals use the worldGen role and structured validation; any source overlap longer than 25 words is rejected, including during fallback.
+
+The global `WYRD_HOME/lore-cache/<wiki>/<title-hash>.json` record is `{title, url, fetchedAt, text}`; **text means original summaries**, never downloaded passages. It has no automatic expiry or pruning. The raw page is transient. A process-wide queue permits at most one HTTP request per second across wiki hosts and sends `WyrdGrimoire/<version> (personal, non-commercial)`.
+
+Research commits ordinary entity/fact/knowledge events plus `LoreRecorded` provenance (including `worldId`); its reducer keeps records under `flags.loreRecords`. Lore concepts are visible and their notes editable in Codex. Query aliases resolve back to current canon so player corrections supersede earlier research. Progress is emitted before network/model work. Offline preview never enables external research.

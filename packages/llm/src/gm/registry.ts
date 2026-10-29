@@ -13,7 +13,7 @@ export type GmToolDef<S extends z.ZodType = z.ZodType> = {
   /** Hide the tool where it makes no sense (outside a fight, before a system is switched on). */
   available?: (o: { inCombat: boolean }) => boolean;
   /** Runs against the working state; throwing is allowed and becomes a failed result. */
-  run: (args: z.infer<S>, x: ToolContext) => ToolRun;
+  run: (args: z.infer<S>, x: ToolContext) => ToolRun | Promise<ToolRun>;
 };
 
 const tools = new Map<string, GmToolDef>();

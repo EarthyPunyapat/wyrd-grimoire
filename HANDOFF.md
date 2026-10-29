@@ -4,7 +4,7 @@ Working notes for whoever picks this up next. Read `AGENTS.md` first, then this 
 
 ## Status (2026-10-29)
 
-**M1–M7 and W2 step 2 are built.** Every milestone's acceptance check is ticked in `docs/milestones.md`.
+**M1–M7, W2 step 2 and workstream C (wiki lore) are built.** Every milestone's acceptance check is ticked in `docs/milestones.md`.
 The GM-with-tools turn (Tasks 1–8 of `docs/superpowers/plans/2026-10-29-w2-step2-gm-turn.md`) is on
 `w2-gm-ui` and merges to `main`: one GM model runs a turn with engine tools, streams prose, shows
 cards and choices, retcons with Undo, marks a backup model and runs a non-blocking structural check
@@ -17,6 +17,20 @@ Owner-only checks still outstanding (need real hardware or keys):
 - M3: LAN/phone playtest from the Arch laptop and a phone.
 - M5: a real-model world run and the NPC-knowledge eval.
 - M8: media (images, TTS) has not been built.
+
+## W2 C — Lore from wikis (2026-10-29)
+
+Built test-first on `w2-lore`; merged to `main`. Plan: `docs/superpowers/plans/2026-10-29-w2-lore.md`.
+
+- `llm/src/lore/mediawiki.ts`: injected-fetch MediaWiki search, Wikipedia extracts and Fandom wikitext parsing; shared 1 request/s queue and versioned user agent. `defaultTuning.lore` owns limits.
+- `storage/src/lore-cache.ts`: global `WYRD_HOME/lore-cache/<wiki>/<title-hash>.json`, summaries only, no expiry/pruning. Corrupt entries recover on the next write.
+- `llm/src/lore/{summarise,research}.ts`: worldGen structured summaries, copying guard (including fallback), cache/search/fetch, low-confidence model fallback without fake citations. IO/provider errors are sanitized.
+- `gm/tools/lore.ts` owns `lookup_lore` (one index import). Registry/dispatcher/loop now await async tools; research progress arrives before IO. Server enables research outside offline preview and provides a fixture-injection boundary.
+- Known/public current-world canon wins, including player corrections through research aliases. Summaries become `source: "lore"` facts with confidence and source-URL evidence, plus knowledge events. Only `domains/lore.ts` / `reduce/lore.ts` define/handle the new `LoreRecorded` event; replay retains world-scoped provenance in `flags.loreRecords`.
+- Codex includes researched concepts and editable notes. Source/confidence metadata lives on stored facts and tool results; dedicated citation UI can follow later.
+- Tests are offline: sanitized recorded Wikipedia envelope, documented Fandom/search shapes with original fixture prose, FakeProvider, fake clock, temporary cache directories, and server/GM/Codex/rebuild coverage. Live Wikipedia worked during fixture recording; live Fandom returned HTTP 402 here, so real Fandom success still needs checking on the owner's host.
+- Validation: `bun run check` passed (typecheck, lint with existing warnings, **749 tests**, fantasy-core pack validation).
+- Architecture checks now resolve relative imports against package roots; nested imports within llm pass, actual package escapes still fail. No browsers were launched.
 
 ## What M7 added (breadth)
 
@@ -94,7 +108,7 @@ Owner-only checks still outstanding (need real hardware or keys):
 **W2 — Wyrd 2.0** (before M8). The owner played M7 and found it lacking next to their own ChatGPT RPG sessions, and a 72-question interview on 2026-10-29 redesigned the game.
 
 Step 2 (the GM-with-tools turn) is done. Next is roadmap step 3: Levels with the ∞ perception scope,
-delegation, the full time skip with a watch list, and wiki `lookup_lore`.
+delegation and the full time skip with a watch list. Wiki `lookup_lore` (C) is done; source creation (D) can use `LoreResearch`.
 
 Read these first:
 - the spec: `docs/superpowers/specs/2026-10-29-wyrd-2-design.md`

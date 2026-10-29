@@ -56,7 +56,7 @@ export function codexView(game: CampaignStore<GameState>): CodexView {
   const pcId = state.party.pcId ?? "";
   const entries = Object.entries(state.knowledge.entities).flatMap(([id, entry]) => {
     const e = canon.entity(id);
-    if (!e || e.kind === "concept") return [];
+    if (!e || (e.kind === "concept" && e.data.lore !== true)) return [];
     const present = !!state.scene && (id in state.scene.positions || id === state.scene.locationId);
     const facts = canon
       .factsAbout(id)
