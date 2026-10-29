@@ -8,6 +8,8 @@ export const Role = z.enum([
   "worldGen",
   "sessionZero",
   "guard",
+  "gm",
+  "check",
   "summarizer",
   "embeddings",
 ]);

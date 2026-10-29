@@ -217,6 +217,20 @@ describe("presets", () => {
       expect(r[role]).toEqual({ ...m.deepseek, fallbacks: [m.plan, m.local] });
     }
   });
+  test("balanced routes gm to the plan first, with a deepseek fallback", () => {
+    const r = presetRouting("balanced", m);
+    expect(r.gm?.provider).toBe(m.plan.provider);
+    expect(r.gm?.fallbacks[0]).toEqual(m.deepseek);
+  });
+  test("balanced routes check like the parser", () => {
+    const r = presetRouting("balanced", m);
+    expect(r.check).toEqual(r.parser!);
+  });
+  test("single routes gm and check", () => {
+    const r = presetRouting("single", m);
+    expect(r.gm).toEqual({ ...m.deepseek, fallbacks: [m.plan, m.local] });
+    expect(r.check).toEqual({ ...m.deepseek, fallbacks: [m.plan, m.local] });
+  });
   test("placeholder models never win a route", () => {
     const r = presetRouting("balanced", {
       plan: { provider: "chatgpt-plan", model: "PICK-WITH: sign in" },

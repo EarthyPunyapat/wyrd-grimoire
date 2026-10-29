@@ -16,6 +16,8 @@ export const ROLE_TIMEOUTS_MS: Record<Role, number> = {
   worldGen: 30_000,
   sessionZero: 60_000,
   guard: 20_000,
+  gm: 90_000,
+  check: 20_000,
   summarizer: 60_000,
   embeddings: 20_000,
 };
@@ -214,9 +216,11 @@ const TEXT_ROLES = [
   "worldGen",
   "sessionZero",
   "guard",
+  "gm",
+  "check",
   "summarizer",
 ] as const;
-const PROSE_ROLES: ReadonlySet<Role> = new Set(["narrator", "npcDialogue", "worldGen", "sessionZero"]);
+const PROSE_ROLES: ReadonlySet<Role> = new Set(["narrator", "npcDialogue", "worldGen", "sessionZero", "gm"]);
 
 /**
  * Builds routing from a preset (spec 09). Default chains: plan roles → DeepSeek → Anthropic;
