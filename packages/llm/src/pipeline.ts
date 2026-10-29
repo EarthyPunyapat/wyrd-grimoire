@@ -128,6 +128,8 @@ export type CombatContent = {
   creatures: Record<string, CreatureDef & { id: string }>;
   /** Pack spells (spec 05); older frozen packs have none. */
   spells?: CompiledPack["spells"];
+  /** Ammunition kinds from the pack's economy data (spec 11). */
+  ammo?: Record<string, { items: string[]; weapons: string[]; recover: number }>;
 };
 
 /** The combat content of a compiled pack (older frozen packs may lack creatures). */
@@ -137,6 +139,7 @@ export function combatContent(pack: CompiledPack): CombatContent {
     bodyPlans: pack.bodyPlans ?? {},
     creatures: pack.creatures ?? {},
     spells: pack.spells ?? {},
+    ammo: pack.economy?.ammo ?? {},
   };
 }
 

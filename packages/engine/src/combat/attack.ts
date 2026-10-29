@@ -1,6 +1,7 @@
 import { type ActorId, draft, findBodyPlan, type MechanicsLine, type Modifier } from "@wyrd/core";
 import { resolveCheck } from "../checks.ts";
 import { resolveHit } from "../injury/index.ts";
+import { degradeItem, spendAmmo } from "../inventory.ts";
 import { compareResults, isSuccess } from "../resolution/index.ts";
 import { fail, ok, type Result } from "../result.ts";
 import { skillValue } from "../skills.ts";
@@ -176,6 +177,15 @@ export function resolveStrike(
   if (!attack.ok) return attack;
   w.apply(attack.value.events);
   lines.push(attack.value.effective.display);
+
+  // Ammunition leaves the quiver with the shot (spec 11, Ammo).
+  if (ranged && weapon) {
+    const kind = Object.values(ctx.ammo ?? {}).find((a) => a.weapons.includes(weapon.id));
+    if (kind?.items[0]) w.apply(spendAmmo(w.state, attackerId, kind.items[0], 1, `shot ${weapon.name}`));
+  }
+  // A fumbled attack can damage the weapon (spec 11, Durability).
+  if (weapon && attack.value.effective.degree === "critFailure")
+    w.apply(degradeItem(w.state, attackerId, weapon.id, "a fumbled attack"));
 
   // Spend the attack: multi-attack count, aim, ammunition.
   let me = combatant(w.state, attackerId)!;

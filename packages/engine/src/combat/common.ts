@@ -33,6 +33,8 @@ export type CombatContext = InjuryContext & {
   creatures: Record<string, CreatureDef & { id: string }>;
   /** Canon lookups for scene entities that aren't actors yet. */
   combatInfo: (entityId: string) => CombatInfo;
+  /** Ammunition kinds from the pack's economy data (spec 11, Ammo). */
+  ammo?: Record<string, { items: string[]; weapons: string[]; recover: number }>;
 };
 
 /** One thing that happened, for the mechanics log and the narrator. */
