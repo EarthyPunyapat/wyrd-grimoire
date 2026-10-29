@@ -1,4 +1,4 @@
-CampaignCreated 73bada92844a
+CampaignCreated 927c005f91ef
 ActorCreated b370597d66ef
 EntityCreated 5daa6f220987
 EntityCreated d9013f6ff439

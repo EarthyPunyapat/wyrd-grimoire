@@ -2,14 +2,17 @@ import {
   type CampaignPreset,
   type CampaignSettings,
   CreatedCampaign,
+  CreationReview,
   CreationView,
   GeneratedWorldPreview,
+  presetSelection,
   StartGeneratedCampaign,
   type SuggestField,
   WorldPitch,
 } from "@wyrd/core";
 import { useEffect, useState } from "react";
 import { api, streamApi } from "./api.ts";
+import { CreationReviewEditor } from "./CreationReview.tsx";
 import { Interview } from "./Interview.tsx";
 import { type Section, SheetEditor, withArchetype } from "./SheetEditor.tsx";
 import { useCreation } from "./use-creation.ts";
@@ -59,6 +62,18 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
   const [characterName, setCharacterName] = useState(
     typeof saved?.characterName === "string" ? saved.characterName : "",
   );
+  const [sourceTitle, setSourceTitle] = useState(
+    typeof saved?.sourceTitle === "string" ? saved.sourceTitle : "",
+  );
+  const [sourceWiki, setSourceWiki] = useState(
+    typeof saved?.sourceWiki === "string" ? saved.sourceWiki : "en.wikipedia.org",
+  );
+  const [review, setReview] = useState<CreationReview | undefined>(() => {
+    const parsed = CreationReview.safeParse(
+      saved?.review ?? (restoredWorld?.success ? restoredWorld.data.review : undefined),
+    );
+    return parsed.success ? parsed.data : undefined;
+  });
   const [pitch, setPitch] = useState(typeof saved?.pitch === "string" ? saved.pitch : "");
   const [world, setWorld] = useState<GeneratedWorldPreview | undefined>(
     restoredWorld?.success ? restoredWorld.data : undefined,
@@ -98,6 +113,9 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
           name,
           characterName,
           pitch,
+          sourceTitle,
+          sourceWiki,
+          review,
           world,
           ancestry,
           archetype,
@@ -119,6 +137,9 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
     name,
     characterName,
     pitch,
+    sourceTitle,
+    sourceWiki,
+    review,
     world,
     ancestry,
     archetype,
@@ -184,7 +205,12 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
             setDetail("");
             const draft = await streamApi(
               "/world-drafts/stream",
-              WorldPitch.parse({ name, characterName, pitch }),
+              WorldPitch.parse({
+                name,
+                characterName,
+                pitch,
+                ...(sourceTitle.trim() ? { source: { title: sourceTitle, wiki: sourceWiki } } : {}),
+              }),
               GeneratedWorldPreview.parse,
               (data) => {
                 const next = (data as { steps?: DraftProgressStep[] }).steps;
@@ -200,6 +226,12 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
               // Storage unavailable; the in-memory copy still works for this visit.
             }
             setWorld(draft);
+            setReview(draft.review);
+            if (draft.review) {
+              setResolution(draft.review.resolution);
+              setHardcore(draft.review.hardcore);
+              setPreset("custom");
+            }
             setAncestry(draft.origins[0]!.id);
             setArchetype(draft.backgrounds[0]!.id);
             setProgression(draft.progressions[0] ?? "classless");
@@ -211,6 +243,7 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
               CreatedCampaign.parse,
               StartGeneratedCampaign.parse({
                 draftId: world.id,
+                review: review ? { ...review, resolution, hardcore } : undefined,
                 progression,
                 preset,
                 storyMode,
@@ -226,6 +259,7 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
               CreatedCampaign.parse,
               StartGeneratedCampaign.parse({
                 draftId: world.id,
+                review: review ? { ...review, resolution, hardcore } : undefined,
                 characterName,
                 ancestry,
                 archetype,
@@ -284,6 +318,32 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
             placeholder={world ? world.suggestedCharacterName : "Choose now or let the world suggest one"}
           />
         </label>
+      )}
+      {!world && (
+        <fieldset disabled={busy}>
+          <legend>Campaign source</legend>
+          <label>
+            Inside a source <span className="muted">(optional; blank creates an original world)</span>
+            <input
+              value={sourceTitle}
+              maxLength={100}
+              onChange={(e) => setSourceTitle(e.target.value)}
+              placeholder="A novel, comic, or setting…"
+            />
+          </label>
+          {sourceTitle && (
+            <label>
+              Source wiki
+              <input
+                value={sourceWiki}
+                required
+                maxLength={200}
+                onChange={(e) => setSourceWiki(e.target.value)}
+                placeholder="en.wikipedia.org or dc.fandom.com"
+              />
+            </label>
+          )}
+        </fieldset>
       )}
       {!world ? (
         <label>
@@ -447,7 +507,12 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
                 <select
                   aria-label="Preset"
                   value={preset}
-                  onChange={(e) => setPreset(e.target.value as CampaignPreset)}
+                  onChange={(e) => {
+                    const next = e.target.value as CampaignPreset;
+                    setPreset(next);
+                    const subsystems = presetSelection(next).subsystems;
+                    if (subsystems) setReview((r) => (r ? { ...r, subsystems } : r));
+                  }}
                   disabled={busy}
                 >
                   <option value="story">Story — light bookkeeping</option>
@@ -515,6 +580,24 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
               Hardcore — death is permanent, and turning this on can't be undone
             </label>
           </fieldset>
+          {world.reviewNotice && <p role="status">{world.reviewNotice}</p>}
+          {review && (
+            <CreationReviewEditor
+              value={review}
+              onChange={setReview}
+              disabled={busy}
+              onRevise={() => {
+                setBusy(true);
+                setError("");
+                void api(`/world-drafts/${world.id}/style`, CreationReview.parse, review.style)
+                  .then((next) =>
+                    setReview((previous) => (previous ? { ...previous, style: next.style } : next)),
+                  )
+                  .catch((e) => setError((e as Error).message))
+                  .finally(() => setBusy(false));
+              }}
+            />
+          )}
           <h3>Your opening</h3>
           <p>{world.opening}</p>
           <button

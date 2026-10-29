@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Entity, Fact } from "./canon.ts";
 import { RngStateSchema, WorldId } from "./common.ts";
+import { CanonClockPlan } from "./domains/canon-clocks.ts";
 import { SceneResponse } from "./scene-responses.ts";
 
 /**
@@ -13,11 +14,12 @@ const Id = z.string().min(1);
 export const Clock = z.object({
   id: Id,
   name: z.string().min(1),
-  kind: z.enum(["threat", "faction", "deadline", "progress"]),
+  kind: z.enum(["threat", "faction", "deadline", "progress", "canon"]),
   segments: z.number().int().positive(),
   filled: z.number().int().nonnegative().default(0),
   /** Threat clocks: segments added per N in-game days (spec 06, Threat Clock). */
   paceDays: z.number().int().positive().optional(),
+  canon: CanonClockPlan.optional(),
   ownerId: Id.optional(),
   /** Shown to the player (journal); faction goal clocks usually aren't. */
   visible: z.boolean().default(false),

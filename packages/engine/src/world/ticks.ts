@@ -5,6 +5,7 @@ import {
   draft,
   Entity,
   type EventDraft,
+  type Fact,
   festivalsOn,
   type ItemCatalog,
   type NamingStyleDef,
@@ -12,6 +13,7 @@ import {
   type Rumor,
   type Tuning,
 } from "@wyrd/core";
+import { advanceCanon } from "../canon-clocks.ts";
 import { advanceDelegations } from "../delegation.ts";
 import { healingDaily } from "../injury/healing.ts";
 import type { GameState, RulesContext } from "../state.ts";
@@ -31,6 +33,8 @@ export type WorldNpc = {
 /** What world ticks need from canon (the caller supplies it; the engine never reads storage). */
 export type WorldContext = RulesContext & {
   nameOf: (id: string) => string;
+  factsAbout?: (id: string) => Fact[];
+  entityActive?: (id: string) => boolean;
   /** Regions with their climate; `current` marks the open scene's region (its weather shows in the scene). */
   regions?: () => Array<{ id: string; climate: string; current?: boolean }>;
   /** Pack calendar; absent means the tuning calendar (spec 06, Time and calendar). */
@@ -533,7 +537,8 @@ function livingFactionGoals(w: Working, rng: Rng, ctx: WorldContext, dayNumber: 
 
 /** One marriage, birth, retirement or death of old age a week (Living World, spec 06). */
 function livingNpcEvents(w: Working, rng: Rng, ctx: WorldContext) {
-  const npcs = ctx.npcs?.() ?? [];
+  const canonActors = (w.state.flags.canonActors ?? {}) as Record<string, unknown>;
+  const npcs = (ctx.npcs?.() ?? []).filter((n) => !canonActors[n.id]);
   if (!npcs.length) return;
   if (rng.int(1, 1000) > ctx.tuning.living.lifeEventChance * 1000) return;
   const at = w.state.campaign.gameTime;
@@ -712,6 +717,7 @@ export function runTicks(state: GameState, ctx: WorldContext): EventDraft[] {
       spreadRumours(w, rng, ctx);
       factionGoals(w, rng, ctx);
       threatPace(w, d, ctx);
+      w.apply(advanceCanon(w.state, d * MINUTES.day, ctx.factsAbout, ctx.entityActive));
       weather(w, rng, ctx);
       festivals(w, ctx, d);
       survivalDaily(w, ctx, d);

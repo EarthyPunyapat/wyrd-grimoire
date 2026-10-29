@@ -9,6 +9,7 @@ import {
 } from "@wyrd/core";
 import { useEffect, useState } from "react";
 import { api } from "./api.ts";
+import { CampaignThemeEditor, StyleProfileEditor } from "./StyleProfileEditor.tsx";
 
 type BooleanToggle = {
   [K in keyof SubsystemToggles]: SubsystemToggles[K] extends boolean ? K : never;
@@ -130,6 +131,16 @@ export function CampaignSettingsPanel({ campaignId }: { campaignId: string }) {
         </p>
       )}
 
+      <StyleProfileEditor
+        value={draft.style}
+        onChange={(style) => setDraft({ ...draft, style })}
+        disabled={busy}
+      />
+      <CampaignThemeEditor
+        value={draft.theme}
+        onChange={(theme) => setDraft({ ...draft, theme })}
+        disabled={busy}
+      />
       <fieldset>
         <legend>Preset</legend>
         <p className="muted small">
