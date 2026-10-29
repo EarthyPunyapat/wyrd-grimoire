@@ -1,4 +1,4 @@
-import { CompanionState, type EventEnvelope, type EventType } from "@wyrd/core";
+import { CompanionState, EconomyState, type EventEnvelope, type EventType, InventoryState } from "@wyrd/core";
 import { classHandlers } from "./reduce/classes.ts";
 import { clamp, clampHp, companion, mind, updateSheet, updateStatus } from "./reduce/helpers.ts";
 import { livingHandlers } from "./reduce/living.ts";
@@ -467,8 +467,8 @@ function initialState(e: EventEnvelope<"CampaignCreated">): GameState {
     actors: {},
     scene: null,
     combat: null,
-    inventory: {},
-    economy: {},
+    inventory: InventoryState.parse({}),
+    economy: EconomyState.parse({}),
     ...EMPTY_WORLD(p.gameTime),
     flags: {},
     lastChecks: {},

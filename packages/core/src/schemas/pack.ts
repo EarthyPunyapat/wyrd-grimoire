@@ -4,6 +4,7 @@ import type { LocationKind } from "../tuning.ts";
 import { AttributeId, RangeBand } from "./common.ts";
 import { BackstoryHook } from "./creation.ts";
 import { AppearanceFacts } from "./sheet.ts";
+import type { EconomyDef, RecipeDef } from "./inventory.ts";
 
 /**
  * Pack content schemas, as authored in YAML. Entry IDs are local (`arcana`); references may be
@@ -270,6 +271,10 @@ export type CompiledPack = {
   archetypes: Record<string, ArchetypeDef & { id: string }>;
   pregens: Record<string, PregenDef & { id: string }>;
   creatures: Record<string, CreatureDef & { id: string }>;
+  /** Crafting recipes from `recipes.yaml` (spec 11). */
+  recipes?: Record<string, RecipeDef & { id: string }>;
+  /** Money, shops, ammo recovery and container capacities from `economy.yaml` (spec 11). */
+  economy?: EconomyDef;
   items: {
     weapons: Record<string, WeaponDef & { id: string }>;
     armor: Record<string, ArmorDef & { id: string }>;

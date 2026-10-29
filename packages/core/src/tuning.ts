@@ -188,6 +188,45 @@ export type Tuning = {
     /** Use-based: a new talent every N chapter closes. */
     talentEveryChapters: number;
   };
+  /** Inventory and encumbrance (spec 11). Carry capacity itself is `derived.carryKgPerStr`. */
+  inventory: {
+    /** Multiples of carry capacity where each band begins. */
+    bands: { burdened: number; heavily: number };
+    agiPenalty: { burdened: number; heavilyBurdened: number; overloaded: number };
+    travelFactor: { burdened: number; heavilyBurdened: number; overloaded: number };
+    /** Heavily burdened: the first Move each turn costs this many AP. */
+    heavilyFirstMoveAp: number;
+    /** Overloaded: at most this many Moves per turn. */
+    overloadedMoves: number;
+    /** Drawing an item in combat, by where it is. */
+    drawAp: { held: number; belt: number; worn: number; pack: number };
+    /** Used when neither the pack nor economy.yaml gives a container capacity. */
+    defaultContainerKg: number;
+  };
+  /** Money and shops (spec 11). Selling rates and haggling come from the pack's economy.yaml. */
+  economy: {
+    shopRefreshDays: number;
+    /** How long a haggled price lasts, in game minutes. */
+    bargainMinutes: number;
+    /** A purchase above this fraction of the wealth band's top price lowers the level by one. */
+    wealthDropAt: number;
+  };
+  /** Durability (spec 11): when items degrade and what damage they do. */
+  durability: {
+    weaponPenalty: number;
+    armourPenalty: number;
+    /** A parry against a hit of at least this many × WT degrades the parrying weapon. */
+    parryWtMultiple: number;
+    /** A hit whose raw damage exceeds protection by this much degrades the armour. */
+    armourExcess: number;
+  };
+  /** Crafting quality bonuses (spec 11). */
+  crafting: {
+    crudePenalty: number;
+    fineBonus: number;
+    masterworkBonus: number;
+    masterworkDamage: number;
+  };
   /** Companions (spec 04): party size, willingness to join, approval caps and thresholds. */
   companions: {
     max: number;
@@ -451,6 +490,32 @@ export const defaultTuning: Tuning = {
     approvalPerEvent: 10,
     approvalPerScene: 20,
     thresholds: { confront: -50, leave: -75, quest: 50, loyal: 75 },
+  },
+  inventory: {
+    bands: { burdened: 1.5, heavily: 2 },
+    agiPenalty: { burdened: -10, heavilyBurdened: -20, overloaded: -40 },
+    travelFactor: { burdened: 1.25, heavilyBurdened: 1.5, overloaded: 1.5 },
+    heavilyFirstMoveAp: 2,
+    overloadedMoves: 1,
+    drawAp: { held: 0, belt: 1, worn: 1, pack: 2 },
+    defaultContainerKg: 20,
+  },
+  economy: {
+    shopRefreshDays: 7,
+    bargainMinutes: 1440,
+    wealthDropAt: 0.75,
+  },
+  durability: {
+    weaponPenalty: -10,
+    armourPenalty: -1,
+    parryWtMultiple: 2,
+    armourExcess: 5,
+  },
+  crafting: {
+    crudePenalty: -10,
+    fineBonus: 10,
+    masterworkBonus: 20,
+    masterworkDamage: 1,
   },
   snapshotEvery: 200,
 };

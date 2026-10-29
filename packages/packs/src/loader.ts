@@ -8,11 +8,14 @@ import {
   BodyPlanDef,
   type CompiledPack,
   CreatureDef,
+  type EconomyDef,
+  EconomyDef as EconomySchema,
   GearDef,
   HUMANOID_BODY_PLAN,
   localIdOf,
   PackManifest,
   PregenDef,
+  RecipeDef as RecipeSchema,
   SkillDef,
   stableStringify,
   TalentDef,
@@ -49,6 +52,7 @@ const CONTENT_FILES = {
   armor: { file: "items/armor.yaml", schema: ArmorDef },
   gear: { file: "items/gear.yaml", schema: GearDef },
   creatures: { file: "creatures.yaml", schema: CreatureDef },
+  recipes: { file: "recipes.yaml", schema: RecipeSchema },
 } as const;
 
 type Kind = keyof typeof CONTENT_FILES;
@@ -258,6 +262,69 @@ export function loadPack(dir: string): LoadResult {
       return { ...p, skill: s ?? p.skill };
     });
   }
+  for (const r of Object.values(content.recipes)) {
+    const s = resolveSkill(r.skill);
+    if (!s) badRef(r.id, "skill", "Skill", r.skill);
+    r.skill = s ?? r.skill;
+    r.inputs = r.inputs.map((input, i) => {
+      const item = ref(allItems, input.item);
+      if (!item) badRef(r.id, `inputs.${i}.item`, "Item", input.item);
+      return { ...input, item: item ?? input.item };
+    });
+    r.tools = r.tools.map((tool, i) => {
+      const item = ref(allItems, tool);
+      if (!item) badRef(r.id, `tools.${i}`, "Item", tool);
+      return item ?? tool;
+    });
+    const output = ref(allItems, r.output.item);
+    if (!output) badRef(r.id, "output.item", "Item", r.output.item);
+    r.output = { ...r.output, item: output ?? r.output.item };
+    if (r.masterworkTalent) {
+      const talent = ref(content.talents, r.masterworkTalent);
+      if (!talent) badRef(r.id, "masterworkTalent", "Talent", r.masterworkTalent);
+      r.masterworkTalent = talent ?? r.masterworkTalent;
+    }
+  }
+
+  // Economy data: shop stock, ammo and container capacities all name items.
+  let economy: EconomyDef | undefined;
+  const economyRaw = readYaml("economy.yaml", false);
+  if (economyRaw !== undefined && economyRaw !== null) {
+    const parsed = EconomySchema.safeParse(economyRaw);
+    if (!parsed.success) {
+      for (const i of parsed.error.issues) error("SCHEMA", "economy.yaml", i.message, i.path.join("."));
+    } else {
+      economy = parsed.data;
+      for (const shop of economy.shops) {
+        const local = shop.id;
+        shop.id = `${ns}:${local}`;
+        shop.stock = shop.stock.map((entry, i) => {
+          const item = ref(allItems, entry.item);
+          if (!item) badRef(shop.id, `stock.${i}.item`, "Item", entry.item);
+          return { ...entry, item: item ?? entry.item };
+        });
+      }
+      for (const [kind, ammo] of Object.entries(economy.ammo)) {
+        ammo.items = ammo.items.map((item, i) => {
+          const resolved = ref(allItems, item);
+          if (!resolved) badRef(`ammo.${kind}`, `items.${i}`, "Item", item);
+          return resolved ?? item;
+        });
+        ammo.weapons = ammo.weapons.map((weapon, i) => {
+          const resolved = ref(content.weapons, weapon);
+          if (!resolved) badRef(`ammo.${kind}`, `weapons.${i}`, "Weapon", weapon);
+          return resolved ?? weapon;
+        });
+      }
+      economy.containers = Object.fromEntries(
+        Object.entries(economy.containers).map(([item, capacity]) => {
+          const resolved = ref(allItems, item);
+          if (!resolved) badRef(`containers.${item}`, "item", "Item", item);
+          return [resolved ?? qualify(item), capacity];
+        }),
+      );
+    }
+  }
 
   for (const c of Object.values(content.creatures)) {
     c.skills = Object.fromEntries(
@@ -316,6 +383,8 @@ export function loadPack(dir: string): LoadResult {
     archetypes: content.archetypes,
     pregens: content.pregens,
     creatures: content.creatures,
+    recipes: content.recipes,
+    ...(economy ? { economy } : {}),
     items: { weapons: content.weapons, armor: content.armor, gear: content.gear },
   };
   const hash = createHash("sha256").update(stableStringify(body)).digest("hex");

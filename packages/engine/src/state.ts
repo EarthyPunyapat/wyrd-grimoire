@@ -8,8 +8,10 @@ import type {
   CombatState,
   CompanionState,
   Disposition,
+  EconomyState,
   Edge,
   FactionState,
+  InventoryState,
   KnowledgeEntry,
   NpcMemory,
   QuestState,
@@ -57,8 +59,10 @@ export type GameState = {
   actors: Record<ActorId, ActorState>;
   scene: SceneState | null;
   combat: CombatState | null;
-  inventory: Record<string, never>;
-  economy: Record<string, never>;
+  /** Detailed item stacks per actor (spec 11). `sheet.equipment` is the combat-facing projection. */
+  inventory: InventoryState;
+  /** Coins, wealth levels and shop stock (spec 11). */
+  economy: EconomyState;
   factions: Record<string, FactionState>;
   quests: Record<string, QuestState>;
   clocks: Record<string, Clock>;

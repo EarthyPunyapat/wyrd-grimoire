@@ -2,10 +2,12 @@ import { describe, expect, test } from "bun:test";
 import {
   defaultCampaignSettings,
   defaultTuning,
+  EconomyState,
   type Entity,
   Entity as EntitySchema,
   type Fact,
   Fact as FactSchema,
+  InventoryState,
   type Resolution,
   SceneState,
 } from "@wyrd/core";
@@ -107,8 +109,8 @@ function state(): GameState {
       openedAt: 0,
     }),
     combat: null,
-    inventory: {},
-    economy: {},
+    inventory: InventoryState.parse({}),
+    economy: EconomyState.parse({}),
     factions: {},
     quests: {},
     clocks: {},
