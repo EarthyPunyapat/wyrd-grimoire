@@ -11,6 +11,8 @@
 
 **M1–M6 are built:** the engine core, the model loop, the web client, combat, world and memory, and characters with companions. Four acceptance checks still need the owner at a real keyboard — real-provider M2 sign-in and a 20-turn session, the M3 LAN/phone playtest, and the M5 real-model world run and NPC-knowledge eval. **M7 (breadth) is next**; see [docs/milestones.md](docs/milestones.md).
 
+**Live site:** [earthypunyapat.github.io/wyrd-grimoire](https://earthypunyapat.github.io/wyrd-grimoire/) — source in [`site/`](site/).
+
 ```sh
 bun install
 bun run check                      # typecheck, lint, tests, pack validate
