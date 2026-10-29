@@ -66,8 +66,8 @@ export function Play({
   };
   const inCombat = !!view.combat && !view.ended;
   const tabs: Tab[] = inCombat
-    ? ["combat", "sheet", "party", "journal", "codex", "map", "timeline"]
-    : ["sheet", "party", "journal", "codex", "map", "timeline"];
+    ? ["combat", "sheet", "inventory", "party", "journal", "codex", "map", "timeline"]
+    : ["sheet", "inventory", "party", "journal", "codex", "map", "timeline"];
   const stamp = view.turns.length;
   useEffect(() => {
     if (inCombat) setTab("combat");
@@ -451,6 +451,9 @@ export function Play({
             </button>
             <button type="button" onClick={() => setPanelOpen("timeline")}>
               Timeline
+            </button>
+            <button type="button" onClick={() => setPanelOpen("inventory")}>
+              Inventory
             </button>
             <Dialog.Trigger>Sheet ↗</Dialog.Trigger>
           </div>

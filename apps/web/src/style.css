@@ -244,6 +244,12 @@ progress::-webkit-progress-value { background: var(--accent); }
   .passage-tools > span { display: none; }
 }
 @media (max-width: 360px) { .mode-badge { display: none; } .form-row { grid-template-columns: 1fr; } .card-sigil { width: 44px; } }
+/* Six sheet tabs at 320 px: keep them all on one row and let the name/HP summary ellipsis. */
+@media (max-width: 420px) {
+  .mobile-bar { padding-left: .4rem; padding-right: .4rem; gap: .15rem; }
+  .mobile-bar > span { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-bar button { flex: 0 0 auto; padding: .35rem .3rem; font-size: .62rem; min-height: 32px; }
+}
 /* Combat (spec 13, mockup play-and-combat.html) */
 .panel-tabs { display: flex; border-bottom: 1px solid var(--line); }
 .panel-tabs button { flex: 1; border: 0; border-radius: 0; font-size: .65rem; text-transform: uppercase; letter-spacing: .1em; color: var(--ink-muted); }
