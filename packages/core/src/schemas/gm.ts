@@ -98,15 +98,7 @@ export type LookupArgs = z.infer<typeof LookupArgs>;
 export const ObserveArgs = z.object({ targetId: z.string() });
 export type ObserveArgs = z.infer<typeof ObserveArgs>;
 
-export const TimeSkipArgs = z.object({
-  minutes: z
-    .number()
-    .int()
-    .min(1)
-    .max(60 * 24 * 365),
-  reason: z.string(),
-});
-export type TimeSkipArgs = z.infer<typeof TimeSkipArgs>;
+export { TimeSkipArgs } from "./domains/skips.ts";
 
 export const Card = z.discriminatedUnion("type", [
   LevelUpCard,

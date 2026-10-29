@@ -180,13 +180,18 @@ export function Codex({
   campaignId,
   stamp,
   focus,
+  watched = [],
+  onChanged,
 }: {
   campaignId: string;
   stamp: number;
   focus?: string | null;
+  watched?: string[];
+  onChanged?: () => void | Promise<void>;
 }) {
   const { data, setData, error } = usePanel(`/campaigns/${campaignId}/codex`, parseCodex, stamp);
   const [query, setQuery] = useState("");
+  const [watchBusy, setWatchBusy] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ id: string; value: string } | null>(null);
   const [problem, setProblem] = useState("");
   const [address, setAddress] = useState<string | null>(null);
@@ -262,6 +267,30 @@ export function Codex({
                 className={`codex-entry${focus === e.id ? " focus" : ""}`}
               >
                 <h4>{e.name}</h4>
+                <button
+                  type="button"
+                  aria-pressed={watched.includes(e.id)}
+                  disabled={watchBusy !== null}
+                  onClick={async () => {
+                    setWatchBusy(e.id);
+                    setProblem("");
+                    try {
+                      await api(
+                        `/campaigns/${campaignId}/watch/${encodeURIComponent(e.id)}`,
+                        (d) => d,
+                        { watch: !watched.includes(e.id) },
+                        "PUT",
+                      );
+                      await onChanged?.();
+                    } catch (error) {
+                      setProblem((error as Error).message);
+                    } finally {
+                      setWatchBusy(null);
+                    }
+                  }}
+                >
+                  {watched.includes(e.id) ? "Unwatch" : "Watch"} {e.name}
+                </button>
                 <p className="small">{e.summary}</p>
                 <p className="small muted">
                   Known: {e.how}

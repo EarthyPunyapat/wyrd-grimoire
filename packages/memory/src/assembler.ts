@@ -1,12 +1,21 @@
 import type { Entity, Fact, Resolution } from "@wyrd/core";
 import { defaultTuning } from "@wyrd/core";
-import { type GameState, type RulesContext, skillLabel, skillValue } from "@wyrd/engine";
+import {
+  delegationTasks,
+  type GameState,
+  type RulesContext,
+  skillLabel,
+  skillValue,
+  watchedIds,
+} from "@wyrd/engine";
 import { contentPolicy, contentRules } from "./content.ts";
 import { sceneSpeakerContext } from "./scene-speakers.ts";
 
 /** What the assembler reads from canon. `CanonQueries` from storage satisfies it. */
 export interface CanonSource {
   entity(id: string): Entity | null;
+  /** World simulation only; callers must project knowledge before exposing entities. */
+  allEntities?(kind?: string): Entity[];
   factsAbout(entityId: string, opts?: { includeSecret?: boolean; horizonSeq?: number }): Fact[];
   findByName(name: string): Entity[];
   recentTurns(
@@ -131,6 +140,11 @@ function gmStateText(state: GameState): string {
   return [
     `- HP ${pc.sheet.status.hp}/${pc.sheet.derived.hpMax}`,
     `- Coins ${coins}`,
+    `- Watching: ${watchedIds(state).join(", ") || "none"}`,
+    "- Delegated tasks (use IDs in until conditions):",
+    ...delegationTasks(state)
+      .slice(-defaultTuning.skips.reportEvents)
+      .map((task) => `  - [${task.id}] ${task.assignee}: ${task.goal} (${task.status})`),
     `- Conditions: ${conditions.length ? conditions.join(", ") : "none"}`,
     "- Carrying:",
     ...(stacks.length

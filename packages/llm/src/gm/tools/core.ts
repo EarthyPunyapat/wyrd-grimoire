@@ -4,22 +4,11 @@ import {
   ChangeStateArgs,
   type Choice,
   draft,
-  ObserveArgs,
   OfferChoicesArgs,
   RetconArgs,
   ShowCardArgs,
-  TimeSkipArgs,
 } from "@wyrd/core";
-import {
-  advanceDelegations,
-  applyChanges,
-  blockedTasks,
-  knownEntities,
-  nextDelegationBoundary,
-  resolveTurn,
-  validateTurn,
-  Working,
-} from "@wyrd/engine";
+import { applyChanges, resolveTurn, validateTurn } from "@wyrd/engine";
 import { registerGmTool } from "../registry.ts";
 import type { ToolContext, ToolProgress, ToolRun } from "../tool-types.ts";
 
@@ -47,13 +36,6 @@ function act(actorId: string, actions: unknown[], x: ToolContext, progress?: Too
       ...(progress ? { progress } : {}),
     },
   };
-}
-
-function publicFacts(x: ToolContext, entityId: string) {
-  return x.canon
-    .factsAbout(entityId)
-    .filter((f) => f.visibility !== "secret")
-    .map((f) => ({ predicate: f.predicate, value: f.value }));
 }
 
 function changes(name: "change_state" | "retcon", a: ChangeStateArgs | RetconArgs, x: ToolContext): ToolRun {
@@ -95,73 +77,6 @@ registerGmTool({
   description: "GM mode: rewrite the world as the player asked; the player sees a Retcon card with Undo.",
   schema: RetconArgs,
   run: (a, x) => changes("retcon", a, x),
-});
-
-registerGmTool({
-  name: "observe",
-  description: "Look at a known entity now: its public facts and where it is.",
-  schema: ObserveArgs,
-  run: ({ targetId }, x) => {
-    const entity = knownEntities(x.state).has(targetId) ? x.canon.entity(targetId) : null;
-    const actor = x.state.actors[targetId];
-    if (!entity && !actor) return { ok: false, body: { errors: `${targetId} is not known` } };
-    return {
-      ok: true,
-      body: {
-        id: targetId,
-        name: entity?.name ?? actor?.sheet.identity.name,
-        summary: entity?.summary,
-        facts: publicFacts(x, targetId),
-        zone: x.state.scene?.positions[targetId] ?? null,
-      },
-    };
-  },
-});
-
-registerGmTool({
-  name: "time_skip",
-  description: "Let time pass; the world moves on.",
-  schema: TimeSkipArgs,
-  run: (a, x) => {
-    const working = new Working(x.state);
-    const until = x.state.campaign.gameTime + a.minutes;
-    const mechanics: NonNullable<ToolRun["effects"]>["mechanics"] = [];
-    let interrupted = blockedTasks(working.state).length > 0;
-    while (working.state.campaign.gameTime < until && !interrupted) {
-      const now = working.state.campaign.gameTime;
-      const boundary = nextDelegationBoundary(working.state);
-      if (boundary !== undefined && boundary <= now) {
-        const pending = advanceDelegations(working.state, x.ctx);
-        if (!pending.length)
-          return {
-            ok: false,
-            body: { errors: "An overdue task needs a revised plan" },
-            effects: { drafts: working.events },
-          };
-        working.apply(pending);
-      } else {
-        const end = Math.min(until, boundary ?? until, now + x.ctx.tuning.world.maxWaitMinutes);
-        const step = act(x.pcId, [{ type: "wait", minutes: end - now }], { ...x, state: working.state });
-        if (!step.ok)
-          return {
-            ...step,
-            effects: { ...step.effects, drafts: [...working.events, ...(step.effects?.drafts ?? [])] },
-          };
-        working.apply(step.effects?.drafts ?? []);
-        mechanics.push(...(step.effects?.mechanics ?? []));
-      }
-      interrupted = blockedTasks(working.state).length > 0;
-    }
-    return {
-      ok: true,
-      body: {
-        minutes: working.state.campaign.gameTime - x.state.campaign.gameTime,
-        interrupted,
-        blocked: blockedTasks(working.state).map((t) => ({ taskId: t.id, report: t.report })),
-      },
-      effects: { drafts: working.events, mechanics, progress: { phase: "simulating", detail: a.reason } },
-    };
-  },
 });
 
 registerGmTool({

@@ -5,3 +5,4 @@ import "./lore.ts";
 import "./levels.ts";
 import "./delegation.ts";
 import "./source.ts";
+import "./skips.ts";

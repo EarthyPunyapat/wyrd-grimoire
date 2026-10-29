@@ -137,7 +137,15 @@ export function Menus({
           {tab === "inventory" && <Inventory view={view} onChanged={onRefresh} onSend={onSend} />}
           {tab === "quests" && <Quests campaignId={view.id} stamp={stamp} />}
           {tab === "journal" && <Journal campaignId={view.id} stamp={stamp} />}
-          {tab === "codex" && <Codex campaignId={view.id} stamp={stamp} focus={codexFocus ?? null} />}
+          {tab === "codex" && (
+            <Codex
+              campaignId={view.id}
+              stamp={stamp}
+              focus={codexFocus ?? null}
+              watched={view.watched.map((e) => e.id)}
+              onChanged={onRefresh}
+            />
+          )}
           {tab === "map" && (
             <WorldMap campaignId={view.id} stamp={stamp} onTravel={onTravel} onCodex={onOpenCodex} />
           )}

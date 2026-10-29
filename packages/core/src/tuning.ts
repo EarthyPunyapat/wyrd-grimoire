@@ -33,6 +33,20 @@ export type WoundEffect = {
  * Spec numbers are defaults, not constants: rules code reads them from a Tuning value.
  */
 export type Tuning = {
+  skips: {
+    minutesPerDay: number;
+    maxDays: number;
+    durationChars: number;
+    reasonChars: number;
+    maxWatches: number;
+    reportChars: number;
+    reportEvents: number;
+    durationUnits: Record<string, number>;
+    interruptSeverity: "minor" | "major" | "critical";
+    severityOrder: string[];
+    eventSeverity: Record<string, "minor" | "major" | "critical">;
+    newsSeverity: Record<string, "minor" | "major" | "critical">;
+  };
   delegation: {
     durationMinutes: number;
     skill: string;
@@ -431,6 +445,39 @@ export type Tuning = {
 };
 
 export const defaultTuning: Tuning = {
+  skips: {
+    minutesPerDay: 1440,
+    maxDays: 365,
+    durationChars: 160,
+    reasonChars: 400,
+    maxWatches: 32,
+    reportChars: 1000,
+    reportEvents: 12,
+    durationUnits: { minute: 1, hour: 60, day: 1440, week: 10080, month: 43200, year: 525600 },
+    interruptSeverity: "major",
+    severityOrder: ["minor", "major", "critical"],
+    newsSeverity: {
+      faction: "major",
+      life: "major",
+      threat: "major",
+      festival: "minor",
+      downtime: "minor",
+      world: "minor",
+    },
+    eventSeverity: {
+      ActorDied: "critical",
+      NpcLifeEvent: "major",
+      TaskEnded: "major",
+      TaskBlocked: "major",
+      CanonClockResolved: "major",
+      QuestEnded: "major",
+      ThreatAdvanced: "major",
+      NewsPublished: "minor",
+      ClockAdvanced: "minor",
+      CanonActorActed: "minor",
+      FactAsserted: "minor",
+    },
+  },
   delegation: {
     durationMinutes: 1440,
     skill: "core:insight",

@@ -4,7 +4,7 @@ Working notes for whoever picks this up next. Read `AGENTS.md` first, then this 
 
 ## Status (2026-10-30)
 
-**M1–M7, W2 step 2, workstreams A (Levels/abilities), B (avatars/sealing), C (wiki lore), D (source creation/style/canon clocks) and F (companions/delegation), plus UI 2.0 U3, U4, U5 (home and creation) and U6 (presets and dials), are built.** Owner-only and remaining W2 checks stay unticked in `docs/milestones.md`.
+**M1–M7, W2 step 2, workstreams A (Levels/abilities), B (avatars/sealing), C (wiki lore), D (source creation/style/canon clocks) E (time skips/watch list) and F (companions/delegation), plus UI 2.0 U3, U4, U5 (home and creation) and U6 (presets and dials), are built.** Owner-only and remaining W2 checks stay unticked in `docs/milestones.md`.
 The GM-with-tools turn (Tasks 1–8 of `docs/superpowers/plans/2026-10-29-w2-step2-gm-turn.md`) is on
 `w2-gm-ui` and merges to `main`: one GM model runs a turn with engine tools, streams prose, shows
 cards and choices, retcons with Undo, marks a backup model and runs a non-blocking structural check
@@ -17,6 +17,17 @@ Owner-only checks still outstanding (need real hardware or keys):
 - M3: LAN/phone playtest from the Arch laptop and a phone.
 - M5: a real-model world run and the NPC-knowledge eval.
 - M8: media (images, TTS) has not been built.
+
+## W2 E — Time skips and the god-game (2026-10-29)
+
+Built test-first on `w2-skips`, merged to `main`. Plan: `docs/superpowers/plans/2026-10-29-w2-skips.md`; defaults: D161.
+
+- `domains/skips.ts` / `reduce/skips.ts` own WatchAdded, WatchRemoved and SkipCompleted. Watches project to `flags.watchList`; the last safe digest to `flags.lastSkip`. Engine exports `runSkip`, `changeWatch`, `watchedIds`, `lastSkip`, `observableIds`, `skipFacts` and report-card helpers.
+- `gm/tools/skips.ts` replaces core's old time_skip and observe, adds watch/unwatch, and registers through one index import. Duration accepts game minutes or unit text; `until` accepts task IDs, clock ID or fact equality. Legacy minutes works. Default limit is 365 days; month is 30 days; duration/report/watch/severity bounds live in tuning.skips.
+- Skips call existing runTicks at every daily boundary (weekly every seventh calendar day), plus earlier task boundaries/final partial days. D's canon and F's task checks run through those ticks. They stop for watched major events (including completed faction goals), final pending canon segment, blocked tasks or death. Recorded/valid fact interventions permit averted canon resolution. Combat/dead campaigns cannot skip.
+- Digests and one report per watched entity persist as report cards, including quiet spans. Summaries use typed event fields; no raw NPC minds or private payloads. Effective infinity observes unknown existing entities, learns public facts and may establish watches; finite/sealed observers remain knowledge-limited. Missing IDs fail.
+- `PUT /api/campaigns/:id/watch/:entityId` takes `{watch: boolean}` for known targets, guards running turns and appends events. GameView projects safe watched identity/report fields. Codex controls edit watches; Cockpit shows watched entities outside the scene. GM prompts carry watch IDs and recent task metadata for future until conditions.
+- Offline tests cover daily/monthly replay/RNG equivalence, every interruption, conditions/limits/validation, F/D integration, safe observation and reports, API/rebuild, and Cockpit/Codex on desktop/phone. Validation results are recorded below when the final checks complete.
 
 ## W2 F — Companions, Ari and delegation (2026-10-29)
 
@@ -50,7 +61,7 @@ Built on `w2-ui-presets`; plan `docs/superpowers/plans/2026-10-29-w2-ui-presets.
 - `Play.tsx` changes only the preset switch (`usePlayPreset` plus `data-preset`); both presets use the existing strip, story, choices, cards, composer, hotbar and menus.
 - Public Sans, Inter and JetBrains Mono are bundled from npm for offline/LAN use. The server CSP now allows Vite's inlined `data:` font subsets.
 - Validation: `bun run typecheck`, `bun run lint`, **813 tests**, `bun run build`, and the full sequential Playwright suite: **58 passed, 4 existing skips** on desktop/phone. Cockpit and Chat also pass axe WCAG AA on both projects.
-- The watch list currently shows scene data; workstream E's watched entities can replace the source when it lands.
+- E now supplies persistent watched entities to the Cockpit rail.
 
 ## W2 A — Levels and abilities (2026-10-29)
 
@@ -189,7 +200,7 @@ Built test-first on `w2-lore`; merged to `main`. Plan: `docs/superpowers/plans/2
 
 **W2 — Wyrd 2.0** (before M8). The owner played M7 and found it lacking next to their own ChatGPT RPG sessions, and a 72-question interview on 2026-10-29 redesigned the game.
 
-Step 2 and step 3 A/B/C/D/F are done, and UI 2.0 U3–U6 are built. Next: E full time skips/watch list. A exports level/check/breakthrough helpers, C exports `LoreResearch`, D exports canon-clock advancement, and F exports delegation advancement/boundary/blocked-task helpers. Infinite observe scope remains in E.
+Step 2 and step 3 A/B/C/D/E/F are done, and UI 2.0 U3–U6 are built. Next: step 4 import and the replay/owner evaluation. A exports level/check/breakthrough helpers, C exports `LoreResearch`, D exports canon-clock advancement, and F exports delegation advancement/boundary/blocked-task helpers. E now owns the full skip loop and infinity observation.
 
 Read these first:
 - the spec: `docs/superpowers/specs/2026-10-29-wyrd-2-design.md`

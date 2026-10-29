@@ -28,6 +28,7 @@ export * from "./result.ts";
 export { awake, perceives } from "./scene-perception.ts";
 export * from "./settings.ts";
 export * from "./skills.ts";
+export * from "./skips.ts";
 export * from "./state.ts";
 export * from "./survival.ts";
 export * from "./turns.ts";

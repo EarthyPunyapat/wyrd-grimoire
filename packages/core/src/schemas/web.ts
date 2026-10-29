@@ -173,6 +173,9 @@ export const GameView = z.object({
       }),
     )
     .default([]),
+  watched: z
+    .array(z.object({ id: z.string(), name: z.string(), kind: z.string(), report: z.string().optional() }))
+    .default([]),
   powerRating: z.union([z.number(), z.string()]).optional(),
   levelProposals: z
     .array(LevelProposal.extend({ status: z.enum(["pending", "accepted", "superseded"]) }))
