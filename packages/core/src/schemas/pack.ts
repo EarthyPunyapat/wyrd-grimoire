@@ -9,6 +9,7 @@ import { LootTableDef } from "./loot.ts";
 import { NamingStyleDef } from "./naming.ts";
 import { RecipeDef } from "./recipes.ts";
 import { AppearanceFacts } from "./sheet.ts";
+import type { EconomyDef } from "./inventory.ts";
 
 /**
  * Pack content schemas, as authored in YAML. Entry IDs are local (`arcana`); references may be
@@ -277,6 +278,8 @@ export type CompiledPack = {
   classes: Record<string, ClassDef & { id: string }>;
   pregens: Record<string, PregenDef & { id: string }>;
   creatures: Record<string, CreatureDef & { id: string }>;
+  /** Money, shops, ammo recovery and container capacities from `economy.yaml` (spec 11). */
+  economy?: EconomyDef;
   items: {
     weapons: Record<string, WeaponDef & { id: string }>;
     armor: Record<string, ArmorDef & { id: string }>;

@@ -29,7 +29,11 @@ export const RecipeDef = z.object({
   skill: ContentRefLike.default("core:craft"),
   difficulty: Difficulty.default("normal"),
   /** Time one attempt takes, in game minutes. */
-  minutes: z.number().int().positive(),
+  minutes: z.number().int().positive().default(60),
+  /** Complex items produce nothing on a failure; simple ones produce a crude version. */
+  complex: z.boolean().default(false),
+  /** A talent that upgrades a critSuccess from fine to masterwork. */
+  masterworkTalent: ContentRefLike.optional(),
   tags: z.array(z.string()).default([]),
 });
 export type RecipeDef = z.infer<typeof RecipeDef>;

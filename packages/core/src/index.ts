@@ -15,6 +15,7 @@ export * from "./schemas/domains/living.ts";
 export * from "./schemas/downtime.ts";
 export * from "./schemas/events.ts";
 export * from "./schemas/history.ts";
+export * from "./schemas/inventory.ts";
 export * from "./schemas/loot.ts";
 export * from "./schemas/naming.ts";
 export * from "./schemas/pack.ts";
