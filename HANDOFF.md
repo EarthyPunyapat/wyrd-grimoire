@@ -4,11 +4,11 @@ Working notes for whoever picks this up next. Read `AGENTS.md` first, then this 
 
 ## Status (2026-10-29)
 
-**M1–M7, W2 step 2 and workstreams A (Levels/abilities) and C (wiki lore) are built.** Owner-only and remaining W2 checks stay unticked in `docs/milestones.md`.
+**M1–M7, W2 step 2 and workstreams A (Levels/abilities), C (wiki lore) and D (source creation/style/canon clocks) are built.** Owner-only and remaining W2 checks stay unticked in `docs/milestones.md`.
 The GM-with-tools turn (Tasks 1–8 of `docs/superpowers/plans/2026-10-29-w2-step2-gm-turn.md`) is on
 `w2-gm-ui` and merges to `main`: one GM model runs a turn with engine tools, streams prose, shows
 cards and choices, retcons with Undo, marks a backup model and runs a non-blocking structural check
-with Fix/Dismiss. `bun run check` is green: typecheck → lint (warnings only) → **771 tests** →
+with Fix/Dismiss. `bun run check` is green: typecheck → lint (warnings only) → **781 tests** →
 `pack validate packs/fantasy-core`.
 
 Owner-only checks still outstanding (need real hardware or keys):
@@ -31,6 +31,20 @@ Built test-first on `w2-levels`, merged to `main`. Plan: `docs/superpowers/plans
 - Offline engine, tool, server, replay and render tests cover the rules and flow. Combat goldens were deliberately regenerated; only ActorCreated hashes changed for default sheet fields, with all combat outcomes unchanged.
 - Validation: `bun run check` passed: typecheck, lint (existing warnings), **771 tests**, and fantasy-core pack validation. `bun run build` also passed.
 - Browser verification: dedicated Levels workflow passes desktop and phone. Full `bun run test:e2e`: **45 passed, 3 existing skips**, sequential with one worker/browser at a time. Browser install/build outputs are not committed.
+
+## W2 D — Source creation, style and canon clocks (2026-10-29)
+
+Built test-first on `w2-source`; merged to `main`. Plan: `docs/superpowers/plans/2026-10-29-w2-source.md`.
+
+- Creation optionally runs inside a named source/wiki. `llm/src/source-creation.ts` reuses C's `LoreLookup`/`LoreResearch` and global summary cache to build a source bible, starting abilities, canon NPC routines and iconic timeline events. Confidence/URL evidence is retained as lore facts and a lore record; downloaded passages never enter campaign logs.
+- `Clock` supports `kind: "canon"` with an elapsed-time plan and intervention predicate. New events live only in `domains/canon-clocks.ts`, with handlers only in `reduce/canon-clocks.ts`. `engine/src/canon-clocks.ts` resolves each clock once, asserting an outcome or recording that an intervention averted it. World-mismatched, retracted and superseded evidence is excluded.
+- Daily `runTicks` advances canon and records in-character NPC activity facts and private memories. Dead/inactive characters stop, and canon characters bypass random generic life events. Source clocks also advance during API downtime. E can reuse `runTicks` for full daily skips; absolute clock progress catches up across the existing daily-tick cap.
+- `gm/tools/source.ts` owns `source_timeline` and `intervene_canon` (one index import). Accepted earlier-in-turn fact drafts are available for intervention validation before storage projections commit. Behind-screen timeline details stay out of GameView; witnessed outcomes gain knowledge normally.
+- `CampaignSettings.style = {source, playerWords, sample}` persists through events/rebuild and enters GM instructions (`gm@2`), with `prompts/house-style.md` as the default voice. Creation shows a generated sample, editable fields and a “More like…” revision loop; Settings edits all three later.
+- The GM proposes all subsystem toggles, an optional light/dark theme palette, dice, hardcore/lethality/companion death and starting Level. Every field can be overridden; starting powers use A's `AbilityGained`. Existing hunger/thirst use survival, exposure uses weather, and encumbrance uses inventory mode. Legacy explicit preset/dice/death selections keep their meaning.
+- UI remains functional in the current layout for U5. Theme overrides use a validated JSON palette editor for now. Missing review/sample generation is labelled and recoverable; offline preview permits direct style edits and requires a connected model for source research or sample revision.
+- Offline tests use FakeProvider plus C's recorded wiki fixture. Coverage includes clocks/interventions/world isolation/replay, NPC actions, source research, apocalypse/cosmic review proposals, style instructions, same-turn evidence, creation/settings/downtime/rebuild and desktop/phone creation flows.
+- Validation: `bun run check` passed: typecheck, lint (existing warnings), **781 tests**, and fantasy-core pack validation. Build passed; full sequential Playwright: **47 passed, 3 existing skips** on desktop/phone. Combat goldens changed only the `CampaignCreated` hashes for the new default settings fields; combat outcomes are unchanged.
 
 ## W2 C — Lore from wikis (2026-10-29)
 
@@ -118,7 +132,7 @@ Built test-first on `w2-lore`; merged to `main`. Plan: `docs/superpowers/plans/2
 
 **W2 — Wyrd 2.0** (before M8). The owner played M7 and found it lacking next to their own ChatGPT RPG sessions, and a 72-question interview on 2026-10-29 redesigned the game.
 
-Step 2 and step 3 A/C are done. Next: B avatars/sealing, D source creation, F delegation, and E full time skips/watch list (after F). A exports the level/check/breakthrough helpers; C exports `LoreResearch`. Infinite observe scope remains in E.
+Step 2 and step 3 A/C/D are done. Next: B avatars/sealing, F delegation, and E full time skips/watch list (after F). A exports the level/check/breakthrough helpers; C exports `LoreResearch`. Infinite observe scope remains in E.
 
 Read these first:
 - the spec: `docs/superpowers/specs/2026-10-29-wyrd-2-design.md`

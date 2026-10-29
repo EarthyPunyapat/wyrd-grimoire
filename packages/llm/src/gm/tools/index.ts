@@ -2,3 +2,4 @@
 import "./core.ts";
 import "./lore.ts";
 import "./levels.ts";
+import "./source.ts";

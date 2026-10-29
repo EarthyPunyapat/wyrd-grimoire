@@ -13,6 +13,7 @@ import {
   type EventDraft,
   GameView,
   LegacyInput,
+  type Level,
   PasscodeInput,
   type ProgressionMode,
   parseEventPayload,
@@ -50,6 +51,7 @@ import {
   RESOLUTION_MODULES,
   reduce,
   resolveDowntime,
+  runTicks,
   sell,
   skillLabel,
   skillValue,
@@ -58,7 +60,9 @@ import {
 } from "@wyrd/engine";
 import {
   combatContent,
+  defaultCreationReview,
   elaborateEntity,
+  generateCreationReview,
   generateLocation,
   generateStartingKit,
   generateWorld,
@@ -70,7 +74,9 @@ import {
   offlineElaboration,
   offlineLocation,
   placeHooks,
+  type ResearchedSource,
   type RoleRouter,
+  researchSource,
   SecretStore,
   TurnPipeline,
   type TurnStreamEvent,
@@ -105,6 +111,7 @@ import { EXAMPLE_WORLD } from "./example-world.ts";
 import { mountHistory } from "./history.ts";
 import { ModelServices, mountModels } from "./models.ts";
 import { mountParty, profileNewCompanions, recruitSheet } from "./party.ts";
+import { sourceEvents } from "./source-creation.ts";
 import { addressOf, mountWorld } from "./world-views.ts";
 
 const SESSION_TTL = 30 * 24 * 60 * 60 * 1000;
@@ -301,6 +308,7 @@ export function createApp(options: Options) {
   });
   mountModels(app, models);
   mountCreation(app, {
+    styleRouter: () => options.router ?? (options.offline ? null : models.router()),
     store,
     body,
     router: () => (options.offline ? null : models.router()),
@@ -375,6 +383,8 @@ export function createApp(options: Options) {
     onProgress?: (steps: DraftStep[]) => Promise<void> | void,
   ) {
     const steps = DRAFT_STEPS.map((s) => ({ ...s }));
+    if (input.source)
+      steps.splice(1, 0, { key: "research", label: `Researching ${input.source.title}`, status: "pending" });
     const mark = async (key: string, status: DraftStep["status"]) => {
       const step = steps.find((s) => s.key === key);
       if (step) step.status = status;
@@ -394,7 +404,25 @@ export function createApp(options: Options) {
         });
       }
     }
-    const proposal = offline ? EXAMPLE_WORLD : await generateWorld(models.router(), input);
+    if (offline && input.source)
+      throw new HTTPException(422, {
+        message: "Connect a model to research a source, or preview an original example world.",
+      });
+    if (input.source) await mark("research", "running");
+    const source: ResearchedSource | undefined = input.source
+      ? await researchSource(
+          models.router(),
+          input,
+          new LoreResearch({
+            router: models.router(),
+            cache: new LoreCache(options.home),
+            client: options.loreClient,
+          }),
+        )
+      : undefined;
+    if (input.source) await mark("research", "done");
+    const proposal =
+      source?.proposal ?? (offline ? EXAMPLE_WORLD : await generateWorld(models.router(), input));
     await mark("world", "done");
     await mark("bible", "running");
     const bibleInput = {
@@ -410,9 +438,11 @@ export function createApp(options: Options) {
       ...proposal.location.people.map((p) => p.name),
     ];
     // The wider world is optional: if it can't be generated, the campaign starts as a single site (D93).
-    const bible = options.offline
-      ? offlineBible({ worldName: proposal.worldName, openingSite: proposal.location.name, threat: true })
-      : await generateWorldBible(models.router(), bibleInput, taken).catch(() => undefined);
+    const bible =
+      source?.bible ??
+      (options.offline
+        ? offlineBible({ worldName: proposal.worldName, openingSite: proposal.location.name, threat: true })
+        : await generateWorldBible(models.router(), bibleInput, taken).catch(() => undefined));
     await mark("bible", "done");
     await mark("validate", "running");
     // The starting kit is optional too: a failed call keeps today's empty kit and no shop (D148).
@@ -421,12 +451,27 @@ export function createApp(options: Options) {
       : await generateStartingKit(models.router(), { proposal, pitch: input.pitch }).catch(() => undefined);
     const { pack } = compileGeneratedWorld(proposal, kit);
     const id = randomUUID();
-    const preview = generatedWorldPreview(id, input.name, proposal, pack, offline);
+    const proposedReview = offline
+      ? undefined
+      : await generateCreationReview(models.router(), input, proposal).catch(() => undefined);
+    const review = proposedReview ?? defaultCreationReview();
+    const reviewNotice =
+      !offline && !proposedReview
+        ? "The GM's settings and sample could not be generated. Review the house defaults, edit the style, or try revising the sample."
+        : undefined;
+    const preview = {
+      ...generatedWorldPreview(id, input.name, proposal, pack, offline),
+      review,
+      reviewNotice,
+      source: input.source,
+    };
     await mark("validate", "done");
     await mark("save", "running");
     store.saveCreationDraft(id, {
       input,
       proposal,
+      review,
+      ...(source ? { source } : {}),
       ...(bible ? { bible } : {}),
       ...(kit ? { kit } : {}),
       offline,
@@ -480,6 +525,7 @@ export function createApp(options: Options) {
   const starting = new Set<string>();
   app.post("/api/campaigns", async (c) => {
     const input = await body(c, StartGeneratedCampaign);
+    const submitted = (await c.req.json()) as Record<string, unknown>;
     const saved = StoredDraft.safeParse(store.creationDraft(input.draftId));
     if (!saved.success)
       throw new HTTPException(404, { message: "World draft not found. Generate your world first." });
@@ -505,16 +551,57 @@ export function createApp(options: Options) {
         world,
         saved.data.bible?.startSite,
       );
-      const settings = creationSettings(pack, input);
+      const reviewBase = input.review ?? saved.data.review;
+      const review = reviewBase
+        ? {
+            ...reviewBase,
+            ...(submitted.resolution !== undefined ? { resolution: input.resolution } : {}),
+            ...(submitted.hardcore !== undefined ? { hardcore: input.hardcore } : {}),
+          }
+        : undefined;
+      const latest = StoredDraft.parse(store.creationDraft(input.draftId));
+      if (JSON.stringify(latest) !== JSON.stringify(saved.data))
+        throw new HTTPException(409, {
+          message: "Your draft changed while preparing the campaign. Try again.",
+        });
+      const settings = {
+        ...creationSettings(pack, input),
+        ...(review
+          ? {
+              subsystems:
+                !input.review && submitted.preset !== undefined
+                  ? (presetSelection(input.preset).subsystems ?? review.subsystems)
+                  : review.subsystems,
+              theme: review.theme,
+              style: review.style,
+              lethality: review.lethality,
+              companionDeath: review.companionDeath,
+              structural: {
+                progression: input.progression,
+                resolution: review.resolution,
+                hardcore: review.hardcore,
+              },
+            }
+          : {}),
+      };
+      const sourced = saved.data.source
+        ? sourceEvents(
+            saved.data.source,
+            saved.data.input,
+            [...worldEvents(world, []), ...bible],
+            world.gameTime,
+          )
+        : [];
       const id = createGame(
         saved.data.input.name,
         input.ancestry && input.archetype ? sheet : { ...sheet, name: sheet.name || characterName },
         pack,
         world,
-        bible,
+        [...bible, ...sourced],
         hooks,
         settings,
         saved.data.input.pitch,
+        review?.startingLevel,
       );
       store.saveCreationDraft(input.draftId, { ...saved.data, campaignId: id });
       return c.json({ id }, 201);
@@ -642,6 +729,7 @@ export function createApp(options: Options) {
     hooks?: { ids: string[]; events: EventDraft[] },
     settings: CampaignSettingsInput = {},
     pitch?: string,
+    startingLevel?: Level,
   ) {
     // Player-written gear becomes real pack items before anything is frozen or built.
     const gamePack = withPlayerGear(pack, character.gear);
@@ -654,7 +742,10 @@ export function createApp(options: Options) {
         seed: options.seed ?? randomBytes(16).toString("hex"),
       }),
     );
-    const built = buildPc("pc", character, gamePack, created.payload.settings);
+    const built = {
+      ...buildPc("pc", character, gamePack, created.payload.settings),
+      ...(startingLevel ? { level: startingLevel } : {}),
+    };
     const sheet = hooks ? { ...built, identity: { ...built.identity, hookIds: hooks.ids } } : built;
     const template = gamePack.economy?.shops[0];
     const shop = template
@@ -809,7 +900,7 @@ export function createApp(options: Options) {
         (p) => p.actorId === pc.id || state.party.companionIds.includes(p.actorId),
       ),
       resolution,
-      theme: gamePack.theme ?? null,
+      theme: state.campaign.settings.theme ?? gamePack.theme ?? null,
       shop: (() => {
         const shopState = Object.values(state.economy?.shops ?? {})[0];
         if (!shopState) return null;
@@ -1300,6 +1391,23 @@ export function createApp(options: Options) {
         message: out.errors.map((e) => e.message).join("; ") || "That downtime activity can't be done",
       });
     game.append(out.value.events);
+    // Source canon advances during downtime too, without waiting for another player turn.
+    if (
+      game.state().flags.canonActors ||
+      Object.values(game.state().clocks).some((clock) => clock.kind === "canon")
+    ) {
+      game.append(
+        runTicks(
+          game.state(),
+          makeTurnContext(
+            game.state(),
+            canon,
+            { skills: skillCatalog([pack]), tuning: defaultTuning },
+            combatContent(pack),
+          ),
+        ),
+      );
+    }
     return c.json(out.value.result);
   });
   app.post("/api/campaigns/:id/shop/:verb", async (c) => {

@@ -181,6 +181,8 @@ export function makeTurnContext(
     spells: c.spells ?? {},
     creatureName: (id: string) => c.creatures[id]?.name,
     ...(opts.recruitSheet ? { recruitSheet: opts.recruitSheet } : {}),
+    entityActive: (id) => !["dead", "destroyed", "retconned"].includes(canon.entity(id)?.status ?? "active"),
+    factsAbout: (id) => canon.factsAbout(id, { includeSecret: true }),
     reactionInfo: (id) => sceneProfile(state, canon.entity(id), id),
     nameOf: (id) =>
       state.actors[id]?.sheet.identity.name ??
@@ -501,6 +503,7 @@ export class TurnPipeline {
     const roleInstructions =
       role === "gm"
         ? gmInstructions({
+            style: state.campaign.settings.style,
             policy: state.campaign.settings.narration.choices,
             length: state.campaign.settings.narration.length,
             ...(this.d.styleExamples ? { styleExamples: this.d.styleExamples } : {}),

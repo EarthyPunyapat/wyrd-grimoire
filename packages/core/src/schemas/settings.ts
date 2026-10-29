@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ResolutionId } from "./common.ts";
+import { ThemeSpec } from "./theme.ts";
 
 export const CampaignPreset = z.enum(["story", "standard", "simulation", "custom"]);
 export type CampaignPreset = z.infer<typeof CampaignPreset>;
@@ -77,7 +78,17 @@ export const SubsystemTogglesPatch = z
   })
   .strict();
 
+export const StyleProfile = z.object({
+  /** Empty means use house-style.md. */
+  source: z.string().max(12000).default(""),
+  playerWords: z.string().max(4000).default(""),
+  sample: z.string().max(6000).default(""),
+});
+export type StyleProfile = z.infer<typeof StyleProfile>;
+
 export const CampaignSettings = z.object({
+  style: StyleProfile.prefault({}),
+  theme: ThemeSpec.nullable().default(null),
   structural: z
     .object({
       resolution: ResolutionId.default("d100"),
@@ -150,6 +161,8 @@ export type CampaignSettingsInput = z.input<typeof CampaignSettings>;
  */
 export const CampaignSettingsPatch = z
   .object({
+    style: StyleProfile.partial().strict().optional(),
+    theme: ThemeSpec.nullable().optional(),
     structural: z
       .object({
         resolution: ResolutionId.optional(),

@@ -5,9 +5,40 @@ import { createApp } from "../apps/server/src/app.ts";
 import { EXAMPLE_WORLD } from "../apps/server/src/example-world.ts";
 import { webAssets } from "../apps/server/src/web.ts";
 import { type ChatProvider, FakeProvider, offlineProvider, RoleRouter } from "../packages/llm/src/index.ts";
+import wikipedia from "../packages/llm/test/fixtures/lore/wikipedia.json";
+import { SOURCE_FIXTURE, SOURCE_REVIEW } from "./source-fixture.ts";
 
 const offline = offlineProvider();
 const cases = new FakeProvider([
+  {
+    role: "worldGen",
+    match: (r) => r.tools?.[0]?.name === "propose_lore",
+    reply: {
+      toolCall: { name: "propose_lore", args: { facts: ["Marsh lights guide travellers away from paths."] } },
+    },
+  },
+  {
+    role: "worldGen",
+    match: (r) => r.tools?.[0]?.name === "propose_source",
+    reply: { toolCall: { name: "propose_source", args: SOURCE_FIXTURE } },
+  },
+  {
+    role: "worldGen",
+    match: (r) =>
+      r.tools?.[0]?.name === "propose_creation_review" &&
+      r.messages.some((m) => m.content.includes("source workflow")),
+    reply: { toolCall: { name: "propose_creation_review", args: SOURCE_REVIEW } },
+  },
+  {
+    role: "worldGen",
+    match: (r) => r.tools?.[0]?.name === "propose_style_sample",
+    reply: {
+      toolCall: {
+        name: "propose_style_sample",
+        args: { sample: "Rain needles the window. Your green light flickers." },
+      },
+    },
+  },
   {
     role: "narrator",
     match: (r) => r.messages.some((m) => m.content.includes("readability check")),
@@ -109,7 +140,20 @@ const router = new RoleRouter({
   ),
 });
 const home = mkdtempSync(join(tmpdir(), "wyrd-e2e-"));
-const instance = createApp({ home, offline: true, router, seed: "e2e-combat" });
+const instance = createApp({
+  home,
+  offline: true,
+  router,
+  seed: "e2e-combat",
+  loreClient: {
+    fetchPage: async () => ({
+      title: "Will-o'-the-wisp",
+      text: Object.values(wikipedia.query.pages)[0]!.extract,
+      url: "https://en.wikipedia.org/wiki/Will-o%27-the-wisp",
+    }),
+    search: async () => [],
+  },
+});
 instance.app.use("/*", webAssets(resolve("apps/web/dist")));
 // A second checkout (worktree, parallel agent) can pick its own port.
 const port = Number(process.env.WYRD_E2E_PORT ?? 4789);

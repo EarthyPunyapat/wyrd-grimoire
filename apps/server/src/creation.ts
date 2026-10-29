@@ -2,13 +2,16 @@ import {
   CampaignSettings,
   type CharacterSheet,
   type CompiledPack,
+  CreationReview,
   CreationView,
   DraftSheet,
   defaultTuning,
   InterviewAnswer,
   InterviewState,
   InterviewView,
+  SourceCreation,
   StartingKitProposal,
+  StyleProfile,
   SuggestInput,
   WorldBible,
   WorldPitch,
@@ -24,6 +27,8 @@ import {
   validateCreation,
 } from "@wyrd/engine";
 import {
+  defaultCreationReview,
+  generateStyleSample,
   interviewStep,
   offlineInterviewStep,
   offlineSuggestion,
@@ -45,6 +50,16 @@ export const StoredDraft = z.object({
   proposal: WorldProposal,
   /** Stage 1 world bible (M5); drafts from before M5 have none and start as a single site. */
   bible: WorldBible.optional(),
+  review: CreationReview.optional(),
+  source: SourceCreation.extend({
+    research: z.object({
+      title: z.string(),
+      facts: z.array(z.string()),
+      source: z.literal("lore"),
+      confidence: z.enum(["high", "low"]),
+      evidence: z.object({ quote: z.string() }).optional(),
+    }),
+  }).optional(),
   /** The optional starting kit for a generated world (D148); absent when its call failed. */
   kit: StartingKitProposal.optional(),
   offline: z.boolean(),
@@ -165,6 +180,8 @@ type Deps = {
   body: <T>(c: { req: { json(): Promise<unknown> } }, schema: z.ZodType<T>) => Promise<T>;
   /** The model router, or null offline (the labelled stand-ins answer instead). */
   router: () => RoleRouter | null;
+  /** Allows an injected offline fixture router without replacing the session-zero stand-ins. */
+  styleRouter?: () => RoleRouter | null;
 };
 
 const OFFLINE_NOTICE = "The storyteller stumbled, so this one comes from the offline interviewer.";
@@ -210,7 +227,7 @@ export function mountCreation(app: Hono<AppEnvironment>, d: Deps) {
   const saveAfterCall = (id: string, before: StoredDraft, patch: Partial<StoredDraft>) => {
     const now = load(id).saved;
     if (now.campaignId) throw new HTTPException(409, { message: "This campaign has already started" });
-    if (JSON.stringify(now.sheet) !== JSON.stringify(before.sheet))
+    if (JSON.stringify(now) !== JSON.stringify(before))
       throw new HTTPException(409, { message: "Your sheet changed while this was thinking. Try again." });
     d.store.saveCreationDraft(id, { ...now, ...patch });
   };
@@ -218,6 +235,43 @@ export function mountCreation(app: Hono<AppEnvironment>, d: Deps) {
     new HTTPException(502, {
       message: "The interviewer couldn't answer. Try again, or check model settings.",
     });
+
+  app.get("/api/world-drafts/:id/review", (c) =>
+    c.json(load(c.req.param("id")).saved.review ?? defaultCreationReview()),
+  );
+  app.put("/api/world-drafts/:id/review", async (c) => {
+    const id = c.req.param("id");
+    const review = await d.body(c, CreationReview);
+    const { saved } = load(id);
+    if (busy.has(id) || saved.campaignId)
+      throw new HTTPException(409, { message: "This draft is busy or already started" });
+    d.store.saveCreationDraft(id, { ...saved, review });
+    return c.json(review);
+  });
+  app.post("/api/world-drafts/:id/style", async (c) => {
+    const id = c.req.param("id");
+    const style = await d.body(c, StyleProfile);
+    return exclusive(id, async () => {
+      const { saved } = load(id);
+      if (saved.campaignId) throw new HTTPException(409, { message: "This campaign has already started" });
+      const router = d.styleRouter?.() ?? d.router();
+      if (!router)
+        throw new HTTPException(422, {
+          message: "Connect a model to revise the sample; you can edit it directly offline.",
+        });
+      let next: StyleProfile;
+      try {
+        next = await generateStyleSample(router, saved.input.pitch, style);
+      } catch {
+        throw new HTTPException(502, {
+          message: "The style sample could not be revised. Your edits are kept; try again.",
+        });
+      }
+      const review = { ...(saved.review ?? defaultCreationReview()), style: next };
+      saveAfterCall(id, saved, { review });
+      return c.json(review);
+    });
+  });
 
   // The sheet editor (spec 04): every creation path ends here, and the validator is the only gate.
   app.get("/api/world-drafts/:id/creation", (c) => {

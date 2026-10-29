@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { GM_INSTRUCTIONS, GM_VERSION, gmInstructions } from "../src/prompts/gm.ts";
 
 describe("the GM prompt (D144)", () => {
-  test("the version is gm@1", () => {
-    expect(GM_VERSION).toBe("gm@1");
+  test("the version is gm@2", () => {
+    expect(GM_VERSION).toBe("gm@2");
   });
 
   test("instructions carry the choice policy and length", () => {

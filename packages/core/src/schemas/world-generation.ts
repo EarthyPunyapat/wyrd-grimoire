@@ -1,7 +1,15 @@
 import { z } from "zod";
 import { AttributeId, ContentId, ResolutionId } from "./common.ts";
+import { Ability, Level } from "./domains/levels.ts";
 import { ReactionProfile } from "./scene-responses.ts";
-import { CampaignPreset, ProgressionMode } from "./settings.ts";
+import {
+  CampaignPreset,
+  CampaignSettings,
+  ProgressionMode,
+  StyleProfile,
+  SubsystemToggles,
+} from "./settings.ts";
+import { ThemeSpec } from "./theme.ts";
 
 const name = z.string().trim().min(1).max(100);
 const description = z.string().trim().min(1).max(1500);
@@ -10,6 +18,9 @@ export const WorldPitch = z
     name,
     characterName: z.string().trim().max(80).default(""),
     pitch: z.string().trim().min(10).max(4000),
+    source: z
+      .object({ title: name, wiki: z.string().trim().min(1).max(200).default("en.wikipedia.org") })
+      .optional(),
   })
   .strict();
 export type WorldPitch = z.infer<typeof WorldPitch>;
@@ -102,9 +113,22 @@ export const StartingKitProposal = z.object({
     .nullable(),
 });
 export type StartingKitProposal = z.infer<typeof StartingKitProposal>;
+/** The GM proposes; the player can override every field before starting. */
+export const CreationReview = z.object({
+  subsystems: SubsystemToggles,
+  theme: ThemeSpec.nullable(),
+  resolution: ResolutionId,
+  hardcore: z.boolean(),
+  lethality: CampaignSettings.shape.lethality,
+  companionDeath: z.boolean(),
+  startingLevel: Level,
+  style: StyleProfile,
+});
+export type CreationReview = z.infer<typeof CreationReview>;
 export const StartGeneratedCampaign = z
   .object({
     draftId: z.uuid(),
+    review: CreationReview.optional(),
     characterName: z.string().trim().max(80).default(""),
     /** The quick path: an origin and background. Without them the sheet editor's draft is used. */
     ancestry: ContentId.optional(),
@@ -131,6 +155,9 @@ export const GeneratedWorldPreview = z.object({
   /** Progression modes the compiled pack supports, so the wizard only offers real choices. */
   progressions: z.array(ProgressionMode).default(["classless"]),
   offline: z.boolean(),
+  review: CreationReview.optional(),
+  reviewNotice: z.string().optional(),
+  source: WorldPitch.shape.source,
 });
 export type GeneratedWorldPreview = z.infer<typeof GeneratedWorldPreview>;
 
@@ -238,6 +265,33 @@ export const WorldBible = z
   })
   .strict();
 export type WorldBible = z.infer<typeof WorldBible>;
+
+/** Source material is distilled into playable canon, not copied wiki text. */
+export const SourceCreation = z.object({
+  proposal: WorldProposal,
+  bible: WorldBible,
+  abilities: z.array(Ability).max(30),
+  characters: z
+    .array(
+      z.object({ name, motivation: description, action: description, paceDays: z.number().int().positive() }),
+    )
+    .min(1)
+    .max(30),
+  canonEvents: z
+    .array(
+      z.object({
+        name,
+        days: z.number().int().positive(),
+        subject: name,
+        predicate: name,
+        value: z.union([z.string(), z.number(), z.boolean()]),
+        interventionPredicate: name,
+      }),
+    )
+    .min(1)
+    .max(30),
+});
+export type SourceCreation = z.infer<typeof SourceCreation>;
 
 /** A lazily generated location (spec 06 `generate_location`): arrival place at a site. */
 export const LocationProposal = z
