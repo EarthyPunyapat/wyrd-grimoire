@@ -39,7 +39,7 @@ function actorOf(state: GameState, actorId: string) {
   return actor;
 }
 
-function knownEntities(state: GameState): Set<string> {
+export function knownEntities(state: GameState): Set<string> {
   const known = new Set<string>(Object.keys(state.knowledge?.entities ?? {}));
   for (const id of Object.keys(state.actors)) known.add(id);
   if (state.scene) {
