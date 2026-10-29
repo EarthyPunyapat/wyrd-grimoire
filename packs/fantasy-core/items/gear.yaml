@@ -13,3 +13,70 @@
 - { id: prayer-beads, name: Prayer Beads, description: "A worn string of wooden beads.", weightKg: 0.1, price: 6, tags: [holy] }
 - { id: arrows, name: Arrows, description: "A quiver of twenty arrows.", weightKg: 1, price: 10, tags: [ammo] }
 - { id: crossbow-bolts, name: Crossbow Bolts, description: "A case of twenty bolts.", weightKg: 1, price: 15, tags: [ammo] }
+- { id: belt-pouch, name: Belt Pouch, description: "A small flap pouch for coins, tinder and trouble.", weightKg: 0.2, price: 4, tags: [container] }
+- { id: saddlebags, name: Saddlebags, description: "Two deep leather bags joined by a strap, made for a horse.", weightKg: 4, price: 30, tags: [container] }
+- { id: quiver, name: Quiver, description: "A stiff leather tube with a lid, sized for a score of arrows.", weightKg: 0.5, price: 8, tags: [container] }
+- { id: scroll-case, name: Scroll Case, description: "A sealed brass tube that keeps paper dry and ink legible.", weightKg: 0.3, price: 12, tags: [container] }
+- { id: coin-purse, name: Coin Purse, description: "A drawstring purse, easily cut and easily missed.", weightKg: 0.1, price: 3, tags: [container] }
+- { id: sack, name: Sack, description: "A coarse burlap sack with a rope tie.", weightKg: 0.3, price: 1, tags: [container] }
+- { id: candle, name: Candle, description: "Tallow and a wick; a small light for a small room.", weightKg: 0.1, price: 1, tags: [light] }
+- { id: lamp-oil, name: Lamp Oil, description: "A flask of rendered fat and seed oil for a lantern.", weightKg: 0.5, price: 4, tags: [light] }
+- { id: hooded-lantern, name: Hooded Lantern, description: "A brass lantern with a sliding shutter, for light without being seen.", weightKg: 1, price: 55, tags: [light] }
+- { id: tinderbox, name: Tinderbox, description: "Dry tinder, a flint and a steel in a sealed tin.", weightKg: 0.3, price: 5, tags: [light] }
+- { id: splint, name: Splint, description: "Two straight boards and a roll of linen for a broken limb.", weightKg: 0.5, price: 6, tags: [medical] }
+- { id: surgeon-kit, name: Surgeon's Kit, description: "Saws, probes, silk thread and a bottle of strong spirits.", weightKg: 2, price: 120, tags: [medical, tools] }
+- { id: poppy-milk, name: Poppy Milk, description: "A bitter draught that dulls pain and steadies a shaking hand.", weightKg: 0.2, price: 25, tags: [medical] }
+- { id: wound-salve, name: Wound Salve, description: "Beeswax, oil and crushed herbs in a clay pot.", weightKg: 0.2, price: 12, tags: [medical] }
+- { id: fever-bark, name: Fever Bark, description: "A strip of bitter bark chewed against fever and ague.", weightKg: 0.1, price: 8, tags: [medical] }
+- { id: venom-draught, name: Venom Draught, description: "A sharp-smelling antidote for common bites and poisoned blades.", weightKg: 0.2, price: 40, tags: [medical] }
+- { id: crowbar, name: Crowbar, description: "A long iron bar with a hooked end; persuasive on doors and crates.", weightKg: 2, price: 12, tags: [tools] }
+- { id: hammer-and-pitons, name: Hammer and Pitons, description: "An iron mallet and a dozen spikes for climbing or anchoring rope.", weightKg: 3, price: 15, tags: [tools] }
+- { id: grapnel, name: Grapnel, description: "Four curved iron hooks on a rope ring, made to catch a wall.", weightKg: 1.5, price: 25, tags: [tools] }
+- { id: shovel, name: Shovel, description: "A short spade for digging, burying and leaning on.", weightKg: 2.5, price: 10, tags: [tools] }
+- { id: fishing-tackle, name: Fishing Tackle, description: "Hooks, gut line and a few bright lures in a tin.", weightKg: 0.3, price: 8, tags: [tools] }
+- { id: sewing-kit, name: Sewing Kit, description: "Needles, thread and a small pair of shears.", weightKg: 0.2, price: 5, tags: [tools] }
+- { id: whetstone, name: Whetstone, description: "A grey stone for putting an edge back on a blade.", weightKg: 0.5, price: 3, tags: [tools] }
+- { id: spyglass, name: Spyglass, description: "Three brass tubes that bring a far hill close enough to read.", weightKg: 0.5, price: 150, tags: [tools] }
+- { id: compass, name: Compass, description: "A needle in a brass case, worth its weight to anyone off the road.", weightKg: 0.2, price: 90, tags: [tools] }
+- { id: abacus, name: Abacus, description: "A wooden frame of beads for sums done in public.", weightKg: 0.5, price: 20, tags: [tools] }
+- { id: chisel, name: Chisel, description: "A short steel chisel for stone, wood and stubborn locks.", weightKg: 0.4, price: 6, tags: [tools] }
+- { id: dried-fruit, name: Dried Fruit, description: "A handful of wrinkled apples and plums.", weightKg: 0.3, price: 2, tags: [food] }
+- { id: hard-cheese, name: Hard Cheese, description: "A waxed wedge that keeps for a season.", weightKg: 0.5, price: 3, tags: [food] }
+- { id: ale-skin, name: Ale Skin, description: "A leather skin of small beer, better than the water.", weightKg: 1, price: 4, tags: [food] }
+- { id: honey-pot, name: Honey Pot, description: "A clay pot of honey sealed with wax.", weightKg: 0.5, price: 6, tags: [food] }
+- { id: salt-pork, name: Salt Pork, description: "A slab of pork packed in salt and wrapped in cloth.", weightKg: 0.5, price: 4, tags: [food] }
+- { id: sling-stones, name: Sling Stones, description: "A pouch of smooth river stones, sorted by weight.", weightKg: 0.5, price: 1, tags: [ammo] }
+- { id: salt-block, name: Salt Block, description: "A grey block of salt for preserving and for trade.", weightKg: 1, price: 5, tags: [trade] }
+- { id: wool-cloth, name: Wool Cloth, description: "A bolt of undyed wool, warm and coarse.", weightKg: 1, price: 8, tags: [trade] }
+- { id: iron-ingot, name: Iron Ingot, description: "A pig of bloomery iron, heavy and honest.", weightKg: 2, price: 12, tags: [trade] }
+- { id: fox-fur, name: Fox Fur, description: "A cured pelt, red as a coal and soft as soot.", weightKg: 0.5, price: 15, tags: [trade] }
+- { id: glass-beads, name: Glass Beads, description: "A string of bright beads worth more far from a glassworks.", weightKg: 0.2, price: 10, tags: [trade] }
+- { id: spice-sachet, name: Spice Sachet, description: "Pepper, cinnamon and a pinch of something from over the sea.", weightKg: 0.1, price: 35, tags: [trade] }
+- { id: beeswax, name: Beeswax, description: "A lump of clean wax for candles, seals and waterproofing.", weightKg: 0.5, price: 6, tags: [trade] }
+- { id: copper-wire, name: Copper Wire, description: "A coil of soft copper wire, useful to smiths and tinkers.", weightKg: 0.3, price: 9, tags: [trade] }
+- { id: travelling-cloak, name: Travelling Cloak, description: "A heavy cloak of oiled wool with a deep hood.", weightKg: 1.5, price: 25, tags: [clothing] }
+- { id: hood, name: Hood, description: "A plain linen hood that hides a face in a crowd.", weightKg: 0.3, price: 6, tags: [clothing] }
+- { id: boots, name: Boots, description: "Stout leather boots resoled twice and broken in for years.", weightKg: 1, price: 20, tags: [clothing] }
+- { id: gloves, name: Gloves, description: "Soft leather gloves, good for cold mornings and hot handles.", weightKg: 0.2, price: 8, tags: [clothing] }
+- { id: linen-tunic, name: Linen Tunic, description: "A plain tunic, clean enough for a town and rough enough for a road.", weightKg: 0.5, price: 6, tags: [clothing] }
+- { id: belt, name: Belt, description: "A broad leather belt with a good brass buckle.", weightKg: 0.3, price: 4, tags: [clothing] }
+- { id: wide-brim-hat, name: Wide-Brim Hat, description: "A felt hat that keeps sun and rain off equally well.", weightKg: 0.3, price: 7, tags: [clothing] }
+- { id: fur-cloak, name: Fur Cloak, description: "Thick winter fur, warm enough to sleep in the open.", weightKg: 2.5, price: 45, tags: [clothing] }
+- { id: censer, name: Censer, description: "A brass pot on three chains for burning incense in a rite.", weightKg: 1, price: 30, tags: [holy] }
+- { id: votive-candle, name: Votive Candle, description: "A small candle left burning at a shrine.", weightKg: 0.1, price: 2, tags: [holy, light] }
+- { id: relic-case, name: Relic Case, description: "A gilded box with a glass face for a holy bone or a splinter.", weightKg: 0.5, price: 40, tags: [holy] }
+- { id: priests-stole, name: Priest's Stole, description: "A long embroidered band worn over the shoulders for rites.", weightKg: 0.3, price: 15, tags: [holy, clothing] }
+- { id: holy-water, name: Holy Water, description: "Water blessed at a shrine, sealed in a clay flask.", weightKg: 0.5, price: 20, tags: [holy] }
+- { id: prayer-book, name: Prayer Book, description: "A small book of prayers and psalms, thumbed soft.", weightKg: 1, price: 35, tags: [holy] }
+- { id: poison-vial, name: Poison Vial, description: "A thumb-sized flask of something that should not be tasted.", weightKg: 0.1, price: 60, tags: [illicit] }
+- { id: forged-seal, name: Forged Seal, description: "A brass seal and a stick of wax that will pass for a lord's mark.", weightKg: 0.1, price: 75, tags: [illicit, tools] }
+- { id: disguise-kit, name: Disguise Kit, description: "Paints, false hair and a set of clothes that are not yours.", weightKg: 1, price: 50, tags: [illicit, tools] }
+- { id: loaded-dice, name: Loaded Dice, description: "Bone dice that always seem to favour their owner.", weightKg: 0.1, price: 10, tags: [illicit] }
+- { id: skeleton-key, name: Skeleton Key, description: "A filed blank that opens more locks than it should.", weightKg: 0.1, price: 40, tags: [illicit, tools] }
+- { id: chalk, name: Chalk, description: "A stub of chalk for marking walls and maps.", weightKg: 0.1, price: 1 }
+- { id: soap, name: Soap, description: "A cake of harsh tallow soap.", weightKg: 0.2, price: 2 }
+- { id: mirror, name: Hand Mirror, description: "A polished steel mirror in a wooden frame.", weightKg: 0.3, price: 18 }
+- { id: bell, name: Hand Bell, description: "A small brass bell with a clear, carrying note.", weightKg: 0.2, price: 5 }
+- { id: whistle, name: Whistle, description: "A bone whistle for signalling across a field.", weightKg: 0.1, price: 2 }
+- { id: hourglass, name: Hourglass, description: "A glass of fine sand that runs for one turn of the glass.", weightKg: 0.5, price: 60 }
+- { id: ledger, name: Ledger, description: "A bound book of ruled pages for debts and inventories.", weightKg: 0.5, price: 15 }

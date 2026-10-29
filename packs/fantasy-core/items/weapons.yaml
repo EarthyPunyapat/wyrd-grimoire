@@ -9,6 +9,7 @@
   armorPiercing: 1
   hands: 1
   ranges: { engaged: 0 }
+  tags: [agile]
 - id: arming-sword
   name: Arming Sword
   description: A straight one-handed blade; expensive, reliable and a mark of status.
@@ -19,6 +20,49 @@
   damageType: cut
   hands: 1
   ranges: { engaged: 0 }
+- id: shortsword
+  name: Shortsword
+  description: A wide blade a little longer than a knife, made for close work in a hurry.
+  weightKg: 0.9
+  price: 80
+  skill: melee
+  damage: 1d6
+  damageType: pierce
+  hands: 1
+  ranges: { engaged: 0 }
+  tags: [agile]
+- id: longsword
+  name: Longsword
+  description: A two-handed blade with a long grip, balanced for a cut or a thrust.
+  weightKg: 1.6
+  price: 220
+  skill: melee
+  damage: 1d10
+  damageType: cut
+  hands: 2
+  ranges: { engaged: 0 }
+- id: greatsword
+  name: Greatsword
+  description: A length of steel taller than most doors; it needs room and a strong arm.
+  weightKg: 2.8
+  price: 400
+  skill: melee
+  damage: 2d6
+  damageType: cut
+  hands: 2
+  ranges: { engaged: 0 }
+- id: rapier
+  name: Rapier
+  description: A narrow thrusting blade with a swept guard, all reach and precision.
+  weightKg: 1
+  price: 200
+  skill: melee
+  damage: 1d6
+  damageType: pierce
+  armorPiercing: 1
+  hands: 1
+  ranges: { engaged: 0 }
+  tags: [agile]
 - id: spear
   name: Spear
   description: An ash shaft with an iron head; the poor soldier's best friend.
@@ -27,6 +71,48 @@
   skill: melee
   damage: 1d8
   damageType: pierce
+  hands: 2
+  ranges: { engaged: 0 }
+- id: glaive
+  name: Glaive
+  description: A single-edged blade on a long pole, for keeping trouble at a polite distance.
+  weightKg: 3.5
+  price: 100
+  skill: melee
+  damage: 1d10
+  damageType: cut
+  hands: 2
+  ranges: { engaged: 0, close: -20 }
+- id: halberd
+  name: Halberd
+  description: Axe, hook and spike on one shaft; the work of a soldier who expects armour.
+  weightKg: 5
+  price: 140
+  skill: melee
+  damage: 1d10
+  damageType: cut
+  armorPiercing: 1
+  hands: 2
+  ranges: { engaged: 0, close: -20 }
+- id: battle-axe
+  name: Battle Axe
+  description: A broad war-axe with a haft long enough for two hands.
+  weightKg: 2.4
+  price: 150
+  skill: melee
+  damage: 1d10
+  damageType: cut
+  hands: 2
+  ranges: { engaged: 0 }
+- id: greataxe
+  name: Greataxe
+  description: A woodcutter's axe grown into a weapon, heavy enough to split a shield.
+  weightKg: 4.5
+  price: 320
+  skill: melee
+  damage: 2d6
+  damageType: cut
+  armorPiercing: 1
   hands: 2
   ranges: { engaged: 0 }
 - id: hand-axe
@@ -39,6 +125,61 @@
   damageType: cut
   hands: 1
   ranges: { engaged: 0 }
+- id: mace
+  name: Mace
+  description: A weighted iron head on a short haft; it argues with armour and wins.
+  weightKg: 1.5
+  price: 70
+  skill: melee
+  damage: 1d6
+  damageType: blunt
+  armorPiercing: 1
+  hands: 1
+  ranges: { engaged: 0 }
+- id: warhammer
+  name: Warhammer
+  description: A hammer with a spike on the back, made to break joints and helmets alike.
+  weightKg: 2
+  price: 180
+  skill: melee
+  damage: 1d8
+  damageType: blunt
+  armorPiercing: 2
+  hands: 1
+  ranges: { engaged: 0 }
+- id: maul
+  name: Maul
+  description: A great square-headed hammer that leaves dents in things that do not dent.
+  weightKg: 5
+  price: 160
+  skill: melee
+  damage: 2d6
+  damageType: blunt
+  armorPiercing: 1
+  hands: 2
+  ranges: { engaged: 0 }
+- id: flail
+  name: Flail
+  description: A spiked head on a chain; hard to block and harder to aim.
+  weightKg: 2
+  price: 110
+  skill: melee
+  damage: 1d8
+  damageType: blunt
+  armorPiercing: 1
+  hands: 1
+  ranges: { engaged: 0 }
+- id: war-pick
+  name: War Pick
+  description: A narrow beak of steel on a haft, for finding the gap in a harness.
+  weightKg: 1.2
+  price: 90
+  skill: melee
+  damage: 1d6
+  damageType: pierce
+  armorPiercing: 2
+  hands: 1
+  ranges: { engaged: 0 }
 - id: cudgel
   name: Cudgel
   description: A knotted length of hardwood. Cheap, legal, effective.
@@ -49,6 +190,36 @@
   damageType: blunt
   hands: 1
   ranges: { engaged: 0 }
+- id: quarterstaff
+  name: Quarterstaff
+  description: A traveller's staff of seasoned ash, useful for walking and for not being robbed.
+  weightKg: 1.5
+  price: 5
+  skill: melee
+  damage: 1d6
+  damageType: blunt
+  hands: 2
+  ranges: { engaged: 0 }
+- id: scythe
+  name: Scythe
+  description: A harvest blade straightened for war, or a farm tool held by someone desperate.
+  weightKg: 3
+  price: 30
+  skill: melee
+  damage: 1d8
+  damageType: cut
+  hands: 2
+  ranges: { engaged: 0 }
+- id: pitchfork
+  name: Pitchfork
+  description: Two tines of iron on a long handle. The village answer to armed men.
+  weightKg: 2.5
+  price: 8
+  skill: melee
+  damage: 1d6
+  damageType: pierce
+  hands: 2
+  ranges: { engaged: 0 }
 - id: shortbow
   name: Shortbow
   description: A hunting bow of yew and sinew, quick to draw and easy to carry.
@@ -56,6 +227,16 @@
   price: 60
   skill: ranged
   damage: 1d6
+  damageType: pierce
+  hands: 2
+  ranges: { engaged: -20, close: 0, near: 0, far: 0, distant: -20 }
+- id: longbow
+  name: Longbow
+  description: A tall bow of close-grained yew, drawn to the ear and loosed with the whole body.
+  weightKg: 1.2
+  price: 180
+  skill: ranged
+  damage: 1d8
   damageType: pierce
   hands: 2
   ranges: { engaged: -20, close: 0, near: 0, far: 0, distant: -20 }
@@ -71,3 +252,69 @@
   hands: 2
   reloadAp: 2
   ranges: { engaged: -20, close: 0, near: 0, far: 0, distant: -20 }
+- id: heavy-crossbow
+  name: Heavy Crossbow
+  description: A war crossbow with a windlass and a prod of spring steel; it takes an age to span.
+  weightKg: 4.5
+  price: 350
+  skill: ranged
+  damage: 2d6+1
+  damageType: pierce
+  armorPiercing: 3
+  hands: 2
+  reloadAp: 3
+  ranges: { engaged: -20, close: 0, near: 0, far: 0, distant: -20 }
+- id: hand-crossbow
+  name: Hand Crossbow
+  description: A small bow on a pistol stock, easy to hide and quick to re-span.
+  weightKg: 1.2
+  price: 180
+  skill: ranged
+  damage: 1d6
+  damageType: pierce
+  armorPiercing: 1
+  hands: 1
+  reloadAp: 1
+  ranges: { engaged: -20, close: 0, near: -20 }
+- id: sling
+  name: Sling
+  description: A braid of leather and a pocket for a stone; the oldest weapon that still works.
+  weightKg: 0.2
+  price: 2
+  skill: ranged
+  damage: 1d4
+  damageType: blunt
+  hands: 1
+  ranges: { engaged: -20, close: 0, near: 0, far: -20 }
+- id: javelin
+  name: Javelin
+  description: A light spear balanced for throwing, with a soft iron head.
+  weightKg: 1
+  price: 12
+  skill: throwing
+  damage: 1d6
+  damageType: pierce
+  hands: 1
+  ranges: { engaged: -20, close: 0, near: 0, far: -20 }
+- id: throwing-knife
+  name: Throwing Knife
+  description: A narrow blade without a guard, weighted to spin true.
+  weightKg: 0.3
+  price: 15
+  skill: throwing
+  damage: 1d4
+  damageType: pierce
+  armorPiercing: 1
+  hands: 1
+  ranges: { close: 0, near: -20 }
+  tags: [agile]
+- id: throwing-axe
+  name: Throwing Axe
+  description: A short-hafted axe meant to be let go at the right moment.
+  weightKg: 1
+  price: 25
+  skill: throwing
+  damage: 1d6
+  damageType: cut
+  hands: 1
+  ranges: { close: 0, near: -20 }

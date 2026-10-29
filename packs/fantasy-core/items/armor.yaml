@@ -30,3 +30,73 @@
   protection: { cut: 5, pierce: 4, blunt: 3 }
   penalties:
     - { skill: perception, value: -10 }
+- id: quilted-coif
+  name: Quilted Coif
+  description: A padded hood that turns a glancing blow and keeps the rain off.
+  weightKg: 0.5
+  price: 15
+  covers: [head]
+  protection: { cut: 2, pierce: 1, blunt: 1 }
+- id: kettle-helmet
+  name: Kettle Helmet
+  description: A wide iron brim over a rounded skull; cheap, common and hard to argue with.
+  weightKg: 1.2
+  price: 45
+  covers: [head]
+  protection: { cut: 4, pierce: 4, blunt: 3 }
+  penalties:
+    - { skill: perception, value: -10 }
+- id: mail-coif
+  name: Mail Coif
+  description: Rings drawn over the head and tucked into the collar, leaving only the face bare.
+  weightKg: 1.5
+  price: 120
+  covers: [head]
+  protection: { cut: 5, pierce: 3, blunt: 2 }
+  penalties:
+    - { skill: perception, value: -10 }
+- id: leather-bracers
+  name: Leather Bracers
+  description: Stiff hide strapped over the forearms, for parrying and for thorns.
+  weightKg: 0.8
+  price: 35
+  covers: [right-arm, left-arm]
+  protection: { cut: 2, pierce: 1, blunt: 1 }
+- id: mail-chausses
+  name: Mail Chausses
+  description: Ring-mail leggings laced to a belt, heavy on the calves but kind to the shins.
+  weightKg: 4
+  price: 220
+  covers: [right-leg, left-leg]
+  protection: { cut: 4, pierce: 2, blunt: 1 }
+  penalties:
+    - { skill: stealth, value: -10 }
+- id: scale-hauberk
+  name: Scale Hauberk
+  description: Overlapping iron scales sewn to a leather coat; good against a cut, less so against a crush.
+  weightKg: 14
+  price: 700
+  covers: [torso, right-arm, left-arm]
+  protection: { cut: 5, pierce: 4, blunt: 2 }
+  penalties:
+    - { skill: stealth, value: -10 }
+- id: breastplate
+  name: Breastplate
+  description: A shaped plate of steel over the chest, with straps to keep it there.
+  weightKg: 8
+  price: 500
+  covers: [torso]
+  protection: { cut: 7, pierce: 5, blunt: 3 }
+  penalties:
+    - { skill: stealth, value: -10 }
+- id: war-plate
+  name: War Plate
+  description: A full harness of articulated steel, fitted to one body and worth more than most farms.
+  weightKg: 20
+  price: 1500
+  covers: [torso, right-arm, left-arm, right-leg, left-leg]
+  protection: { cut: 8, pierce: 7, blunt: 5 }
+  penalties:
+    - { skill: stealth, value: -20 }
+    - { skill: athletics, value: -10 }
+    - { skill: acrobatics, value: -10 }
