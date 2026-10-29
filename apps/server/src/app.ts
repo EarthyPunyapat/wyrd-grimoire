@@ -38,6 +38,7 @@ import {
   encumbranceBand,
   type GameState,
   haggle,
+  isKnownSkill,
   legacyEvents,
   obituary,
   RESOLUTION_MODULES,
@@ -689,7 +690,14 @@ export function createApp(options: Options) {
           : "Your next chapter awaits.",
         originName: gamePack.ancestries[pc.identity.ancestry]?.name ?? pc.identity.ancestry,
         backgroundName: gamePack.archetypes[pc.archetypeId ?? ""]?.name ?? "",
-        pc,
+        // A mark written before downtime validated ids must not break an old campaign's view.
+        pc: {
+          ...pc,
+          progression: {
+            ...pc.progression,
+            marks: pc.progression.marks.filter((id) => isKnownSkill(id, skills)),
+          },
+        },
         speakers,
         resolution,
         theme: gamePack.theme ?? null,

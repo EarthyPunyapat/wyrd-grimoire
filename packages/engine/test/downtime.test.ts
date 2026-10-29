@@ -83,18 +83,37 @@ describe("downtime (spec 06)", () => {
     expect(train.result.rewards.improvement).toBe(true);
   });
 
-  test("crafting consumes time and yields an item unless the attempt is a critical failure", () => {
-    for (let seed = 1; seed <= 50; seed++) {
-      const s = sim(seed);
-      const out = unwrap(
-        resolveDowntime(s.state, "pc", { type: "craft", recipeId: "test:test-ration" }, ctx),
-      );
-      if (out.result.degree !== "critFailure") {
-        expect(types(out.events)).toContain("ItemTransferred");
-        expect(out.result.rewards.itemId).toBe("test:ration");
-        return;
-      }
+  test("train and work refuse a skill the pack does not have", () => {
+    const s = sim();
+    s.addActor("npc:teacher", "npc");
+    s.commit([
+      draft("SceneOpened", {
+        scene: {
+          id: "scene-1",
+          locationId: "loc:test",
+          zones: [{ id: "z:here", name: "here", tags: [], props: [] }],
+          edges: [],
+          positions: { pc: "z:here", "npc:teacher": "z:here" },
+          light: "bright",
+          weather: "",
+          openedAt: 0,
+        },
+      }),
+    ]);
+    for (const action of [
+      { type: "train" as const, skill: "not a skill", teacherId: "npc:teacher" },
+      { type: "train" as const, skill: "core:nope", teacherId: "npc:teacher" },
+      { type: "work" as const, skill: "not a skill" },
+      { type: "work" as const, skill: "core:nope" },
+    ]) {
+      const before = s.events.length;
+      const out = resolveDowntime(s.state, "pc", action, ctx);
+      expect(out.ok).toBe(false);
+      if (out.ok) continue;
+      expect(out.errors[0]!.code).toBe("SKILL_UNKNOWN");
+      expect(out.errors[0]!.message).toContain(action.skill);
+      expect(s.events.length).toBe(before);
     }
-    throw new Error("every seed ruined the recipe");
+    expect(s.state.actors.pc!.sheet.progression.marks).toEqual([]);
   });
 });

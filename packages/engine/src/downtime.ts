@@ -7,10 +7,12 @@ import {
   DowntimeResult,
   draft,
   type EventDraft,
+  type ItemCatalog,
   type RecipeDef,
 } from "@wyrd/core";
 import { resolveCheck } from "./checks.ts";
 import { fail, ok, type Result } from "./result.ts";
+import { lookupSkill } from "./skills.ts";
 import type { GameState, RulesContext } from "./state.ts";
 
 /**
@@ -22,9 +24,21 @@ export type DowntimeContext = RulesContext & {
   nameOf: (id: string) => string;
   /** Crafting recipes from the frozen pack. */
   recipes?: Record<string, RecipeDef & { id: string }>;
+  /** The pack's item catalog, for recipe tool tags and readable input names. */
+  items?: ItemCatalog;
 };
 
 export type DowntimeOutcome = { events: EventDraft[]; result: DowntimeResult };
+
+/** A readable reason the skill can't be used, or null. Never throws: downtime input is untrusted. */
+function skillProblem(skillId: string, ctx: DowntimeContext): string | null {
+  try {
+    lookupSkill(skillId, ctx.skills);
+    return null;
+  } catch (error) {
+    return error instanceof Error ? error.message : `Unknown skill "${skillId}"`;
+  }
+}
 
 const WORDS: Record<Degree, string> = {
   critSuccess: "exceptionally well",
@@ -64,6 +78,8 @@ export function resolveDowntime(
 
   switch (action.type) {
     case "train": {
+      const problem = skillProblem(action.skill, ctx);
+      if (problem) return fail("SKILL_UNKNOWN", problem);
       const present = state.scene?.positions[action.teacherId ?? ""] !== undefined;
       if (present) {
         events.push(draft("SkillMarked", { actorId, skillId: action.skill }, "engine"));
@@ -105,6 +121,8 @@ export function resolveDowntime(
     }
     case "work": {
       const skill = action.skill ?? "core:mechanics";
+      const problem = skillProblem(skill, ctx);
+      if (problem) return fail("SKILL_UNKNOWN", problem);
       const r = roll(skill, "normal", "a day's work", ["work"]);
       if (!r.ok) return r;
       degree = r.value;

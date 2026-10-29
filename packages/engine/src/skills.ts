@@ -51,6 +51,16 @@ export function parseSkillId(skillId: string): { base: string; field: string | u
     : { base: skillId.slice(0, slash), field: skillId.slice(slash + 1) };
 }
 
+/** Whether a skill ID resolves cleanly against a catalog. Projections use this on old logs. */
+export function isKnownSkill(skillId: string, catalog: SkillCatalog): boolean {
+  try {
+    lookupSkill(skillId, catalog);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Looks up a skill (or field specialisation) and checks the ID is well-formed for it. */
 export function lookupSkill(skillId: string, catalog: SkillCatalog): SkillEntry {
   const { base, field } = parseSkillId(skillId);
