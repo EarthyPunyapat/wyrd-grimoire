@@ -133,6 +133,24 @@ export const GameView = z.object({
     .object({ reason: z.literal("death"), obituary: z.string() })
     .nullable()
     .default(null),
+  /** Survival state and recent notices (spec 11). Empty when the subsystems are off. */
+  survival: z
+    .object({
+      food: z.number().int().nonnegative(),
+      water: z.number().int().nonnegative(),
+      sleep: z.number().nonnegative(),
+      exposure: z.number().int().nonnegative(),
+      exposureKind: z.string(),
+      notices: z.array(z.object({ id: z.string(), kind: z.string(), text: z.string() })),
+    })
+    .default({
+      food: 0,
+      water: 0,
+      sleep: 0,
+      exposure: 0,
+      exposureKind: "none",
+      notices: [],
+    }),
   /** The PC's pack, weight and money (spec 11, spec 13 Inventory). */
   inventory: z
     .object({

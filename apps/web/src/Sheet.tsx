@@ -4,6 +4,14 @@ import { DiceBadge, skillDisplay } from "./Dice.tsx";
 export function Sheet({ view }: { view: GameView }) {
   const { pc } = view;
   const spells = view.spells ?? [];
+  const survival = view.survival ?? {
+    food: 0,
+    water: 0,
+    sleep: 0,
+    exposure: 0,
+    exposureKind: "none",
+    notices: [],
+  };
   return (
     <div className="sheet-content">
       <div className="eyebrow">YOUR CHARACTER</div>
@@ -79,6 +87,22 @@ export function Sheet({ view }: { view: GameView }) {
           </ul>
         </div>
       )}
+      <div className="sheet-section">
+        <h3>Needs</h3>
+        <ul className="plain small">
+          <li>Food: {survival.food ? `${survival.food} day(s) without` : "fed"}</li>
+          <li>Water: {survival.water ? `${survival.water} day(s) short` : "watered"}</li>
+          <li>Sleep: {Math.round(survival.sleep)} h awake</li>
+          <li>Exposure: {survival.exposureKind === "none" ? "comfortable" : survival.exposureKind}</li>
+        </ul>
+        {survival.notices.length > 0 && (
+          <ul className="plain small">
+            {survival.notices.map((n) => (
+              <li key={n.id}>{n.text}</li>
+            ))}
+          </ul>
+        )}
+      </div>
       <div className="sheet-section">
         <h3>Wounds & conditions</h3>
         {!pc.status.conditions.length && !pc.status.wounds.length ? (

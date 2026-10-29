@@ -58,6 +58,8 @@ export type TurnInputs = {
   travel?: string;
   /** Parser: spells the caster knows (spec 05). */
   spells?: string;
+  /** Survival, weather and light affecting the PC right now (spec 11). */
+  survival?: string;
 };
 
 export type Section = { n: number; title: string; text: string };
@@ -258,6 +260,7 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
     ...(o.turn.combat ? ["The fight:", o.turn.combat] : []),
     ...(o.turn.travel ? [o.turn.travel] : []),
     ...(o.turn.spells ? [o.turn.spells] : []),
+    ...(o.turn.survival ? [o.turn.survival] : []),
     `Player: ${o.turn.input}`,
   ];
   if (o.turn.resolution) {

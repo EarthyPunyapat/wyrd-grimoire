@@ -11,6 +11,7 @@ import {
   type GuardSummary,
   type MechanicsLine,
   type Resolution,
+  survivalOf,
 } from "@wyrd/core";
 import {
   actingActor,
@@ -345,6 +346,23 @@ export class TurnPipeline {
     state.scene?.zones.flatMap((z) => z.props).find((p) => p.id === id)?.name ??
     id;
 
+  /** A compact survival/weather/light line for the narrator and parser (spec 11). */
+  private survivalText(state: GameState): string | undefined {
+    const s = state.campaign.settings.subsystems;
+    if (!s.survival && !s.disease) return undefined;
+    const survival = survivalOf(state.flags);
+    const needs = survival.needs[state.party.pcId ?? ""];
+    const parts: string[] = [];
+    if (needs) {
+      if (needs.daysWithoutFood > 0) parts.push(`${needs.daysWithoutFood} day(s) without food`);
+      if (needs.daysWithoutWater > 0) parts.push(`${needs.daysWithoutWater} day(s) short of water`);
+      if (needs.hoursAwake >= 16) parts.push(`${Math.round(needs.hoursAwake)} hours awake`);
+      if (needs.exposure > 0) parts.push(`exposure (${needs.exposureKind})`);
+    }
+    for (const notice of survival.notices.slice(-2)) parts.push(notice.text);
+    return parts.length ? `The body and the weather: ${parts.join("; ")}.` : undefined;
+  }
+
   /** The parser's known-spells list (spec 05). */
   private spellText(state: GameState): string | undefined {
     const defs = Object.values(this.d.content?.spells ?? {});
@@ -453,6 +471,7 @@ export class TurnPipeline {
     const combat = this.combatText(state);
     const travel = role === "parser" && !state.combat ? this.travelText(state) : undefined;
     const spells = role === "parser" && !state.combat ? this.spellText(state) : undefined;
+    const survival = this.survivalText(state);
     return assemble({
       role,
       state,
@@ -469,6 +488,7 @@ export class TurnPipeline {
         ...(combat ? { combat } : {}),
         ...(travel ? { travel } : {}),
         ...(spells ? { spells } : {}),
+        ...(survival ? { survival } : {}),
       },
     });
   }

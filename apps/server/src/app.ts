@@ -20,6 +20,7 @@ import {
   type ResolutionId,
   StartGeneratedCampaign,
   SubmitTurnInput,
+  survivalOf,
   TurnCompletedPayload,
   WorldPitch,
 } from "@wyrd/core";
@@ -579,6 +580,18 @@ export function createApp(options: Options) {
         pc,
         speakers,
         resolution,
+        survival: (() => {
+          const sl = survivalOf(state.flags);
+          const needs = sl.needs[pc.id];
+          return {
+            food: needs?.daysWithoutFood ?? 0,
+            water: needs?.daysWithoutWater ?? 0,
+            sleep: needs?.hoursAwake ?? 0,
+            exposure: needs?.exposure ?? 0,
+            exposureKind: needs?.exposureKind ?? "none",
+            notices: sl.notices.slice(-4).map((n) => ({ id: n.id, kind: n.kind, text: n.text })),
+          };
+        })(),
         inventory: {
           capacityKg: capacityKg(pc, defaultTuning),
           weightKg: carriedKg(state, pc.id, { items: gamePack.items, tuning: defaultTuning }),

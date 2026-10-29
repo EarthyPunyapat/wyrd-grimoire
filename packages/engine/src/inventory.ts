@@ -9,7 +9,7 @@ import {
   type ItemCatalog,
   type ItemCondition,
   localIdOf,
-  Rng,
+  type Rng,
   type Tuning,
   type WeaponDef,
 } from "@wyrd/core";
