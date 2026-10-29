@@ -10,6 +10,7 @@ export * from "./schemas/combat.ts";
 export * from "./schemas/common.ts";
 export * from "./schemas/creation.ts";
 export * from "./schemas/events.ts";
+export * from "./schemas/history.ts";
 export * from "./schemas/pack.ts";
 export * from "./schemas/party.ts";
 export * from "./schemas/providers.ts";

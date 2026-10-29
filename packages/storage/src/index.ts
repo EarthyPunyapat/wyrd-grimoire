@@ -1,7 +1,10 @@
 export * from "./app-store.ts";
+export * from "./backups.ts";
 export * from "./campaign-store.ts";
 export { CanonQueries, type SummaryRecord, type TurnRecord } from "./canon-queries.ts";
 export { cosine, EMBEDDING_MODEL, embed } from "./embedding.ts";
+export * from "./export.ts";
+export * from "./history.ts";
 export { type MemoryHit, type RetrieveOptions, retrieve } from "./memory-index.ts";
 export { applyProjections, resetProjections } from "./projections.ts";
 export { migrate, SCHEMA_VERSION } from "./schema.ts";

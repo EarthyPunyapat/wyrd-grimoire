@@ -44,7 +44,13 @@ export type Save = {
 
 export class StorageError extends Error {
   constructor(
-    readonly code: "hardcore" | "not_found" | "invalid_event" | "invalid_seq" | "not_a_campaign",
+    readonly code:
+      | "hardcore"
+      | "not_found"
+      | "invalid_event"
+      | "invalid_seq"
+      | "not_a_campaign"
+      | "invalid_archive",
     message: string,
   ) {
     super(message);

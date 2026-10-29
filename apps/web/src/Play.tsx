@@ -8,10 +8,11 @@ import { NarrativeText, narrationContext, RefContext } from "./Narration.tsx";
 import { Party } from "./Party.tsx";
 import { Mechanics, Passage } from "./Passage.tsx";
 import { Sheet } from "./Sheet.tsx";
+import { Timeline } from "./Timeline.tsx";
 import { usePlay } from "./use-play.ts";
 import { Codex, Journal, WorldMap } from "./World.tsx";
 
-type Tab = "combat" | "sheet" | "party" | "journal" | "codex" | "map";
+type Tab = "combat" | "sheet" | "party" | "journal" | "codex" | "map" | "timeline";
 const TAB_LABEL: Record<Tab, string> = {
   combat: "Combat",
   sheet: "Sheet",
@@ -19,9 +20,18 @@ const TAB_LABEL: Record<Tab, string> = {
   journal: "Journal",
   codex: "Codex",
   map: "Map",
+  timeline: "Timeline",
 };
 
-export function Play({ view, onView }: { view: GameView; onView: (view: GameView) => void }) {
+export function Play({
+  view,
+  onView,
+  onOpenCampaign,
+}: {
+  view: GameView;
+  onView: (view: GameView) => void;
+  onOpenCampaign?: (id: string) => void | Promise<void>;
+}) {
   const [input, setInput] = useState("");
   const [sheet, setSheet] = useState(false);
   const [combatOpen, setCombatOpen] = useState(false);
@@ -42,8 +52,8 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
   };
   const inCombat = !!view.combat && !view.ended;
   const tabs: Tab[] = inCombat
-    ? ["combat", "sheet", "party", "journal", "codex", "map"]
-    : ["sheet", "party", "journal", "codex", "map"];
+    ? ["combat", "sheet", "party", "journal", "codex", "map", "timeline"]
+    : ["sheet", "party", "journal", "codex", "map", "timeline"];
   const stamp = view.turns.length;
   useEffect(() => {
     if (inCombat) setTab("combat");
@@ -70,6 +80,17 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
         return <Codex campaignId={view.id} stamp={stamp} focus={codexFocus} />;
       case "map":
         return <WorldMap campaignId={view.id} stamp={stamp} onTravel={travel} />;
+      case "timeline":
+        return (
+          <Timeline
+            campaignId={view.id}
+            stamp={stamp}
+            onChanged={() => {
+              void play.refresh();
+            }}
+            onOpenCampaign={onOpenCampaign}
+          />
+        );
       default:
         return <Sheet view={view} />;
     }
@@ -402,6 +423,9 @@ export function Play({ view, onView }: { view: GameView; onView: (view: GameView
             </button>
             <button type="button" onClick={() => setPanelOpen("map")}>
               Map
+            </button>
+            <button type="button" onClick={() => setPanelOpen("timeline")}>
+              Timeline
             </button>
             <Dialog.Trigger>Sheet ↗</Dialog.Trigger>
           </div>
