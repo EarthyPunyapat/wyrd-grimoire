@@ -38,6 +38,7 @@ import {
   encumbranceBand,
   type GameState,
   haggle,
+  isKnownSkill,
   legacyEvents,
   obituary,
   RESOLUTION_MODULES,
@@ -46,6 +47,7 @@ import {
   sell,
   skillLabel,
   skillValue,
+  startingKitEvents,
   unwrap,
 } from "@wyrd/engine";
 import {
@@ -109,6 +111,27 @@ type Options = {
   /** Tests only: seed every new campaign's dice the same way. */
   seed?: string;
 };
+
+/** The spells this PC knows. No spellcasting state, or no entry for this PC, means none. */
+export function visibleSpells(state: GameState, pack: CompiledPack, pcId: string) {
+  const known = (state.flags.spellcasting as { known?: Record<string, string[]> } | undefined)?.known?.[pcId];
+  if (!known) return [];
+  const wanted = new Set(known);
+  return Object.values(pack.spells ?? {})
+    .filter((spell) => wanted.has(spell.id))
+    .map((spell) => ({
+      id: spell.id,
+      name: spell.name,
+      school: spell.school,
+      tier: spell.tier,
+      apCost: spell.apCost,
+      range: spell.range,
+      target: spell.target,
+      strain: spell.strain ?? defaultTuning.spellcasting.strainByTier[spell.tier],
+      concentration: spell.concentration,
+      description: spell.description,
+    }));
+}
 
 export function createApp(options: Options) {
   mkdirSync(options.home, { recursive: true });
@@ -612,6 +635,8 @@ export function createApp(options: Options) {
     });
     try {
       game.append(unwrap(createActor(game.state(), sheet, "pc")));
+      // The sheet's kit is carried for combat; the inventory projection needs the same items.
+      game.append(startingKitEvents(sheet.id, sheet.equipment));
       game.append([
         draft("EntityCreated", {
           entity: Entity.parse({
@@ -689,7 +714,14 @@ export function createApp(options: Options) {
           : "Your next chapter awaits.",
         originName: gamePack.ancestries[pc.identity.ancestry]?.name ?? pc.identity.ancestry,
         backgroundName: gamePack.archetypes[pc.archetypeId ?? ""]?.name ?? "",
-        pc,
+        // A mark written before downtime validated ids must not break an old campaign's view.
+        pc: {
+          ...pc,
+          progression: {
+            ...pc.progression,
+            marks: pc.progression.marks.filter((id) => isKnownSkill(id, skills)),
+          },
+        },
         speakers,
         resolution,
         theme: gamePack.theme ?? null,
@@ -760,24 +792,7 @@ export function createApp(options: Options) {
             };
           }),
         },
-        spells: Object.values(gamePack.spells ?? {})
-          .filter((spell) => {
-            const known = (state.flags.spellcasting as { known?: Record<string, string[]> } | undefined)
-              ?.known?.[pc.id];
-            return !known || known.includes(spell.id);
-          })
-          .map((spell) => ({
-            id: spell.id,
-            name: spell.name,
-            school: spell.school,
-            tier: spell.tier,
-            apCost: spell.apCost,
-            range: spell.range,
-            target: spell.target,
-            strain: spell.strain ?? defaultTuning.spellcasting.strainByTier[spell.tier],
-            concentration: spell.concentration,
-            description: spell.description,
-          })),
+        spells: visibleSpells(state, gamePack, pc.id),
         skills: Object.keys(pc.skills).map((id) => {
           const value = skillValue(pc, id, skills, defaultTuning);
           return {
@@ -817,12 +832,14 @@ export function createApp(options: Options) {
             ...(snapshots.get(t.id) ? { guard: snapshots.get(t.id)!.guard } : {}),
           };
         }),
-        suggestions: view.combat
-          ? view.combat.actions
-              .filter((a) => a.legal)
-              .slice(0, 4)
-              .map((a) => a.fill)
-          : ["Look around", "Search the area", "Wait 10 minutes"],
+        suggestions: state.campaign.settings.narration.suggestions
+          ? view.combat
+            ? view.combat.actions
+                .filter((a) => a.legal)
+                .slice(0, 4)
+                .map((a) => a.fill)
+            : ["Look around", "Search the area", "Wait 10 minutes"]
+          : [],
         offline: options.offline,
         combat: view.combat,
         ended: view.ended,
@@ -1097,6 +1114,7 @@ export function createApp(options: Options) {
       tuning: defaultTuning,
       nameOf: (eid: string) => state.actors[eid]?.sheet.identity.name ?? canon.entity(eid)?.name ?? eid,
       recipes: pack.recipes ?? {},
+      items: pack.items,
     });
     if (!out.ok)
       throw new HTTPException(422, {

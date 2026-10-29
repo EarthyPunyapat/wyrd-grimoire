@@ -18,6 +18,7 @@ import {
   draftFromArchetype,
   type GameState,
   isClassSkill,
+  isKnownSkill,
   type Purchase,
   pendingClassPoints,
   priceOf,
@@ -135,7 +136,10 @@ export function progressionView(state: GameState, content: CreationContent) {
           anySkillPoints: pendingClass.anySkillPoints,
         },
         ...(classInfo ? { class: classInfo } : {}),
-        marks: sheet.progression.marks.map((s) => skillLabel(s, content.skills)),
+        // Old logs can carry a mark written before downtime validated skill ids; drop it here.
+        marks: sheet.progression.marks
+          .filter((s) => isKnownSkill(s, content.skills))
+          .map((s) => skillLabel(s, content.skills)),
         attributes: ATTRIBUTE_IDS.map((a) => ({
           id: a,
           name: ATTRIBUTE_NAMES[a],

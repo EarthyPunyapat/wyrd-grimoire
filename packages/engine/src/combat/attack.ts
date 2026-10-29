@@ -143,7 +143,11 @@ export function resolveStrike(
     : tags.includes("dim") || state.scene?.light === "dim"
       ? "dim"
       : null;
-  if (light && !hasCondition(state, attackerId, "core:blinded"))
+  if (
+    light &&
+    state.campaign.settings.subsystems.lightingAndVision &&
+    !hasCondition(state, attackerId, "core:blinded")
+  )
     modifiers.push({ source: light === "dark" ? "darkness" : "dim light", value: f.light[light] });
   const size = f.size[target.size].toHit;
   if (size) modifiers.push({ source: `${target.size} target`, value: size });
