@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { type ItemCatalog, Rng, type ShopState } from "@wyrd/core";
 import { buy, haggle, sell } from "../src/economy.ts";
+import { startingEquipment, startingKitEvents } from "../src/equipment.ts";
 import {
   capacityKg,
   carriedKg,
@@ -88,6 +89,16 @@ describe("inventory and encumbrance (spec 11)", () => {
     give(s, "test:arrow", 10);
     s.commit(spendAmmo(s.state, "pc", "test:arrow", 4));
     expect(inventoryOf(s.state, "pc").stacks.find((x) => x.itemId === "test:arrow")!.qty).toBe(6);
+  });
+
+  test("a starting kit becomes inventory stacks and its ammunition can be spent", () => {
+    const s = sim({ subsystems: { ammo: true } });
+    const equipment = startingEquipment([{ item: "test:arrow", qty: 2 }, { item: "test:rock", qty: 1 }], items);
+    s.commit(startingKitEvents("pc", equipment));
+    expect(inventoryOf(s.state, "pc").stacks.find((x) => x.itemId === "test:arrow")?.qty).toBe(2);
+    expect(carriedKg(s.state, "pc", ictx)).toBe(5);
+    s.commit(spendAmmo(s.state, "pc", "test:arrow", 1));
+    expect(inventoryOf(s.state, "pc").stacks.find((x) => x.itemId === "test:arrow")?.qty).toBe(1);
   });
 
   test("durability degrades one step at a time and stops at broken", () => {

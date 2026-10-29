@@ -1,4 +1,4 @@
-import type { Equipment, ItemCatalog, KitEntry } from "@wyrd/core";
+import { type ActorId, draft, type Equipment, type EventDraft, type ItemCatalog, type KitEntry } from "@wyrd/core";
 import type { Result, RuleError } from "./result.ts";
 
 const isWeapon = (items: ItemCatalog, id: string) => Object.hasOwn(items.weapons, id);
@@ -17,6 +17,27 @@ export function startingEquipment(kit: KitEntry[], items: ItemCatalog): Equipmen
     worn: kit.filter((k) => isArmour(items, k.item)).map((k) => k.item),
     carried: kit.map((k) => ({ item: k.item, qty: k.qty })),
   };
+}
+
+/**
+ * Turns the sheet's starting equipment into inventory events. The same carried entry may also be
+ * held or worn; one event carries it to the right slot so quantities are not counted twice.
+ */
+export function startingKitEvents(
+  actorId: ActorId,
+  equipment: Equipment,
+  reason = "starting kit",
+): EventDraft[] {
+  return equipment.carried.map(({ item, qty }) => {
+    const hand: "main" | "off" | null =
+      equipment.held.main === item ? "main" : equipment.held.off === item ? "off" : null;
+    const location = hand
+      ? { kind: "held" as const, hand }
+      : equipment.worn.includes(item)
+        ? { kind: "worn" as const, slot: "body" }
+        : { kind: "carried" as const };
+    return draft("ItemTransferred", { actorId, itemId: item, qty, location, reason }, "engine");
+  });
 }
 
 type Slot = { id: string; path: string };

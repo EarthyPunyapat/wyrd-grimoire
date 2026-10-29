@@ -46,6 +46,7 @@ import {
   resolveDowntime,
   sell,
   skillLabel,
+  startingKitEvents,
   skillValue,
   unwrap,
 } from "@wyrd/engine";
@@ -613,6 +614,8 @@ export function createApp(options: Options) {
     });
     try {
       game.append(unwrap(createActor(game.state(), sheet, "pc")));
+      // The sheet's kit is carried for combat; the inventory projection needs the same items.
+      game.append(startingKitEvents(sheet.id, sheet.equipment));
       game.append([
         draft("EntityCreated", {
           entity: Entity.parse({

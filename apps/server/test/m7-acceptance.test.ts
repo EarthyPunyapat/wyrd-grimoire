@@ -194,6 +194,29 @@ test("the starting shop trades and haggles through the API", async () => {
   expect(haggled.status).toBe(200);
 });
 
+test("a quick-start kit reaches the inventory, weighs in and can be sold", async () => {
+  const server = setup();
+  const cookie = await login(server);
+  const id = await quickStart(server, cookie, "Kit", { archetype: "cutpurse" });
+  let game = GameView.parse(await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json());
+  const kit = ["fantasy-core:dagger", "fantasy-core:lockpicks", "fantasy-core:rope", "fantasy-core:backpack"];
+  for (const itemId of kit) {
+    expect(game.inventory.items.find((i) => i.id === itemId)?.qty).toBe(1);
+  }
+  expect(game.inventory.weightKg).toBeCloseTo(4.6);
+
+  const sold = await request(server, `/campaigns/${id}/shop/sell`, { itemId: "fantasy-core:dagger", qty: 1 }, cookie);
+  expect(sold.status).toBe(200);
+  game = GameView.parse(await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json());
+  expect(game.inventory.items.some((i) => i.id === "fantasy-core:dagger")).toBe(false);
+
+  const hunterId = await quickStart(server, cookie, "Hunter", { pregen: "hild" });
+  const hunter = GameView.parse(
+    await (await request(server, `/campaigns/${hunterId}/view`, undefined, cookie)).json(),
+  );
+  expect(hunter.inventory.items.find((i) => i.id === "fantasy-core:arrows")?.qty).toBe(2);
+});
+
 test("a campaign can be deleted from the home screen API", async () => {
   const server = setup();
   const cookie = await login(server);
