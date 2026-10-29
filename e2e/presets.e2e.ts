@@ -53,7 +53,7 @@ test("Cockpit and Chat switch mid-campaign on the same play components", async (
   await expect(page.locator(".watch-list").last()).toBeVisible();
   const watch = page.locator(".watch-list").last();
   await expect(watch.getByRole("heading", { name: "Watch" })).toBeVisible();
-  await expect(watch).toContainText("Wren");
+  await expect(watch).toContainText("Nothing watched");
   if (info.project.name === "desktop") {
     const prose = (await page.locator(".passage-main").last().boundingBox())!;
     const rail = (await page.locator(".margin-notes").last().boundingBox())!;

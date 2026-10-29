@@ -62,7 +62,7 @@ export async function executeTool(call: ToolCall, x: ToolContext): Promise<ToolO
         ...none(),
         ...run.effects,
         drafts: [...intervention, ...(run.effects?.drafts ?? [])],
-        cards: [...(run.effects?.cards ?? []), ...reports],
+        cards: [...reports, ...(run.effects?.cards ?? [])],
       },
     };
   } catch (e) {

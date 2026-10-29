@@ -162,3 +162,15 @@ When time advances past a boundary, the engine runs ticks. Long time skips run t
 ## Downtime
 
 When time passes in a safe place, the player can choose activities: **train** (with a teacher: an improvement opportunity or reduced XP cost), **craft**, **work** (earn money with a skill check), **research** (an extended task), **carouse** (gather rumours, risk trouble), **recover** (healing with care). The engine resolves the outcomes; the narrator summarises them in a short passage.
+
+## Time skips and observation (W2 E, D161)
+
+`time_skip` takes exactly one of `duration`, `until`, or legacy `minutes`, plus an optional reason. Numeric durations are game minutes; strings accept an amount or “a/an” and minute/hour/day/week/month/year (the default month is 30 days). `until` is an engine-checkable `{taskIds: [...]}`, `{clockId}`, or `{entityId, predicate, value}` condition. Tasks must exist and finish as done or failed; blocked tasks need help. Unknown clocks/tasks and invalid or excessive durations are rejected. Conditions are checked before advancing and after each step, with a configured maximum span when unmet.
+
+The engine advances one daily boundary at a time through `runTicks`, preserving daily simulation beyond the older catch-up cap and processing weekly ticks on every seventh calendar day. Canon clocks and delegated tasks use D/F's existing rules. Earlier task due times and a final partial day are also processed so a short skip cannot step over a blocked task. Combat and ended/dead player campaigns cannot skip.
+
+The skip stops at the first watched event meeting `tuning.skips.interruptSeverity` (major by default), a blocked task, a death, or a pending canon clock with only its final segment left. A clock already there stops the skip immediately. A valid recorded intervention allows the clock to resolve as averted; ordinary explicit time advances can still let canon occur. Event and news-kind severity mappings are configurable; faction goal completion is major, routine activity is minor. A digest and one safe report per watched entity (including quiet periods) are recorded by `SkipCompleted` and shown as report cards. Reports use typed event summaries rather than copying private payloads.
+
+`WatchAdded`/`WatchRemoved` maintain a replayable watch list. The GM's `watch`/`unwatch` tools and the Codex controls edit it; Cockpit's rail shows these entities even when they are outside the scene. The GM receives watch IDs and recent task IDs/statuses for future conditional skips.
+
+An effective Level-∞ character can `observe` any existing entity by ID and learns its existence and public facts. Finite/sealed characters observe known entities. Missing IDs do not invent canon. Observation exposes only safe identity, public facts, position and actor level/HP/death fields; NPC minds, secret facts and arbitrary entity data stay server-side. An infinite observer can establish a new watch through observation; direct Codex/API watches require an already-known target.

@@ -124,26 +124,22 @@ export function RollNotes({
  * people actually in the scene, using the same GameView data as every other preset; CSS shows it
  * only in Cockpit.
  */
-function WatchList({ view }: { view: GameView }) {
-  const others = (view.scene?.present ?? []).filter((person) => person.id !== view.pc.id);
+export function WatchList({ view }: { view: GameView }) {
+  const watched = view.watched ?? [];
   return (
     <section className="watch-list" aria-label="Watch list">
       <h3>Watch</h3>
       <ul>
-        <li>
-          <span className="watch-name">{view.pc.identity.name}</span>
-          <span className="watch-meta">
-            HP {view.pc.status.hp}/{view.pc.derived.hpMax}
-          </span>
-        </li>
-        {others.map((person) => (
-          <li key={person.id}>
-            <span className="watch-name">{person.name}</span>
-            <span className="watch-meta">present</span>
+        {watched.map((entity) => (
+          <li key={entity.id}>
+            <span className="watch-name">{entity.name}</span>
+            <span className="watch-meta">{entity.report ?? entity.kind}</span>
           </li>
         ))}
       </ul>
-      {!others.length && <p className="watch-none">No one else in sight.</p>}
+      {!watched.length && (
+        <p className="watch-none">Nothing watched. Mark someone in the Codex or ask the GM to watch them.</p>
+      )}
     </section>
   );
 }

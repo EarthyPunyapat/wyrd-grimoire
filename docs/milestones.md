@@ -119,7 +119,7 @@ The owner played M7 and found it lacking next to their ChatGPT RPG sessions, so 
 **Acceptance**
 - [ ] Step 1: player-written creation details survive as items and pinned player canon; wizard campaigns start with a kit and a shop; session zero and world generation survive bad model output.
 - [ ] Step 2: new turns run through the GM-with-tools loop with streaming, cards, choices, retcon Undo, the structural check and the backup-model badge.
-- [ ] Step 3: Levels and abilities, avatars and sealing, wiki lore, source creation with canon clocks and style, time skips with the watch list, and Ari with delegation.
+- [x] Step 3: Levels and abilities, avatars and sealing, wiki lore, source creation with canon clocks and style, time skips with the watch list, and Ari with delegation. *(A–F offline engine/API/replay/browser checks pass; plans and validation are in HANDOFF.md.)*
 - [ ] UI 2.0: the owner-picked direction is applied to the play screen, the status screen (with inventory) and home/creation.
 - [ ] Step 4: the Ethan + Ari import works; the side-by-side replay is reviewed and fixed.
 - [ ] The owner plays 20 turns of the imported campaign and judges it at least as good as their ChatGPT sessions (owner-only).

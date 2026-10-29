@@ -34,8 +34,10 @@ test("loyal Ari delegates, speaks and reports; her voice persists without an app
   await expect(input).toHaveValue("Delegate to Ari: ");
   await input.fill("delegation workflow");
   await input.press("Enter");
-  await expect(page.locator(".gm-card")).toContainText("Delegation report");
-  await expect(page.locator(".gm-card")).toContainText("Completed.");
+  await expect(page.locator(".gm-card").filter({ hasText: "Delegation report" })).toContainText(
+    "Delegation report",
+  );
+  await expect(page.locator(".gm-card").filter({ hasText: "Delegation report" })).toContainText("Completed.");
   await expect(page.locator(".speaker")).toHaveText("Ari");
   await page.getByRole("button", { name: "Character", exact: true }).click();
   const party = page.getByRole("dialog");
@@ -52,7 +54,7 @@ test("loyal Ari delegates, speaks and reports; her voice persists without an app
   await party.getByRole("button", { name: "Close status screen" }).click();
   await page.reload();
   await expect(page.getByRole("button", { name: "Delegate to Ari", exact: true })).toBeVisible();
-  await expect(page.locator(".gm-card")).toContainText("Completed.");
+  await expect(page.locator(".gm-card").filter({ hasText: "Delegation report" })).toContainText("Completed.");
   await page.getByRole("button", { name: "Character", exact: true }).click();
   await party.getByRole("button", { name: "Ari", exact: true }).click();
   await expect(party.getByText("Voice: Warm, precise, and wry.", { exact: true })).toBeVisible();

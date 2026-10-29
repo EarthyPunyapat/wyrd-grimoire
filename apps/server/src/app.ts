@@ -28,6 +28,7 @@ import {
   SubmitTurnInput,
   survivalOf,
   TurnCompletedEventPayload,
+  WatchInput,
   WorldPitch,
 } from "@wyrd/core";
 import {
@@ -38,6 +39,7 @@ import {
   capacityKg,
   carriedKg,
   catalogWith,
+  changeWatch,
   closeEvents,
   combatView,
   createActor,
@@ -49,10 +51,12 @@ import {
   type GameState,
   haggle,
   isKnownSkill,
+  lastSkip,
   legacyEvents,
   levelProposals,
   moveEquipment,
   obituary,
+  observableIds,
   playerCanonEvents,
   powerRating,
   RESOLUTION_MODULES,
@@ -64,6 +68,7 @@ import {
   skillValue,
   startingKitEvents,
   unwrap,
+  watchedIds,
 } from "@wyrd/engine";
 import {
   combatContent,
@@ -986,6 +991,14 @@ export function createApp(options: Options) {
         status,
         report,
       })),
+      watched: watchedIds(state)
+        .filter((id) => observableIds(state).has(id))
+        .map((id) => ({
+          id,
+          name: canon.entity(id)?.name ?? state.actors[id]?.sheet.identity.name ?? id,
+          kind: canon.entity(id)?.kind ?? "npc",
+          report: lastSkip(state)?.reports.find((r) => r.entityId === id)?.body,
+        })),
       powerRating: powerRating(pc),
       levelProposals: levelProposals(state).filter(
         (p) => p.actorId === pc.id || state.party.companionIds.includes(p.actorId),
@@ -1148,6 +1161,21 @@ export function createApp(options: Options) {
     });
   }
   app.get("/api/campaigns/:id/view", (c) => c.json(gameView(c.req.param("id"))));
+  app.put("/api/campaigns/:id/watch/:entityId", async (c) => {
+    const input = await body(c, WatchInput);
+    const id = c.req.param("id");
+    const game = campaign(id);
+    if (store.running(id)) throw new HTTPException(409, { message: "Wait for the current turn to finish" });
+    const entityId = c.req.param("entityId");
+    const state = game.state();
+    if (input.watch && !state.actors[entityId] && !new CanonQueries(game).entity(entityId))
+      throw new HTTPException(422, { message: "Choose an existing known entity" });
+    const changed = changeWatch(state, entityId, input.watch, defaultTuning);
+    if (!changed.ok)
+      throw new HTTPException(422, { message: changed.errors.map((e) => e.message).join("; ") });
+    game.append(changed.value);
+    return c.json({ ok: true });
+  });
   /** Lazy generation for a campaign (spec 06): offline stand-ins, or worldGen calls. */
   function lazyFor(game: CampaignStore<GameState>, canon: CanonQueries) {
     const world = () => canon.entity("concept:world-bible");

@@ -43,6 +43,8 @@ test("lists core, Levels and source GM tools", () => {
       "breakthrough",
       "set_level",
       "delegate",
+      "watch",
+      "unwatch",
       "create_avatar",
       "seal",
       "unseal",

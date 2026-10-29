@@ -112,6 +112,17 @@ const cases = new FakeProvider([
 const levelModel = new FakeProvider([
   {
     role: "gm",
+    match: (r) => r.messages.some((m) => m.role === "user" && m.content.includes("skip workflow")),
+    reply: (r) => {
+      const count = r.messages.filter((m) => m.role === "tool").length;
+      if (!count) return { toolCall: { name: "watch", args: { entityId: "ari" } } };
+      if (count === 1)
+        return { toolCall: { name: "time_skip", args: { duration: "2 days", reason: "Watch Ari" } } };
+      return { text: "Two quiet days pass. Ari remains by your side." };
+    },
+  },
+  {
+    role: "gm",
     match: (r) => r.messages.some((m) => m.role === "user" && m.content.includes("delegation workflow")),
     reply: (r) => {
       const count = r.messages.filter((m) => m.role === "tool").length;
