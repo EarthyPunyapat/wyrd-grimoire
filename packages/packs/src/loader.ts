@@ -6,6 +6,7 @@ import {
   ArchetypeDef,
   ArmorDef,
   BodyPlanDef,
+  ClassDef,
   type CompiledPack,
   CreatureDef,
   GearDef,
@@ -44,6 +45,7 @@ const CONTENT_FILES = {
   ancestries: { file: "ancestries.yaml", schema: AncestryDef },
   bodyPlans: { file: "bodyplans.yaml", schema: BodyPlanDef },
   archetypes: { file: "archetypes.yaml", schema: ArchetypeDef },
+  classes: { file: "classes.yaml", schema: ClassDef },
   pregens: { file: "pregens.yaml", schema: PregenDef },
   weapons: { file: "items/weapons.yaml", schema: WeaponDef },
   armor: { file: "items/armor.yaml", schema: ArmorDef },
@@ -174,6 +176,16 @@ export function loadPack(dir: string): LoadResult {
     if (def.field !== (field !== undefined)) return null;
     return field ? `${found}/${field}` : found;
   };
+  /** A class skill may name a field skill without a specialisation: the whole field belongs to the class. */
+  const resolveClassSkill = (ref: string): string | null => {
+    const [base, field] = ref.split("/") as [string, string | undefined];
+    const candidates = base.includes(":") ? [base] : [`${ns}:${base}`, `core:${base}`];
+    const found = candidates.find((c) => skills[c]);
+    if (!found) return null;
+    const def = skills[found]!;
+    if (!def.field && field !== undefined) return null;
+    return field ? `${found}/${field}` : found;
+  };
   const where = (id: string) => origin.get(id) ?? { file: "?", path: "" };
   const badRef = (ownerId: string, path: string, what: string, ref: string) => {
     const o = where(ownerId);
@@ -245,6 +257,73 @@ export function loadPack(dir: string): LoadResult {
       p.freeTalent = talent ?? p.freeTalent;
     }
   }
+  for (const c of Object.values(content.classes)) {
+    c.skills = c.skills.map((s) => {
+      const resolved = resolveClassSkill(s);
+      if (!resolved) badRef(c.id, "skills", "Skill", s);
+      return resolved ?? s;
+    });
+    c.archetypes = c.archetypes.map((a) => {
+      const resolved = ref(content.archetypes, a);
+      if (!resolved) badRef(c.id, "archetypes", "Archetype", a);
+      return resolved ?? a;
+    });
+    for (const [i, row] of c.levels.entries()) {
+      for (const [j, f] of row.features.entries()) {
+        if (!f.talent) continue;
+        const talent = ref(content.talents, f.talent);
+        if (!talent) badRef(c.id, `levels.${i}.features.${j}.talent`, "Talent", f.talent);
+        f.talent = talent ?? f.talent;
+      }
+    }
+    // The level table is a ladder: 1, 2, 3… with rising XP thresholds and level 1 at 0.
+    const levels = [...c.levels].sort((a, b) => a.level - b.level);
+    const o = where(c.id);
+    if (levels[0]?.level !== 1 || levels[0]?.xp !== 0)
+      error("CLASS_LEVELS", o.file, `${c.name}: the level table must start at level 1 with 0 XP`, o.path);
+    levels.forEach((row, i) => {
+      if (row.level !== i + 1)
+        error(
+          "CLASS_LEVELS",
+          o.file,
+          `${c.name}: levels must run 1, 2, 3… (found ${row.level} at position ${i + 1})`,
+          `${o.path}.levels`,
+        );
+      if (i > 0 && row.xp <= levels[i - 1]!.xp)
+        error(
+          "CLASS_LEVELS",
+          o.file,
+          `${c.name}: level ${row.level} needs ${row.xp} XP, not more than level ${levels[i - 1]!.level}`,
+          `${o.path}.levels`,
+        );
+      const expected = (10 * row.level * (row.level - 1)) / 2;
+      if (row.xp !== expected)
+        issues.push({
+          severity: "warning",
+          code: "CLASS_XP_CURVE",
+          file: o.file,
+          path: `${o.path}.levels`,
+          message: `${c.name}: level ${row.level} needs ${row.xp} XP; the spec curve is ${expected}`,
+        });
+    });
+  }
+
+  // The manifest and classes.yaml must agree about class mode (spec 05).
+  const supportsClasses = manifest.supports.progression.includes("classes");
+  const classCount = Object.keys(content.classes).length;
+  if (supportsClasses && classCount === 0)
+    error(
+      "CLASSES_MISSING",
+      "pack.yaml",
+      "supports.progression offers classes but classes.yaml is missing",
+      "supports.progression",
+    );
+  if (!supportsClasses && classCount > 0)
+    error(
+      "CLASSES_NOT_DECLARED",
+      "classes.yaml",
+      "classes.yaml defines classes but pack.yaml doesn't list classes in supports.progression",
+    );
   for (const w of Object.values(content.weapons)) {
     const s = resolveSkill(w.skill);
     if (!s) badRef(w.id, "skill", "Skill", w.skill);
@@ -314,6 +393,7 @@ export function loadPack(dir: string): LoadResult {
     ancestries: content.ancestries,
     bodyPlans: content.bodyPlans,
     archetypes: content.archetypes,
+    classes: content.classes,
     pregens: content.pregens,
     creatures: content.creatures,
     items: { weapons: content.weapons, armor: content.armor, gear: content.gear },

@@ -19,6 +19,7 @@ import type {
   Threat,
   Tuning,
 } from "@wyrd/core";
+import type { ClassCatalog } from "./classes.ts";
 import type { SkillCatalog } from "./skills.ts";
 
 export type ActorRole = "pc" | "companion" | "npc";
@@ -77,4 +78,9 @@ export type GameState = {
 };
 
 /** What rules functions need beyond state: content and tuning. Never IO. */
-export type RulesContext = { skills: SkillCatalog; tuning: Tuning };
+export type RulesContext = {
+  skills: SkillCatalog;
+  tuning: Tuning;
+  /** Class data for class campaigns (spec 04); missing means class levels can't advance. */
+  classes?: ClassCatalog;
+};

@@ -9,10 +9,37 @@ export const ProgressionMember = z.object({
   name: z.string(),
   role: z.enum(["pc", "companion"]),
   xp: z.object({ earned: z.number(), spent: z.number(), available: z.number() }),
-  pending: z.object({ attributes: z.number(), talents: z.number() }),
+  pending: z.object({
+    attributes: z.number(),
+    talents: z.number(),
+    /** Class-mode training points waiting to be spent. */
+    classSkillPoints: z.number().default(0),
+    anySkillPoints: z.number().default(0),
+  }),
   marks: z.array(z.string()),
+  /** Class campaigns: the character's class, level, progress and features (spec 04). */
+  class: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      level: z.number(),
+      xpIntoLevel: z.number(),
+      /** XP still needed for the next level, or null at the top of the table. */
+      xpForNext: z.number().nullable(),
+      features: z.array(z.object({ level: z.number(), name: z.string(), description: z.string() })),
+    })
+    .optional(),
   attributes: z.array(z.object({ id: z.string(), name: z.string(), value: z.number(), ...Priced })),
-  skills: z.array(z.object({ id: z.string(), name: z.string(), value: z.number(), ...Priced })),
+  skills: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      value: z.number(),
+      ...Priced,
+      /** Class mode: which training pool pays for a raise, if any. */
+      pool: z.enum(["class", "any"]).optional(),
+    }),
+  ),
   talents: z.array(
     z.object({ id: z.string(), name: z.string(), tier: z.number(), description: z.string(), ...Priced }),
   ),
@@ -42,7 +69,7 @@ export type ProgressionView = z.infer<typeof ProgressionView>;
 export const AdvanceInput = z
   .object({
     actorId: z.string().min(1).max(80),
-    kind: z.enum(["skill", "attribute", "talent", "fieldSkill"]),
+    kind: z.enum(["skill", "attribute", "talent", "fieldSkill", "classSkill", "anySkill"]),
     id: z.string().min(1).max(120),
   })
   .strict();

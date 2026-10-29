@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { DiceExpr } from "../dice.ts";
 import type { LocationKind } from "../tuning.ts";
+import type { ClassDef } from "./classes.ts";
 import { AttributeId, RangeBand } from "./common.ts";
 import { BackstoryHook } from "./creation.ts";
 import { AppearanceFacts } from "./sheet.ts";
@@ -268,6 +269,8 @@ export type CompiledPack = {
   ancestries: Record<string, AncestryDef & { id: string }>;
   bodyPlans: Record<string, BodyPlanDef>;
   archetypes: Record<string, ArchetypeDef & { id: string }>;
+  /** Classes for class mode (spec 04). Empty when the pack has no `classes.yaml`. */
+  classes: Record<string, ClassDef & { id: string }>;
   pregens: Record<string, PregenDef & { id: string }>;
   creatures: Record<string, CreatureDef & { id: string }>;
   items: {

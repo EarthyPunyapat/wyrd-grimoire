@@ -735,7 +735,14 @@ export class TurnPipeline {
   ): EventDraft[] {
     const ruled = afterEvents(state, ruleEvents);
     const guarded = afterEvents(ruled, canonDrafts);
-    const xp = turnAwards(ruled, guarded, canonDrafts, ctx.kindOf ?? (() => undefined), ctx.tuning);
+    const xp = turnAwards(
+      ruled,
+      guarded,
+      canonDrafts,
+      ctx.kindOf ?? (() => undefined),
+      ctx.tuning,
+      ctx.classes ?? {},
+    );
     const approvals = report?.approvalDeltas.length
       ? approvalEvents(afterEvents(guarded, xp), report.approvalDeltas, ctx.nameOf, ctx.tuning)
       : [];

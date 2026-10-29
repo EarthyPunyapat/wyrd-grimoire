@@ -1,0 +1,344 @@
+# Classes for class-mode campaigns (spec 04). Levels 1-10, XP at 10 x n(n-1)/2.
+# Each level from 2 grants 20 class-skill points (at most 10 per skill) and 5 any-skill points.
+# Attribute points arrive at levels 4 and 8. No level grants HP.
+- id: fighter
+  name: Fighter
+  description: "A trained combatant who wins by holding the line and making the other side break first."
+  skills: [melee, athletics, dodge, intimidation, perception, medicine]
+  maxPointsPerSkillPerLevel: 10
+  archetypes: [sellsword]
+  multiclass: { allowed: false, maxClasses: 2 }
+  levels:
+    - { level: 1, xp: 0 }
+    - level: 2
+      xp: 10
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Hold the Line
+          description: "You plant your feet and the line holds. Allies who fight beside you keep their nerve when a charge breaks."
+    - level: 3
+      xp: 30
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Weapon Drill
+          description: "Long hours with a weapon make its weight an extension of your arm; you find the gap in a guard faster."
+    - level: 4
+      xp: 60
+      classSkillPoints: 20
+      anySkillPoints: 5
+      attributePoints: 1
+    - level: 5
+      xp: 100
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Second Wind
+          description: "A breath and a shift of grip, and the weariness falls away. You press on when others would drop."
+    - { level: 6, xp: 150, classSkillPoints: 20, anySkillPoints: 5 }
+    - level: 7
+      xp: 210
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Shield Wall
+          description: "With a shield or a stout door, you turn a corridor into a wall that costs the enemy dearly."
+    - level: 8
+      xp: 280
+      classSkillPoints: 20
+      anySkillPoints: 5
+      attributePoints: 1
+    - { level: 9, xp: 360, classSkillPoints: 20, anySkillPoints: 5 }
+    - level: 10
+      xp: 450
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Unbroken
+          description: "You have outlasted better fighters than you. Fear finds no purchase, and neither does the first blow."
+
+- id: rogue
+  name: Rogue
+  description: "A quick-handed survivor who wins by being somewhere the enemy did not expect."
+  skills: [sleight-of-hand, stealth, deception, acrobatics, perception, streetwise]
+  maxPointsPerSkillPerLevel: 10
+  archetypes: [cutpurse]
+  multiclass: { allowed: false, maxClasses: 2 }
+  levels:
+    - { level: 1, xp: 0 }
+    - level: 2
+      xp: 10
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Quick Hands
+          description: "Your fingers move before the eye can follow, whether in a purse, a lock or a sleeve."
+    - level: 3
+      xp: 30
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Read the Room
+          description: "You notice who is watching, who is armed and which exit nobody is guarding."
+    - level: 4
+      xp: 60
+      classSkillPoints: 20
+      anySkillPoints: 5
+      attributePoints: 1
+    - level: 5
+      xp: 100
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Low Blow
+          description: "You know where a fight is won: knees, throat, and the moment an enemy looks away."
+    - { level: 6, xp: 150, classSkillPoints: 20, anySkillPoints: 5 }
+    - level: 7
+      xp: 210
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Vanishing Act
+          description: "A turned corner, a crowd, a fallen cloak, and you are simply not where you were."
+    - level: 8
+      xp: 280
+      classSkillPoints: 20
+      anySkillPoints: 5
+      attributePoints: 1
+    - { level: 9, xp: 360, classSkillPoints: 20, anySkillPoints: 5 }
+    - level: 10
+      xp: 450
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Ghost of the Alley
+          description: "Locks open for you, guards remember nothing, and no door in the city is truly closed."
+
+- id: mage
+  name: Mage
+  description: "A student of the old workings who pays for power in strain, patience and dangerous curiosity."
+  skills: [spellcasting, arcana, lore, investigation, insight, language]
+  maxPointsPerSkillPerLevel: 10
+  archetypes: [hedge-wizard]
+  multiclass: { allowed: false, maxClasses: 2 }
+  levels:
+    - { level: 1, xp: 0 }
+    - level: 2
+      xp: 10
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Grimoire
+          description: "You keep a book of signs, mistakes and remedies. It is the most dangerous thing you own."
+    - level: 3
+      xp: 30
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Focused Casting
+          description: "You can hold a working together through pain, noise and a blade at your back."
+    - level: 4
+      xp: 60
+      classSkillPoints: 20
+      anySkillPoints: 5
+      attributePoints: 1
+    - level: 5
+      xp: 100
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Warded Mind
+          description: "You have learned to close the doors of your own thoughts against things that would walk through them."
+    - { level: 6, xp: 150, classSkillPoints: 20, anySkillPoints: 5 }
+    - level: 7
+      xp: 210
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Twin Signs
+          description: "You split a working in two, paying for it in strain rather than in time."
+    - level: 8
+      xp: 280
+      classSkillPoints: 20
+      anySkillPoints: 5
+      attributePoints: 1
+    - { level: 9, xp: 360, classSkillPoints: 20, anySkillPoints: 5 }
+    - level: 10
+      xp: 450
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Master of the Art
+          description: "The old workings answer you now. What once took a circle and a night takes a word."
+
+- id: priest
+  name: Priest
+  description: "A carrier of a vow who tends the living, comforts the dying and does not flinch from either."
+  skills: [faith, medicine, persuasion, insight, lore, language]
+  maxPointsPerSkillPerLevel: 10
+  archetypes: [pilgrim]
+  multiclass: { allowed: false, maxClasses: 2 }
+  levels:
+    - { level: 1, xp: 0 }
+    - level: 2
+      xp: 10
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Benediction
+          description: "A few words and a steady hand ease fear and close small wounds."
+    - level: 3
+      xp: 30
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Bedside Manner
+          description: "You have sat with the dying long enough to know what the living need to hear."
+    - level: 4
+      xp: 60
+      classSkillPoints: 20
+      anySkillPoints: 5
+      attributePoints: 1
+    - level: 5
+      xp: 100
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Steadfast
+          description: "Your faith is a floor under your feet. Terror and doubt break against it."
+    - { level: 6, xp: 150, classSkillPoints: 20, anySkillPoints: 5 }
+    - level: 7
+      xp: 210
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Intercession
+          description: "You can call on your power for another, taking the risk of being heard onto yourself."
+    - level: 8
+      xp: 280
+      classSkillPoints: 20
+      anySkillPoints: 5
+      attributePoints: 1
+    - { level: 9, xp: 360, classSkillPoints: 20, anySkillPoints: 5 }
+    - level: 10
+      xp: 450
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Living Saint
+          description: "People see something in you that they cannot name, and the desperate come to your door."
+
+- id: ranger
+  name: Ranger
+  description: "A patient wanderer of wild places who reads ground, weather and quarry better than most read a map."
+  skills: [ranged, survival, perception, stealth, navigation, athletics]
+  maxPointsPerSkillPerLevel: 10
+  archetypes: [hunter]
+  multiclass: { allowed: false, maxClasses: 2 }
+  levels:
+    - { level: 1, xp: 0 }
+    - level: 2
+      xp: 10
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Trailcraft
+          description: "Broken twigs, shifted stones and the smell of a campfire tell you who passed and how long ago."
+    - level: 3
+      xp: 30
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Keen Eye
+          description: "You pick a shape out of cover before it moves and know which way it will run."
+    - level: 4
+      xp: 60
+      classSkillPoints: 20
+      anySkillPoints: 5
+      attributePoints: 1
+    - level: 5
+      xp: 100
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Marked Quarry
+          description: "Once you have chosen a target, every step you take closes the distance."
+    - { level: 6, xp: 150, classSkillPoints: 20, anySkillPoints: 5 }
+    - level: 7
+      xp: 210
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Silent Step
+          description: "You move through dead leaves and gravel without a sound, and the woods keep your secret."
+    - level: 8
+      xp: 280
+      classSkillPoints: 20
+      anySkillPoints: 5
+      attributePoints: 1
+    - { level: 9, xp: 360, classSkillPoints: 20, anySkillPoints: 5 }
+    - level: 10
+      xp: 450
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: The Long Shot
+          description: "You take the shot others would call impossible, and the arrow finds the seam."
+
+- id: bard
+  name: Bard
+  description: "A collector of songs, secrets and favours who fights with a quick tongue and a quicker audience."
+  skills: [performance, persuasion, deception, insight, streetwise, lore]
+  maxPointsPerSkillPerLevel: 10
+  archetypes: [scholar]
+  multiclass: { allowed: false, maxClasses: 2 }
+  levels:
+    - { level: 1, xp: 0 }
+    - level: 2
+      xp: 10
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Captivating Performance
+          description: "You can hold a room with a song, a story or a well-timed silence."
+    - level: 3
+      xp: 30
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Gossip Network
+          description: "Every town has a person who knows everything. You know that person."
+    - level: 4
+      xp: 60
+      classSkillPoints: 20
+      anySkillPoints: 5
+      attributePoints: 1
+    - level: 5
+      xp: 100
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Rousing Song
+          description: "Your music lifts tired arms and steadies shaking hands, and the fight goes on."
+    - { level: 6, xp: 150, classSkillPoints: 20, anySkillPoints: 5 }
+    - level: 7
+      xp: 210
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Cutting Wit
+          description: "A few well-chosen words can make a proud man look small in front of his friends."
+    - level: 8
+      xp: 280
+      classSkillPoints: 20
+      anySkillPoints: 5
+      attributePoints: 1
+    - { level: 9, xp: 360, classSkillPoints: 20, anySkillPoints: 5 }
+    - level: 10
+      xp: 450
+      classSkillPoints: 20
+      anySkillPoints: 5
+      features:
+        - name: Legend in the Making
+          description: "Your name travels ahead of you now, and doors open before you knock."

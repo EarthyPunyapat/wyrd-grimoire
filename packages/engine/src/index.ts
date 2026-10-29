@@ -1,5 +1,6 @@
 export * from "./campaign.ts";
 export * from "./checks.ts";
+export * from "./classes.ts";
 export * from "./combat/index.ts";
 export * from "./companions.ts";
 export * from "./conditions.ts";
