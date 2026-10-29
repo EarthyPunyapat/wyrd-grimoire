@@ -161,9 +161,7 @@ test("a d20 campaign plays several turns: the view exposes the mode and mechanic
       await request(server, `/campaigns/${id}/turns/${turnId}/stream`, undefined, cookie)
     ).text();
     expect(stream).toContain("event: narration.final");
-    return GameView.parse(
-      await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json(),
-    );
+    return GameView.parse(await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json());
   };
 
   let view = await turn("sneak behind the barrels");
@@ -200,9 +198,7 @@ test("a d100 campaign keeps d100 mechanics and percentage skill notation", async
     cookie,
   );
   const { turnId } = (await submitted.json()) as { turnId: string };
-  await (
-    await request(server, `/campaigns/${id}/turns/${turnId}/stream`, undefined, cookie)
-  ).text();
+  await (await request(server, `/campaigns/${id}/turns/${turnId}/stream`, undefined, cookie)).text();
   const view = GameView.parse(
     await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json(),
   );

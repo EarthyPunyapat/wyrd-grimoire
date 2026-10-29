@@ -10,12 +10,7 @@ import {
   Rng,
   type Tuning,
 } from "@wyrd/core";
-import {
-  type ClassCatalog,
-  classForArchetype,
-  isClassSkill,
-  nextClassLevel,
-} from "./classes.ts";
+import { type ClassCatalog, classForArchetype, isClassSkill, nextClassLevel } from "./classes.ts";
 import { type CreationContent, talentProblems } from "./creation.ts";
 import { deriveStats } from "./derived.ts";
 import { fail, ok, type Result } from "./result.ts";
@@ -335,8 +330,7 @@ export function priceOf(
     if (def.field && !sheet.skills[purchase.id])
       return fail("FIELD_SKILL_NEW", "Learn a new field skill with a field-skill purchase");
     const value = safeValue(sheet, purchase.id, content, tuning);
-    if (value >= tuning.skillCap)
-      return fail("SKILL_MASTERY", `Skills stop at ${tuning.skillCap}%`);
+    if (value >= tuning.skillCap) return fail("SKILL_MASTERY", `Skills stop at ${tuning.skillCap}%`);
     let poolLeft = false;
     let capped = false;
     for (const grant of sheet.progression.pendingClassGrants) {

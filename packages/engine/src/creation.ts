@@ -15,9 +15,9 @@ import {
   type TalentDef,
   type Tuning,
 } from "@wyrd/core";
+import { type ClassCatalog, classForArchetype } from "./classes.ts";
 import { deriveStats } from "./derived.ts";
 import { startingEquipment } from "./equipment.ts";
-import { type ClassCatalog, classForArchetype } from "./classes.ts";
 import { luckMax } from "./luck.ts";
 import type { RuleError } from "./result.ts";
 import { CORE_SKILL_CATALOG, lookupSkill, type SkillCatalog, skillValue } from "./skills.ts";

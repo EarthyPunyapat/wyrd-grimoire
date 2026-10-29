@@ -1,15 +1,15 @@
 import { z } from "zod";
 import { DiceExpr } from "../dice.ts";
 import type { LocationKind } from "../tuning.ts";
-import { CalendarDef } from "./calendar.ts";
+import type { CalendarDef } from "./calendar.ts";
 import type { ClassDef } from "./classes.ts";
 import { AttributeId, RangeBand } from "./common.ts";
 import { BackstoryHook } from "./creation.ts";
-import { LootTableDef } from "./loot.ts";
-import { NamingStyleDef } from "./naming.ts";
-import { RecipeDef } from "./recipes.ts";
-import { AppearanceFacts } from "./sheet.ts";
 import type { EconomyDef } from "./inventory.ts";
+import type { LootTableDef } from "./loot.ts";
+import type { NamingStyleDef } from "./naming.ts";
+import type { RecipeDef } from "./recipes.ts";
+import { AppearanceFacts } from "./sheet.ts";
 
 /**
  * Pack content schemas, as authored in YAML. Entry IDs are local (`arcana`); references may be

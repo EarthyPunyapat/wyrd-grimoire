@@ -167,12 +167,15 @@ test("the wizard's preset, story mode, dice and progression reach CampaignCreate
   expect(view.settings.subsystems).toEqual(presetSubsystems("simulation"));
   expect(view.preset.label).toBe("Simulation");
 
-  // The pack does not offer class progression, so the API refuses it at creation.
+  // fantasy-core now ships classes, so quick-start accepts class progression.
   const classes = await call("/campaigns/quick-start", {
     name: "Classes",
     characterName: "Wren",
     archetype: "cutpurse",
     progression: "classes",
   });
-  expect(classes.status).toBe(422);
+  expect(classes.status).toBe(201);
+  const classId = ((await classes.json()) as { id: string }).id;
+  const classView = CampaignSettingsView.parse(await (await call(`/campaigns/${classId}/settings`)).json());
+  expect(classView.settings.structural.progression).toBe("classes");
 });

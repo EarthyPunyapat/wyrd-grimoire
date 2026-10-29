@@ -6,14 +6,7 @@ import { Degree } from "./common.ts";
  * parser proposes one of these; the engine resolves it into events and a short outcome.
  */
 
-export const DOWNTIME_ACTION_TYPES = [
-  "train",
-  "craft",
-  "work",
-  "research",
-  "carouse",
-  "recover",
-] as const;
+export const DOWNTIME_ACTION_TYPES = ["train", "craft", "work", "research", "carouse", "recover"] as const;
 export const DowntimeActionType = z.enum(DOWNTIME_ACTION_TYPES);
 export type DowntimeActionType = z.infer<typeof DowntimeActionType>;
 
