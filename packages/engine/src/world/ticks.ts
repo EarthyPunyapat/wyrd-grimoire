@@ -1,16 +1,19 @@
 import {
   type ActorId,
   type CalendarDef,
+  type DiseaseDef,
   draft,
   Entity,
   type EventDraft,
   festivalsOn,
+  type ItemCatalog,
   type NamingStyleDef,
   Rng,
   type Rumor,
   type Tuning,
 } from "@wyrd/core";
 import type { GameState, RulesContext } from "../state.ts";
+import { survivalDaily } from "../survival.ts";
 import { Working } from "../working.ts";
 
 /** An NPC the living tick may marry, retire or bury (the caller supplies canon; the engine is pure). */
@@ -36,6 +39,10 @@ export type WorldContext = RulesContext & {
   naming?: NamingStyleDef[];
   /** Names already in canon, so a birth avoids an exact duplicate. */
   namesTaken?: () => string[];
+  /** Pack items, for survival tags (food, water, light, warm). */
+  items?: ItemCatalog;
+  /** Pack diseases by namespaced id. */
+  diseases?: Record<string, DiseaseDef>;
 };
 
 const MINUTES = { hour: 60, day: 1440, week: 10080 } as const;
@@ -704,6 +711,7 @@ export function runTicks(state: GameState, ctx: WorldContext): EventDraft[] {
       threatPace(w, d, ctx);
       weather(w, rng, ctx);
       festivals(w, ctx, d);
+      survivalDaily(w, ctx, d);
       w.apply([
         draft("TickCompleted", { kind: "day", at: d * MINUTES.day, rngAfter: [...rng.state] }, "engine"),
       ]);
