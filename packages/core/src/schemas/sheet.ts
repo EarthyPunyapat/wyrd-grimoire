@@ -56,6 +56,28 @@ export const Equipment = z.object({
 });
 export type Equipment = z.infer<typeof Equipment>;
 
+/** Class-mode training waiting to be spent, one grant per level gained (spec 04). */
+export const ClassTrainingGrant = z.object({
+  classId: z.string(),
+  level: z.number().int().min(1),
+  /** Trained points left for the class's own skills. */
+  classSkillPoints: z.number().int().nonnegative().default(0),
+  /** Trained points left for any skill. */
+  anySkillPoints: z.number().int().nonnegative().default(0),
+  /** Points already spent from this grant, per skill (the per-level cap counts both pools). */
+  spent: z.record(SkillId, z.number().int().nonnegative()).default({}),
+});
+export type ClassTrainingGrant = z.infer<typeof ClassTrainingGrant>;
+
+/** A class feature the character has gained, kept on the sheet for the Party tab. */
+export const ClassFeatureRecord = z.object({
+  classId: z.string(),
+  level: z.number().int().min(1),
+  name: z.string().min(1),
+  description: z.string().min(1),
+});
+export type ClassFeatureRecord = z.infer<typeof ClassFeatureRecord>;
+
 export const ProgressionState = z.object({
   xpEarned: z.number().int().nonnegative().default(0),
   xpSpent: z.number().int().nonnegative().default(0),
@@ -65,6 +87,10 @@ export const ProgressionState = z.object({
   pendingAttributes: z.number().int().nonnegative().default(0),
   pendingTalents: z.number().int().nonnegative().default(0),
   chaptersClosed: z.number().int().nonnegative().default(0),
+  /** Class-mode training granted by levels and not yet spent. */
+  pendingClassGrants: z.array(ClassTrainingGrant).default([]),
+  /** Class features gained, in the order they were reached. */
+  classFeatures: z.array(ClassFeatureRecord).default([]),
 });
 
 export const DerivedStats = z.object({

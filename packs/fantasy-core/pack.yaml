@@ -9,5 +9,5 @@ requires: []
 # The spellcasting plugin arrives in M7; until then the pack lists no plugins.
 plugins: []
 supports:
-  progression: [classless, useBased, hybrid]
+  progression: [classless, useBased, hybrid, classes]
   bodyPlans: [humanoid]

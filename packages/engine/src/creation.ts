@@ -17,6 +17,7 @@ import {
 } from "@wyrd/core";
 import { deriveStats } from "./derived.ts";
 import { startingEquipment } from "./equipment.ts";
+import { type ClassCatalog, classForArchetype } from "./classes.ts";
 import { luckMax } from "./luck.ts";
 import type { RuleError } from "./result.ts";
 import { CORE_SKILL_CATALOG, lookupSkill, type SkillCatalog, skillValue } from "./skills.ts";
@@ -71,6 +72,8 @@ export type CreationContent = {
   talents: Record<string, Omit<TalentDef, "id"> & { id: string }>;
   ancestries: Record<string, Omit<AncestryDef, "id"> & { id: string }>;
   archetypes: Record<string, Omit<ArchetypeDef, "id"> & { id: string }>;
+  /** Class data for class campaigns (spec 04); empty when the pack has none. */
+  classes?: ClassCatalog;
 };
 
 /**
@@ -123,6 +126,17 @@ export function validateCreation(
   const archetype = sheet.archetypeId ? content.archetypes[sheet.archetypeId] : undefined;
   if (sheet.archetypeId && !archetype)
     err("ARCHETYPE_UNKNOWN", "archetypeId", `Unknown archetype ${sheet.archetypeId}`);
+
+  // Class campaigns need pack class data and a class on the sheet (spec 04).
+  if (settings.structural.progression === "classes") {
+    const classes = content.classes ?? {};
+    if (!Object.keys(classes).length)
+      err("CLASSES_UNAVAILABLE", "progression", "This pack has no classes, so class mode isn't available");
+    for (const classId of Object.keys(sheet.progression.classLevels))
+      if (!classes[classId]) err("CLASS_UNKNOWN", "progression.classLevels", `Unknown class ${classId}`);
+    if (!Object.keys(sheet.progression.classLevels).length)
+      err("CLASS_MISSING", "progression.classLevels", "Choose a class");
+  }
 
   // Attributes: start at 3, 18 points, max 7 (8 with an ancestry trait).
   let spent = 0;
@@ -316,6 +330,11 @@ export function sheetFromDraft(
   tuning: Tuning,
 ): CharacterSheet {
   const archetype = content.archetypes[draft.archetype];
+  // Class campaigns start at level 1 in the class their background maps to (spec 04).
+  const classDef =
+    settings.structural.progression === "classes"
+      ? classForArchetype(draft.archetype, content.classes ?? {})
+      : undefined;
   return buildSheet(
     {
       id,
@@ -333,6 +352,7 @@ export function sheetFromDraft(
       attributes: draft.attributes,
       skills: Object.fromEntries(Object.entries(draft.skills).map(([sk, trained]) => [sk, { trained }])),
       talents: draft.talents,
+      ...(classDef ? { progression: { classLevels: { [classDef.id]: 1 } } } : {}),
       equipment: startingEquipment(archetype?.kit ?? [], items),
     },
     settings,

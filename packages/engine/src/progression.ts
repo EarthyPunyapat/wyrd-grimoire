@@ -4,11 +4,18 @@ import {
   type AttributeId,
   type CharacterSheet,
   type CheckResolvedPayload,
+  type ClassLevel,
   draft,
   type EventDraft,
   Rng,
   type Tuning,
 } from "@wyrd/core";
+import {
+  type ClassCatalog,
+  classForArchetype,
+  isClassSkill,
+  nextClassLevel,
+} from "./classes.ts";
 import { type CreationContent, talentProblems } from "./creation.ts";
 import { deriveStats } from "./derived.ts";
 import { fail, ok, type Result } from "./result.ts";
@@ -17,10 +24,14 @@ import type { GameState } from "./state.ts";
 
 // Progression (spec 04): the engine awards XP on events, never on narration, and prices purchases.
 
-export type Purchase = { kind: "skill" | "attribute" | "talent" | "fieldSkill"; id: string };
+export type Purchase = {
+  kind: "skill" | "attribute" | "talent" | "fieldSkill" | "classSkill" | "anySkill";
+  id: string;
+};
 
 const mode = (state: GameState) => state.campaign.settings.structural.progression;
-const earnsXp = (state: GameState) => mode(state) === "classless" || mode(state) === "hybrid";
+/** Classless, hybrid and class campaigns earn XP; use-based campaigns improve by use instead. */
+const earnsXp = (state: GameState) => mode(state) !== "useBased";
 const marksSkills = (state: GameState) => mode(state) === "useBased" || mode(state) === "hybrid";
 const party = (state: GameState): ActorId[] =>
   [state.party.pcId, ...state.party.companionIds].filter(
@@ -51,6 +62,61 @@ function award(
 }
 
 /**
+ * Class levels crossed by this batch of XP awards (spec 04). Class campaigns earn XP like classless
+ * ones, but spend it only through levels: crossing a threshold emits one `ClassLevelGained` per
+ * level, carrying that level's training, features and attribute point.
+ */
+export function classLevelEvents(
+  state: GameState,
+  awards: readonly EventDraft[],
+  classes: ClassCatalog,
+  _tuning: Tuning,
+): EventDraft[] {
+  if (mode(state) !== "classes") return [];
+  const gained = awards.reduce(
+    (sum, e) => (e.type === "XpAwarded" ? sum + (e.payload as { amount: number }).amount : sum),
+    0,
+  );
+  if (gained <= 0) return [];
+  const out: EventDraft[] = [];
+  for (const id of party(state)) {
+    const sheet = state.actors[id]!.sheet;
+    const totalXp = sheet.progression.xpEarned + gained;
+    // A class campaign that predates class data (or a fixture without a class) starts in the class
+    // its background maps to, at level 1, and then catches up to the current XP.
+    let levels = sheet.progression.classLevels;
+    if (!Object.keys(levels).length) {
+      const def = classForArchetype(sheet.archetypeId, classes);
+      if (!def) continue;
+      levels = { [def.id]: 0 };
+    }
+    for (const [classId, current] of Object.entries(levels)) {
+      const def = classes[classId];
+      if (!def) continue;
+      for (const row of def.levels) {
+        if (row.level <= current || row.xp > totalXp) continue;
+        out.push(
+          draft(
+            "ClassLevelGained",
+            {
+              actorId: id,
+              classId,
+              level: row.level,
+              classSkillPoints: row.classSkillPoints,
+              anySkillPoints: row.anySkillPoints,
+              attributes: row.attributePoints,
+              features: row.features,
+            },
+            "engine",
+          ),
+        );
+      }
+    }
+  }
+  return out;
+}
+
+/**
  * XP for what a turn did (spec 04 table): completed quest stages (main, major or minor), won
  * encounters (by how many enemies stood against the party), and discoveries of new regions and sites.
  */
@@ -60,6 +126,7 @@ export function turnAwards(
   events: readonly EventDraft[],
   kindOf: (id: string) => string | undefined,
   tuning: Tuning,
+  classes: ClassCatalog = {},
 ): EventDraft[] {
   const x = tuning.progression.xp;
   const out: EventDraft[] = [];
@@ -97,7 +164,7 @@ export function turnAwards(
         out.push(...award(before, x.discovery.site, "discovery", "A new place reached", tuning));
     }
   }
-  return out;
+  return [...out, ...classLevelEvents(before, out, classes, tuning)];
 }
 
 /**
@@ -195,7 +262,7 @@ export function restImprovements(
 export function closeEvents(
   state: GameState,
   level: "chapter" | "arc",
-  content: { skills: SkillCatalog },
+  content: { skills: SkillCatalog; classes?: ClassCatalog },
   tuning: Tuning,
 ): EventDraft[] {
   const out: EventDraft[] = [];
@@ -211,7 +278,8 @@ export function closeEvents(
         );
     return out;
   }
-  out.push(...award(state, tuning.progression.xp.chapter, "chapter", "A chapter closed", tuning));
+  const chapter = award(state, tuning.progression.xp.chapter, "chapter", "A chapter closed", tuning);
+  out.push(...chapter, ...classLevelEvents(state, chapter, content.classes ?? {}, tuning));
   out.push(...improvementRolls(state, "chapter", content, tuning));
   if (mode(state) === "useBased")
     for (const id of party(state)) {
@@ -228,6 +296,14 @@ export function closeEvents(
   return out;
 }
 
+export type Price = {
+  cost: number;
+  amount: number;
+  free: boolean;
+  /** The level grant that pays for class training, when there is one. */
+  classGrant?: { classId: string; level: number; pool: "class" | "any" };
+};
+
 /** What a purchase costs and whether it's allowed, with the reason when it isn't. */
 export function priceOf(
   state: GameState,
@@ -235,17 +311,71 @@ export function priceOf(
   purchase: Purchase,
   content: CreationContent,
   tuning: Tuning,
-): Result<{ cost: number; amount: number; free: boolean }> {
+): Result<Price> {
   const actor = state.actors[actorId];
   if (!actor || actor.dead || !party(state).includes(actorId))
     return fail("NOT_IN_PARTY", "Only the party can advance");
   const sheet = actor.sheet;
   const p = tuning.progression;
   const m = mode(state);
-  if (m === "classes") return fail("CLASSES_UNSUPPORTED", "Class levels arrive with class packs");
+  const classes = content.classes ?? {};
   const free =
     (purchase.kind === "attribute" && sheet.progression.pendingAttributes > 0) ||
     (purchase.kind === "talent" && sheet.progression.pendingTalents > 0);
+
+  // Class training (spec 04): a level grants points for the class's own skills and for any skill.
+  if (purchase.kind === "classSkill" || purchase.kind === "anySkill") {
+    if (m !== "classes") return fail("NOT_CLASS_MODE", "Class training is only spent in a class campaign");
+    let def: ReturnType<typeof lookupSkill>;
+    try {
+      def = lookupSkill(purchase.id, content.skills);
+    } catch (e) {
+      return fail("SKILL_UNKNOWN", (e as Error).message);
+    }
+    if (def.field && !sheet.skills[purchase.id])
+      return fail("FIELD_SKILL_NEW", "Learn a new field skill with a field-skill purchase");
+    const value = safeValue(sheet, purchase.id, content, tuning);
+    if (value >= tuning.skillCap)
+      return fail("SKILL_MASTERY", `Skills stop at ${tuning.skillCap}%`);
+    let poolLeft = false;
+    let capped = false;
+    for (const grant of sheet.progression.pendingClassGrants) {
+      const classDef = classes[grant.classId];
+      if (!classDef) continue;
+      if (purchase.kind === "classSkill" && !isClassSkill(classDef, purchase.id)) continue;
+      const left = purchase.kind === "classSkill" ? grant.classSkillPoints : grant.anySkillPoints;
+      if (left <= 0) continue;
+      poolLeft = true;
+      const capLeft = classDef.maxPointsPerSkillPerLevel - (grant.spent[purchase.id] ?? 0);
+      if (capLeft <= 0) {
+        capped = true;
+        continue;
+      }
+      const amount = Math.min(left, capLeft, tuning.skillCap - value);
+      if (amount <= 0) continue;
+      return ok({
+        cost: 0,
+        amount,
+        free: true,
+        classGrant: {
+          classId: grant.classId,
+          level: grant.level,
+          pool: purchase.kind === "classSkill" ? "class" : "any",
+        },
+      });
+    }
+    return fail(
+      "NO_CLASS_POINTS",
+      capped && poolLeft
+        ? "That skill has taken its maximum points from this level's grant"
+        : purchase.kind === "classSkill"
+          ? "No class-skill points left for that skill"
+          : "No any-skill points left",
+    );
+  }
+
+  if (m === "classes" && !free)
+    return fail("CLASS_MODE", "Class campaigns advance by class levels; spend the points a level grants");
   if (!free && !earnsXp(state))
     return fail(
       "USE_BASED",
@@ -319,6 +449,23 @@ export function buyAdvancement(
 ): Result<EventDraft[]> {
   const price = priceOf(state, actorId, purchase, content, tuning);
   if (!price.ok) return price;
+  if (purchase.kind === "classSkill" || purchase.kind === "anySkill") {
+    const grant = price.value.classGrant!;
+    return ok([
+      draft(
+        "ClassTrainingSpent",
+        {
+          actorId,
+          classId: grant.classId,
+          level: grant.level,
+          pool: grant.pool,
+          skillId: purchase.id,
+          amount: price.value.amount,
+        },
+        "player",
+      ),
+    ]);
+  }
   const sheet = state.actors[actorId]!.sheet;
   const derived =
     purchase.kind === "attribute"

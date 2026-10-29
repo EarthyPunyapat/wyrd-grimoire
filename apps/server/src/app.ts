@@ -706,7 +706,7 @@ export function createApp(options: Options) {
     const ctx = makeTurnContext(
       state,
       canon,
-      { skills: skillCatalog([gamePack]), tuning: defaultTuning },
+      { skills: skillCatalog([gamePack]), tuning: defaultTuning, classes: gamePack.classes },
       combatContent(gamePack),
     );
     let ended: { reason: "death"; obituary: string } | null = null;
@@ -765,7 +765,7 @@ export function createApp(options: Options) {
       store: game,
       canon,
       router: models.router(),
-      rules: { skills: skillCatalog([frozen]), tuning: defaultTuning },
+      rules: { skills: skillCatalog([frozen]), tuning: defaultTuning, classes: frozen.classes },
       content: combatContent(frozen),
       recruitSheet: (npcId, state) =>
         recruitSheet(frozen, canon.entity(npcId) ?? null, npcId, state.campaign.settings),

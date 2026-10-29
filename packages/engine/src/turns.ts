@@ -65,7 +65,7 @@ export function resolveTurn(
   const turn = [...r.value.events, ...after.events];
   const progress = [
     ...turnMarks(state, turn),
-    ...turnAwards(state, w.state, turn, ctx.kindOf ?? (() => undefined), ctx.tuning),
+    ...turnAwards(state, w.state, turn, ctx.kindOf ?? (() => undefined), ctx.tuning, ctx.classes ?? {}),
   ];
   w.apply(progress);
   const rested = restImprovements(w.state, turn, ctx, ctx.tuning);

@@ -14,10 +14,14 @@ import {
 import {
   buyAdvancement,
   type CreationContent,
+  classProgress,
   draftFromArchetype,
   type GameState,
+  isClassSkill,
   type Purchase,
+  pendingClassPoints,
   priceOf,
+  primaryClass,
   RESOLUTION_MODULES,
   sheetFromDraft,
   skillLabel,
@@ -72,6 +76,8 @@ function companionSummary(c: GameState["companions"][string]) {
 export function progressionView(state: GameState, content: CreationContent) {
   const resolution = state.campaign.settings.structural.resolution;
   const resolutionModule = RESOLUTION_MODULES[resolution];
+  const mode = state.campaign.settings.structural.progression;
+  const classes = content.classes ?? {};
   const members = [state.party.pcId, ...state.party.companionIds].flatMap((id) => {
     const actor = id ? state.actors[id] : undefined;
     if (!id || !actor || actor.dead) return [];
@@ -80,6 +86,36 @@ export function progressionView(state: GameState, content: CreationContent) {
       const p = priceOf(state, id, purchase, content, defaultTuning);
       return p.ok ? { cost: p.value.cost } : { cost: null, why: p.errors.map((e) => e.message).join("; ") };
     };
+    // Class mode prices skills against the level grants: class points first, then any-skill points.
+    const primary = primaryClass(sheet, classes);
+    const skillPrice = (skillId: string) => {
+      if (mode !== "classes") return price({ kind: "skill", id: skillId });
+      const classSkill = primary ? isClassSkill(primary.def, skillId) : false;
+      const classPrice = classSkill
+        ? priceOf(state, id, { kind: "classSkill", id: skillId }, content, defaultTuning)
+        : null;
+      if (classPrice?.ok) return { cost: classPrice.value.cost, pool: "class" as const };
+      const anyPrice = priceOf(state, id, { kind: "anySkill", id: skillId }, content, defaultTuning);
+      if (anyPrice.ok) return { cost: anyPrice.value.cost, pool: "any" as const };
+      const why = [classPrice, anyPrice]
+        .flatMap((p) => (p && !p.ok ? p.errors.map((e) => e.message) : []))
+        .join("; ");
+      return { cost: null, why };
+    };
+    const progress = primary ? classProgress(primary.def, sheet.progression.xpEarned) : null;
+    const classInfo =
+      primary && progress
+        ? {
+            id: primary.def.id,
+            name: primary.def.name,
+            ...progress,
+            features: sheet.progression.classFeatures
+              .filter((f) => f.classId === primary.def.id)
+              .sort((a, b) => a.level - b.level)
+              .map(({ level, name, description }) => ({ level, name, description })),
+          }
+        : undefined;
+    const pendingClass = pendingClassPoints(sheet);
     return [
       {
         actorId: id,
@@ -88,13 +124,17 @@ export function progressionView(state: GameState, content: CreationContent) {
         xp: {
           earned: sheet.progression.xpEarned,
           spent: sheet.progression.xpSpent,
-          available: xpAvailable(sheet),
+          // Class XP buys levels, not purchases; the Party tab shows progress to the next level.
+          available: mode === "classes" ? 0 : xpAvailable(sheet),
         },
         pending: {
           // Sheets saved before M6 lack the use-based counters.
           attributes: sheet.progression.pendingAttributes ?? 0,
           talents: sheet.progression.pendingTalents ?? 0,
+          classSkillPoints: pendingClass.classSkillPoints,
+          anySkillPoints: pendingClass.anySkillPoints,
         },
+        ...(classInfo ? { class: classInfo } : {}),
         marks: sheet.progression.marks.map((s) => skillLabel(s, content.skills)),
         attributes: ATTRIBUTE_IDS.map((a) => ({
           id: a,
@@ -109,7 +149,7 @@ export function progressionView(state: GameState, content: CreationContent) {
             name: skillLabel(s, content.skills),
             value,
             display: resolutionModule.displaySkill(value),
-            ...price({ kind: "skill", id: s }),
+            ...skillPrice(s),
           };
         }),
         talents: Object.values(content.talents)
@@ -133,12 +173,7 @@ export function progressionView(state: GameState, content: CreationContent) {
       ? []
       : [{ name: state.actors[c.id]?.sheet.identity.name ?? c.id, status: c.status }],
   );
-  return ProgressionView.parse({
-    mode: state.campaign.settings.structural.progression,
-    resolution,
-    members,
-    former,
-  });
+  return ProgressionView.parse({ mode, resolution, members, former });
 }
 
 const words = (text: string) => new Set(text.toLowerCase().match(/[a-z]{4,}/g) ?? []);
