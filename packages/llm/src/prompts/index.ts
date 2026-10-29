@@ -9,6 +9,8 @@ export const GUARD_VERSION = "guard@3";
 export const OOC_VERSION = "ooc@2";
 export const NPC_DIALOGUE_VERSION = "npc-dialogue@1";
 
+export * from "./gm.ts";
+
 export const PARSER_INSTRUCTIONS = `You are the parser for a text role-playing game. You turn what the player types into game actions. You never narrate and never decide outcomes: the engine rolls the dice.
 
 Reply with exactly one tool call:

@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { mkdirSync, rmSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   type CampaignPreset,
@@ -30,6 +30,7 @@ import {
   buy,
   capacityKg,
   carriedKg,
+  catalogWith,
   closeEvents,
   combatView,
   createActor,
@@ -133,10 +134,32 @@ export function visibleSpells(state: GameState, pack: CompiledPack, pcId: string
     }));
 }
 
+/** Read the player's house-style examples from WYRD_HOME/style/house/*.md; failure means none. */
+function houseStyleExamples(home: string): string[] {
+  const dir = join(home, "style", "house");
+  try {
+    return readdirSync(dir)
+      .filter((name) => name.endsWith(".md"))
+      .sort()
+      .map((name) => {
+        try {
+          return readFileSync(join(dir, name), "utf8").trim();
+        } catch {
+          return "";
+        }
+      })
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 export function createApp(options: Options) {
   mkdirSync(options.home, { recursive: true });
   const store = new AppStore(join(options.home, "app.db"));
   store.recover();
+  // The player's own house-style examples, read once at launch (D144). Missing files mean none.
+  const styleExamples = houseStyleExamples(options.home);
   const secrets = new SecretStore(join(options.home, "secrets"));
   const now = options.now ?? Date.now;
   const packDir = options.packDir ?? resolve(import.meta.dir, "../../../packs/fantasy-core");
@@ -685,6 +708,7 @@ export function createApp(options: Options) {
         .map((e) => [e.turnId, e.payload]),
     );
     const gamePack = game.packSnapshot()!.content as CompiledPack;
+    const gameItems = catalogWith(state, gamePack.items);
     const skills = skillCatalog([gamePack]);
     const resolution = state.campaign.settings.structural.resolution;
     const resolutionModule = RESOLUTION_MODULES[resolution];
@@ -734,9 +758,7 @@ export function createApp(options: Options) {
             attitude: shopState.attitude,
             items: shopState.stock.map((line) => {
               const item =
-                gamePack.items.weapons[line.itemId] ??
-                gamePack.items.armor[line.itemId] ??
-                gamePack.items.gear[line.itemId];
+                gameItems.weapons[line.itemId] ?? gameItems.armor[line.itemId] ?? gameItems.gear[line.itemId];
               return {
                 id: line.itemId,
                 name: item?.name ?? line.itemId,
@@ -769,14 +791,14 @@ export function createApp(options: Options) {
         })(),
         inventory: {
           capacityKg: capacityKg(pc, defaultTuning),
-          weightKg: carriedKg(state, pc.id, { items: gamePack.items, tuning: defaultTuning }),
-          band: encumbranceBand(state, pc.id, { items: gamePack.items, tuning: defaultTuning }),
+          weightKg: carriedKg(state, pc.id, { items: gameItems, tuning: defaultTuning }),
+          band: encumbranceBand(state, pc.id, { items: gameItems, tuning: defaultTuning }),
           coins: state.economy?.wallets[pc.id]?.coins ?? 0,
           items: (state.inventory?.actors[pc.id]?.stacks ?? []).map((stack) => {
             const item =
-              gamePack.items.weapons[stack.itemId] ??
-              gamePack.items.armor[stack.itemId] ??
-              gamePack.items.gear[stack.itemId];
+              gameItems.weapons[stack.itemId] ??
+              gameItems.armor[stack.itemId] ??
+              gameItems.gear[stack.itemId];
             return {
               id: stack.itemId,
               name: item?.name ?? stack.itemId,
@@ -993,6 +1015,7 @@ export function createApp(options: Options) {
       lazy: lazyFor(game, canon),
       tone: frozen.tone,
       worldBible: canon.entity("concept:world-bible")?.summary ?? "",
+      styleExamples,
       campaignId: game.campaignId,
       newId: () => {
         if (firstId) {
@@ -1114,7 +1137,7 @@ export function createApp(options: Options) {
       tuning: defaultTuning,
       nameOf: (eid: string) => state.actors[eid]?.sheet.identity.name ?? canon.entity(eid)?.name ?? eid,
       recipes: pack.recipes ?? {},
-      items: pack.items,
+      items: catalogWith(state, pack.items),
     });
     if (!out.ok)
       throw new HTTPException(422, {
@@ -1137,7 +1160,7 @@ export function createApp(options: Options) {
       skills: skillCatalog([pack]),
       tuning: defaultTuning,
       nameOf: (eid: string) => state.actors[eid]?.sheet.identity.name ?? canon.entity(eid)?.name ?? eid,
-      items: pack.items,
+      items: catalogWith(state, pack.items),
     };
     const out =
       verb === "haggle"

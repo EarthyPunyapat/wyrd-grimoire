@@ -136,6 +136,8 @@ function state(): GameState {
     combat: null,
     inventory: InventoryState.parse({}),
     economy: EconomyState.parse({}),
+    customItems: {},
+    retcons: [],
     factions: {},
     quests: {},
     clocks: {},
@@ -269,5 +271,45 @@ describe("context assembler v1", () => {
     expect(context).toContain("Player: turn 1");
     expect(context).not.toContain("Player: turn 2");
     expect(context).not.toContain("Player: turn 3");
+  });
+});
+
+describe("the GM role", () => {
+  test("gm context includes Your state with item ids", () => {
+    const s = state();
+    s.inventory = InventoryState.parse({
+      actors: {
+        pc: {
+          actorId: "pc",
+          stacks: [
+            {
+              id: "stack:pc:rope",
+              itemId: "fantasy-core:rope",
+              qty: 2,
+              location: { kind: "carried" },
+            },
+          ],
+        },
+      },
+    });
+    s.economy = EconomyState.parse({ wallets: { pc: { coins: 12, wealthLevel: 3 } } });
+    const prompt = assemble(opts({ role: "gm", state: s }));
+    const your = prompt.sections.find((x) => x.title === "Your state");
+    expect(your).toBeDefined();
+    expect(your!.text).toContain("fantasy-core:rope");
+    expect(your!.text).toContain("12");
+    expect(your!.text).toMatch(/HP \d+\/\d+/);
+    expect(prompt.context).toContain("## Your state");
+  });
+
+  test("gm budget is 32k with the narrator's minimum turns", () => {
+    const prompt = assemble(opts({ role: "gm" }));
+    expect(prompt.budget).toBe(32_000);
+  });
+
+  test("gm still hides secret facts the PC does not know", () => {
+    const prompt = assemble(opts({ role: "gm", turn: { input: "Wenna", resolution } }));
+    expect(prompt.context).not.toContain("smuggles relics");
+    expect(prompt.context).not.toContain("drowned man");
   });
 });

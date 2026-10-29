@@ -1,4 +1,5 @@
 export * from "./campaign.ts";
+export * from "./catalog.ts";
 export * from "./checks.ts";
 export * from "./classes.ts";
 export * from "./combat/index.ts";
@@ -10,6 +11,7 @@ export * from "./downtime.ts";
 export * from "./economy.ts";
 export * from "./equipment.ts";
 export * from "./exploration.ts";
+export * from "./gm-changes.ts";
 export * from "./injury/index.ts";
 export * from "./inventory.ts";
 export * from "./luck.ts";

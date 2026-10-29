@@ -27,7 +27,7 @@ export const Entity = z.object({
   /** Kind-specific record; the canonical one-line description lives in `summary`. */
   summary: z.string().default(""),
   data: z.record(z.string(), z.unknown()).default({}),
-  status: z.enum(["active", "destroyed", "dead", "lost"]).default("active"),
+  status: z.enum(["active", "destroyed", "dead", "lost", "retconned"]).default("active"),
   importance: z.number().int().min(1).max(5).default(2),
 });
 export type Entity = z.infer<typeof Entity>;
