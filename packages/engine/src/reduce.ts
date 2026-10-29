@@ -1,5 +1,10 @@
-import { type CharacterSheet, CompanionState, type EventEnvelope, type EventType } from "@wyrd/core";
-import { effectiveHpMax } from "./injury/hp.ts";
+import { CompanionState, type EventEnvelope, type EventType } from "@wyrd/core";
+import { classHandlers } from "./reduce/classes.ts";
+import { clamp, clampHp, companion, mind, updateSheet, updateStatus } from "./reduce/helpers.ts";
+import { livingHandlers } from "./reduce/living.ts";
+import { spellHandlers } from "./reduce/spellcasting.ts";
+import { subsystemHandlers } from "./reduce/subsystems.ts";
+import type { Handler, Handlers } from "./reduce/types.ts";
 import type { ActorState, GameState } from "./state.ts";
 
 export type ReduceOptions = {
@@ -8,39 +13,18 @@ export type ReduceOptions = {
   warn?: (message: string) => void;
 };
 
-type Handler<K extends EventType> = (state: GameState, event: EventEnvelope<K>) => GameState;
-
-function updateSheet(
-  state: GameState,
-  actorId: string,
-  fn: (sheet: CharacterSheet) => CharacterSheet,
-): GameState {
-  const actor = state.actors[actorId];
-  if (!actor) throw new Error(`Event refers to unknown actor ${actorId}`);
-  return { ...state, actors: { ...state.actors, [actorId]: { ...actor, sheet: fn(actor.sheet) } } };
-}
-
-function companion(state: GameState, id: string, fn: (c: CompanionState) => CompanionState): GameState {
-  // Snapshots from before M6 have no companions map.
-  const c = state.companions?.[id];
-  if (!c) throw new Error(`Event refers to unknown companion ${id}`);
-  return { ...state, companions: { ...state.companions, [id]: fn(c) } };
-}
-
-/** Keeps current HP within the sheet's effective max, which wounds can lower. */
-const clampHp = (sheet: CharacterSheet): CharacterSheet => ({
-  ...sheet,
-  status: { ...sheet.status, hp: Math.min(sheet.status.hp, effectiveHpMax(sheet)) },
-});
-
-const updateStatus = (
-  state: GameState,
-  actorId: string,
-  fn: (status: CharacterSheet["status"]) => CharacterSheet["status"],
-) => updateSheet(state, actorId, (sheet) => ({ ...sheet, status: fn(sheet.status) }));
+/**
+ * Event types handled by a domain module. Keeping the list in the type lets the base handler map
+ * omit them, so a domain can add an event without editing this file.
+ */
+type DomainKey =
+  | keyof typeof classHandlers
+  | keyof typeof spellHandlers
+  | keyof typeof livingHandlers
+  | keyof typeof subsystemHandlers;
 
 /** One handler per event type; the mapped type makes a missing handler a compile error. */
-const handlers: { [K in Exclude<EventType, "CampaignCreated">]: Handler<K> } = {
+const baseHandlers: Omit<Handlers, DomainKey> = {
   SettingsChanged: (s, e) => ({ ...s, campaign: { ...s.campaign, settings: e.payload.settings } }),
 
   // Branch structure lives in storage; the event marks the fork point in the log.
@@ -449,6 +433,14 @@ const handlers: { [K in Exclude<EventType, "CampaignCreated">]: Handler<K> } = {
   NarrationRerolled: (s) => s,
 };
 
+const handlers: Handlers = {
+  ...baseHandlers,
+  ...classHandlers,
+  ...spellHandlers,
+  ...livingHandlers,
+  ...subsystemHandlers,
+};
+
 export const HANDLED_EVENT_TYPES: readonly EventType[] = [
   "CampaignCreated",
   ...(Object.keys(handlers) as EventType[]),
@@ -510,9 +502,6 @@ function upgrade(s: GameState): GameState {
     threat: s.threat ?? null,
   };
 }
-
-const mind = (s: GameState, npcId: string) => s.minds[npcId] ?? { memories: [], dispositions: {} };
-const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 /**
  * Pure, total reducer: `reduce(state, event) → state`. The first event of a campaign must be
