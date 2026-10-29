@@ -179,9 +179,10 @@ export function mountModels(app: Hono<AppEnvironment>, services: ModelServices) 
     try {
       const client = buildProviders({ ...cfg, providers: { [id]: provider } }, services.secrets)[id]!;
       return c.json((await client.listModels()).map((m) => ({ id: m.id })));
-    } catch {
+    } catch (error) {
+      console.error("[list-models]", id, error);
       throw new HTTPException(422, {
-        message: "Could not list models. Check this provider's endpoint and connection.",
+        message: `Could not list models: ${error instanceof Error ? error.message : String(error)}`,
       });
     }
   });

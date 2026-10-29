@@ -27,6 +27,14 @@ export function ModelSettings() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [link, setLink] = useState("");
+  const loadModels = useCallback(async (id: string) => {
+    try {
+      const result = await api(`/providers/${encodeURIComponent(id)}/models`, ModelList.parse);
+      setModels((current) => ({ ...current, [id]: result.map((m) => m.id) }));
+    } catch {
+      // Keep the typed field usable; the explicit Refresh button reports the reason.
+    }
+  }, []);
   const refresh = useCallback(async () => {
     const [cfg, status, usage] = await Promise.all([
       api("/providers", WyrdConfig.parse),
@@ -40,6 +48,14 @@ export function ModelSettings() {
   useEffect(() => {
     void refresh().catch((e) => setError(e.message));
   }, [refresh]);
+  // Load the model list for providers already assigned, so a real dropdown is ready.
+  useEffect(() => {
+    if (!config) return;
+    const ids = new Set(
+      Object.values(config.models).flatMap((value) => (value?.provider ? [value.provider] : [])),
+    );
+    for (const id of ids) if (!(id in models)) void loadModels(id);
+  }, [config, models, loadModels]);
   async function act(work: () => Promise<void>) {
     setBusy(true);
     setError("");
@@ -179,22 +195,48 @@ export function ModelSettings() {
                       ))}
                     </select>
                   </label>
-                  <label>
+                  <label htmlFor={`model-${slot}`}>
                     Model
-                    <input
-                      list={`models-${slot}`}
-                      value={chosen?.model.startsWith("PICK-WITH") ? "" : (chosen?.model ?? "")}
-                      disabled={!chosen}
-                      onChange={(e) => target(slot, chosen?.provider ?? "", e.target.value)}
-                      required={Boolean(chosen)}
-                      placeholder="Choose or enter a model ID"
-                    />
-                    <datalist id={`models-${slot}`}>
-                      {(models[chosen?.provider ?? ""] ?? []).map((id) => (
-                        <option key={id} value={id} />
-                      ))}
-                    </datalist>
+                    {(models[chosen?.provider ?? ""] ?? []).length ? (
+                      <select
+                        id={`model-${slot}`}
+                        value={chosen?.model.startsWith("PICK-WITH") ? "" : (chosen?.model ?? "")}
+                        disabled={!chosen}
+                        onChange={(e) => target(slot, chosen?.provider ?? "", e.target.value)}
+                        required={Boolean(chosen)}
+                      >
+                        <option value="">Choose a model…</option>
+                        {(models[chosen?.provider ?? ""] ?? []).map((id) => (
+                          <option key={id} value={id}>
+                            {id}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        id={`model-${slot}`}
+                        list={`models-${slot}`}
+                        value={chosen?.model.startsWith("PICK-WITH") ? "" : (chosen?.model ?? "")}
+                        disabled={!chosen}
+                        onChange={(e) => target(slot, chosen?.provider ?? "", e.target.value)}
+                        required={Boolean(chosen)}
+                        placeholder="Choose or enter a model ID"
+                      />
+                    )}
                   </label>
+                  <button
+                    type="button"
+                    disabled={busy || !chosen}
+                    onClick={() => {
+                      if (!chosen) return;
+                      void act(async () => {
+                        await loadModels(chosen.provider);
+                        setMessage(`Refreshed ${chosen.provider} models.`);
+                      });
+                    }}
+                  >
+                    Refresh models
+                  </button>
                 </div>
               </fieldset>
             );
