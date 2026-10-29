@@ -94,7 +94,7 @@ All routes are under `/api`, JSON in and out, zod-validated on both sides (schem
 | `GET /campaigns/:id/view` | The current **GameView** (below) |
 | `GET /campaigns/:id/journal`, `/codex`, `/codex/:entityId`, `/map`, `/timeline` | Read models |
 | `POST /campaigns/:id/codex/facts/:factId/pin`, `/retcon` | Pin or retcon a fact |
-| `POST /campaigns/:id/rewind`, `GET /branches`, `POST /branches/:id/activate`, `GET/POST /saves` | History |
+| `POST /campaigns/:id/rewind`, `GET /branches`, `POST /branches/:id/activate`, `GET/POST /saves`, `POST /saves/:saveId/load` | History. Loading a save returns the activated timeline (like rewind); the client refetches the GameView |
 | `PATCH /campaigns/:id/settings` | Emits `SettingsChanged`; refuses locked fields |
 | `POST /campaigns/:id/export`, `POST /import` | Export and import |
 

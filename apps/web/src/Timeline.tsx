@@ -1,4 +1,11 @@
-import { BranchesView, type HistoryBranch, ImportResult, SavesView, TimelineView } from "@wyrd/core";
+import {
+  BranchesView,
+  type HistoryBranch,
+  ImportResult,
+  SavesView,
+  type SaveView,
+  TimelineView,
+} from "@wyrd/core";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api.ts";
 
@@ -76,6 +83,31 @@ export function Timeline({ campaignId, stamp, onChanged, onOpenCampaign }: Props
       if (!saveName.trim()) return;
       setSaves(await api(`/campaigns/${campaignId}/saves`, SavesView.parse, { name: saveName.trim() }));
       setSaveName("");
+    });
+
+  // Loading the active head is just a refresh; loading anything else rewinds or switches threads,
+  // so ask first. Later turns stay on their branch and can be reopened from the timeline.
+  const isLatestPoint = (item: SaveView) =>
+    item.branchId === timeline?.activeBranchId &&
+    item.seq === timeline.branches.find((b) => b.id === item.branchId)?.head;
+
+  const loadSave = (item: SaveView) =>
+    run(async () => {
+      if (
+        !isLatestPoint(item) &&
+        !window.confirm(
+          `Load “${item.name}”? Everything after it stays on its own thread, which you can reopen here.`,
+        )
+      )
+        return;
+      const next = await api(
+        `/campaigns/${campaignId}/saves/${encodeURIComponent(item.id)}/load`,
+        TimelineView.parse,
+        {},
+      );
+      setTimeline(next);
+      setSaves(await api(`/campaigns/${campaignId}/saves`, SavesView.parse));
+      await onChanged();
     });
 
   const download = () =>
@@ -209,7 +241,15 @@ export function Timeline({ campaignId, stamp, onChanged, onOpenCampaign }: Props
             <span className="small muted">
               {" "}
               · {item.autosave ? "autosave" : "save"} · {new Date(item.createdAt).toLocaleString()}
-            </span>
+            </span>{" "}
+            <button
+              type="button"
+              disabled={busy || locked}
+              onClick={() => void loadSave(item)}
+              aria-label={`Load save ${item.name}`}
+            >
+              Load
+            </button>
           </li>
         ))}
       </ul>

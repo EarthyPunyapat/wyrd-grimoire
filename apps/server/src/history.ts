@@ -111,6 +111,20 @@ export function mountHistory(app: Hono<AppEnvironment>, d: Deps) {
     }
   });
 
+  // Loading a save activates its branch at that seq, forking when it isn't the head. The storage
+  // layer refuses an earlier point in hardcore campaigns with a 409.
+  app.post("/api/campaigns/:id/saves/:saveId/load", (c) => {
+    const id = c.req.param("id");
+    const game = d.campaign(id);
+    if (d.running(id)) throw new HTTPException(409, { message: "Wait for the current turn to finish" });
+    try {
+      game.loadSave(c.req.param("saveId"));
+      return c.json(timelineView(game));
+    } catch (error) {
+      throw httpError(error);
+    }
+  });
+
   app.post("/api/campaigns/:id/export", (c) => {
     const id = c.req.param("id");
     const game = d.campaign(id);
