@@ -103,7 +103,7 @@ export function Play({
       case "codex":
         return <Codex campaignId={view.id} stamp={stamp} focus={codexFocus} />;
       case "map":
-        return <WorldMap campaignId={view.id} stamp={stamp} onTravel={travel} />;
+        return <WorldMap campaignId={view.id} stamp={stamp} onTravel={travel} onCodex={openCodex} />;
       case "timeline":
         return (
           <Timeline

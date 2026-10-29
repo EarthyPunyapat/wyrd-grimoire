@@ -66,8 +66,14 @@ test("map, travel, journal and codex: the world beyond the opening site", async 
   await begin(page);
   await open(page, "Map", phone);
   const map = page.getByRole(phone ? "dialog" : "complementary").getByRole("region", { name: "Map" });
-  await expect(map.getByRole("img", { name: /Map of/ })).toBeVisible();
-  await map.getByRole("button", { name: /Greywater Market/ }).click();
+  await expect(map.getByRole("group", { name: /Map of/ })).toBeVisible();
+  // A site node is a button: Enter opens its codex entry on the map, with a way to travel.
+  await map.getByRole("button", { name: "Greywater Market", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  const site = map.locator(".map-site");
+  await expect(site).toContainText("Greywater Market");
+  await expect(site).toContainText("Known:");
+  await site.getByRole("button", { name: "Travel here" }).click();
   await expect(page.getByLabel("What do you do?", { exact: true })).toHaveValue(
     "I travel to Greywater Market",
   );

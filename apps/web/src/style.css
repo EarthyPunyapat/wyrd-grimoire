@@ -344,6 +344,12 @@ progress::-webkit-progress-value { background: var(--accent); }
 .map .site.visited circle { fill: var(--accent-soft); stroke: var(--accent); }
 .map .site.here circle { fill: var(--pc); stroke: var(--pc); }
 .map .site text { font-size: 11px; fill: var(--ink); }
+.map .site { cursor: pointer; }
+.map .site:hover circle, .map .site:focus-visible circle, .map .site.selected circle { stroke: var(--accent); stroke-width: 3; }
+.map-site { border: 1px solid var(--line); border-radius: 6px; padding: .6rem .75rem; display: grid; gap: .45rem; }
+.map-site h4 { margin: 0; font-size: 1rem; }
+.map-site p { margin: 0; }
+.map-site-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
 .ref-wrap { position: relative; }
 .ref { display: inline; min-height: 0; padding: 0; border: 0; font: inherit; font-weight: 700; color: inherit; text-decoration: underline dotted var(--accent) 1.5px; text-underline-offset: 3px; cursor: pointer; }
 .ref:hover { background: var(--accent-soft); }
