@@ -117,16 +117,17 @@ test("model routes save, connection stays host-side, and usage is confined to se
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Routing preset").selectOption("fullyLocal");
   await dialog
-    .getByRole("group", { name: "ChatGPT plan", exact: true })
+    .getByRole("group", { name: "ChatGPT plan (prose)", exact: true })
     .getByRole("combobox", { name: "Provider", exact: true })
     .selectOption("");
   await dialog
-    .getByRole("group", { name: "Fast parsing", exact: true })
+    .getByRole("group", { name: "Fast model (parsing and checks)", exact: true })
     .getByRole("combobox", { name: "Provider", exact: true })
     .selectOption("");
   const local = dialog.getByRole("group", { name: "Local models", exact: true });
   await local.getByRole("combobox", { name: "Provider", exact: true }).selectOption("ollama");
-  await local.getByRole("combobox", { name: "Model", exact: true }).fill("test-local-model");
+  // Once a provider lists its models the field is a real dropdown, so pick from that list.
+  await local.getByRole("combobox", { name: "Model", exact: true }).selectOption("offline");
   await dialog.getByRole("button", { name: "Save model settings" }).click();
   await expect(dialog.getByRole("status")).toContainText("Model settings saved");
   await dialog.getByRole("button", { name: "Connection", exact: true }).click();
@@ -145,7 +146,7 @@ test("model routes save, connection stays host-side, and usage is confined to se
       .getByRole("dialog")
       .getByRole("group", { name: "Local models", exact: true })
       .getByRole("combobox", { name: "Model", exact: true }),
-  ).toHaveValue("test-local-model");
+  ).toHaveValue("offline");
 });
 
 test("story and settings fit narrow phones, tablets and desktop", async ({ page }) => {
