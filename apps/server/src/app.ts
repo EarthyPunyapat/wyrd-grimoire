@@ -30,6 +30,7 @@ import {
   buy,
   capacityKg,
   carriedKg,
+  catalogWith,
   closeEvents,
   combatView,
   createActor,
@@ -685,6 +686,7 @@ export function createApp(options: Options) {
         .map((e) => [e.turnId, e.payload]),
     );
     const gamePack = game.packSnapshot()!.content as CompiledPack;
+    const gameItems = catalogWith(state, gamePack.items);
     const skills = skillCatalog([gamePack]);
     const resolution = state.campaign.settings.structural.resolution;
     const resolutionModule = RESOLUTION_MODULES[resolution];
@@ -734,9 +736,7 @@ export function createApp(options: Options) {
             attitude: shopState.attitude,
             items: shopState.stock.map((line) => {
               const item =
-                gamePack.items.weapons[line.itemId] ??
-                gamePack.items.armor[line.itemId] ??
-                gamePack.items.gear[line.itemId];
+                gameItems.weapons[line.itemId] ?? gameItems.armor[line.itemId] ?? gameItems.gear[line.itemId];
               return {
                 id: line.itemId,
                 name: item?.name ?? line.itemId,
@@ -769,14 +769,14 @@ export function createApp(options: Options) {
         })(),
         inventory: {
           capacityKg: capacityKg(pc, defaultTuning),
-          weightKg: carriedKg(state, pc.id, { items: gamePack.items, tuning: defaultTuning }),
-          band: encumbranceBand(state, pc.id, { items: gamePack.items, tuning: defaultTuning }),
+          weightKg: carriedKg(state, pc.id, { items: gameItems, tuning: defaultTuning }),
+          band: encumbranceBand(state, pc.id, { items: gameItems, tuning: defaultTuning }),
           coins: state.economy?.wallets[pc.id]?.coins ?? 0,
           items: (state.inventory?.actors[pc.id]?.stacks ?? []).map((stack) => {
             const item =
-              gamePack.items.weapons[stack.itemId] ??
-              gamePack.items.armor[stack.itemId] ??
-              gamePack.items.gear[stack.itemId];
+              gameItems.weapons[stack.itemId] ??
+              gameItems.armor[stack.itemId] ??
+              gameItems.gear[stack.itemId];
             return {
               id: stack.itemId,
               name: item?.name ?? stack.itemId,
@@ -1114,7 +1114,7 @@ export function createApp(options: Options) {
       tuning: defaultTuning,
       nameOf: (eid: string) => state.actors[eid]?.sheet.identity.name ?? canon.entity(eid)?.name ?? eid,
       recipes: pack.recipes ?? {},
-      items: pack.items,
+      items: catalogWith(state, pack.items),
     });
     if (!out.ok)
       throw new HTTPException(422, {
@@ -1137,7 +1137,7 @@ export function createApp(options: Options) {
       skills: skillCatalog([pack]),
       tuning: defaultTuning,
       nameOf: (eid: string) => state.actors[eid]?.sheet.identity.name ?? canon.entity(eid)?.name ?? eid,
-      items: pack.items,
+      items: catalogWith(state, pack.items),
     };
     const out =
       verb === "haggle"

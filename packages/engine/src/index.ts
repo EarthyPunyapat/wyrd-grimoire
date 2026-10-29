@@ -1,4 +1,5 @@
 export * from "./campaign.ts";
+export * from "./catalog.ts";
 export * from "./checks.ts";
 export * from "./classes.ts";
 export * from "./combat/index.ts";

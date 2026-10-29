@@ -1,5 +1,6 @@
 import { CompanionState, EconomyState, type EventEnvelope, type EventType, InventoryState } from "@wyrd/core";
 import { classHandlers } from "./reduce/classes.ts";
+import { gmHandlers } from "./reduce/gm.ts";
 import { clamp, clampHp, companion, mind, updateSheet, updateStatus } from "./reduce/helpers.ts";
 import { injuryHandlers } from "./reduce/injury.ts";
 import { livingHandlers } from "./reduce/living.ts";
@@ -21,6 +22,7 @@ export type ReduceOptions = {
  */
 type DomainKey =
   | keyof typeof classHandlers
+  | keyof typeof gmHandlers
   | keyof typeof injuryHandlers
   | keyof typeof spellHandlers
   | keyof typeof livingHandlers
@@ -440,6 +442,7 @@ const baseHandlers: Omit<Handlers, DomainKey> = {
 const handlers: Handlers = {
   ...baseHandlers,
   ...classHandlers,
+  ...gmHandlers,
   ...injuryHandlers,
   ...spellHandlers,
   ...livingHandlers,
@@ -472,6 +475,8 @@ function initialState(e: EventEnvelope<"CampaignCreated">): GameState {
     combat: null,
     inventory: InventoryState.parse({}),
     economy: EconomyState.parse({}),
+    customItems: {},
+    retcons: [],
     ...EMPTY_WORLD(p.gameTime),
     flags: {},
     lastChecks: {},

@@ -136,6 +136,8 @@ function state(): GameState {
     combat: null,
     inventory: InventoryState.parse({}),
     economy: EconomyState.parse({}),
+    customItems: {},
+    retcons: [],
     factions: {},
     quests: {},
     clocks: {},

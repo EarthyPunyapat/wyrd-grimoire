@@ -12,6 +12,7 @@ import {
   type Tuning,
   type WeaponDef,
 } from "@wyrd/core";
+import { catalogWith } from "./catalog.ts";
 import type { GameState } from "./state.ts";
 
 /**
@@ -37,7 +38,7 @@ const itemOf = (items: ItemCatalog, id: string): WeaponDef | ArmorDef | GearDef 
 export function carriedKg(state: GameState, actorId: ActorId, ctx: InventoryContext): number {
   if (state.campaign.settings.subsystems.inventory === "abstract") return 0;
   return inventoryOf(state, actorId).stacks.reduce((sum, stack) => {
-    const item = itemOf(ctx.items, stack.itemId);
+    const item = itemOf(catalogWith(state, ctx.items), stack.itemId);
     return sum + (item?.weightKg ?? 0) * stack.qty;
   }, 0);
 }

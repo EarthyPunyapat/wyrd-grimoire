@@ -11,6 +11,7 @@ import type {
   EconomyState,
   Edge,
   FactionState,
+  GearDef,
   InventoryState,
   KnowledgeEntry,
   LivingState,
@@ -28,6 +29,9 @@ import type { SkillCatalog } from "./skills.ts";
 export type ActorRole = "pc" | "companion" | "npc";
 
 export type ActorState = { role: ActorRole; sheet: CharacterSheet; dead?: true };
+
+/** One player-authorised retcon and whether it has been undone (D144, Undo). */
+export type RetconRecord = { retconId: string; turnId: string; undone: boolean };
 
 /** The most recent check per actor, so a push or a Luck reroll can be validated against it. */
 export type LastCheck = {
@@ -65,6 +69,10 @@ export type GameState = {
   inventory: InventoryState;
   /** Coins, wealth levels and shop stock (spec 11). */
   economy: EconomyState;
+  /** GM-invented gear, by `campaign:` item id (D149); merged into the catalog by `catalogWith`. */
+  customItems: Record<string, GearDef>;
+  /** Player-authorised retcons and their Undo state (D144). */
+  retcons: RetconRecord[];
   factions: Record<string, FactionState>;
   quests: Record<string, QuestState>;
   clocks: Record<string, Clock>;
