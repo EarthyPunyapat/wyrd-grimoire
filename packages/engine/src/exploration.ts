@@ -18,6 +18,7 @@ import {
   type SpellDef,
 } from "@wyrd/core";
 import { resolveCheck, resolveOpposedCheck } from "./checks.ts";
+import { rest } from "./injury/healing.ts";
 import { castSpell } from "./plugins/spellcasting.ts";
 import { isSuccess } from "./resolution/index.ts";
 import { fail, ok, type Result } from "./result.ts";
@@ -85,6 +86,7 @@ const DEFAULT_MINUTES: Record<ExplorationAction["type"], number> = {
   travel: 0,
   recruit: 1,
   cast: 1,
+  rest: 0,
 };
 
 /** Difficulty range the parser may propose for a free-form check; harder steps need rule tables. */
@@ -335,6 +337,8 @@ function validateOne(
       }
       return null;
     }
+    case "rest":
+      return null;
     case "recruit": {
       if (!present(scene, a.targetId))
         return err("TARGET_NOT_PRESENT", `${a.targetId} isn't here to ask`, lookAround);
@@ -566,6 +570,13 @@ export function resolvePlan(
         const summary =
           cast?.type === "SpellCast" ? cast.payload.summary : `${ctx.nameOf(plan.actorId)} casts a spell.`;
         step(cast?.type === "SpellCast" ? (cast.payload.degree ?? "done") : "done", summary);
+        break;
+      }
+      case "rest": {
+        const r = rest(w.state, plan.actorId, action.kind ?? "short", ctx);
+        if (!r.ok) return r;
+        w.apply(r.value);
+        step("done", `${actorName} takes a ${action.kind ?? "short"} rest.`);
         break;
       }
       case "recruit": {

@@ -30,7 +30,7 @@ CheckResolved 4a7f24cae16a
 CombatChanged 3af1a3588a6c
 HitResolved 739ce2c84dfa
 HpChanged b10049bd6fca
-WoundInflicted 4fe08fc20620
+WoundInflicted e230175cbcef
 CombatChanged 3480a96f059d
 CheckResolved 67ac2fbeb3b2
 CombatChanged 3e22363ad924
@@ -266,7 +266,7 @@ CombatChanged b7fb085b9c6c
 CheckResolved 43f3fd707b87
 CombatChanged 2ee16b14c2e7
 HitResolved d330ff8e86c6
-WoundInflicted d5584b88c9d6
+WoundInflicted 8603b1f4380d
 CombatChanged 0767c8c154c7
 CombatChanged 869d0ffca1d0
 CombatChanged 3dd989899f26
@@ -277,7 +277,7 @@ CombatChanged dd640ac8e74a
 CheckResolved a1e1e2d9a8c3
 CombatChanged df78cb64a3f1
 HitResolved 1abce4240dd8
-WoundInflicted 7eb12452e792
+WoundInflicted 166b8201976d
 ConditionApplied b7daa0344a19
 CombatChanged 950cb57fd37f
 CombatChanged 6781f6212479
@@ -321,12 +321,12 @@ CombatChanged 94d93cf42751
 CheckResolved 2eb865f48724
 CombatChanged 5aaedea69141
 HitResolved 97bbde961073
-WoundInflicted 9b200f586236
+WoundInflicted 2e47f864e175
 CombatChanged 79e75b427201
 CheckResolved 778ce6d2348b
 CombatChanged df12a78ce0d0
 HitResolved 79141a12df20
-WoundInflicted d91926a0320f
+WoundInflicted 4911b05310b8
 ConditionApplied bed85c9fdc8a
 CheckResolved 155fa5b85435
 ConditionRemoved 1f827c4d1b30

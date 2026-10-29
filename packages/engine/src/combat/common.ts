@@ -72,7 +72,7 @@ export const conditionLevel = (state: GameState, id: ActorId, conditionId: strin
 /** Still in the fight: alive, here, not out of action. Down-but-conscious actors keep fighting. */
 export function canAct(state: GameState, id: ActorId): boolean {
   const c = combatant(state, id);
-  if (!c || c.status !== "active") return false;
+  if (c?.status !== "active") return false;
   if (state.actors[id]?.dead) return false;
   return !hasCondition(state, id, "core:unconscious");
 }

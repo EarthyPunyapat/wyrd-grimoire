@@ -32,7 +32,7 @@ describe("starting a fight", () => {
     for (let seed = 1; seed < 60; seed++) {
       const f = new Fight({ seed });
       run(f, [{ type: "strike", targetId: "npc:mags" }]);
-      if (!f.state.combat || f.state.combat.order[f.state.combat.turn] !== "pc") continue;
+      if (f.state.combat?.order[f.state.combat.turn] !== "pc") continue;
       const plan = [
         { type: "stunt", effect: "createCover", propId: "prop:table", description: "kick the table over" },
         { type: "takeCover", propId: "prop:table" },

@@ -106,7 +106,7 @@ CheckResolved db080b442c72
 CombatChanged bfe2a59973c0
 HitResolved 48e5c31c2327
 HpChanged ff0711fcf0d3
-WoundInflicted 72829bedfc97
+WoundInflicted df2fa07839ed
 CombatChanged 959b5f4eaab2
 CheckResolved 59e86cf20498
 CombatChanged cd333b9d4592

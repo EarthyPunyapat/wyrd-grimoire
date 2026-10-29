@@ -316,6 +316,8 @@ export function describeAction(raw: ActionInput, nameOf: (id: string) => string)
       return `Travel to ${nameOf(a.toSiteId)}${a.pace && a.pace !== "normal" ? ` (${a.pace})` : ""}`;
     case "cast":
       return `Cast ${a.spell.replace(/^.*:/, "").replaceAll("-", " ")}${a.targetIds?.[0] ? ` on ${nameOf(a.targetIds[0])}` : ""}`;
+    case "rest":
+      return a.kind === "long" ? "Take a long rest" : "Take a short rest";
   }
 }
 

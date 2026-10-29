@@ -77,6 +77,16 @@ export const CORE_CONDITIONS: readonly ConditionDef[] = [
       ctx.attribute === "int" || ctx.attribute === "awa" ? mod("Concussed", -20) : undefined,
   },
   { id: "core:bleeding", name: "Bleeding", maxLevel: 3 },
+  {
+    id: "core:infected",
+    name: "Infected",
+    onCheck: () => mod("Infected", -10),
+  },
+  {
+    id: "core:fractured",
+    name: "Fractured",
+    onCheck: () => mod("Fractured", -20),
+  },
   { id: "core:burning", name: "Burning" },
   { id: "core:poisoned", name: "Poisoned" },
   {

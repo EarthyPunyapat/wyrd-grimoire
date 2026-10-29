@@ -4,13 +4,12 @@ import {
   type AttributeId,
   type CharacterSheet,
   type CheckResolvedPayload,
-  type ClassLevel,
   draft,
   type EventDraft,
   Rng,
   type Tuning,
 } from "@wyrd/core";
-import { type ClassCatalog, classForArchetype, isClassSkill, nextClassLevel } from "./classes.ts";
+import { type ClassCatalog, classForArchetype, isClassSkill } from "./classes.ts";
 import { type CreationContent, talentProblems } from "./creation.ts";
 import { deriveStats } from "./derived.ts";
 import { fail, ok, type Result } from "./result.ts";

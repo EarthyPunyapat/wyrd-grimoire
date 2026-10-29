@@ -12,6 +12,7 @@ import {
   type Rumor,
   type Tuning,
 } from "@wyrd/core";
+import { healingDaily } from "../injury/healing.ts";
 import type { GameState, RulesContext } from "../state.ts";
 import { survivalDaily } from "../survival.ts";
 import { Working } from "../working.ts";
@@ -179,7 +180,7 @@ function distort(content: string, rng: Rng, about: string[], nameOf: (id: string
     return content;
   }
   if (roll === 2) return content.replace(/\b(\d+)\b/g, (n) => String(Number(n) * 2 + 1));
-  return content.replace(/\.$/, "") + ", or so they say.";
+  return `${content.replace(/\.$/, "")}, or so they say.`;
 }
 
 function spreadRumours(w: Working, rng: Rng, ctx: WorldContext) {
@@ -712,6 +713,7 @@ export function runTicks(state: GameState, ctx: WorldContext): EventDraft[] {
       weather(w, rng, ctx);
       festivals(w, ctx, d);
       survivalDaily(w, ctx, d);
+      healingDaily(w, ctx, rng, d);
       w.apply([
         draft("TickCompleted", { kind: "day", at: d * MINUTES.day, rngAfter: [...rng.state] }, "engine"),
       ]);

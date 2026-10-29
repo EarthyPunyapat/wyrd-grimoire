@@ -7,7 +7,6 @@ import {
   type EventDraft,
   emptyNeeds,
   type ItemCatalog,
-  lightEffect,
   localIdOf,
   type Modifier,
   type NeedLadder,
@@ -16,7 +15,6 @@ import {
   Rng,
   type SurvivalState,
   survivalOf,
-  weatherEffect,
   weatherKindOf,
 } from "@wyrd/core";
 import { type CheckOutcome, resolveCheck } from "./checks.ts";
@@ -202,7 +200,7 @@ export function gainSupply(
   w.apply([draft("SuppliesGained", { actorId, itemId, kind, qty, notice }, "engine")]);
 }
 
-const conditionKey = (c: ConditionInstance) => `${c.id}:${c.level ?? 1}`;
+const _conditionKey = (c: ConditionInstance) => `${c.id}:${c.level ?? 1}`;
 
 /** Applies the stages a need has reached and clears the ones it has left. */
 function syncStages(
@@ -584,7 +582,7 @@ export function exposeToDisease(
   return ok(drafts);
 }
 
-const diseaseDef = (state: GameState, ctx: SurvivalContext, instance: DiseaseInstance) => {
+const diseaseDef = (_state: GameState, ctx: SurvivalContext, instance: DiseaseInstance) => {
   const def = ctx.diseases?.[instance.diseaseId];
   if (def) return def;
   const local = localIdOf(instance.diseaseId);

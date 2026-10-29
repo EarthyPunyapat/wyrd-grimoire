@@ -82,6 +82,25 @@ export type Tuning = {
     woundEffects: Record<LocationKind, Record<"minor" | "serious" | "critical", WoundEffect>>;
     simpleWoundPenalty: Record<"minor" | "serious" | "critical", number>;
   };
+  /** Injury recovery (spec 03, Healing; spec 11, Injuries). */
+  injury: {
+    /** Days a wound of each severity takes to heal, by treatment. */
+    healingDays: Record<"minor" | "serious" | "critical" | "lethal", number>;
+    /** Simple injuries heal this share of the realistic time. */
+    simpleScale: number;
+    /** A treated wound heals an extra day per day. */
+    treatedExtraDays: number;
+    /** Infection: ENd difficulty for an untreated serious+ wound, chance per day, damage while infected. */
+    infectionDifficulty: Difficulty;
+    infectionChance: number;
+    infectedDamagePerDay: number;
+    /** A critical wound that heals without treatment can leave a permanent injury on this roll (1–100). */
+    permanentChance: number;
+    /** Rest: minutes for a short and a long rest, and HP regained. */
+    shortRestMinutes: number;
+    longRestMinutes: number;
+    longRestHeal: number;
+  };
   /** Turn structure and action numbers (spec 03, "Turn order" through "Enemy and companion tactics"). */
   fight: {
     apPerTurn: number;
@@ -392,6 +411,18 @@ export const defaultTuning: Tuning = {
     interestMaxPerSkill: 30,
     archetypeTalents: 1,
     freeTalents: 1,
+  },
+  injury: {
+    healingDays: { minor: 3, serious: 7, critical: 14, lethal: 21 },
+    simpleScale: 0.5,
+    treatedExtraDays: 1,
+    infectionDifficulty: "normal",
+    infectionChance: 15,
+    infectedDamagePerDay: 1,
+    permanentChance: 25,
+    shortRestMinutes: 60,
+    longRestMinutes: 480,
+    longRestHeal: 2,
   },
   combat: {
     woundThresholdMultiples: { minor: 1, serious: 2, critical: 3 },

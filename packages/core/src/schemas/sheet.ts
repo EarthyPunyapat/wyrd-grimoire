@@ -39,6 +39,12 @@ export const Wound = z.object({
   severed: z.boolean().default(false),
   /** The limb's side, copied from the body plan when the wound is inflicted. Only limbs have one. */
   side: z.enum(["left", "right"]).optional(),
+  /** Days of healing left at the current treatment level (M7); absent on older wounds. */
+  healingDays: z.number().int().nonnegative().optional(),
+  /** An infected wound needs medicine or it costs HP each day. */
+  infected: z.boolean().optional(),
+  /** First aid, a set fracture or clean rest speeds healing. */
+  treated: z.boolean().optional(),
   penalty: z.object({ scope: PenaltyScope, value: z.number().int() }).optional(),
 });
 export type Wound = z.infer<typeof Wound>;

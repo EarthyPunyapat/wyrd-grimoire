@@ -258,6 +258,12 @@ export function resolveHit(state: GameState, hit: HitInput, ctx: InjuryContext):
     severity,
     damageType,
     hpMaxReduction: t.hpMaxReduction[severity],
+    healingDays: Math.max(
+      1,
+      Math.round(ctx.tuning.injury.healingDays[severity] * (simple ? ctx.tuning.injury.simpleScale : 1)),
+    ),
+    infected: false,
+    treated: false,
     fracture: fracturesOn && (effect.fractureIf?.includes(damageType) ?? false),
     severed:
       !simple &&

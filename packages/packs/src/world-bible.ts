@@ -479,7 +479,7 @@ export function locationEvents(
 ): { events: EventDraft[]; arrival: LocationScene } {
   const ids = new Ids(taken);
   const locationId = ids.make("location", p.name);
-  const zoneIds = p.zones.map((z, i) => `${locationId.replace("location:", "zone:")}-${i + 1}`);
+  const zoneIds = p.zones.map((_z, i) => `${locationId.replace("location:", "zone:")}-${i + 1}`);
   const people = p.people.map((n) => ({ ...n, id: ids.make("npc", n.name) }));
   const scene: SceneInput = {
     id: `scene:${locationId}`,

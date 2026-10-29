@@ -64,6 +64,12 @@ export const CastAction = z.object({
   targetIds: z.array(Id).max(4).default([]),
 });
 
+/** Rest in a safe place (spec 03, Healing): care for wounds and, on a long rest, regain HP. */
+export const RestAction = z.object({
+  type: z.literal("rest"),
+  kind: z.enum(["short", "long"]).default("short"),
+});
+
 /** Ask someone present to join the party (spec 04 recruiting); the engine checks they're willing. */
 export const RecruitAction = z.object({
   type: z.literal("recruit"),
@@ -85,6 +91,7 @@ export const ExplorationAction = z.discriminatedUnion("type", [
   TravelAction,
   RecruitAction,
   CastAction,
+  RestAction,
 ]);
 export type ExplorationAction = z.infer<typeof ExplorationAction>;
 export type ExplorationActionInput = z.input<typeof ExplorationAction>;

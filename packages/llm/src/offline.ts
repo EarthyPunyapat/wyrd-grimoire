@@ -91,6 +91,9 @@ function parse(r: GenerateRequest): FakeReply {
     const who = find("npc:") ?? listed(ctx, "npc:")[0];
     if (who) return act([{ type: "talk", targetId: who.id, utterance: said, approach: "neutral" }]);
   }
+  if (/\b(long rest|sleep|make camp|bed down)\b/.test(lower)) return act([{ type: "rest", kind: "long" }]);
+  if (/\b(short rest|rest|catch my breath|bandage up)\b/.test(lower))
+    return act([{ type: "rest", kind: "short" }]);
   const wait = /\bwait(?:\s+(\d+))?/.exec(lower);
   if (wait) return act([{ type: "wait", minutes: Number(wait[1] ?? 10) }]);
   if (/\b(go|walk|head|move|run|climb)\b/.test(lower)) {
