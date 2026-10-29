@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { type SubsystemToggles, SubsystemToggles as Toggles } from "@wyrd/core";
+import { defaultTuning, type SubsystemToggles, SubsystemToggles as Toggles } from "@wyrd/core";
+import { travelEncounterDue } from "../src/exploration.ts";
 import { unwrap } from "../src/result.ts";
 import { changeSettings } from "../src/settings.ts";
 import { Sim } from "./sim.ts";
@@ -53,7 +54,8 @@ describe("M7 subsystem toggles", () => {
       const on = unwrap(changeSettings(sim.state, { subsystems: { [c.key]: c.second } }));
       expect(on).toHaveLength(1);
       expect(on[0]).toMatchObject({ type: "SettingsChanged" });
-      expect(on[0]!.payload.changed).toContain(`subsystems.${c.key}`);
+      if (on[0]!.type !== "SettingsChanged") return;
+      expect(on[0].payload.changed).toContain(`subsystems.${c.key}`);
       sim.commit(on);
       expect(sim.state.campaign.settings.subsystems[c.key]).toBe(c.second);
 
@@ -90,6 +92,21 @@ describe("M7 subsystem toggles", () => {
     expect(changeSettings(sim.state, { structural: { progression: "classes" } })).toMatchObject({
       ok: false,
       errors: [{ code: "SETTING_LOCKED", path: "structural.progression" }],
+    });
+  });
+
+  const maxDanger = defaultTuning.world.travel.reducedMaxDanger;
+  describe("travel encounters", () => {
+    test(`on: failures on dangerous routes and every critical failure spring an ambush`, () => {
+      expect(travelEncounterDue("failure", 2, "on", maxDanger)).toBe(true);
+      expect(travelEncounterDue("success", 4, "on", maxDanger)).toBe(false);
+      expect(travelEncounterDue("critFailure", 1, "on", maxDanger)).toBe(true);
+      expect(travelEncounterDue("critFailure", 5, "on", maxDanger)).toBe(true);
+    });
+    test("reduced: half the chance, and the lethal tiers never ambush by surprise", () => {
+      expect(travelEncounterDue("critFailure", maxDanger, "reduced", maxDanger)).toBe(true);
+      expect(travelEncounterDue("critFailure", maxDanger + 1, "reduced", maxDanger)).toBe(false);
+      expect(travelEncounterDue("failure", 2, "reduced", maxDanger)).toBe(false);
     });
   });
 });

@@ -4,6 +4,7 @@ import {
   type AttributeId,
   type CharacterSheet,
   type CheckRequestInput,
+  type Degree,
   type Difficulty,
   draft,
   type EventDraft,
@@ -650,6 +651,21 @@ export function mechanicalSummary(resolution: Resolution): string {
 }
 
 /**
+ * Whether a leg of travel springs an encounter (spec 11). Normal: a failed Navigation check on a
+ * dangerous route, or a critical failure anywhere. Reduced: only critical failures, and never on
+ * the lethal tiers, where an ambush would end the campaign outright.
+ */
+export function travelEncounterDue(
+  degree: Degree,
+  danger: number,
+  mode: "reduced" | "on",
+  reducedMaxDanger: number,
+): boolean {
+  if (mode === "reduced") return degree === "critFailure" && danger <= reducedMaxDanger;
+  return degree === "critFailure" || (!isSuccess(degree) && danger >= 2);
+}
+
+/**
  * A journey along a route (spec 06): a Navigation check set by danger and pace decides the time
  * taken and whether trouble finds you. Arrival opens the site's arrival scene; an encounter stops
  * you on the road (a road scene with the foes) and the journey resumes when you travel again.
@@ -697,10 +713,13 @@ function travel(
   w.apply(check.value.events);
   const degree = check.value.effective.degree;
   const minutes = Math.round(base * tt.pace[a.pace] * (isSuccess(degree) ? 1 : tt.failureTimeFactor));
-  const encounter =
-    (!isSuccess(degree) && route.danger >= 2) || degree === "critFailure"
-      ? (t.encounter?.(route.terrain, route.danger) ?? null)
-      : null;
+  const due = travelEncounterDue(
+    degree,
+    route.danger,
+    state.campaign.settings.subsystems.travelEncounters,
+    tt.reducedMaxDanger,
+  );
+  const encounter = due ? (t.encounter?.(route.terrain, route.danger) ?? null) : null;
   if (encounter) {
     const spent = Math.max(1, Math.round(minutes / 2));
     const now = state.campaign.gameTime + spent;

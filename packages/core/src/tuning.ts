@@ -146,6 +146,8 @@ export type Tuning = {
       dangerDifficulty: number[];
       failureTimeFactor: number;
       minRoadMinutes: number;
+      /** Reduced travel encounters never ambush on routes above this danger (spec 11). */
+      reducedMaxDanger: number;
     };
   };
   /** Memory (spec 07): pyramid cadence, retrieval scoring, pins. */
@@ -407,6 +409,7 @@ export const defaultTuning: Tuning = {
       dangerDifficulty: [0, 1, 1, 2, 3],
       failureTimeFactor: 1.25,
       minRoadMinutes: 60,
+      reducedMaxDanger: 3,
     },
   },
   memory: {
