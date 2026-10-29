@@ -1,8 +1,11 @@
 # Design targets
 
-[`play-and-combat.html`](play-and-combat.html) is a static, self-contained mockup of the play screen in the `fantasy-core` theme. Open it in a browser; switch between the **Exploration** and **Combat** views with the toggle at the top, and narrow the window below 768 px to see the phone layout.
+Two visual targets live here. The Wyrd 2.0 design system is documented in [`DESIGN.md`](../../DESIGN.md) and implemented as tokens in [`apps/web/src/tokens.css`](../../apps/web/src/tokens.css). Set `data-preset="reader" | "cockpit" | "chat"` on the play shell, and set the campaign's `--hue` on the same element (or an ancestor); `--accent` follows it. U3 applies the Reader preset to the play screen; U6 adds the other two.
 
-What it fixes as the visual target for milestone 3 onward:
+- [`night-codex.html`](night-codex.html) is the owner-picked **Reader / Night Codex** mockup from W2 (D150): book serif prose, chapter numerals, rolls and items as margin notes. It is the default preset and the precedence for U3. The live canvas is `QqntzRCbefQp8qGs6PfETf`; this file is the self-contained copy.
+- [`play-and-combat.html`](play-and-combat.html) is the older, static mockup of the play screen in the `fantasy-core` theme. Open it in a browser; switch between the **Exploration** and **Combat** views with the toggle at the top, and narrow the window below 768 px to see the phone layout.
+
+The older `play-and-combat` mockup fixed this for milestone 3 onward:
 
 - **Layout:** top bar; a narration column of about 68 characters with the composer (suggestion chips + input) pinned beneath it; a 360 px right panel with tabs. On phones the panel becomes a bottom sheet opened from a tab bar, and combat adds an initiative strip above the input.
 - **Narration:** player input echoed as a muted line; prose in a book face; dialogue lines with speaker name and portrait; per-passage Play and Reroll; a collapsible mechanics log in monospace with a glyph *and* a word for every degree.
