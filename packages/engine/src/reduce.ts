@@ -207,35 +207,6 @@ const baseHandlers: Omit<Handlers, DomainKey> = {
   },
   CompanionProfiled: (s, e) =>
     companion(s, e.payload.companionId, (c) => ({ ...c, profile: e.payload.profile })),
-  ApprovalChanged: (s, e) =>
-    companion(s, e.payload.companionId, (c) => {
-      const sceneId = e.payload.sceneId;
-      const scene = sceneId
-        ? { id: sceneId, total: (c.scene?.id === sceneId ? c.scene.total : 0) + e.payload.delta }
-        : c.scene;
-      return {
-        ...c,
-        approval: Math.max(-100, Math.min(100, c.approval + e.payload.delta)),
-        ...(scene ? { scene } : {}),
-      };
-    }),
-  CompanionMilestone: (s, e) =>
-    companion(s, e.payload.companionId, (c) => ({
-      ...c,
-      [e.payload.milestone]: true,
-      ...(e.payload.beat ? { beat: e.payload.beat } : {}),
-    })),
-  CompanionLeft: (s, e) => {
-    const id = e.payload.companionId;
-    // Whoever leaves takes no more orders from the player.
-    const next = companion(s, id, (c) => ({ ...c, status: "left", control: "ai", beat: e.payload.beat }));
-    const actor = next.actors[id];
-    return {
-      ...next,
-      party: { ...next.party, companionIds: next.party.companionIds.filter((c) => c !== id) },
-      actors: actor ? { ...next.actors, [id]: { ...actor, role: "npc" } } : next.actors,
-    };
-  },
   CompanionControlSet: (s, e) =>
     companion(s, e.payload.companionId, (c) => ({
       ...c,

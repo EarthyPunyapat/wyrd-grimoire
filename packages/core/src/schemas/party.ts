@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ResolutionId } from "./common.ts";
+import { VoiceProfile } from "./domains/delegation.ts";
 import { CharacterSheet } from "./sheet.ts";
 
 // ── Progression and the party (spec 04, spec 13 Party tab) ──────────────────────────────────────
@@ -50,7 +51,8 @@ export const ProgressionMember = z.object({
   /** Companions only: how they feel about the PC and how they're controlled (spec 04 approval). */
   companion: z
     .object({
-      approval: z.number(),
+      approval: z.number().nullable(),
+      voiceProfile: VoiceProfile.optional(),
       mood: z.string(),
       control: z.enum(["ai", "manual"]),
       directive: z.enum(["follow", "aggressive", "defensive", "support", "hold"]),
@@ -103,6 +105,7 @@ export const CompanionDirective = z.enum(["follow", "aggressive", "defensive", "
 export type CompanionDirective = z.infer<typeof CompanionDirective>;
 
 export const CompanionState = z.object({
+  voiceProfile: VoiceProfile.optional(),
   id: z.string(),
   status: z.enum(["active", "left", "dead"]).default("active"),
   approval: z.number().int().min(-100).max(100).default(0),

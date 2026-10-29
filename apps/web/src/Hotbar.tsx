@@ -1,4 +1,4 @@
-import type { Ability, Level } from "@wyrd/core";
+import type { Ability, GameView, Level } from "@wyrd/core";
 /**
  * The ability hotbar (DESIGN.md Hotbar, spec §12). Until Levels, avatars and delegation land, it holds
  * the GM actions every character has; step 3 adds the character's own powers.
@@ -20,6 +20,7 @@ const SOVEREIGN_ACTIONS: HotbarAction[] = [
 
 export function Hotbar({
   abilities = [],
+  companions = [],
   level,
   busy,
   inCombat,
@@ -28,6 +29,7 @@ export function Hotbar({
   onCombat,
 }: {
   abilities?: Ability[];
+  companions?: GameView["companions"];
   level?: Level;
   busy: boolean;
   inCombat: boolean;
@@ -35,6 +37,8 @@ export function Hotbar({
   onSend: (text: string) => void;
   onCombat: () => void;
 }) {
+  const loyal =
+    companions.find((c) => c.loyal && c.name.toLowerCase() === "ari") ?? companions.find((c) => c.loyal);
   const actions = level === "infinite" ? [...SOVEREIGN_ACTIONS, ...HOTBAR_ACTIONS] : HOTBAR_ACTIONS;
   return (
     <nav className="hotbar" data-component="hotbar" aria-label="Actions">
@@ -44,6 +48,11 @@ export function Hotbar({
             X
           </span>
           Combat
+        </button>
+      )}
+      {loyal && (
+        <button type="button" disabled={busy} onClick={() => onFill(`Delegate to ${loyal.name}: `)}>
+          Delegate to {loyal.name}
         </button>
       )}
       {abilities.map((a) => (

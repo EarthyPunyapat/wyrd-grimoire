@@ -3,6 +3,7 @@ import { GuardSummary } from "./canon.ts";
 import { CombatView } from "./combat.ts";
 import { MechanicsLine, ResolutionId } from "./common.ts";
 import { AvatarRun } from "./domains/avatars.ts";
+import { DelegationTask } from "./domains/delegation.ts";
 import { LevelProposal } from "./domains/levels.ts";
 import { Card, Choice } from "./gm.ts";
 import { BaseCampaignPreset, CampaignPreset, CampaignSettings, ProgressionMode } from "./settings.ts";
@@ -154,6 +155,24 @@ export const GameView = z.object({
   backgroundName: z.string(),
   speakers: z.record(z.string(), z.string()).default({}),
   pc: CharacterSheet,
+  companions: z
+    .array(
+      z.object({ id: z.string(), name: z.string(), loyal: z.boolean(), voiceProfile: z.string().optional() }),
+    )
+    .default([]),
+  delegations: z
+    .array(
+      DelegationTask.pick({
+        id: true,
+        assignee: true,
+        goal: true,
+        startedAt: true,
+        dueAt: true,
+        status: true,
+        report: true,
+      }),
+    )
+    .default([]),
   powerRating: z.union([z.number(), z.string()]).optional(),
   levelProposals: z
     .array(LevelProposal.extend({ status: z.enum(["pending", "accepted", "superseded"]) }))

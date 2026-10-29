@@ -408,6 +408,7 @@ export function Play({
         </section>
         <Hotbar
           abilities={view.pc.abilities}
+          companions={view.companions}
           level={view.pc.level}
           busy={play.busy}
           inCombat={inCombat}

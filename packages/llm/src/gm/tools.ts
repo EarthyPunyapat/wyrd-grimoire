@@ -1,3 +1,4 @@
+import { delegationReportCards } from "@wyrd/engine";
 import { z } from "zod";
 import type { ToolCall, ToolDef } from "../types.ts";
 import { gmTool, gmTools } from "./registry.ts";
@@ -49,17 +50,19 @@ export async function executeTool(call: ToolCall, x: ToolContext): Promise<ToolO
   if (!parsed.success) return fail(z.prettifyError(parsed.error));
   try {
     const run = await tool.run(parsed.data, x);
+    const reports = delegationReportCards(run.effects?.drafts ?? []);
     const intervention = sovereignIntervention(
       x.state,
       actingActorId(parsed.data) ?? (PLAYER_ACTOR_TOOLS.has(tool.name) ? x.pcId : undefined),
     );
     return {
       ok: run.ok,
-      result: JSON.stringify({ ok: run.ok, ...run.body }),
+      result: JSON.stringify({ ok: run.ok, ...run.body, ...(reports.length ? { reports } : {}) }),
       effects: {
         ...none(),
         ...run.effects,
         drafts: [...intervention, ...(run.effects?.drafts ?? [])],
+        cards: [...(run.effects?.cards ?? []), ...reports],
       },
     };
   } catch (e) {

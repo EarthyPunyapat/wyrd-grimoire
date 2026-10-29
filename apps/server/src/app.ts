@@ -40,6 +40,8 @@ import {
   combatView,
   createActor,
   createCampaign,
+  delegationReportCards,
+  delegationTasks,
   draftFromArchetype,
   encumbranceBand,
   type GameState,
@@ -893,6 +895,10 @@ export function createApp(options: Options) {
     // Resolve only IDs already spoken in player-visible passages, never the full NPC registry.
     // This also keeps older dialogue labelled after its speaker leaves the current room.
     const speakers: Record<string, string> = { [pc.id]: pc.identity.name };
+    for (const id of state.party.companionIds) {
+      if (state.companions[id]?.status === "active" && state.actors[id])
+        speakers[id] = state.actors[id]!.sheet.identity.name;
+    }
     for (const turn of turns) {
       for (const match of (turn.narration ?? "").matchAll(/<say\s+who=(?:"([^"]*)"|'([^']*)')\s*>/g)) {
         const who = match[1] ?? match[2] ?? "";
@@ -922,6 +928,22 @@ export function createApp(options: Options) {
         },
       },
       speakers,
+      companions: state.party.companionIds.flatMap((id) => {
+        const c = state.companions[id];
+        const actor = state.actors[id];
+        return c?.status === "active" && actor && !actor.dead
+          ? [{ id, name: actor.sheet.identity.name, loyal: c.loyal, voiceProfile: c.voiceProfile }]
+          : [];
+      }),
+      delegations: delegationTasks(state).map(({ id, assignee, goal, startedAt, dueAt, status, report }) => ({
+        id,
+        assignee,
+        goal,
+        startedAt,
+        dueAt,
+        status,
+        report,
+      })),
       powerRating: powerRating(pc),
       levelProposals: levelProposals(state).filter(
         (p) => p.actorId === pc.id || state.party.companionIds.includes(p.actorId),
@@ -1047,7 +1069,7 @@ export function createApp(options: Options) {
             : {}),
           ...(record.status === "ooc" ? { answer: record.answer } : {}),
           ...(snapshots.get(t.id) ? { guard: snapshots.get(t.id)!.guard } : {}),
-          cards: record.gm?.cards ?? [],
+          cards: record.gm?.cards ?? delegationReportCards(events.filter((e) => e.turnId === t.id)),
           choices: record.gm?.choices ?? [],
           backup: record.gm?.backup ?? false,
           checkFlags: checkFlags.get(t.id) ?? [],

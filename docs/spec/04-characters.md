@@ -154,7 +154,7 @@ NPCs become companions through play: completing their quest, persuading them, pa
 
 ### Approval
 
-Each companion has **approval** from −100 to +100 toward the PC, driven by their **values, likes and dislikes** stored in canon.
+Ordinary companions have **approval** from −100 to +100 toward the PC, driven by their **values, likes and dislikes** stored in canon. Under W2 D138, `loyal: true` companions have no approval meter, ignore approval changes and never leave or betray. Loyalty is persistent; editing their voice cannot revoke it. Loyal companions can still die under the campaign death rules.
 
 - After each significant witnessed event, the `guard` role proposes approval deltas with reasons (e.g. `{companion: "mira", delta: -6, reason: "PC executed a surrendered prisoner; Mira values mercy"}`).
 - The engine caps changes at ±10 per event and ±20 per scene, and logs them.
@@ -184,3 +184,14 @@ Lifetime XP crosses cumulative `tuning.levels.xpThresholds` (default 0/10/40/90 
 The `breakthrough` tool runs an ordinary training check at equal effective level using `tuning.levels.breakthroughDifficulty`; success advances by `tuning.levels.step` and applies its stated HP strain cost. Failure grants no level and no success cost. The cost must leave the actor alive. Training/time-skip workstreams can call the same deterministic engine helper.
 
 Explicit `/gm` mode additionally permits `set_level`, including correction to infinity or a lower level, through the existing Retcon/Undo flow. Ordinary turns cannot use it. `grant_ability` and `rank_ability` validate IDs and rank bounds; ability descriptions include a cost or limit. The sheet shows Levels, power rating and abilities; the strip shows Level, and ability hotbar buttons prefill the composer.
+
+
+## Loyal companions, voice and delegation (W2 F, D138)
+
+A companion's `voiceProfile` is player-editable text stored through `CompanionBondSet`. The Party screen can establish a permanently loyal bond and edit the voice profile; `PUT /api/campaigns/:id/companions/:companionId/bond` applies the same validation. GM and narrator party context carries the profile as guidance for that companion's `<say who="id">` speaker blocks. Voice profiles never import private NPC memories automatically.
+
+`delegate {assignee, goal, due?}` creates a task for an active, living companion. Due is an absolute future game minute; without it, resolution is one day later (`tuning.delegation.durationMinutes`). Optional opposition (Level or actor), skill, owned ability and cited exploit control the check. The default opposition is the companion's effective level at assignment and the default skill is Insight. Task states are `active`, `blocked`, `done`, `failed`, with an optional report.
+
+Time advances resolve tasks with A's seeded d20 level-gap rules, including in legacy dice campaigns. Rolled success/failure ends the task; an impossible unexploited gap, unavailable assignee/opposition or incapacitation blocks it and requests help. A blocked task can be reassigned with its taskId, the same assignee and a revised goal/plan/due time. Terminal tasks never reroll. Results and RNG state are recorded by TaskProgressed/Blocked/Ended, not decided by narration.
+
+The existing GM time_skip splits at task boundaries and the configured wait limit, stopping on a blocked task. Ordinary turns/world ticks and downtime use the same resolver. Workstream E can reuse `advanceDelegations`, `nextDelegationBoundary` and `blockedTasks` in its full daily/watch-list loop. Task outcome cards use the existing report renderer. GameView exposes only player-assigned goals, statuses and reports, with no opposition/private mind details. The hotbar shows “Delegate to Ari” for an active loyal Ari, or the actual name of another loyal companion. Ari is established by source/import/recruitment/configuration, not added to unrelated campaigns automatically.

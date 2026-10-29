@@ -13,6 +13,7 @@ export * from "./schemas/common.ts";
 export * from "./schemas/creation.ts";
 export * from "./schemas/domains/avatars.ts";
 export * from "./schemas/domains/canon-clocks.ts";
+export * from "./schemas/domains/delegation.ts";
 export * from "./schemas/domains/levels.ts";
 export * from "./schemas/domains/living.ts";
 export * from "./schemas/domains/lore.ts";

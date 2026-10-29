@@ -3,4 +3,5 @@ import "./avatars.ts";
 import "./core.ts";
 import "./lore.ts";
 import "./levels.ts";
+import "./delegation.ts";
 import "./source.ts";
