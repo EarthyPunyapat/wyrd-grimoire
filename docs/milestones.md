@@ -108,7 +108,7 @@ Each milestone lists its scope, the spec sections it implements, and acceptance 
 
 ## UI rework — moved into W2
 
-The UI rework planned for after M8 now happens in W2 as UI 2.0 (D139). Its recorded asks are carried into the [W2 roadmap](superpowers/plans/2026-10-29-w2-roadmap.md) (U3–U6): campaign management (delete, rename, archive), resumable creation and a draft library, visible progress for every long job, clearer model/provider errors, and a broader layout, mobile and accessibility pass. U3 (the Reader play screen), U4 (the status screen) and U5 (home and creation, D158) are built; U6 remains.
+The UI rework planned for after M8 now happens in W2 as UI 2.0 (D139). Its recorded asks are carried into the [W2 roadmap](superpowers/plans/2026-10-29-w2-roadmap.md) (U3–U6): campaign management (delete, rename, archive), resumable creation and a draft library, visible progress for every long job, clearer model/provider errors, and a broader layout, mobile and accessibility pass. U3 (the Reader play screen), U4 (the status screen), U5 (home and creation, D159) and U6 (presets and dials) are built.
 
 ## W2 — Wyrd 2.0 (before M8)
 

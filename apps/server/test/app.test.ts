@@ -463,3 +463,11 @@ test("a generated world has regions, sites and roads; travel opens new sites and
   expect(after.address).toBe("Warden");
   expect(after.known.length).toBeGreaterThan(3);
 });
+
+test("the CSP allows the local font assets Vite inlines", async () => {
+  const server = setup();
+  const response = await request(server, "/auth/status");
+  const policy = response.headers.get("content-security-policy") ?? "";
+  expect(policy).toContain("default-src 'self'");
+  expect(policy).toContain("font-src 'self' data:");
+});

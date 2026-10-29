@@ -1,0 +1,312 @@
+/* Cockpit preset — "Qud Modern" (D150, DESIGN.md Layout + Components).
+   Dense monospace chrome, a right-hand log and watch list, and every selection marked by a 1px
+   accent line. Square, flat, 1px rules, no shadows. Shares the play components with Reader/Chat. */
+
+[data-preset="cockpit"].play-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--bg);
+  color: var(--ink);
+}
+[data-preset="cockpit"] * { box-shadow: none; }
+[data-preset="cockpit"] button { border-radius: 0; }
+[data-preset="cockpit"] .topbar { display: none; }
+
+/* Only Cockpit shows the watch list; Reader keeps its rail for annotations and Chat has none. */
+.play-layout .watch-list { display: none; }
+
+/* ── Status strip: one dense band of chrome ─────────────────────── */
+[data-preset="cockpit"] .status-strip {
+  display: flex; flex-wrap: nowrap; align-items: center; gap: 0 var(--space-3);
+  min-height: var(--status-height); padding: 0 var(--gutter);
+  border-bottom: 1px solid var(--line); background: var(--surface);
+  font: 11px / 1.5 var(--font-chrome); letter-spacing: 0.01em; color: var(--ink-muted);
+  font-variant-numeric: tabular-nums; overflow-x: auto;
+}
+[data-preset="cockpit"] .status-strip > * { white-space: nowrap; }
+[data-preset="cockpit"] .status-strip .strip-wordmark {
+  order: 0; min-height: var(--touch-target); padding: 0 10px 0 0; border: 0; background: none;
+  font: 500 12px var(--font-chrome); letter-spacing: 0.08em; color: var(--ink); cursor: pointer;
+}
+[data-preset="cockpit"] .strip-name { order: 1; color: var(--ink); }
+[data-preset="cockpit"] .strip-meta { order: 2; }
+[data-preset="cockpit"] .strip-place { order: 3; }
+[data-preset="cockpit"] .strip-meta + .strip-meta { order: 4; }
+[data-preset="cockpit"] .strip-spacer { order: 5; flex: 1; }
+[data-preset="cockpit"] .strip-menus { order: 6; display: flex; flex-wrap: nowrap; gap: 0 10px; }
+[data-preset="cockpit"] .strip-menus button {
+  min-height: var(--touch-target); padding: 0 1px; border: 0; border-bottom: 1px solid transparent;
+  background: none; color: var(--ink-muted); font: inherit; cursor: pointer;
+}
+[data-preset="cockpit"] .strip-menus button:hover,
+[data-preset="cockpit"] .strip-menus button[aria-current="true"] {
+  color: var(--ink); border-bottom-color: var(--accent); background: none;
+}
+[data-preset="cockpit"] .key { color: var(--accent); margin-right: 0.45em; }
+[data-preset="cockpit"] .strip-offline { align-self: center; color: var(--ink-faint); }
+
+/* ── Story: reading column plus a right-hand log rail ───────────── */
+[data-preset="cockpit"] .story { background: var(--bg); border-right: 0; }
+[data-preset="cockpit"] .story-scroll { padding: var(--space-5) var(--gutter) var(--space-4); }
+[data-preset="cockpit"] .story-inner {
+  display: grid;
+  grid-template-columns: minmax(0, var(--measure)) var(--rail);
+  align-items: start;
+  gap: 0 var(--space-6);
+  max-width: calc(var(--measure) + var(--rail) + var(--space-8));
+  margin: 0 auto;
+}
+/* The live region and passages are transparent so their children join the two-column grid. */
+[data-preset="cockpit"] .story-inner > * { grid-column: 1 / -1; }
+[data-preset="cockpit"] .story-inner > div[aria-live] { display: contents; }
+[data-preset="cockpit"] .passage { display: contents; }
+[data-preset="cockpit"] .passage-main {
+  grid-column: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--rhythm);
+  padding-bottom: var(--space-5); border-bottom: 1px solid var(--line);
+}
+[data-preset="cockpit"] .margin-notes {
+  grid-column: 2; min-width: 0; display: flex; flex-direction: column; gap: 0;
+  padding: 0 0 var(--space-5) var(--space-4); border-left: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font: 11.5px / 1.6 var(--font-chrome); color: var(--ink-muted);
+}
+[data-preset="cockpit"] .margin-notes:empty { display: none; }
+[data-preset="cockpit"] .margin-notes::before {
+  content: "LOG";
+  display: block; padding-bottom: 6px; border-bottom: 1px solid var(--line); margin-bottom: 8px;
+  font: 10px var(--font-chrome); letter-spacing: 0.16em; color: var(--ink-faint);
+}
+[data-preset="cockpit"] .story-inner > .composer {
+  grid-column: 1; padding: var(--space-4) 0 var(--space-5);
+}
+[data-preset="cockpit"] .story-inner > .combat-strip { grid-column: 1; max-width: var(--measure); }
+
+/* Prose stays in the reading face; everything numeric or labelled is chrome. */
+[data-preset="cockpit"] .opening { max-width: var(--measure); margin-bottom: var(--space-6); }
+[data-preset="cockpit"] .opening .prose,
+[data-preset="cockpit"] .passage-main,
+[data-preset="cockpit"] .live-passage {
+  font: var(--story-size) / var(--story-leading) var(--font-read);
+  color: var(--ink);
+}
+[data-preset="cockpit"] .opening .prose { font-size: var(--story-size); }
+[data-preset="cockpit"] .opening-note { font: italic 15px / 1.6 var(--font-read); color: var(--ink-muted); }
+[data-preset="cockpit"] .passage-main > * { margin: 0; }
+[data-preset="cockpit"] .prose > * + * { margin-top: var(--rhythm); }
+[data-preset="cockpit"] .prose p { margin: 0; }
+[data-preset="cockpit"] .prose strong { font-weight: 500; }
+
+[data-preset="cockpit"] .player-input {
+  padding-left: 10px; border-left: 1px solid var(--line-strong);
+  font: 12px / 1.5 var(--font-chrome); color: var(--ink-muted);
+}
+[data-preset="cockpit"] .player-input > span[aria-hidden] { color: var(--accent); margin-right: 0.4em; }
+[data-preset="cockpit"] .passage-main blockquote,
+[data-preset="cockpit"] .live-passage blockquote {
+  margin: var(--space-3) 0 0; padding-left: 14px; border: 0; border-left: 1px solid var(--line-strong);
+}
+[data-preset="cockpit"] .passage-main .speaker,
+[data-preset="cockpit"] .live-passage .speaker {
+  display: block; margin-bottom: 2px;
+  font: 500 11px / 1.4 var(--font-chrome); letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--person);
+}
+[data-preset="cockpit"] .backup-badge {
+  align-self: flex-start; padding: 1px 6px; border: 1px solid var(--line-strong);
+  font: 10px var(--font-chrome); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted);
+}
+
+/* Chapter headings are instrument labels, not book display type. */
+[data-preset="cockpit"] .chapter-heading {
+  display: flex; align-items: baseline; gap: 10px; max-width: var(--measure);
+}
+[data-preset="cockpit"] .chapter-numeral {
+  padding: 1px 6px; border: 1px solid var(--line-strong);
+  font: 11px var(--font-chrome); color: var(--accent);
+}
+[data-preset="cockpit"] .chapter-heading h2 {
+  margin: 0; font: 500 var(--text-title) / 1.25 var(--font-read); color: var(--ink);
+}
+[data-preset="cockpit"] .chapter-locator { display: block; font: 11px var(--font-chrome); color: var(--ink-muted); }
+
+/* ── The log rail: cards darker than the ground, 1px divisions ─── */
+[data-preset="cockpit"] .watch-list { display: block; padding-bottom: 10px; border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+[data-preset="cockpit"] .watch-list h3 {
+  margin: 0 0 6px; font: 10px var(--font-chrome); letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-faint);
+}
+[data-preset="cockpit"] .watch-list ul { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+[data-preset="cockpit"] .watch-list li { display: flex; justify-content: space-between; gap: 8px; }
+[data-preset="cockpit"] .watch-list .watch-name { color: var(--person); }
+[data-preset="cockpit"] .watch-list .watch-meta { color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+[data-preset="cockpit"] .watch-list .watch-none { margin: 4px 0 0; color: var(--ink-muted); }
+
+[data-preset="cockpit"] .margin-notes .gm-cards { display: flex; flex-direction: column; gap: 8px; margin: 0 0 10px; }
+[data-preset="cockpit"] .gm-card,
+[data-preset="cockpit"] .margin-notes .gm-card {
+  margin: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 0;
+  background: var(--surface); color: var(--ink); font: 11.5px / 1.55 var(--font-chrome);
+}
+[data-preset="cockpit"] .gm-card h3,
+[data-preset="cockpit"] .margin-notes .gm-card h3 {
+  margin: 2px 0 3px; font: 500 12px / 1.4 var(--font-chrome); color: var(--ink);
+}
+[data-preset="cockpit"] .gm-card p { margin: 0 0 3px; }
+[data-preset="cockpit"] .gm-card .eyebrow,
+[data-preset="cockpit"] .margin-notes .eyebrow {
+  font: 10px var(--font-chrome); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint);
+}
+[data-preset="cockpit"] .gm-card .item-card h3,
+[data-preset="cockpit"] .gm-card .item-name { color: var(--gold); }
+[data-preset="cockpit"] .gm-card button {
+  min-height: 30px; margin-top: 4px; padding: 2px 8px; border: 1px solid var(--line-strong);
+  background: none; color: var(--accent); font: 11px var(--font-chrome); cursor: pointer;
+}
+[data-preset="cockpit"] .gm-card button:hover { border-color: var(--accent); background: none; }
+
+[data-preset="cockpit"] .margin-notes .item-card { border-color: var(--line-gold); }
+[data-preset="cockpit"] .margin-notes .item-card h3,
+[data-preset="cockpit"] .margin-notes .item-card strong { color: var(--gold); }
+[data-preset="cockpit"] .item-icon { color: var(--gold); }
+[data-preset="cockpit"] .margin-notes .item-description { font: 13px / 1.5 var(--font-read); color: var(--ink); }
+
+/* Rolls arrive in the log too, as a compact stack of figures. */
+[data-preset="cockpit"] .margin-notes .mechanics {
+  margin: 0; padding: 0; border: 0; background: none; font: inherit; color: var(--ink-muted);
+}
+[data-preset="cockpit"] .margin-notes .mechanics summary { color: var(--ink-muted); cursor: pointer; }
+[data-preset="cockpit"] .margin-notes .mechanics ul { margin: 6px 0 0; padding: 0; background: none; border: 0; border-radius: 0; }
+[data-preset="cockpit"] .margin-notes .mechanics li { color: var(--ink); }
+[data-preset="cockpit"] .margin-notes .mechanics li.success,
+[data-preset="cockpit"] .margin-notes .mechanics li.critSuccess { color: var(--accent); }
+[data-preset="cockpit"] .margin-notes .mechanics li.failure,
+[data-preset="cockpit"] .margin-notes .mechanics li.critFailure { color: var(--danger); }
+
+[data-preset="cockpit"] .margin-notes .roll-notes { display: flex; flex-direction: column; gap: 0; margin: 0; padding: 0; }
+[data-preset="cockpit"] .roll-note {
+  display: flex; flex-direction: column; gap: 3px; padding: 8px 0; border: 0;
+  border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums;
+}
+[data-preset="cockpit"] .roll-note .note-label { color: var(--ink-muted); }
+[data-preset="cockpit"] .roll-note .roll-line { display: flex; align-items: baseline; gap: 8px; }
+[data-preset="cockpit"] .roll-note .roll-total { font-size: 20px; color: var(--ink); }
+[data-preset="cockpit"] .roll-note .roll-die { color: var(--ink-muted); }
+[data-preset="cockpit"] .roll-note .roll-outcome { color: var(--ink); }
+[data-preset="cockpit"] .roll-note.success .roll-outcome,
+[data-preset="cockpit"] .roll-note.critSuccess .roll-outcome { color: var(--accent); }
+[data-preset="cockpit"] .roll-note.failure .roll-outcome,
+[data-preset="cockpit"] .roll-note.critFailure .roll-outcome { color: var(--danger); }
+
+/* ── Choices: rows, selected by a 1px accent line on their left ── */
+[data-preset="cockpit"] .gm-choices { display: flex; flex-direction: column; gap: 0; margin: 0; padding: 0; border: 0; }
+[data-preset="cockpit"] .gm-choices button,
+[data-preset="cockpit"] .clarification button {
+  display: flex; gap: 10px; align-items: baseline; width: 100%; min-height: var(--touch-target);
+  padding: 7px 8px; border: 0; border-left: 1px solid transparent; border-radius: 0;
+  background: none; text-align: left; font: var(--text-choice) / 1.45 var(--font-read); color: var(--ink);
+  cursor: pointer;
+}
+[data-preset="cockpit"] .gm-choices button:hover:not(:disabled),
+[data-preset="cockpit"] .gm-choices button:focus-visible,
+[data-preset="cockpit"] .clarification button:hover:not(:disabled),
+[data-preset="cockpit"] .clarification button:focus-visible {
+  border-left-color: var(--accent); background: var(--surface);
+}
+[data-preset="cockpit"] .gm-choices button:disabled,
+[data-preset="cockpit"] .clarification button:disabled { color: var(--ink-faint); cursor: default; }
+[data-preset="cockpit"] .gm-choices kbd,
+[data-preset="cockpit"] .clarification kbd {
+  padding: 0; border: 0; background: none; font: 11px var(--font-chrome); color: var(--accent);
+}
+[data-preset="cockpit"] .gm-choices .small.muted { color: var(--ink-muted); font-size: inherit; font-style: normal; }
+
+[data-preset="cockpit"] .check-flags,
+[data-preset="cockpit"] .guard-card,
+[data-preset="cockpit"] .clarification {
+  margin: 0; padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: 0; background: var(--surface);
+  font: 11.5px / 1.6 var(--font-chrome); color: var(--ink-muted);
+}
+[data-preset="cockpit"] .check-flags h3,
+[data-preset="cockpit"] .guard-card h3,
+[data-preset="cockpit"] .clarification h3 { margin: 0 0 4px; font: 500 12px var(--font-chrome); color: var(--ink); }
+[data-preset="cockpit"] .check-flag-actions button,
+[data-preset="cockpit"] .guard-card button,
+[data-preset="cockpit"] .passage-tools button {
+  min-height: 32px; padding: 0 8px 0 0; border: 0; background: none;
+  font: 11px var(--font-chrome); color: var(--accent); cursor: pointer;
+}
+[data-preset="cockpit"] .passage-tools { display: flex; gap: var(--space-3); align-items: center; color: var(--ink-muted); font: 11px var(--font-chrome); }
+[data-preset="cockpit"] .passage-tools > span { color: var(--ink-faint); font: 11px var(--font-chrome); }
+[data-preset="cockpit"] .pending { max-width: var(--measure); font: 11.5px / 1.6 var(--font-chrome); color: var(--ink-muted); }
+[data-preset="cockpit"] .pending .live-passage { margin-bottom: var(--rhythm); }
+[data-preset="cockpit"] .pending .pulse { color: var(--accent); }
+
+/* ── Composer ───────────────────────────────────────────────────── */
+[data-preset="cockpit"] .composer { padding: var(--space-4) var(--gutter) var(--space-3); border-top: 1px solid var(--line); background: var(--bg); }
+[data-preset="cockpit"] .composer-inner { max-width: var(--measure); }
+[data-preset="cockpit"] .input-row { display: flex; flex-direction: column; gap: 4px; }
+[data-preset="cockpit"] .input-row label {
+  font: 10px var(--font-chrome); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint);
+}
+[data-preset="cockpit"] .input-row textarea {
+  min-height: var(--touch-target); padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: 0;
+  background: var(--surface); color: var(--ink); font: var(--text-input) / 1.5 var(--font-read);
+  field-sizing: content; resize: none;
+}
+[data-preset="cockpit"] .input-row textarea:focus { border-color: var(--accent); outline: none; }
+[data-preset="cockpit"] .input-row textarea::placeholder { color: var(--ink-muted); }
+[data-preset="cockpit"] .composer-foot { display: flex; justify-content: space-between; gap: var(--space-3); padding-top: 6px; font: 10.5px var(--font-chrome); color: var(--ink-muted); }
+[data-preset="cockpit"] .suggestions { display: flex; flex-wrap: wrap; gap: 0 var(--space-4); margin: 0; padding: 0 0 4px; border: 0; }
+[data-preset="cockpit"] .suggestions button {
+  min-height: 30px; padding: 0; border: 0; border-bottom: 1px solid transparent; background: none;
+  color: var(--ink-muted); font: 11px var(--font-chrome); cursor: pointer;
+}
+[data-preset="cockpit"] .suggestions button:hover:not(:disabled) { color: var(--ink); border-bottom-color: var(--accent); background: none; }
+
+/* ── Hotbar: key hints, a 1px underline for the focused action ──── */
+[data-preset="cockpit"] .hotbar {
+  display: flex; justify-content: center; gap: var(--space-4); min-height: var(--hotbar-height);
+  padding: 0 var(--gutter); border-top: 1px solid var(--line); background: var(--surface);
+  overflow-x: auto; white-space: nowrap; font: 11px var(--font-chrome);
+}
+[data-preset="cockpit"] .hotbar button {
+  min-height: var(--touch-target); align-self: center; padding: 0 5px; border: 0;
+  border-bottom: 1px solid transparent; border-radius: 0; background: none; color: var(--ink);
+  font: inherit; cursor: pointer;
+}
+[data-preset="cockpit"] .hotbar button:hover:not(:disabled) { border-bottom-color: var(--accent); background: none; }
+[data-preset="cockpit"] .hotbar button:disabled { color: var(--ink-faint); cursor: default; }
+[data-preset="cockpit"] .hotbar .key { color: var(--accent); }
+[data-preset="cockpit"] .hotbar .hotbar-danger { color: var(--danger); }
+
+/* ── Full-screen menus ──────────────────────────────────────────── */
+.dialog.menu-screen[data-preset="cockpit"] {
+  inset: 0; width: auto; max-width: none; height: auto; max-height: none; transform: none;
+  padding: var(--space-5) max(var(--gutter), calc((100vw - 1000px) / 2));
+  border: 0; border-radius: 0; background: var(--bg); color: var(--ink); overflow-y: auto;
+  font: 13px / 1.6 var(--font-read);
+}
+[data-preset="cockpit"] .dialog { border-radius: 0; border-color: var(--line); background: var(--surface); }
+[data-preset="cockpit"] .dialog h2 { font-family: var(--font-read); }
+[data-preset="cockpit"] .dialog-close { border: 1px solid var(--line); border-radius: 0; }
+[data-preset="cockpit"] .overlay { background: #050707d9; }
+
+/* ── Narrow windows: the log folds under its passage ────────────── */
+@media (max-width: 1000px) {
+  [data-preset="cockpit"] .status-strip { flex-wrap: wrap; overflow: visible; }
+  [data-preset="cockpit"] .strip-menus { flex-wrap: wrap; }
+  [data-preset="cockpit"] .story-inner { display: block; max-width: var(--measure); }
+  [data-preset="cockpit"] .passage { display: block; }
+  [data-preset="cockpit"] .passage-main { padding-bottom: var(--space-3); border-bottom: 1px solid var(--line); }
+  [data-preset="cockpit"] .margin-notes {
+    margin-bottom: var(--space-5); padding: 8px 0 var(--space-4); border-left: 0; border-bottom: 1px solid var(--line);
+  }
+  [data-preset="cockpit"] .margin-notes::before { border-bottom: 0; padding-bottom: 2px; }
+}
+@media (max-width: 640px) {
+  [data-preset="cockpit"] { --gutter: var(--space-4); }
+  [data-preset="cockpit"] .hotbar { justify-content: flex-start; gap: var(--space-4); }
+  [data-preset="cockpit"] .status-strip { gap: 0 var(--space-3); }
+  [data-preset="cockpit"] .chapter-heading h2 { font-size: 18px; }
+}

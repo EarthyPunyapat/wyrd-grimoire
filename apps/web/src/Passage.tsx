@@ -119,6 +119,35 @@ export function RollNotes({
   );
 }
 
+/**
+ * Cockpit's right-hand watch list (D150). Until workstream E ships watched entities, it lists the
+ * people actually in the scene, using the same GameView data as every other preset; CSS shows it
+ * only in Cockpit.
+ */
+function WatchList({ view }: { view: GameView }) {
+  const others = (view.scene?.present ?? []).filter((person) => person.id !== view.pc.id);
+  return (
+    <section className="watch-list" aria-label="Watch list">
+      <h3>Watch</h3>
+      <ul>
+        <li>
+          <span className="watch-name">{view.pc.identity.name}</span>
+          <span className="watch-meta">
+            HP {view.pc.status.hp}/{view.pc.derived.hpMax}
+          </span>
+        </li>
+        {others.map((person) => (
+          <li key={person.id}>
+            <span className="watch-name">{person.name}</span>
+            <span className="watch-meta">present</span>
+          </li>
+        ))}
+      </ul>
+      {!others.length && <p className="watch-none">No one else in sight.</p>}
+    </section>
+  );
+}
+
 export function Passage({
   turn,
   view,
@@ -282,6 +311,7 @@ export function Passage({
         )}
       </div>
       <aside className="margin-notes" aria-label="Margin notes">
+        {index === (view.turns?.length ?? 0) - 1 && <WatchList view={view} />}
         <Cards
           onAcceptLevel={busy ? undefined : onAcceptLevel}
           cards={cards}

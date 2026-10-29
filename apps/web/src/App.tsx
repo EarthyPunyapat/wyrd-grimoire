@@ -6,6 +6,8 @@ import { Home } from "./Home.tsx";
 import { ModelSettings } from "./ModelSettings.tsx";
 import { NewCampaign } from "./NewCampaign.tsx";
 import { Play } from "./Play.tsx";
+import { PlayPreferencesPanel } from "./PlayPreferences.tsx";
+import { usePlayPreferences } from "./presets.ts";
 
 export function App() {
   const [auth, setAuth] = useState<ReturnType<typeof AuthStatus.parse>>();
@@ -19,6 +21,8 @@ export function App() {
   const [settings, setSettings] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem("wyrd-theme") ?? "system");
   const [font, setFont] = useState(localStorage.getItem("wyrd-font") ?? "normal");
+  // UI 2.0 presets and dials are device preferences, applied live while a campaign is open (D150, U6).
+  const [playPreferences, setPlayPreferences] = usePlayPreferences();
   const refreshAuth = useCallback(async () => {
     setAuth(await api("/auth/status", AuthStatus.parse));
   }, []);
@@ -274,6 +278,7 @@ export function App() {
           <Dialog.Content className="dialog">
             <Dialog.Title>Make yourself at home</Dialog.Title>
             <Dialog.Description>Reading and connection preferences for this device.</Dialog.Description>
+            <PlayPreferencesPanel value={playPreferences} onChange={setPlayPreferences} />
             <label>
               Appearance
               <select value={theme} onChange={(e) => setTheme(e.target.value)}>
