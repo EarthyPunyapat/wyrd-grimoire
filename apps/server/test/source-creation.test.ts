@@ -198,3 +198,73 @@ test("source review, sample revision and player overrides survive creation and s
     game.close();
   }
 });
+
+// D154 made the bible and the extras optional; a saved draft must accept them missing or empty.
+test("a source world whose bible and extras calls fail is still saved and offered", async () => {
+  const home = mkdtempSync(join(tmpdir(), "wyrd-source-partial-"));
+  homes.push(home);
+  const fake = new FakeProvider([
+    {
+      match: (r) => r.tools?.[0]?.name === "propose_lore",
+      reply: { toolCall: { name: "propose_lore", args: { facts: ["Marsh lights lure travellers."] } } },
+    },
+    {
+      match: (r) => r.tools?.[0]?.name === "propose_source_bible",
+      reply: { error: { code: "invalid_output", retryable: false } },
+    },
+    {
+      match: (r) => r.tools?.[0]?.name === "propose_source_extras",
+      reply: { error: { code: "invalid_output", retryable: false } },
+    },
+    {
+      match: (r) => r.tools?.[0]?.name === "propose_style_sample",
+      reply: { toolCall: { name: "propose_style_sample", args: { sample: "Rain on the window." } } },
+    },
+    {
+      match: (r) => r.tools?.[0]?.name === "propose_creation_review",
+      reply: { error: { code: "invalid_output", retryable: false } },
+    },
+    { reply: { toolCall: { name: "propose_world", args: EXAMPLE_WORLD } } },
+  ]);
+  const router = new RoleRouter({
+    providers: { fake },
+    routing: { worldGen: { provider: "fake", model: "test", fallbacks: [] } },
+  });
+  const app = createApp({
+    home,
+    offline: false,
+    router,
+    loreClient: {
+      fetchPage: async () => ({
+        title: "Wisp",
+        text: Object.values(wikipedia.query.pages)[0]!.extract,
+        url: "https://en.wikipedia.org/wiki/Will-o%27-the-wisp",
+      }),
+      search: async () => [],
+    },
+  });
+  apps.push(app);
+  let cookie = "";
+  const req = (path: string, data?: unknown) =>
+    app.app.request(`http://localhost/api${path}`, {
+      method: data === undefined ? "GET" : "POST",
+      headers: { Cookie: cookie, "X-Wyrd": "1", "Content-Type": "application/json" },
+      body: data === undefined ? undefined : JSON.stringify(data),
+    });
+  cookie = (await req("/auth/setup", { passcode: "a long source test passcode" })).headers
+    .get("set-cookie")!
+    .split(";")[0]!;
+  const response = await req("/world-drafts", {
+    name: "Light",
+    pitch: "Cosmic adventure inside a story",
+    source: { title: "Wisp", wiki: "en.wikipedia.org" },
+  });
+  expect(response.status).toBe(201);
+  const preview = GeneratedWorldPreview.parse(await response.json());
+  const made = await req("/campaigns", {
+    draftId: preview.id,
+    ancestry: preview.origins[0]!.id,
+    archetype: preview.backgrounds[0]!.id,
+  });
+  expect(made.status).toBe(201);
+});

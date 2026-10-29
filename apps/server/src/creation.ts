@@ -54,7 +54,11 @@ export const StoredDraft = z.object({
   /** Stage 1 world bible (M5); drafts from before M5 have none and start as a single site. */
   bible: WorldBible.optional(),
   review: CreationReview.optional(),
+  // The bible and the extras are optional stages (D154): a draft keeps a source world even when they failed.
   source: SourceCreation.extend({
+    bible: SourceCreation.shape.bible.optional(),
+    characters: z.array(SourceCreation.shape.characters.element).max(30),
+    canonEvents: z.array(SourceCreation.shape.canonEvents.element).max(30),
     research: z.object({
       title: z.string(),
       facts: z.array(z.string()),
