@@ -1,7 +1,6 @@
 /**
- * A stable, lowercase id fragment: ASCII letters and digits are kept, runs of anything else become
- * one `-`, and leading/trailing dashes are trimmed. Names with no ASCII left (e.g. "雷の指輪") use
- * the caller's fallback.
+ * A lowercase ASCII slug for a player- or GM-written name (D146/D149). Everything that is not an
+ * ASCII letter or digit collapses to a hyphen; a name with nothing usable falls back.
  */
 export function slugify(name: string, fallback: string): string {
   const slug = name

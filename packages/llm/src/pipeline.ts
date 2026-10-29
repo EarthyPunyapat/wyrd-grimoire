@@ -40,8 +40,10 @@ import {
 import {
   COMBAT_RULES_DIGEST,
   EXPLORATION_RULES_DIGEST,
+  GM_INSTRUCTIONS,
   GUARD_INSTRUCTIONS,
   GUARD_VERSION,
+  gmInstructions,
   NARRATOR_INSTRUCTIONS,
   NARRATOR_VERSION,
   OOC_INSTRUCTIONS,
@@ -113,6 +115,8 @@ export type PipelineDeps = {
   /** Section 3 and 4 inputs: the pack's tone guide and the world bible. */
   tone: string;
   worldBible: string;
+  /** Files from WYRD_HOME/style/house/*.md appended to the GM prompt. */
+  styleExamples?: string[];
   /** Fresh unique IDs (ULIDs in production). */
   newId: () => string;
   campaignId?: string;
@@ -266,6 +270,7 @@ const ROLE_INSTRUCTIONS: Record<AssemblerRole, string> = {
   parser: PARSER_INSTRUCTIONS,
   narrator: NARRATOR_INSTRUCTIONS,
   guard: GUARD_INSTRUCTIONS,
+  gm: GM_INSTRUCTIONS,
 };
 
 /** Short label for an action, for clarification options built from the engine's alternatives. */
@@ -481,13 +486,21 @@ export class TurnPipeline {
     const travel = role === "parser" && !state.combat ? this.travelText(state) : undefined;
     const spells = role === "parser" && !state.combat ? this.spellText(state) : undefined;
     const survival = this.survivalText(state);
+    const roleInstructions =
+      role === "gm"
+        ? gmInstructions({
+            policy: state.campaign.settings.narration.choices,
+            length: state.campaign.settings.narration.length,
+            ...(this.d.styleExamples ? { styleExamples: this.d.styleExamples } : {}),
+          })
+        : ROLE_INSTRUCTIONS[role];
     return assemble({
       role,
       state,
       canon: this.d.canon,
       rules: this.d.rules,
       stable: {
-        roleInstructions: ROLE_INSTRUCTIONS[role],
+        roleInstructions,
         rulesDigest: state.combat ? COMBAT_RULES_DIGEST : EXPLORATION_RULES_DIGEST,
         tone: this.d.tone,
         worldBible: this.d.worldBible,

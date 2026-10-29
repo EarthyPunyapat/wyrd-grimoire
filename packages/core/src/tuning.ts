@@ -374,6 +374,12 @@ export type Tuning = {
     /** Time detail: shop and archetype hours, by archetype name. */
     schedules: Record<string, ScheduleEntry>;
   };
+  /** The GM-with-tools turn (Wyrd 2.0, D144): tool rounds, context and the structural check. */
+  gm: {
+    maxToolRounds: number;
+    contextTokens: number;
+    checkTimeoutMs: number;
+  };
   /** Spellcasting (spec 05): strain by tier, miscast consequences and default condition lengths. */
   spellcasting: {
     /** HP strain paid for casting a spell of each tier. */
@@ -886,6 +892,11 @@ export const defaultTuning: Tuning = {
       smith: { archetype: "smith", openHour: 7, closeHour: 17, note: "works by daylight" },
       priest: { archetype: "priest", openHour: 6, closeHour: 20, note: "keeps the temple" },
     },
+  },
+  gm: {
+    maxToolRounds: 8,
+    contextTokens: 32_000,
+    checkTimeoutMs: 20_000,
   },
   spellcasting: {
     strainByTier: { 1: 1, 2: 2, 3: 4 },

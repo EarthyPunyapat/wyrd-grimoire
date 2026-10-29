@@ -111,6 +111,7 @@ export const CampaignSettings = z.object({
       fastCombat: z.boolean().default(false),
       suggestions: z.boolean().default(true),
       banter: z.enum(["off", "low", "normal"]).default("low"),
+      choices: z.enum(["gm", "always", "onRequest"]).default("gm"),
     })
     .prefault({}),
   xp: z.object({ modelSuggestedXp: z.boolean().default(false) }).prefault({}),
@@ -187,6 +188,7 @@ export const CampaignSettingsPatch = z
         fastCombat: z.boolean().optional(),
         suggestions: z.boolean().optional(),
         banter: z.enum(["off", "low", "normal"]).optional(),
+        choices: z.enum(["gm", "always", "onRequest"]).optional(),
       })
       .strict()
       .optional(),

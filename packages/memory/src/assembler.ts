@@ -1,4 +1,5 @@
 import type { Entity, Fact, Resolution } from "@wyrd/core";
+import { defaultTuning } from "@wyrd/core";
 import { type GameState, type RulesContext, skillLabel, skillValue } from "@wyrd/engine";
 import { contentPolicy, contentRules } from "./content.ts";
 import { sceneSpeakerContext } from "./scene-speakers.ts";
@@ -25,12 +26,17 @@ export interface CanonSource {
   pinnedFacts?(): Fact[];
 }
 
-export type AssemblerRole = "parser" | "narrator" | "guard";
+export type AssemblerRole = "parser" | "narrator" | "guard" | "gm";
 
 /** Token budgets per role (spec 07). Estimated at 4 characters per token. */
-export const ROLE_BUDGETS: Record<AssemblerRole, number> = { parser: 8_000, narrator: 24_000, guard: 12_000 };
-const MIN_TURNS: Record<AssemblerRole, number> = { parser: 4, narrator: 6, guard: 2 };
-const MAX_TURNS: Record<AssemblerRole, number> = { parser: 4, narrator: 20, guard: 4 };
+export const ROLE_BUDGETS: Record<AssemblerRole, number> = {
+  parser: 8_000,
+  narrator: 24_000,
+  guard: 12_000,
+  gm: defaultTuning.gm.contextTokens,
+};
+const MIN_TURNS: Record<AssemblerRole, number> = { parser: 4, narrator: 6, guard: 2, gm: 6 };
+const MAX_TURNS: Record<AssemblerRole, number> = { parser: 4, narrator: 20, guard: 4, gm: 20 };
 
 export const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
 
@@ -98,6 +104,48 @@ function locationFact(f: Fact, zoneName: (id: string) => string): string {
   return `${f.predicate}: ${value}`;
 }
 
+/** Section 6.5 for the GM: the exact ids and numbers the tools take, so state questions are direct. */
+function gmStateText(state: GameState): string {
+  const pcId = state.party.pcId;
+  if (!pcId) return "(no player character)";
+  const pc = state.actors[pcId];
+  if (!pc) return "(no player character)";
+  const stacks = state.inventory?.actors[pcId]?.stacks ?? [];
+  const coins = state.economy?.wallets[pcId]?.coins ?? 0;
+  const conditions = pc.sheet.status.conditions.map((c) => (c.level ? `${c.id} ${c.level}` : c.id));
+  const quests = Object.values(state.quests ?? {})
+    .filter((q) => q.status === "active")
+    .map((q) => {
+      const stage = q.stages[q.stage];
+      const objectives = stage?.objectives
+        .map((o, i) => `${i}. ${o.kind === "narrative" ? o.description : o.kind}`)
+        .join("; ");
+      return `- Quest [${q.id}] ${q.title}: stage ${q.stage + 1}${objectives ? ` — ${objectives}` : ""}`;
+    });
+  const companions = state.party.companionIds
+    .map((id) => {
+      const actor = state.actors[id];
+      return actor ? `- ${actor.sheet.identity.name} [${id}]` : `- [${id}]`;
+    })
+    .filter(Boolean);
+  return [
+    `- HP ${pc.sheet.status.hp}/${pc.sheet.derived.hpMax}`,
+    `- Coins ${coins}`,
+    `- Conditions: ${conditions.length ? conditions.join(", ") : "none"}`,
+    "- Carrying:",
+    ...(stacks.length
+      ? stacks.map(
+          (s) =>
+            `  - ${s.itemId} ×${s.qty} (${s.location.kind === "worn" ? s.location.slot : s.location.kind})`,
+        )
+      : ["  - nothing"]),
+    "- Active quests:",
+    ...(quests.length ? quests : ["  - none"]),
+    "- Companions:",
+    ...(companions.length ? companions : ["  - none"]),
+  ].join("\n");
+}
+
 export type AssembleOptions = {
   role: AssemblerRole;
   state: GameState;
@@ -163,6 +211,7 @@ function playerCanonSection(o: AssembleOptions): Section | null {
  */
 export function assemble(o: AssembleOptions): AssembledPrompt {
   const { state, canon, role } = o;
+  const seesLikeNarrator = role === "narrator" || role === "gm";
   const withIds = role !== "narrator";
   const label = (id: string, name: string) => (withIds ? `${name} [${id}]` : name);
   const policy =
@@ -296,7 +345,7 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
     /\b[A-Z][a-z]+(?: [A-Z][a-z]+)?\b/g,
   ) ?? [])
     for (const e of canon.findByName(word)) resolved.add(e.id);
-  if (role === "narrator")
+  if (seesLikeNarrator)
     for (const id of [...focusIds])
       if (
         !resolved.has(id) &&
@@ -315,7 +364,7 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
           ...(role === "guard" ? { includeSecret: true } : {}),
           ...(o.turn.horizonSeq === undefined ? {} : { horizonSeq: o.turn.horizonSeq }),
         })
-        .filter((f) => role !== "narrator" || perceivable || !!state.knowledge?.facts[f.id]);
+        .filter((f) => !seesLikeNarrator || perceivable || !!state.knowledge?.facts[f.id]);
       const factLines = facts.map(
         (f) =>
           `  - ${role === "guard" ? `[${f.id}] ` : ""}${f.predicate}: ${typeof f.value === "string" ? f.value : JSON.stringify(f.value)}${f.visibility === "secret" ? " (SECRET: the PC doesn't know this)" : ""}`,
@@ -400,7 +449,7 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
 
   // 9. One-hop neighbours of focus entities: who is tied to whom (known or present ends only, for the narrator).
   const knownOrHere = (id: string) =>
-    role !== "narrator" ||
+    !seesLikeNarrator ||
     !!state.knowledge?.entities[id] ||
     (!!scene && (id in scene.positions || id === scene.locationId));
   const edges = (state.edges ?? []).filter(
@@ -447,10 +496,9 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
     .map((r) => `- Rumour: ${r.holders[pcId]!.content}`);
   const questText = role === "parser" ? "" : [...quests, ...clocks, ...heard].join("\n");
 
-  const mindText =
-    role === "narrator"
-      ? sceneSpeakerContext(state, o.turn.resolution, nameOf, o.rules.tuning.sceneReactions?.sharedMemories)
-      : "";
+  const mindText = seesLikeNarrator
+    ? sceneSpeakerContext(state, o.turn.resolution, nameOf, o.rules.tuning.sceneReactions?.sharedMemories)
+    : "";
 
   // 12. Recent turns, verbatim; trimmed oldest-first down to the role's minimum.
   const turns = canon
@@ -471,6 +519,7 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
   const build = (): Section[] => [
     ...(storyText ? [{ n: 5, title: "The story so far", text: storyText }] : []),
     { n: 6, title: "Party", text: partyText || "(no party)" },
+    ...(role === "gm" ? [{ n: 6.5, title: "Your state", text: gmStateText(state) }] : []),
     { n: 7, title: "Scene", text: sceneFull(detailedScene) },
     { n: 8, title: "Who and what is here", text: focusText || "(nothing notable)" },
     ...(withNeighbours && neighbourText ? [{ n: 9, title: "Connections", text: neighbourText }] : []),

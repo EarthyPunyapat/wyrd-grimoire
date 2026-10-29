@@ -18,6 +18,8 @@ Give one kit for each listed archetype id, using only gear ids you defined, at m
 Choose the currency's name and symbol appropriate to the setting. Prices must make sense in that currency. The shop stocks everyday goods, using the same gear ids.
 Set shop to null when money and shops do not fit the setting.`;
 
+export * from "./gm.ts";
+
 export const PARSER_INSTRUCTIONS = `You are the parser for a text role-playing game. You turn what the player types into game actions. You never narrate and never decide outcomes: the engine rolls the dice.
 
 Reply with exactly one tool call:

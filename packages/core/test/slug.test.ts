@@ -1,14 +1,13 @@
-import { expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { slugify } from "../src/slug.ts";
 
-test("slugify keeps ascii words", () => {
-  expect(slugify("Yellow lantern ring", "item-1")).toBe("yellow-lantern-ring");
-});
+describe("slugify", () => {
+  test("lowercases and joins ASCII words with a hyphen", () => {
+    expect(slugify("Yellow lantern ring", "item-1")).toBe("yellow-lantern-ring");
+    expect(slugify("  A--B  ", "x")).toBe("a-b");
+  });
 
-test("slugify falls back for non-latin names", () => {
-  expect(slugify("雷の指輪", "item-1")).toBe("item-1");
-});
-
-test("slugify collapses runs and trims", () => {
-  expect(slugify("  A--B  ", "x")).toBe("a-b");
+  test("falls back when nothing ASCII is left", () => {
+    expect(slugify("雷の指輪", "item-1")).toBe("item-1");
+  });
 });

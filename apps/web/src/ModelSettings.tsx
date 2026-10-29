@@ -21,6 +21,8 @@ const ROLES = [
   ["parser", "Action parsing"],
   ["narrator", "Narration"],
   ["guard", "Canon guard"],
+  ["gm", "Game master"],
+  ["check", "Consistency check"],
   ["worldGen", "World generation"],
   ["sessionZero", "Character interview"],
   ["npcDialogue", "NPC dialogue"],
