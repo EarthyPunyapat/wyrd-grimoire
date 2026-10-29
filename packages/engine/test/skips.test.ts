@@ -245,3 +245,19 @@ test("a watched faction achieving its goal is a major event on the first weekly 
   expect(d.reports[0]?.body).toContain("faction goal");
   expect(JSON.stringify(d)).not.toContain("PRIVATE AIM");
 });
+
+test("dead actors cannot receive new NPC life events during a long skip", () => {
+  const s = setup();
+  s.addActor("npc:fallen", "npc");
+  s.commit([draft("ActorDied", { actorId: "npc:fallen", cause: "test" })]);
+  skip(
+    s,
+    { duration: "30 days" },
+    {
+      ...world,
+      npcs: () => [{ id: "npc:fallen", name: "Fallen", age: 100 }],
+      tuning: { ...defaultTuning, living: { ...defaultTuning.living, lifeEventChance: 1 } },
+    },
+  );
+  expect(s.events.some((e) => e.type === "NpcLifeEvent" && e.payload.npcId === "npc:fallen")).toBe(false);
+});

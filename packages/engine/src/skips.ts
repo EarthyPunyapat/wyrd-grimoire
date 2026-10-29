@@ -218,7 +218,14 @@ export function runSkip(
     const nextDay = (Math.floor(now / t.minutesPerDay) + 1) * t.minutesPerDay;
     const to = Math.min(end, nextDay, taskAt !== undefined && taskAt > now ? taskAt : end);
     w.apply([draft("TimeAdvanced", { minutes: to - now, reason: a.reason })]);
-    const events = runTicks(w.state, { ...ctx, factsAbout: facts });
+    const events = runTicks(w.state, {
+      ...ctx,
+      factsAbout: facts,
+      npcs: ctx.npcs
+        ? () =>
+            ctx.npcs!().filter((npc) => !w.state.actors[npc.id]?.dead && ctx.entityActive?.(npc.id) !== false)
+        : undefined,
+    });
     w.apply(events);
     let watchedMajor = false;
     for (const e of events) {
@@ -257,7 +264,7 @@ export function runSkip(
     limit: "Condition not reached within the configured limit.",
     canon: "Stopped: a canon event is about to resolve.",
     task: "Stopped: a delegated task needs help.",
-    watched: "Stopped: a watched entity had a major event.",
+    watched: "Stopped: a watched entity needs attention.",
     death: "Stopped: the player's story ended.",
   };
   const summary = `${elapsed} passed; ${w.events.filter((e) => e.type === "TaskEnded").length} delegated tasks resolved. ${stopText[stop]}`;
