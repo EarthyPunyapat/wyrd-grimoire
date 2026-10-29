@@ -4,6 +4,7 @@ import { clamp, clampHp, companion, mind, updateSheet, updateStatus } from "./re
 import { livingHandlers } from "./reduce/living.ts";
 import { spellHandlers } from "./reduce/spellcasting.ts";
 import { subsystemHandlers } from "./reduce/subsystems.ts";
+import { survivalHandlers } from "./reduce/survival.ts";
 import type { Handler, Handlers } from "./reduce/types.ts";
 import type { ActorState, GameState } from "./state.ts";
 
@@ -21,7 +22,8 @@ type DomainKey =
   | keyof typeof classHandlers
   | keyof typeof spellHandlers
   | keyof typeof livingHandlers
-  | keyof typeof subsystemHandlers;
+  | keyof typeof subsystemHandlers
+  | keyof typeof survivalHandlers;
 
 /** One handler per event type; the mapped type makes a missing handler a compile error. */
 const baseHandlers: Omit<Handlers, DomainKey> = {
@@ -439,6 +441,7 @@ const handlers: Handlers = {
   ...spellHandlers,
   ...livingHandlers,
   ...subsystemHandlers,
+  ...survivalHandlers,
 };
 
 export const HANDLED_EVENT_TYPES: readonly EventType[] = [

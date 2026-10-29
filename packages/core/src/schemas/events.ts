@@ -7,6 +7,7 @@ import { classEventSchemas } from "./domains/classes.ts";
 import { livingEventSchemas } from "./domains/living.ts";
 import { spellEventSchemas } from "./domains/spellcasting.ts";
 import { subsystemEventSchemas } from "./domains/subsystems.ts";
+import { survivalEventSchemas } from "./domains/survival.ts";
 import { partyEventSchemas } from "./party.ts";
 import { CampaignSettings } from "./settings.ts";
 import { CharacterSheet, ConditionInstance, DerivedStats, Equipment, Wound, WoundSeverity } from "./sheet.ts";
@@ -138,6 +139,7 @@ export const eventPayloadSchemas = {
   ...partyEventSchemas,
   // M7 breadth, one module per workstream (parallel-safe registry)
   ...subsystemEventSchemas,
+  ...survivalEventSchemas,
   ...spellEventSchemas,
   ...livingEventSchemas,
   ...classEventSchemas,
