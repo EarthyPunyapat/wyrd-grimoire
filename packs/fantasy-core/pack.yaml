@@ -6,8 +6,9 @@ description: "Grounded, low-to-mid magic medieval fantasy."
 tags: [fantasy, medieval, low-magic]
 kind: genre
 requires: []
-# The spellcasting plugin arrives in M7; until then the pack lists no plugins.
-plugins: []
+plugins:
+  - id: spellcasting
+    config: plugins/spellcasting.yaml
 supports:
   progression: [classless, useBased, hybrid, classes]
   bodyPlans: [humanoid]

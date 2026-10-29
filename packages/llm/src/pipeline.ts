@@ -125,11 +125,18 @@ export type CombatContent = {
   items: ItemCatalog;
   bodyPlans: Record<string, BodyPlanDef>;
   creatures: Record<string, CreatureDef & { id: string }>;
+  /** Pack spells (spec 05); older frozen packs have none. */
+  spells?: CompiledPack["spells"];
 };
 
 /** The combat content of a compiled pack (older frozen packs may lack creatures). */
 export function combatContent(pack: CompiledPack): CombatContent {
-  return { items: pack.items, bodyPlans: pack.bodyPlans ?? {}, creatures: pack.creatures ?? {} };
+  return {
+    items: pack.items,
+    bodyPlans: pack.bodyPlans ?? {},
+    creatures: pack.creatures ?? {},
+    spells: pack.spells ?? {},
+  };
 }
 
 /** Rules plus combat content plus canon lookups: what the engine needs for a turn in either mode. */
@@ -146,6 +153,8 @@ export function makeTurnContext(
   return {
     ...rules,
     ...c,
+    spells: c.spells ?? {},
+    creatureName: (id: string) => c.creatures[id]?.name,
     ...(opts.recruitSheet ? { recruitSheet: opts.recruitSheet } : {}),
     nameOf: (id) =>
       state.actors[id]?.sheet.identity.name ??
@@ -305,6 +314,8 @@ export function describeAction(raw: ActionInput, nameOf: (id: string) => string)
       return `Ask ${nameOf(a.targetId)} to join you`;
     case "travel":
       return `Travel to ${nameOf(a.toSiteId)}${a.pace && a.pace !== "normal" ? ` (${a.pace})` : ""}`;
+    case "cast":
+      return `Cast ${a.spell.replace(/^.*:/, "").replaceAll("-", " ")}${a.targetIds?.[0] ? ` on ${nameOf(a.targetIds[0])}` : ""}`;
   }
 }
 
@@ -331,6 +342,21 @@ export class TurnPipeline {
     state.scene?.zones.find((z) => z.id === id)?.name ??
     state.scene?.zones.flatMap((z) => z.props).find((p) => p.id === id)?.name ??
     id;
+
+  /** The parser's known-spells list (spec 05). */
+  private spellText(state: GameState): string | undefined {
+    const defs = Object.values(this.d.content?.spells ?? {});
+    if (!defs.length) return undefined;
+    const known = (state.flags.spellcasting as { known?: Record<string, string[]> } | undefined)?.known?.[
+      state.party.pcId ?? ""
+    ];
+    const list = known ? defs.filter((s) => known.includes(s.id)) : defs;
+    if (!list.length) return undefined;
+    return [
+      "Known spells:",
+      ...list.map((s) => `- ${s.name} [${s.id}] (tier ${s.tier}, ${s.apCost} AP, ${s.range}, ${s.target})`),
+    ].join("\n");
+  }
 
   private turnCtx(state: GameState): TurnContext {
     const recruit = this.d.recruitSheet;
@@ -424,6 +450,7 @@ export class TurnPipeline {
   ): AssembledPrompt {
     const combat = this.combatText(state);
     const travel = role === "parser" && !state.combat ? this.travelText(state) : undefined;
+    const spells = role === "parser" && !state.combat ? this.spellText(state) : undefined;
     return assemble({
       role,
       state,
@@ -435,7 +462,12 @@ export class TurnPipeline {
         tone: this.d.tone,
         worldBible: this.d.worldBible,
       },
-      turn: { ...turn, ...(combat ? { combat } : {}), ...(travel ? { travel } : {}) },
+      turn: {
+        ...turn,
+        ...(combat ? { combat } : {}),
+        ...(travel ? { travel } : {}),
+        ...(spells ? { spells } : {}),
+      },
     });
   }
 

@@ -105,7 +105,7 @@ export const eventPayloadSchemas = {
     actorId: ActorId,
     hp: z.number().int().nonnegative(),
     delta: z.number().int(),
-    cause: z.enum(["damage", "bleeding", "healing", "survival"]),
+    cause: z.enum(["damage", "bleeding", "healing", "survival", "strain"]),
   }),
   WoundInflicted: z.object({ actorId: ActorId, wound: Wound }),
   /** `hpMaxReduction` is the new severity's reduction, computed by the emitter; the reducer has no tuning. */

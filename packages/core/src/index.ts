@@ -24,6 +24,7 @@ export * from "./schemas/providers.ts";
 export * from "./schemas/recipes.ts";
 export * from "./schemas/settings.ts";
 export * from "./schemas/sheet.ts";
+export * from "./schemas/spellcasting.ts";
 export * from "./schemas/survival.ts";
 export * from "./schemas/usage.ts";
 export * from "./schemas/web.ts";

@@ -1,0 +1,421 @@
+# Spells for the fantasy-core pack (spec 05, the spellcasting plugin).
+# The engine resolves every effect; this file is data only. Schools: elemental, healing,
+# illusion, warding. Tiers set strain through the engine's tuning table.
+- id: cinder-lance
+  name: Cinder Lance
+  description: A needle of flame leaps from the caster's palm.
+  school: elemental
+  tier: 1
+  apCost: 1
+  range: near
+  target: actor
+  check: { skill: spellcasting/elemental, difficulty: easy }
+  effects:
+    - { kind: damage, amount: 3, damageType: fire }
+  tags: [fire]
+
+- id: ember-veil
+  name: Ember Veil
+  description: Warm sparks cling to the caster, warding off the cold.
+  school: elemental
+  tier: 1
+  apCost: 1
+  range: self
+  target: self
+  check: { skill: spellcasting/elemental, difficulty: easy }
+  effects:
+    - { kind: applyCondition, conditionId: core:warded, note: "warmth" }
+  durationMinutes: 60
+  tags: [fire, warmth]
+
+- id: stone-to-sand
+  name: Stone to Sand
+  description: A patch of ground crumbles into loose grit.
+  school: elemental
+  tier: 1
+  apCost: 1
+  range: near
+  target: zone
+  check: { skill: spellcasting/elemental, difficulty: normal }
+  effects:
+    - { kind: createZoneTag, tag: "loose ground" }
+  durationMinutes: 60
+  tags: [earth]
+
+- id: gust
+  name: Gust
+  description: A hard shove of air.
+  school: elemental
+  tier: 1
+  apCost: 1
+  range: near
+  target: actor
+  check: { skill: spellcasting/elemental, difficulty: easy }
+  effects:
+    - { kind: moveTarget }
+  tags: [air]
+
+- id: rain-call
+  name: Rain Call
+  description: A small cloud gathers and lets down a brief shower.
+  school: elemental
+  tier: 2
+  apCost: 2
+  range: far
+  target: zone
+  check: { skill: spellcasting/elemental, difficulty: normal }
+  effects:
+    - { kind: createZoneTag, tag: "wet" }
+  durationMinutes: 30
+  tags: [water, weather]
+
+- id: thunderclap
+  name: Thunderclap
+  description: A crack of sound bursts over a foe.
+  school: elemental
+  tier: 2
+  apCost: 2
+  range: near
+  target: actor
+  check: { skill: spellcasting/elemental, difficulty: normal }
+  effects:
+    - { kind: damage, amount: 4, damageType: thunder }
+    - { kind: applyCondition, conditionId: core:stunned, level: 1 }
+  tags: [air, sound]
+
+- id: kindle
+  name: Kindle
+  description: Fire catches readily on a torch, rope or dry wood.
+  school: elemental
+  tier: 1
+  apCost: 0
+  range: touch
+  target: actor
+  check: { skill: spellcasting/elemental, difficulty: easy }
+  effects:
+    - { kind: damage, amount: 1, damageType: fire }
+  tags: [fire, utility]
+
+- id: quench
+  name: Quench
+  description: Flames within reach gutter and die.
+  school: elemental
+  tier: 2
+  apCost: 2
+  range: near
+  target: zone
+  check: { skill: spellcasting/elemental, difficulty: normal }
+  effects:
+    - { kind: removeCondition, conditionId: core:burning }
+  tags: [water, fire]
+
+- id: mend-flesh
+  name: Mend Flesh
+  description: A cut closes under a warm palm.
+  school: healing
+  tier: 1
+  apCost: 1
+  range: touch
+  target: actor
+  check: { skill: spellcasting/healing, difficulty: easy }
+  effects:
+    - { kind: heal, amount: 3 }
+  tags: [healing]
+
+- id: still-blood
+  name: Still Blood
+  description: Bleeding slows and stops.
+  school: healing
+  tier: 1
+  apCost: 1
+  range: touch
+  target: actor
+  check: { skill: spellcasting/healing, difficulty: easy }
+  effects:
+    - { kind: removeCondition, conditionId: core:bleeding }
+  tags: [healing]
+
+- id: clear-sight
+  name: Clear Sight
+  description: The caster's eyes sharpen against smoke and shadow.
+  school: healing
+  tier: 1
+  apCost: 1
+  range: self
+  target: self
+  check: { skill: spellcasting/healing, difficulty: easy }
+  effects:
+    - { kind: removeCondition, conditionId: core:blinded }
+  durationMinutes: 10
+  tags: [healing, senses]
+
+- id: ward-fever
+  name: Ward Fever
+  description: A hand pressed to a fevered brow eases the worst of it.
+  school: healing
+  tier: 2
+  apCost: 2
+  range: touch
+  target: actor
+  check: { skill: spellcasting/healing, difficulty: normal }
+  effects:
+    - { kind: removeCondition, conditionId: core:exhausted }
+    - { kind: heal, amount: 2 }
+  tags: [healing, disease]
+
+- id: set-bone
+  name: Set Bone
+  description: Bone knits straight under careful pressure.
+  school: healing
+  tier: 2
+  apCost: 2
+  range: touch
+  target: actor
+  check: { skill: spellcasting/healing, difficulty: normal }
+  effects:
+    - { kind: removeCondition, conditionId: core:fractured }
+  tags: [healing, fracture]
+
+- id: second-wind
+  name: Second Wind
+  description: Strength returns to tired limbs.
+  school: healing
+  tier: 3
+  apCost: 3
+  range: touch
+  target: actor
+  check: { skill: spellcasting/healing, difficulty: hard }
+  effects:
+    - { kind: heal, amount: 8 }
+    - { kind: removeCondition, conditionId: core:exhausted }
+  tags: [healing]
+
+- id: shared-pain
+  name: Shared Pain
+  description: The caster takes another's hurt into their own body.
+  school: healing
+  tier: 3
+  apCost: 3
+  range: touch
+  target: actor
+  check: { skill: spellcasting/healing, difficulty: hard }
+  effects:
+    - { kind: heal, amount: 6 }
+    - { kind: damage, amount: 2, damageType: arcane }
+  tags: [healing, sacrifice]
+
+- id: cleanse-rot
+  name: Cleanse Rot
+  description: Infection is drawn out as a thin grey smoke.
+  school: healing
+  tier: 3
+  apCost: 3
+  range: touch
+  target: actor
+  check: { skill: spellcasting/healing, difficulty: hard }
+  effects:
+    - { kind: removeCondition, conditionId: core:infected }
+  tags: [healing, disease]
+
+- id: fleeting-face
+  name: Fleeting Face
+  description: The caster's features blur into a stranger's.
+  school: illusion
+  tier: 1
+  apCost: 1
+  range: self
+  target: self
+  check: { skill: spellcasting/illusion, difficulty: easy }
+  effects:
+    - { kind: illusion, text: "the caster's face is hard to remember" }
+  durationMinutes: 30
+  tags: [illusion, disguise]
+
+- id: whispered-word
+  name: Whispered Word
+  description: A voice arrives beside someone's ear.
+  school: illusion
+  tier: 1
+  apCost: 1
+  range: far
+  target: actor
+  check: { skill: spellcasting/illusion, difficulty: easy }
+  effects:
+    - { kind: illusion, text: "a whispered message only the target hears" }
+  tags: [illusion, communication]
+
+- id: false-trail
+  name: False Trail
+  description: Footprints and bent grass tell a story that never happened.
+  school: illusion
+  tier: 2
+  apCost: 2
+  range: near
+  target: zone
+  check: { skill: spellcasting/illusion, difficulty: normal }
+  effects:
+    - { kind: illusion, text: "a convincing false trail" }
+  durationMinutes: 120
+  tags: [illusion, stealth]
+
+- id: shadow-cloak
+  name: Shadow Cloak
+  description: The edges of the caster seem to fray into the dark.
+  school: illusion
+  tier: 2
+  apCost: 2
+  range: self
+  target: self
+  check: { skill: spellcasting/illusion, difficulty: normal }
+  effects:
+    - { kind: applyCondition, conditionId: core:hidden }
+  durationMinutes: 10
+  concentration: true
+  tags: [illusion, stealth]
+
+- id: borrowed-shape
+  name: Borrowed Shape
+  description: The caster takes on the look of someone present.
+  school: illusion
+  tier: 3
+  apCost: 3
+  range: self
+  target: self
+  check: { skill: spellcasting/illusion, difficulty: hard }
+  effects:
+    - { kind: illusion, text: "the caster wears another's likeness" }
+  durationMinutes: 60
+  concentration: true
+  tags: [illusion, disguise]
+
+- id: dread-visage
+  name: Dread Visage
+  description: A face of smoke and old fear hangs in the air.
+  school: illusion
+  tier: 3
+  apCost: 3
+  range: near
+  target: actor
+  check: { skill: spellcasting/illusion, difficulty: hard }
+  effects:
+    - { kind: applyCondition, conditionId: core:frightened, level: 2, note: "spell" }
+  durationMinutes: 10
+  tags: [illusion, fear]
+
+- id: spark-of-truth
+  name: Spark of Truth
+  description: A lie spoken nearby glimmers faintly to the caster.
+  school: illusion
+  tier: 2
+  apCost: 2
+  range: self
+  target: self
+  check: { skill: spellcasting/illusion, difficulty: normal }
+  effects:
+    - { kind: detect, what: "deliberate lies spoken in the scene" }
+  durationMinutes: 30
+  concentration: true
+  tags: [illusion, detection]
+
+- id: ward-line
+  name: Ward Line
+  description: A line drawn on the ground turns aside hostile intent.
+  school: warding
+  tier: 1
+  apCost: 1
+  range: near
+  target: zone
+  check: { skill: spellcasting/warding, difficulty: easy }
+  effects:
+    - { kind: createZoneTag, tag: "warded line" }
+  durationMinutes: 120
+  tags: [warding]
+
+- id: mind-shield
+  name: Mind Shield
+  description: The caster's thoughts close like a fist.
+  school: warding
+  tier: 1
+  apCost: 1
+  range: self
+  target: self
+  check: { skill: spellcasting/warding, difficulty: easy }
+  effects:
+    - { kind: ward, amount: 2 }
+  durationMinutes: 60
+  concentration: true
+  tags: [warding, mind]
+
+- id: turn-aside
+  name: Turn Aside
+  description: A blow slides off an unseen surface.
+  school: warding
+  tier: 2
+  apCost: 2
+  range: touch
+  target: actor
+  check: { skill: spellcasting/warding, difficulty: normal }
+  effects:
+    - { kind: ward, amount: 4 }
+  durationMinutes: 10
+  tags: [warding, protection]
+
+- id: bind-spirit
+  name: Bind Spirit
+  description: A restless spirit is held in place.
+  school: warding
+  tier: 2
+  apCost: 2
+  range: near
+  target: actor
+  check: { skill: spellcasting/warding, difficulty: normal }
+  effects:
+    - { kind: applyCondition, conditionId: core:restrained, note: "warding" }
+  durationMinutes: 10
+  concentration: true
+  tags: [warding, spirit]
+
+- id: guardian-circle
+  name: Guardian Circle
+  description: A ring of pale light marks ground that hostile things will not cross.
+  school: warding
+  tier: 3
+  apCost: 3
+  range: near
+  target: zone
+  check: { skill: spellcasting/warding, difficulty: hard }
+  effects:
+    - { kind: createZoneTag, tag: "guardian circle" }
+  durationMinutes: 180
+  concentration: true
+  tags: [warding]
+
+- id: seal-wound
+  name: Seal Wound
+  description: A barrier of will closes over torn flesh.
+  school: warding
+  tier: 3
+  apCost: 3
+  range: touch
+  target: actor
+  check: { skill: spellcasting/warding, difficulty: hard }
+  effects:
+    - { kind: ward, amount: 6 }
+    - { kind: heal, amount: 2 }
+  durationMinutes: 10
+  tags: [warding, healing]
+
+- id: call-beast
+  name: Call Beast
+  description: A beast from the surrounding country answers the call.
+  school: elemental
+  tier: 3
+  apCost: 3
+  range: near
+  target: zone
+  check: { skill: spellcasting/elemental, difficulty: hard }
+  effects:
+    - { kind: summon, creatureId: fantasy-core:wolf }
+  durationMinutes: 60
+  concentration: true
+  tags: [summon, beast]

@@ -133,6 +133,23 @@ export const GameView = z.object({
     .object({ reason: z.literal("death"), obituary: z.string() })
     .nullable()
     .default(null),
+  /** Known spells from the frozen pack (spec 05, the spellcasting plugin). */
+  spells: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        school: z.string(),
+        tier: z.number().int(),
+        apCost: z.number().int(),
+        range: z.string(),
+        target: z.string(),
+        strain: z.number().int(),
+        concentration: z.boolean().default(false),
+        description: z.string().default(""),
+      }),
+    )
+    .default([]),
 });
 export type GameView = z.infer<typeof GameView>;
 export type WebTurn = z.infer<typeof WebTurn>;

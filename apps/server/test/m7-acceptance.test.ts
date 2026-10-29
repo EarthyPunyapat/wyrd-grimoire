@@ -2,12 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  type BaseCampaignPreset,
-  CampaignSettingsView,
-  GameView,
-  presetSubsystems,
-} from "@wyrd/core";
+import { type BaseCampaignPreset, CampaignSettingsView, GameView, presetSubsystems } from "@wyrd/core";
 import { createApp } from "../src/app.ts";
 
 const homes: string[] = [];
@@ -38,12 +33,7 @@ async function login(server: Server) {
   return setup.headers.get("set-cookie")!.split(";")[0]!;
 }
 
-async function quickStart(
-  server: Server,
-  cookie: string,
-  name: string,
-  extra: Record<string, unknown> = {},
-) {
+async function quickStart(server: Server, cookie: string, name: string, extra: Record<string, unknown> = {}) {
   const made = await request(
     server,
     "/campaigns/quick-start",
@@ -55,7 +45,9 @@ async function quickStart(
 }
 
 async function settings(server: Server, cookie: string, id: string) {
-  return CampaignSettingsView.parse(await (await request(server, `/campaigns/${id}/settings`, undefined, cookie)).json());
+  return CampaignSettingsView.parse(
+    await (await request(server, `/campaigns/${id}/settings`, undefined, cookie)).json(),
+  );
 }
 
 async function playTurn(server: Server, cookie: string, id: string, input: string, n: number) {
@@ -141,6 +133,12 @@ test("locked settings are refused by the API and listed for greying out", async 
     expect(await refused.json()).toMatchObject({ path });
   }
   // Comfort settings still change.
-  const ok = await request(server, `/campaigns/${id}/settings`, { narration: { showMath: false } }, cookie, "PATCH");
+  const ok = await request(
+    server,
+    `/campaigns/${id}/settings`,
+    { narration: { showMath: false } },
+    cookie,
+    "PATCH",
+  );
   expect(ok.status).toBe(200);
 });

@@ -78,7 +78,7 @@ describe("validatePlan", () => {
     expect(r.planErrors?.map((e) => [e.actionIndex, e.code])).toEqual([
       [1, "TARGET_NOT_PRESENT"],
       [2, "ALREADY_THERE"],
-      [3, "ACTION_NOT_AVAILABLE"],
+      [3, "SPELLS_UNAVAILABLE"],
       [4, "SKILL_UNKNOWN"],
     ]);
   });

@@ -3,6 +3,7 @@ import { DiceBadge, skillDisplay } from "./Dice.tsx";
 
 export function Sheet({ view }: { view: GameView }) {
   const { pc } = view;
+  const spells = view.spells ?? [];
   return (
     <div className="sheet-content">
       <div className="eyebrow">YOUR CHARACTER</div>
@@ -62,6 +63,22 @@ export function Sheet({ view }: { view: GameView }) {
           <p className="muted small">Add each modifier to a d20 and beat the check's DC.</p>
         )}
       </div>
+      {spells.length > 0 && (
+        <div className="sheet-section">
+          <h3>Spells</h3>
+          <ul className="spells">
+            {spells.map((spell) => (
+              <li key={spell.id}>
+                <strong>{spell.name}</strong>{" "}
+                <span className="muted small">
+                  {spell.school} {spell.tier} · {spell.apCost} AP · {spell.range} · {spell.strain} strain
+                </span>
+                {spell.description && <p className="muted small">{spell.description}</p>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="sheet-section">
         <h3>Wounds & conditions</h3>
         {!pc.status.conditions.length && !pc.status.wounds.length ? (

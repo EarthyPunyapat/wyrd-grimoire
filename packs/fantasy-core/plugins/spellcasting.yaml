@@ -1,0 +1,6 @@
+# The spellcasting plugin (spec 05). Spells live in ../spells.yaml; this file carries the
+# pack-level choices the engine reads when it loads the plugin.
+enabled: true
+schools: [elemental, healing, illusion, warding]
+# Every school is a field of the pack's `spellcasting` skill.
+skill: spellcasting

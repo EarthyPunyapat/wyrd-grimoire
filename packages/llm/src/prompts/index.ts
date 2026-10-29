@@ -28,7 +28,7 @@ Rules for actions:
 - In a fight, map free text onto combat actions in order: "kick the table over, duck behind it, shoot the archer" is a stunt (createCover on the table), takeCover, then strike the archer. Use only the combat actions listed, the IDs shown, and fit the plan in the AP left; anything with no matching effect is a stunt whose description says what the player wanted.
 - If an earlier attempt was rejected, fix exactly what the engine's errors say, using its legal alternatives where they fit.`;
 
-export const EXPLORATION_RULES_DIGEST = `Mode: exploration. Available actions:
+export const EXPLORATION_RULES_DIGEST = `Mode: exploration. Available actions (a cast names a spell id from the known spells list and its targets):
 - check { skill, goal, proposedDifficulty, reason, targetId? }: an uncertain task. skill is a skill ID (core:stealth) or an attribute (str, agi, end, int, awa, wil, pre).
 - examine { targetId? | area? }: look at something; no roll.
 - search { targetId? | area? }: search carefully; Perception check, about 10 minutes; light matters.
@@ -39,6 +39,7 @@ export const EXPLORATION_RULES_DIGEST = `Mode: exploration. Available actions:
 - strike { targetId }: attack someone. This starts a fight.
 - travel { toSiteId, pace }: journey to another site along a listed road (careful, normal or fast). Takes hours or days.
 - recruit { targetId, reason }: ask someone present to join the party, with a one-sentence reason they'd come. The engine refuses unless they're willing (they like the player enough, share a bond, or a quest calls for it).
+- cast { spell, targetIds }: cast a spell from the known spells list. The engine checks AP, range, the school check and the effects; a miscast is possible on a critical failure. Do not invent spells or effects.
 Companions: when the player tells a companion to do something ("Mira, pick the lock"), set actorId to that companion's ID and plan their actions.
 Checks: d100 roll-under (or d20, per campaign). Degrees: critical success, success, failure, critical failure. Difficulty shifts the target: easy +20, normal 0, hard −20, extreme −40.`;
 

@@ -574,6 +574,24 @@ export function createApp(options: Options) {
         pc,
         speakers,
         resolution,
+        spells: Object.values(gamePack.spells ?? {})
+          .filter((spell) => {
+            const known = (state.flags.spellcasting as { known?: Record<string, string[]> } | undefined)
+              ?.known?.[pc.id];
+            return !known || known.includes(spell.id);
+          })
+          .map((spell) => ({
+            id: spell.id,
+            name: spell.name,
+            school: spell.school,
+            tier: spell.tier,
+            apCost: spell.apCost,
+            range: spell.range,
+            target: spell.target,
+            strain: spell.strain ?? defaultTuning.spellcasting.strainByTier[spell.tier],
+            concentration: spell.concentration,
+            description: spell.description,
+          })),
         skills: Object.keys(pc.skills).map((id) => {
           const value = skillValue(pc, id, skills, defaultTuning);
           return {

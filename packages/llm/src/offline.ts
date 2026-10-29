@@ -39,6 +39,14 @@ function listed(ctx: string, prefix: string): Array<{ id: string; name: string }
   return out;
 }
 
+/** `Name [spell:id] (tier …)` lines the parser prompt lists for spellcasting. */
+function spellsListed(ctx: string): Array<{ id: string; name: string }> {
+  const out: Array<{ id: string; name: string }> = [];
+  for (const m of ctx.matchAll(/^- (.+?) \[([a-z0-9-]+:[a-z0-9-]+)\] \(tier /gm))
+    out.push({ id: m[2]!, name: m[1]!.trim() });
+  return out;
+}
+
 function parse(r: GenerateRequest): FakeReply {
   const ctx = context(r);
   const input = (/## This turn\n\n(?:[\s\S]*?\n)?Player: (.*)/.exec(ctx)?.[1] ?? "").trim();
@@ -63,6 +71,13 @@ function parse(r: GenerateRequest): FakeReply {
       return act([
         { type: "recruit", targetId: who.id, reason: `Asked to come along: ${input}`.slice(0, 300) },
       ]);
+  }
+  if (!inCombat && /\b(cast|spell)\b/.test(lower)) {
+    const spell = spellsListed(ctx).find((s) => lower.includes(s.name.toLowerCase()));
+    if (spell) {
+      const who = find("npc:");
+      return act([{ type: "cast", spell: spell.id, targetIds: who ? [who.id] : [] }]);
+    }
   }
   if (!inCombat && ATTACK.test(lower)) {
     const who = find("npc:");

@@ -15,8 +15,10 @@ import {
   type ResolvedStep,
   type SceneInput,
   SceneState,
+  type SpellDef,
 } from "@wyrd/core";
 import { resolveCheck, resolveOpposedCheck } from "./checks.ts";
+import { castSpell } from "./plugins/spellcasting.ts";
 import { isSuccess } from "./resolution/index.ts";
 import { fail, ok, type Result } from "./result.ts";
 import { lookupSkill } from "./skills.ts";
@@ -38,6 +40,10 @@ export type ExplorationContext = RulesContext & {
   minutes?: Partial<Record<ExplorationAction["type"], number>>;
   /** Canon lookups for travel between sites (spec 06); missing = no travel here. */
   travel?: TravelLookups;
+  /** Pack spells, for the cast action (spec 05); missing = no magic here. */
+  spells?: Record<string, SpellDef>;
+  /** Creature name by namespaced id, for summons. */
+  creatureName?: (id: string) => string | undefined;
 };
 
 export type TravelLookups = {
@@ -78,6 +84,7 @@ const DEFAULT_MINUTES: Record<ExplorationAction["type"], number> = {
   strike: 0,
   travel: 0,
   recruit: 1,
+  cast: 1,
 };
 
 /** Difficulty range the parser may propose for a free-form check; harder steps need rule tables. */
@@ -316,6 +323,18 @@ function validateOne(
         return err("TARGET_NOT_PRESENT", `${a.targetId} isn't here to attack`, lookAround);
       if (a.targetId === actorId) return err("TARGET_SELF", "You can't attack yourself");
       return null;
+    case "cast": {
+      if (!ctx.spells) return err("SPELLS_UNAVAILABLE", "There is no magic here");
+      const def = ctx.spells[a.spell];
+      if (!def) return err("SPELL_UNKNOWN", `No spell called ${a.spell}`);
+      if (def.target === "actor") {
+        const target = a.targetIds[0];
+        if (!target) return err("TARGET_REQUIRED", `${def.name} needs a target`, lookAround);
+        if (!present(scene, target))
+          return err("TARGET_NOT_PRESENT", `${ctx.nameOf(target)} isn't here`, lookAround);
+      }
+      return null;
+    }
     case "recruit": {
       if (!present(scene, a.targetId))
         return err("TARGET_NOT_PRESENT", `${a.targetId} isn't here to ask`, lookAround);
@@ -531,6 +550,22 @@ export function resolvePlan(
         );
         if (!r.ok) return r;
         stoppedAt = index + 1 < plan.actions.length ? index + 1 : undefined;
+        break;
+      }
+      case "cast": {
+        const r = castSpell(
+          w.state,
+          plan.actorId,
+          { spellId: action.spell, targetIds: action.targetIds },
+          ctx as typeof ctx & { spells: Record<string, SpellDef> },
+        );
+        if (!r.ok) return r;
+        w.apply(r.value);
+        minutes += minutesFor("cast");
+        const cast = r.value.find((e) => e.type === "SpellCast");
+        const summary =
+          cast?.type === "SpellCast" ? cast.payload.summary : `${ctx.nameOf(plan.actorId)} casts a spell.`;
+        step(cast?.type === "SpellCast" ? (cast.payload.degree ?? "done") : "done", summary);
         break;
       }
       case "recruit": {

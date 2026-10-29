@@ -18,6 +18,7 @@ import {
   PregenDef,
   RecipeDef as RecipeSchema,
   SkillDef,
+  SpellDef as SpellSchema,
   stableStringify,
   TalentDef,
   WeaponDef,
@@ -40,7 +41,7 @@ export type PackIssue = {
 export type LoadResult = { pack: CompiledPack | null; issues: PackIssue[] };
 
 /** Plugins that exist in this build. Spellcasting lands in M7; until then packs may list none. */
-export const KNOWN_PLUGINS: ReadonlySet<string> = new Set();
+export const KNOWN_PLUGINS: ReadonlySet<string> = new Set(["spellcasting"]);
 
 const CONTENT_FILES = {
   skills: { file: "skills.yaml", schema: SkillDef },
@@ -55,6 +56,7 @@ const CONTENT_FILES = {
   gear: { file: "items/gear.yaml", schema: GearDef },
   creatures: { file: "creatures.yaml", schema: CreatureDef },
   recipes: { file: "recipes.yaml", schema: RecipeSchema },
+  spells: { file: "spells.yaml", schema: SpellSchema },
 } as const;
 
 type Kind = keyof typeof CONTENT_FILES;
@@ -452,6 +454,13 @@ export function loadPack(dir: string): LoadResult {
     }
   }
 
+  for (const spell of Object.values(content.spells)) {
+    if (!spell.check) continue;
+    const resolved = resolveSkill(spell.check.skill);
+    if (!resolved) badRef(spell.id, "check.skill", "Skill", spell.check.skill);
+    spell.check.skill = resolved ?? spell.check.skill;
+  }
+
   const body: Omit<CompiledPack, "hash"> = {
     manifest,
     tone,
@@ -464,6 +473,7 @@ export function loadPack(dir: string): LoadResult {
     pregens: content.pregens,
     creatures: content.creatures,
     recipes: content.recipes,
+    spells: content.spells,
     ...(economy ? { economy } : {}),
     items: { weapons: content.weapons, armor: content.armor, gear: content.gear },
   };

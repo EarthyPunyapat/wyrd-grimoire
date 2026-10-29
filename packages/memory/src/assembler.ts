@@ -56,6 +56,8 @@ export type TurnInputs = {
   combat?: string;
   /** Exploration: the roads from the current site (spec 06 travel). */
   travel?: string;
+  /** Parser: spells the caster knows (spec 05). */
+  spells?: string;
 };
 
 export type Section = { n: number; title: string; text: string };
@@ -255,6 +257,7 @@ export function assemble(o: AssembleOptions): AssembledPrompt {
   const thisTurn = [
     ...(o.turn.combat ? ["The fight:", o.turn.combat] : []),
     ...(o.turn.travel ? [o.turn.travel] : []),
+    ...(o.turn.spells ? [o.turn.spells] : []),
     `Player: ${o.turn.input}`,
   ];
   if (o.turn.resolution) {

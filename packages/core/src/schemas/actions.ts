@@ -56,6 +56,14 @@ export const TravelAction = z.object({
   pace: z.enum(["careful", "normal", "fast"]).default("normal"),
 });
 
+/** Cast a known spell (spec 05, the spellcasting plugin); the engine validates AP, range and effects. */
+export const CastAction = z.object({
+  type: z.literal("cast"),
+  /** The spell's namespaced id, from the pack's spell list. */
+  spell: Id,
+  targetIds: z.array(Id).max(4).default([]),
+});
+
 /** Ask someone present to join the party (spec 04 recruiting); the engine checks they're willing. */
 export const RecruitAction = z.object({
   type: z.literal("recruit"),
@@ -76,12 +84,13 @@ export const ExplorationAction = z.discriminatedUnion("type", [
   StrikeAction,
   TravelAction,
   RecruitAction,
+  CastAction,
 ]);
 export type ExplorationAction = z.infer<typeof ExplorationAction>;
 export type ExplorationActionInput = z.input<typeof ExplorationAction>;
 
 export const ACTIONS_BY_MODE = {
-  exploration: ["check", "examine", "search", "interact", "move", "wait", "talk", "strike", "travel"],
+  exploration: ["check", "examine", "search", "interact", "move", "wait", "talk", "strike", "travel", "cast"],
   combat: COMBAT_ACTION_TYPES,
 } as const;
 

@@ -348,6 +348,17 @@ export type Tuning = {
     /** Time detail: shop and archetype hours, by archetype name. */
     schedules: Record<string, ScheduleEntry>;
   };
+  /** Spellcasting (spec 05): strain by tier, miscast consequences and default condition lengths. */
+  spellcasting: {
+    /** HP strain paid for casting a spell of each tier. */
+    strainByTier: Record<1 | 2 | 3, number>;
+    /** Damage a miscast deals before the school's wild effect. */
+    miscastDamage: number;
+    /** Condition a miscast leaves behind (Exhausted, usually). */
+    miscastCondition: string;
+    /** Default minutes a cast condition lasts. */
+    conditionMinutes: number;
+  };
   snapshotEvery: number;
 };
 
@@ -827,6 +838,12 @@ export const defaultTuning: Tuning = {
       smith: { archetype: "smith", openHour: 7, closeHour: 17, note: "works by daylight" },
       priest: { archetype: "priest", openHour: 6, closeHour: 20, note: "keeps the temple" },
     },
+  },
+  spellcasting: {
+    strainByTier: { 1: 1, 2: 2, 3: 4 },
+    miscastDamage: 2,
+    miscastCondition: "core:exhausted",
+    conditionMinutes: 10,
   },
   snapshotEvery: 200,
 };
