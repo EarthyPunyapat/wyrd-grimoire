@@ -126,6 +126,18 @@ export class AppStore {
       c.updatedAt,
     ]);
   }
+  removeCampaign(id: string): void {
+    this.db.transaction(() => {
+      this.db.run(
+        "DELETE FROM turn_stream WHERE job_id IN (SELECT id FROM turn_requests WHERE campaign_id = ?)",
+        [id],
+      );
+      this.db.run("DELETE FROM turn_requests WHERE campaign_id = ?", [id]);
+      this.db.run("DELETE FROM web_campaigns WHERE id = ?", [id]);
+      this.db.run("DELETE FROM settings WHERE key = ?", [`notes:${id}`]);
+    })();
+  }
+
   touchCampaign(id: string): void {
     this.db.run("UPDATE web_campaigns SET updated_at = ? WHERE id = ?", [new Date().toISOString(), id]);
   }

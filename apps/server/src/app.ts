@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   type CampaignPreset,
@@ -281,6 +281,22 @@ export function createApp(options: Options) {
     return opened;
   }
   app.get("/api/campaigns", (c) => c.json(store.campaigns()));
+
+  app.delete("/api/campaigns/:id", (c) => {
+    const id = c.req.param("id");
+    const entry = store.campaigns().find((row) => row.id === id);
+    if (!entry) throw new HTTPException(404, { message: "Campaign not found" });
+    if (store.running(id))
+      throw new HTTPException(409, { message: "A turn is running. Wait for it to finish, then delete." });
+    const open = campaigns.get(id);
+    if (open) {
+      open.close();
+      campaigns.delete(id);
+    }
+    rmSync(join(options.home, "campaigns", id), { recursive: true, force: true });
+    store.removeCampaign(id);
+    return c.body(null, 204);
+  });
   app.get("/api/packs", (c) =>
     c.json({
       archetypes: Object.values(content.archetypes).map((a) => ({ id: a.id.split(":")[1], name: a.name })),
@@ -288,43 +304,111 @@ export function createApp(options: Options) {
     }),
   );
   let generating = false;
+  type DraftStep = { key: string; label: string; status: "pending" | "running" | "done" | "failed" };
+  const DRAFT_STEPS: DraftStep[] = [
+    { key: "read", label: "Reading your description", status: "pending" },
+    { key: "world", label: "Generating the setting and opening scene", status: "pending" },
+    { key: "bible", label: "Building the wider world", status: "pending" },
+    { key: "validate", label: "Checking places, people and rules", status: "pending" },
+    { key: "save", label: "Saving your draft", status: "pending" },
+  ];
+  /** One place for world-draft generation, shared by the JSON and streamed routes. */
+  async function buildWorldDraft(
+    input: WorldPitch,
+    onProgress?: (steps: DraftStep[]) => Promise<void> | void,
+  ) {
+    const steps = DRAFT_STEPS.map((s) => ({ ...s }));
+    const mark = async (key: string, status: DraftStep["status"]) => {
+      const step = steps.find((s) => s.key === key);
+      if (step) step.status = status;
+      if (onProgress) await onProgress(steps.map((s) => ({ ...s })));
+    };
+    await mark("read", "done");
+    await mark("world", "running");
+    const offline = options.offline && !options.router;
+    if (!offline) {
+      // A missing worldGen route is the most common cause of the generic failure; say so plainly.
+      try {
+        models.router().route("worldGen");
+      } catch {
+        throw new HTTPException(422, {
+          message:
+            "World generation has no model assigned. Open Settings → Models and choose a model for world generation.",
+        });
+      }
+    }
+    const proposal = offline ? EXAMPLE_WORLD : await generateWorld(models.router(), input);
+    await mark("world", "done");
+    await mark("bible", "running");
+    const bibleInput = {
+      pitch: input.pitch,
+      worldName: proposal.worldName,
+      premise: proposal.premise,
+      opening: proposal.location.opening,
+      storyMode: "threatClock" as const,
+    };
+    const taken = [
+      proposal.worldName,
+      proposal.location.name,
+      ...proposal.location.people.map((p) => p.name),
+    ];
+    // The wider world is optional: if it can't be generated, the campaign starts as a single site (D93).
+    const bible = options.offline
+      ? offlineBible({ worldName: proposal.worldName, openingSite: proposal.location.name, threat: true })
+      : await generateWorldBible(models.router(), bibleInput, taken).catch(() => undefined);
+    await mark("bible", "done");
+    await mark("validate", "running");
+    const { pack } = compileGeneratedWorld(proposal);
+    const id = randomUUID();
+    const preview = generatedWorldPreview(id, input.name, proposal, pack, offline);
+    await mark("validate", "done");
+    await mark("save", "running");
+    store.saveCreationDraft(id, { input, proposal, ...(bible ? { bible } : {}), offline });
+    await mark("save", "done");
+    return preview;
+  }
   app.post("/api/world-drafts", async (c) => {
     const input = await body(c, WorldPitch);
     if (generating)
       throw new HTTPException(409, { message: "A world is already being generated. Please wait." });
     generating = true;
     try {
-      const offline = options.offline && !options.router;
-      const proposal = offline ? EXAMPLE_WORLD : await generateWorld(models.router(), input);
-      const { pack } = compileGeneratedWorld(proposal);
-      const bibleInput = {
-        pitch: input.pitch,
-        worldName: proposal.worldName,
-        premise: proposal.premise,
-        opening: proposal.location.opening,
-        storyMode: "threatClock" as const,
-      };
-      const taken = [
-        proposal.worldName,
-        proposal.location.name,
-        ...proposal.location.people.map((p) => p.name),
-      ];
-      // The wider world is optional: if it can't be generated, the campaign starts as a single site (D93).
-      const bible = options.offline
-        ? offlineBible({ worldName: proposal.worldName, openingSite: proposal.location.name, threat: true })
-        : await generateWorldBible(models.router(), bibleInput, taken).catch(() => undefined);
-      const id = randomUUID();
-      store.saveCreationDraft(id, { input, proposal, ...(bible ? { bible } : {}), offline });
-      return c.json(generatedWorldPreview(id, input.name, proposal, pack, offline), 201);
+      return c.json(await buildWorldDraft(input), 201);
     } catch (error) {
       if (error instanceof HTTPException) throw error;
+      console.error("[world-draft]", error);
       throw new HTTPException(502, {
-        message:
-          "The world could not be generated or validated. Your description is still here; try again or check model settings.",
+        message: `The world could not be generated or validated. ${draftErrorDetail(error)}`,
       });
     } finally {
       generating = false;
     }
+  });
+  /** Streamed generation: real progress steps and a precise failure instead of a generic message. */
+  app.post("/api/world-drafts/stream", async (c) => {
+    const input = await body(c, WorldPitch);
+    if (generating)
+      throw new HTTPException(409, { message: "A world is already being generated. Please wait." });
+    generating = true;
+    return streamSSE(c, async (stream) => {
+      try {
+        const preview = await buildWorldDraft(input, async (steps) => {
+          await stream.writeSSE({ event: "progress", data: JSON.stringify({ steps }) });
+        });
+        await stream.writeSSE({ event: "done", data: JSON.stringify(preview) });
+      } catch (error) {
+        console.error("[world-draft]", error);
+        await stream.writeSSE({
+          event: "failed",
+          data: JSON.stringify({
+            message: "The world could not be generated or validated.",
+            detail: draftErrorDetail(error),
+          }),
+        });
+      } finally {
+        generating = false;
+      }
+    });
   });
   const starting = new Set<string>();
   app.post("/api/campaigns", async (c) => {
@@ -1077,6 +1161,15 @@ export function createApp(options: Options) {
       }
     });
   });
+  function draftErrorDetail(error: unknown): string {
+    if (error instanceof HTTPException) return error.message;
+    if (error instanceof Error) {
+      const provider = (error as { provider?: string }).provider;
+      return `${error.message}${provider ? ` (${provider})` : ""}`;
+    }
+    return String(error);
+  }
+
   app.onError((error, c) =>
     c.json(
       { error: error instanceof HTTPException ? error.message : "The request could not be completed" },

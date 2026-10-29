@@ -193,3 +193,38 @@ test("the starting shop trades and haggles through the API", async () => {
   const haggled = await request(server, `/campaigns/${id}/shop/haggle`, {}, cookie);
   expect(haggled.status).toBe(200);
 });
+
+test("a campaign can be deleted from the home screen API", async () => {
+  const server = setup();
+  const cookie = await login(server);
+  const id = await quickStart(server, cookie, "Delete Me");
+  const before = (await (await request(server, "/campaigns", undefined, cookie)).json()) as Array<{
+    id: string;
+  }>;
+  expect(before.some((c) => c.id === id)).toBe(true);
+  const removed = await request(server, `/campaigns/${id}`, undefined, cookie, "DELETE");
+  expect(removed.status).toBe(204);
+  const after = (await (await request(server, "/campaigns", undefined, cookie)).json()) as Array<{
+    id: string;
+  }>;
+  expect(after.some((c) => c.id === id)).toBe(false);
+  expect((await request(server, `/campaigns/${id}/view`, undefined, cookie)).status).toBe(404);
+});
+
+test("world generation streams real progress steps and the finished draft", async () => {
+  const server = setup();
+  const cookie = await login(server);
+  const response = await request(
+    server,
+    "/world-drafts/stream",
+    { name: "Streamed World", pitch: "A rain-soaked river town with a secret beneath the mill." },
+    cookie,
+  );
+  expect(response.status).toBe(200);
+  const text = await response.text();
+  expect(text).toContain("event: progress");
+  expect(text).toContain('"status":"running"');
+  expect(text).toContain('"status":"done"');
+  expect(text).toContain("event: done");
+  expect(text).toContain('"worldName"');
+});

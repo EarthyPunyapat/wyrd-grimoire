@@ -22,6 +22,27 @@ export function App() {
   const refreshCards = useCallback(async () => {
     setCards(await api("/campaigns", CampaignCard.array().parse));
   }, []);
+  const removeCampaign = useCallback(
+    async (card: CampaignCard) => {
+      if (
+        !window.confirm(
+          `Delete “${card.name}”? Its event log, saves and backups on this server will be removed. This cannot be undone.`,
+        )
+      )
+        return;
+      setLoading(true);
+      setError("");
+      try {
+        await api(`/campaigns/${card.id}`, () => undefined, undefined, "DELETE");
+        await refreshCards();
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [refreshCards],
+  );
   const openCampaign = useCallback(async (id: string) => {
     setLoading(true);
     setError("");
@@ -130,24 +151,34 @@ export function App() {
           {cards.length ? (
             <div className="campaign-list">
               {cards.map((card) => (
-                <button
-                  type="button"
-                  className="campaign-card"
-                  key={card.id}
-                  disabled={loading}
-                  onClick={() => void openCampaign(card.id)}
-                >
-                  <span className="card-sigil" aria-hidden="true">
-                    ᚹ
-                  </span>
-                  <span>
-                    <strong>{card.name}</strong>
-                    <span>{card.characterName}</span>
-                  </span>
-                  <span className="card-arrow" aria-hidden="true">
-                    ↗
-                  </span>
-                </button>
+                <div className="campaign-row" key={card.id}>
+                  <button
+                    type="button"
+                    className="campaign-card"
+                    disabled={loading}
+                    onClick={() => void openCampaign(card.id)}
+                  >
+                    <span className="card-sigil" aria-hidden="true">
+                      ᚹ
+                    </span>
+                    <span>
+                      <strong>{card.name}</strong>
+                      <span>{card.characterName}</span>
+                    </span>
+                    <span className="card-arrow" aria-hidden="true">
+                      ↗
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="campaign-delete"
+                    disabled={loading}
+                    aria-label={`Delete ${card.name}`}
+                    onClick={() => void removeCampaign(card)}
+                  >
+                    Delete
+                  </button>
+                </div>
               ))}
             </div>
           ) : (

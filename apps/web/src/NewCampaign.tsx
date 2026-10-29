@@ -8,8 +8,8 @@ import {
   type SuggestField,
   WorldPitch,
 } from "@wyrd/core";
-import { useState } from "react";
-import { api } from "./api.ts";
+import { useEffect, useState } from "react";
+import { api, streamApi } from "./api.ts";
 import { Interview } from "./Interview.tsx";
 import { type Section, SheetEditor, withArchetype } from "./SheetEditor.tsx";
 import { useCreation } from "./use-creation.ts";
@@ -24,23 +24,110 @@ const STEPS: { title: string; sections: Section[] }[] = [
   { title: "Hooks", sections: ["hooks"] },
 ];
 type Mode = "review" | "editor" | "wizard" | "interview";
+type DraftProgressStep = {
+  key: string;
+  label: string;
+  status: "pending" | "running" | "done" | "failed";
+};
+const DRAFT_KEY = "wyrd-new-campaign";
+const INITIAL_STEPS: DraftProgressStep[] = [
+  { key: "read", label: "Reading your description", status: "running" },
+  { key: "world", label: "Generating the setting and opening scene", status: "pending" },
+  { key: "bible", label: "Building the wider world", status: "pending" },
+  { key: "validate", label: "Checking places, people and rules", status: "pending" },
+  { key: "save", label: "Saving your draft", status: "pending" },
+];
+const STEP_ICON: Record<DraftProgressStep["status"], string> = {
+  pending: "○",
+  running: "…",
+  done: "✓",
+  failed: "✗",
+};
+function loadSavedDraft(): Record<string, unknown> | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
 
 export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => void; offline: boolean }) {
-  const [name, setName] = useState("");
-  const [characterName, setCharacterName] = useState("");
-  const [pitch, setPitch] = useState("");
-  const [world, setWorld] = useState<GeneratedWorldPreview>();
-  const [ancestry, setAncestry] = useState("");
-  const [archetype, setArchetype] = useState("");
+  const [saved] = useState(loadSavedDraft);
+  const restoredWorld = saved?.world ? GeneratedWorldPreview.safeParse(saved.world) : null;
+  const [name, setName] = useState(typeof saved?.name === "string" ? saved.name : "");
+  const [characterName, setCharacterName] = useState(
+    typeof saved?.characterName === "string" ? saved.characterName : "",
+  );
+  const [pitch, setPitch] = useState(typeof saved?.pitch === "string" ? saved.pitch : "");
+  const [world, setWorld] = useState<GeneratedWorldPreview | undefined>(
+    restoredWorld?.success ? restoredWorld.data : undefined,
+  );
+  const [ancestry, setAncestry] = useState(typeof saved?.ancestry === "string" ? saved.ancestry : "");
+  const [archetype, setArchetype] = useState(typeof saved?.archetype === "string" ? saved.archetype : "");
   const [error, setError] = useState("");
+  const [detail, setDetail] = useState("");
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState<Mode>("review");
-  const [progression, setProgression] = useState<CampaignSettings["structural"]["progression"]>("classless");
-  const [preset, setPreset] = useState<CampaignPreset>("standard");
-  const [storyMode, setStoryMode] = useState<"threatClock" | "livingWorld">("threatClock");
-  const [resolution, setResolution] = useState<"d100" | "d20">("d100");
-  const [hardcore, setHardcore] = useState(false);
-  const [step, setStep] = useState(0);
+  const [mode, setMode] = useState<Mode>(
+    saved?.mode === "editor" || saved?.mode === "wizard" || saved?.mode === "interview"
+      ? saved.mode
+      : "review",
+  );
+  const [progression, setProgression] = useState<CampaignSettings["structural"]["progression"]>(
+    (saved?.progression as CampaignSettings["structural"]["progression"]) ?? "classless",
+  );
+  const [preset, setPreset] = useState<CampaignPreset>((saved?.preset as CampaignPreset) ?? "standard");
+  const [storyMode, setStoryMode] = useState<"threatClock" | "livingWorld">(
+    saved?.storyMode === "livingWorld" ? "livingWorld" : "threatClock",
+  );
+  const [resolution, setResolution] = useState<"d100" | "d20">(saved?.resolution === "d20" ? "d20" : "d100");
+  const [hardcore, setHardcore] = useState(saved?.hardcore === true);
+  const [step, setStep] = useState(typeof saved?.step === "number" ? saved.step : 0);
+  const [steps, setSteps] = useState<DraftProgressStep[]>(
+    Array.isArray(saved?.steps) ? (saved.steps as DraftProgressStep[]) : [],
+  );
+
+  // Keep the unfinished creation on this device, so closing the dialog or the tab loses nothing.
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({
+          name,
+          characterName,
+          pitch,
+          world,
+          ancestry,
+          archetype,
+          progression,
+          preset,
+          storyMode,
+          resolution,
+          hardcore,
+          mode,
+          step,
+          steps,
+        }),
+      );
+    } catch {
+      // Storage can be full or disabled; creation still works for this visit.
+    }
+  }, [
+    name,
+    characterName,
+    pitch,
+    world,
+    ancestry,
+    archetype,
+    progression,
+    preset,
+    storyMode,
+    resolution,
+    hardcore,
+    mode,
+    step,
+    steps,
+  ]);
   const creation = useCreation(world?.id);
   const editing = mode !== "review";
   const blocked =
@@ -88,11 +175,25 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
         setError("");
         try {
           if (!world) {
-            const draft = await api(
-              "/world-drafts",
-              GeneratedWorldPreview.parse,
+            setSteps(INITIAL_STEPS);
+            setDetail("");
+            const draft = await streamApi(
+              "/world-drafts/stream",
               WorldPitch.parse({ name, characterName, pitch }),
+              GeneratedWorldPreview.parse,
+              (data) => {
+                const next = (data as { steps?: DraftProgressStep[] }).steps;
+                if (next) setSteps(next);
+              },
             );
+            setSteps((current) => current.map((s) => ({ ...s, status: "done" as const })));
+            // Write it even if the dialog was closed mid-generation, so reopening resumes here.
+            try {
+              const previous = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "{}") as Record<string, unknown>;
+              localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...previous, world: draft }));
+            } catch {
+              // Storage unavailable; the in-memory copy still works for this visit.
+            }
             setWorld(draft);
             setAncestry(draft.origins[0]!.id);
             setArchetype(draft.backgrounds[0]!.id);
@@ -111,6 +212,7 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
                 hardcore,
               }),
             );
+            localStorage.removeItem(DRAFT_KEY);
             onCreate(created.id);
           } else {
             const created = await api(
@@ -128,10 +230,15 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
                 hardcore,
               }),
             );
+            localStorage.removeItem(DRAFT_KEY);
             onCreate(created.id);
           }
         } catch (e) {
+          setSteps((current) =>
+            current.map((s) => (s.status === "running" ? { ...s, status: "failed" as const } : s)),
+          );
           setError((e as Error).message);
+          setDetail((e as Error & { detail?: string }).detail ?? "");
         } finally {
           setBusy(false);
         }
@@ -392,21 +499,55 @@ export function NewCampaign({ onCreate, offline }: { onCreate: (id: string) => v
             onClick={() => {
               setWorld(undefined);
               setError("");
+              setDetail("");
+              setMode("review");
+              setSteps([]);
             }}
           >
             Edit adventure description
           </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              localStorage.removeItem(DRAFT_KEY);
+              setWorld(undefined);
+              setName("");
+              setCharacterName("");
+              setPitch("");
+              setAncestry("");
+              setArchetype("");
+              setMode("review");
+              setStep(0);
+              setSteps([]);
+              setError("");
+              setDetail("");
+            }}
+          >
+            Start over
+          </button>
         </section>
       )}
-      {busy && (
-        <p role="status">
-          {world ? "Preparing your campaign…" : "Creating the setting, character options and opening scene…"}
-        </p>
+      {!world && steps.length > 0 && (
+        <ol className="generation-steps" aria-live="polite" aria-label="World generation progress">
+          {steps.map((s) => (
+            <li key={s.key} className={s.status}>
+              <span aria-hidden="true">{STEP_ICON[s.status]}</span> {s.label}
+            </li>
+          ))}
+        </ol>
       )}
+      {busy && world && <p role="status">Preparing your campaign…</p>}
       {error && (
-        <p role="alert" className="error">
-          {error}
-        </p>
+        <div role="alert" className="error">
+          <p>{error}</p>
+          {detail && (
+            <details>
+              <summary>Technical detail</summary>
+              <pre>{detail}</pre>
+            </details>
+          )}
+        </div>
       )}
       {(mode === "review" || mode === "editor") && (
         <button type="submit" className="primary" disabled={busy || blocked}>

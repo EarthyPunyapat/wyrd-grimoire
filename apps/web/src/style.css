@@ -81,7 +81,10 @@ em { font-weight: 400; }
 .empty-campaigns p { color: var(--ink-muted); font-size: .9rem; }
 .empty-campaigns button { border: 0; color: var(--accent); }
 .campaign-list { display: grid; }
-.campaign-card { display: flex; align-items: center; gap: 1.5rem; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 1.5rem .75rem; text-align: left; }
+.campaign-row { display: flex; align-items: stretch; border-bottom: 1px solid var(--line); }
+.campaign-card { display: flex; flex: 1; align-items: center; gap: 1.5rem; border: 0; border-radius: 0; padding: 1.5rem .75rem; text-align: left; }
+.campaign-delete { align-self: center; margin-left: .5rem; min-height: 38px; padding: .35rem .7rem; font-size: .75rem; color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
+.campaign-delete:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); border-color: var(--danger); }
 .card-sigil { background: var(--accent-soft); color: var(--accent); width: 64px; height: 76px; display: grid; place-items: center; font-size: 2rem; flex-shrink: 0; }
 .campaign-card strong { display: block; font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; margin-bottom: .4rem; }
 .campaign-card span span { font-size: .8rem; color: var(--ink-muted); }
@@ -455,3 +458,13 @@ progress::-webkit-progress-value { background: var(--accent); }
 .downtime-actions button { min-height: 36px; }
 
 .small-link { min-height: 30px; padding: .15rem .5rem; font-size: .72rem; }
+
+/* World generation progress: real steps instead of one opaque spinner. */
+.generation-steps { list-style: none; padding: .85rem 1rem; margin: .5rem 0 1rem; border: 1px solid var(--line); border-radius: 4px; display: grid; gap: .45rem; font-size: .88rem; }
+.generation-steps li { display: flex; gap: .6rem; align-items: baseline; color: var(--ink-muted); }
+.generation-steps li span { width: 1.1rem; display: inline-block; text-align: center; }
+.generation-steps li.running { color: var(--ink); }
+.generation-steps li.done { color: var(--success); }
+.generation-steps li.failed { color: var(--danger); }
+.generation-steps li.running span { animation: wyrd-pulse 1s ease-in-out infinite; }
+@keyframes wyrd-pulse { 50% { opacity: .35; } }

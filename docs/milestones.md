@@ -106,6 +106,13 @@ Each milestone lists its scope, the spec sections it implements, and acceptance 
 - [x] Living World runs a month of in-game time with visible faction events and news.
 - [x] Locked settings are refused by the API and greyed out in the UI.
 
+## After M8 — UI rework
+
+The owner wants a full UI rework once M8 ships; a dedicated roadmap will be written at that point.
+Recorded asks so far: campaign management (delete, rename, archive), resumable creation and a draft
+library, visible progress for every long job, clearer model/provider errors, and a broader layout,
+mobile and accessibility pass.
+
 ## M8 — Media
 
 **Spec:** [10](spec/10-media.md)
