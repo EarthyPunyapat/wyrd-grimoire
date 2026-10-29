@@ -15,6 +15,8 @@ export type StructuredSpec<T> = {
   maxOutputTokens?: number;
   maxChars?: number;
   repairs?: number;
+  /** Overrides the role's timeout, for a role the caller knows can be slower or faster. */
+  timeoutMs?: number;
 };
 
 /**
@@ -50,6 +52,7 @@ export async function proposeStructured<T>(
           retries: 0,
           maxChars: spec.maxChars ?? 80000,
           maxOutputTokens: spec.maxOutputTokens ?? 16384,
+          ...(spec.timeoutMs ? { timeoutMs: spec.timeoutMs } : {}),
         },
       );
     } catch (error) {

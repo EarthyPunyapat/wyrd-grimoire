@@ -3,15 +3,17 @@ import {
   type Choice,
   defaultTuning,
   draft,
+  Entity,
   type EventDraft,
   type MechanicsLine,
 } from "@wyrd/core";
-import { catalogWith, type GameState, type TurnContext, Working } from "@wyrd/engine";
+import { catalogWith, type GameState, knownEntities, type TurnContext, Working } from "@wyrd/engine";
 import type { AssembledPrompt } from "@wyrd/memory";
-import type { PipelineDeps, TurnInput, TurnResult } from "../pipeline.ts";
+import type { PipelineDeps, TurnInput, TurnResult, TurnStreamEvent } from "../pipeline.ts";
 import { GM_VERSION } from "../prompts/gm.ts";
 import { ROLE_TIMEOUTS_MS } from "../router.ts";
 import type { Message } from "../types.ts";
+import { checkTurn, describeDrafts } from "./check.ts";
 import { executeTool, gmToolDefs } from "./tools.ts";
 
 const GM_PREFIX = /^\/gm\b\s*/i;
@@ -82,7 +84,7 @@ export async function runGmTurn(d: PipelineDeps, t: TurnInput, hooks: GmHooks): 
           ...(d.campaignId ? { campaignId: d.campaignId } : {}),
         },
       );
-    } catch (e) {
+    } catch {
       if (round === 0) {
         emit({ type: "fallback", message: CLASSIC_FALLBACK });
         return hooks.classic(turnId);
@@ -156,7 +158,67 @@ export async function runGmTurn(d: PipelineDeps, t: TurnInput, hooks: GmHooks): 
     }),
   ];
   d.store.append(drafts, { turnId });
+  const check = startCheck(d, {
+    turnId,
+    text,
+    drafts,
+    emit,
+  });
   emit({ type: "narration.final", text, turnId });
   emit({ type: "turn.completed", turnId });
-  return { turnId, status: "resolved", narration: text, mechanics, repairs: 0 };
+  return { turnId, status: "resolved", narration: text, mechanics, repairs: 0, check };
+}
+
+/**
+ * The non-blocking structural check (D144): it runs after the turn is committed and never delays
+ * or fails it. Its findings become a CheckReported record, stub entities for new names, and one
+ * stream event while the turn's job is still open.
+ */
+function startCheck(
+  d: PipelineDeps,
+  o: { turnId: string; text: string; drafts: EventDraft[]; emit: (e: TurnStreamEvent) => void },
+): Promise<void> {
+  if (!d.router.has("check")) return Promise.resolve();
+  return (async () => {
+    const state = d.store.state();
+    const known = [...knownEntities(state)]
+      .map((id) => d.canon.entity(id)?.name)
+      .filter((name): name is string => Boolean(name));
+    const result = await checkTurn(d.router, {
+      prose: o.text,
+      drafts: o.drafts,
+      known,
+      turnId: o.turnId,
+    });
+    const stubs = result.entities.map((e) =>
+      draft(
+        "EntityCreated",
+        {
+          entity: Entity.parse({
+            id: d.newId(),
+            kind: e.kind,
+            name: e.name,
+            detail: "stub",
+          }),
+        },
+        "model",
+      ),
+    );
+    d.store.append(
+      [
+        draft(
+          "CheckReported",
+          {
+            turnId: o.turnId,
+            flags: result.flags,
+            recorded: describeDrafts(o.drafts),
+          },
+          "engine",
+        ),
+        ...stubs,
+      ],
+      { turnId: o.turnId },
+    );
+    if (result.flags.length) o.emit({ type: "check.flag", turnId: o.turnId, flags: result.flags });
+  })().catch(() => undefined);
 }

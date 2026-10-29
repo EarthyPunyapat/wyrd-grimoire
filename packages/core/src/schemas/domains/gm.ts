@@ -25,4 +25,11 @@ export const gmEventSchemas = {
     inverse: z.array(DraftSchema),
   }),
   RetconUndone: z.object({ retconId: z.string().min(1) }),
+  /** The non-blocking structural check's reading of a passage: a record, never game state (D144). */
+  CheckReported: z.object({
+    turnId: z.string().min(1),
+    flags: z.array(z.object({ quote: z.string().min(1), claim: z.string().min(1) })).default([]),
+    /** The changes the turn recorded, as plain lines for the check's prompt and the player. */
+    recorded: z.array(z.string()).default([]),
+  }),
 };

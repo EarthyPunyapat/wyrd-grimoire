@@ -4,9 +4,12 @@ Working notes for whoever picks this up next. Read `AGENTS.md` first, then this 
 
 ## Status (2026-10-29)
 
-**M1–M7 are built.** Every milestone's acceptance check is ticked in `docs/milestones.md`.
-`bun run check` is green: typecheck → lint (warnings only) → **567 tests** → `pack validate
-packs/fantasy-core`. The working branch is `main`.
+**M1–M7 and W2 step 2 are built.** Every milestone's acceptance check is ticked in `docs/milestones.md`.
+The GM-with-tools turn (Tasks 1–8 of `docs/superpowers/plans/2026-10-29-w2-step2-gm-turn.md`) is on
+`w2-gm-ui` and merges to `main`: one GM model runs a turn with engine tools, streams prose, shows
+cards and choices, retcons with Undo, marks a backup model and runs a non-blocking structural check
+with Fix/Dismiss. `bun run check` is green: typecheck → lint (warnings only) → **708 tests** →
+`pack validate packs/fantasy-core`.
 
 Owner-only checks still outstanding (need real hardware or keys):
 
@@ -82,11 +85,16 @@ Owner-only checks still outstanding (need real hardware or keys):
   work (D118).
 - Themes exist for fantasy-core; other packs still use the app default palette (D119).
 - The Playwright e2e suite (`bun run test:e2e`) is not part of `bun run check`; run it separately
-  after UI changes.
+  after UI changes. At this commit it fails 9 axe **colour-contrast** checks and one Codex pin-count
+  locator that were already failing on `main` after the UI 2.0 token merge; they are not GM-turn
+  regressions.
 
 ## Next milestone
 
 **W2 — Wyrd 2.0** (before M8). The owner played M7 and found it lacking next to their own ChatGPT RPG sessions, and a 72-question interview on 2026-10-29 redesigned the game.
+
+Step 2 (the GM-with-tools turn) is done. Next is roadmap step 3: Levels with the ∞ perception scope,
+delegation, the full time skip with a watch list, and wiki `lookup_lore`.
 
 Read these first:
 - the spec: `docs/superpowers/specs/2026-10-29-wyrd-2-design.md`

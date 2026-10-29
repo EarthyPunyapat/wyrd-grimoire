@@ -99,7 +99,8 @@ export type TurnStreamEvent =
   | { type: "progress"; phase: "researching" | "rolling" | "simulating" | "writing"; detail?: string }
   | { type: "card"; card: Card }
   | { type: "choices"; choices: Choice[] }
-  | { type: "model.backup"; provider: string };
+  | { type: "model.backup"; provider: string }
+  | { type: "check.flag"; turnId: string; flags: { quote: string; claim: string }[] };
 
 export type TurnResult = {
   turnId: string;
@@ -111,6 +112,8 @@ export type TurnResult = {
   guard?: GuardSummary;
   /** How many repair attempts the parser needed (0–2). */
   repairs: number;
+  /** The GM turn's non-blocking structural check; tests and shutdown await it, players never do. */
+  check?: Promise<void>;
   error?: string;
 };
 

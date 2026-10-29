@@ -20,6 +20,12 @@ import { worldEventSchemas } from "./world.ts";
  * Payload schemas for every event type the engine knows. Adding an event means adding it here
  * and handling it in the engine reducer; a test asserts the two stay in sync.
  */
+/**
+ * What a finished turn recorded. The event map and the server's view both read this shape, so it is
+ * exported as one schema (the base `TurnCompletedPayload` is the classic subset).
+ */
+export const TurnCompletedEventPayload = TurnCompletedPayload.extend({ gm: GmTurnRecord.optional() });
+
 export const eventPayloadSchemas = {
   CampaignCreated: z.object({
     name: z.string().min(1),
@@ -131,7 +137,7 @@ export const eventPayloadSchemas = {
 
   // Turns: what the player typed, how it resolved, and what was narrated.
   TurnStarted: z.object({ input: z.string(), uiContext: z.record(z.string(), z.unknown()).optional() }),
-  TurnCompleted: TurnCompletedPayload.extend({ gm: GmTurnRecord.optional() }),
+  TurnCompleted: TurnCompletedEventPayload,
   NarrationCommitted: NarrationPayload,
   NarrationRerolled: NarrationPayload,
 

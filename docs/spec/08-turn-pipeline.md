@@ -33,6 +33,31 @@ The engine is always in one mode, which decides the action catalog and which rol
 
 A turn is one database transaction from step 3 to step 8. If narration ultimately fails, the resolution still commits with a plain mechanical summary as the passage, and the player can retry narration.
 
+## The GM turn (Wyrd 2.0, D144)
+
+When the router has a `gm` route, a new turn runs the GM loop instead of parser → narrator → guard. Classic turns still run unchanged (and are the fallback).
+
+```
+1. CONTEXT      the GM prompt: the narrator sections plus "Your state" (items with ids,
+                coins, HP, conditions, quests and companions with ids), the input
+                (a leading /gm is stripped and becomes a retcon instruction)
+2. LOOP         router.complete("gm", …, tools) up to tuning.gm.maxToolRounds (8) rounds;
+                each tool call runs against a working state folded from the turn's drafts,
+                so a later call sees an earlier define/give, and results return as role:"tool"
+3. FINISH       one final no-tools round if the last round still called tools
+4. COMMIT       TurnStarted, the accepted drafts, TurnCompleted{status, mechanics, gm} and
+                NarrationCommitted in one append; narration streams as it is written
+5. CHECK        after the commit, a background `check` call compares the prose with the
+                committed changes; it may add CheckReported (flags + the recorded list) and
+                EntityCreated stubs, and emits check.flag. It never rewrites or fails the turn.
+```
+
+Tools: `roll`, `act`, `change_state`, `retcon`, `lookup_lore`, `observe`, `time_skip`, `show_card`, `offer_choices`. `act` and `roll` wrap `validateTurn`/`resolveTurn`, so exploration, travel, combat, reactions and world ticks are reused. `change_state` and `retcon` emit ordinary events plus `ItemDefined`, `RetconApplied` and `RetconUndone`. Each change is validated independently: an unknown id rejects only that change, with the reason in the tool result.
+
+Only known entities and their public facts reach `lookup_lore`, `observe` or the GM context. A retcon card carries `Undo`, available until the player's next turn; Undo appends the stored inverse events and `RetconUndone`, and a later attempt returns `409 Undo is only available until your next turn`.
+
+If the first GM call fails after every fallback, the turn reruns through the classic pipeline and emits `fallback`. A later-round failure keeps the rounds already committed, marks `gm.backup`, and finishes with the prose so far. Choices follow `narration.choices` (`gm` default): the GM's latest choices become the suggestion chips.
+
 ## Step 2: parse
 
 ### Tools
@@ -155,6 +180,11 @@ See [07-memory.md](07-memory.md#canon-guard). The guard's report also produces t
 | `state.patch` | UI-facing state diff (HP, AP, wounds, inventory, positions) |
 | `narration.delta` | Narration text. In "check before showing" mode this streams the approved text quickly after the guard passes |
 | `narration.final` | Final text with `<say>` markup and the turn ID |
+| `progress` | GM turn phase: researching, rolling, simulating or writing |
+| `card` | One GM card (item, character, status, chapter, roll, retcon, report) |
+| `choices` | The GM's latest offered choices; they also become the suggestion chips |
+| `model.backup` | The GM turn fell back to another model; the passage shows `backup model` |
+| `check.flag` | The background structural check found claims with no recorded change |
 | `guard.flag` | Blocking issue that survived regeneration; UI shows the choice card |
 | `suggestions` | Optional action chips |
 | `media.ready` | A portrait, scene image or audio clip is ready |
@@ -181,6 +211,8 @@ After narration, a cheap call (parser role) proposes 3 short, legal next actions
 | lazy generation | 30 s | 1 | Use a pack-table fallback (generic inn, generic guard) |
 | narrator / npcDialogue | 60 s | 1 | Mechanical summary + retry button |
 | guard | 20 s | 1 | Show narration unguarded with a small "unchecked" marker; queue a background check |
+| gm | 90 s | 1 per round | Fall back to the classic pipeline for the first round; otherwise keep the committed rounds and mark backup |
+| check | 20 s | 0 | Silent: empty flags, the turn stays resolved |
 
 Each role has a **provider fallback chain** ([09](09-models-and-providers.md#fallbacks)). One turn runs at a time per campaign; background jobs never block a turn except lazy generation.
 
@@ -192,7 +224,8 @@ Parse ≤ 3 s · resolve ≤ 50 ms · guard ≤ 4 s · full passage visible ≤ 
 
 | Turn type | Calls |
 |---|---|
-| Exploration / combat | parser (DeepSeek) + narrator (ChatGPT plan) + guard (DeepSeek) |
+| GM turn | 1–9 gm rounds (usually 1–2) + 1 background check |
+| Classic exploration / combat | parser (DeepSeek) + narrator (ChatGPT plan) + guard (DeepSeek) |
 | Dialogue | parser (DeepSeek) + npcDialogue (ChatGPT plan) + guard (DeepSeek) |
 | Background | summarizer per closed scene (DeepSeek), news batch per in-game day when relevant (ChatGPT plan), suggestions (DeepSeek), embeddings (local) |
 
