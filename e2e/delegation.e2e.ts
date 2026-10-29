@@ -40,15 +40,24 @@ test("loyal Ari delegates, speaks and reports; her voice persists without an app
   await page.getByRole("button", { name: "Character", exact: true }).click();
   const party = page.getByRole("dialog");
   await party.getByRole("button", { name: "Ari", exact: true }).click();
+  const companionHeading = party.getByRole("heading", { name: "How Ari feels about you", exact: true });
+  await expect(companionHeading).toHaveCount(1);
   await expect(party.getByRole("meter")).toHaveCount(0);
   await expect(party).toContainText("Loyal");
   await party.getByRole("textbox", { name: "Voice profile", exact: true }).fill("Warm, precise, and wry.");
   await party.getByRole("button", { name: "Save voice profile", exact: true }).click();
-  await expect(party).toContainText("Voice: Warm, precise, and wry.");
+  await expect(party.getByText("Voice: Warm, precise, and wry.", { exact: true })).toBeVisible();
+  await expect(companionHeading).toHaveCount(1);
   await page.screenshot({ path: info.outputPath("ari-party.png"), fullPage: true });
   await party.getByRole("button", { name: "Close status screen" }).click();
   await page.reload();
   await expect(page.getByRole("button", { name: "Delegate to Ari", exact: true })).toBeVisible();
   await expect(page.locator(".gm-card")).toContainText("Completed.");
+  await page.getByRole("button", { name: "Character", exact: true }).click();
+  await party.getByRole("button", { name: "Ari", exact: true }).click();
+  await expect(party.getByText("Voice: Warm, precise, and wry.", { exact: true })).toBeVisible();
+  await expect(party.getByRole("textbox", { name: "Voice profile", exact: true })).toHaveValue(
+    "Warm, precise, and wry.",
+  );
   expect(errors).toEqual([]);
 });

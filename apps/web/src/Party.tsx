@@ -349,6 +349,7 @@ export function Party({
           "PUT",
         ),
       );
+      onChanged();
     } catch (e) {
       setProblem((e as Error).message);
     } finally {
@@ -400,7 +401,7 @@ export function Party({
       )}
       {member?.companion && (
         <CompanionCard
-          key={member.actorId}
+          key={`companion:${member.actorId}`}
           m={member}
           busy={busy}
           onControl={(c, d) => void control(c, d)}
@@ -409,7 +410,7 @@ export function Party({
       )}
       {member && (
         <Advance
-          key={member.actorId}
+          key={`advance:${member.actorId}`}
           m={member}
           busy={busy}
           buy={(k, id) => void buy(k, id)}
