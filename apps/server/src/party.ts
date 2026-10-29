@@ -183,24 +183,28 @@ export async function profileNewCompanions(
     const name = state.actors[c.id]?.sheet.identity.name ?? c.id;
     const entity = canon.entity(c.id);
     const profile = router
-      ? await generateCompanionProfile(router, {
-          world: {
-            name: canon.entity("concept:world-bible")?.name ?? "",
-            premise: canon.entity("concept:world-bible")?.summary ?? "",
+      ? await generateCompanionProfile(
+          router,
+          {
+            world: {
+              name: canon.entity("concept:world-bible")?.name ?? "",
+              premise: canon.entity("concept:world-bible")?.summary ?? "",
+            },
+            companion: {
+              name,
+              summary: entity?.summary ?? "",
+              facts: canon
+                .factsAbout(c.id)
+                .filter((f) => f.visibility === "public")
+                .map(
+                  (f) => `${f.predicate}: ${typeof f.value === "string" ? f.value : JSON.stringify(f.value)}`,
+                )
+                .slice(0, 12),
+            },
+            reason: c.reason,
           },
-          companion: {
-            name,
-            summary: entity?.summary ?? "",
-            facts: canon
-              .factsAbout(c.id)
-              .filter((f) => f.visibility === "public")
-              .map(
-                (f) => `${f.predicate}: ${typeof f.value === "string" ? f.value : JSON.stringify(f.value)}`,
-              )
-              .slice(0, 12),
-          },
-          reason: c.reason,
-        }).catch(() => offlineCompanionProfile(name))
+          state.campaign.settings.content,
+        ).catch(() => offlineCompanionProfile(name))
       : offlineCompanionProfile(name);
     drafts.push(draft("CompanionProfiled", { companionId: c.id, profile }, "engine"));
   }

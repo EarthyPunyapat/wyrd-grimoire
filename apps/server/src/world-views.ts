@@ -262,6 +262,7 @@ export function mountWorld(app: Hono<AppEnvironment>, d: Deps) {
     await writeSummaries(game, new CanonQueries(game), d.router(), {
       forceChapter: true,
       gameTime: game.state().campaign.gameTime,
+      content: game.state().campaign.settings.content,
       onClose: (level) =>
         game.append(closeEvents(game.state(), level, creationContent([pack]), defaultTuning)),
     });

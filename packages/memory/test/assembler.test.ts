@@ -154,7 +154,9 @@ describe("context assembler v1", () => {
     );
     expect(a.instructions).toBe(b.instructions);
     expect(a.instructions).toContain("## Role\n\nYou are the narrator.");
-    expect(a.instructions).toContain("Lines (never include, in any form): harm to children.");
+    expect(a.instructions).toContain(
+      "Lines (never appear in any form — not named, described, quoted or implied): harm to children.",
+    );
     expect(a.instructions).toContain("## Tone\n\nGrim and wet.");
   });
 
