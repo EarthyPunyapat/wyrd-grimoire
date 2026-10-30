@@ -120,10 +120,13 @@ export function Play({
     setPanelOpen(null);
     void send(text);
   };
+  // Open a campaign at its latest passage, but leave the reader in control after that.
   useEffect(() => {
-    if (!play.busy) textarea.current?.focus();
     bottom.current?.scrollIntoView({ behavior: "instant", block: "end" });
-  }, [play.busy, view.turns.length]);
+  }, [view.id]);
+  useEffect(() => {
+    if (!play.busy) textarea.current?.focus({ preventScroll: true });
+  }, [play.busy]);
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).closest("input,textarea,select,[role=dialog],[contenteditable=true]"))
