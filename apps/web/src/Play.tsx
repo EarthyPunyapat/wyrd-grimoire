@@ -226,7 +226,10 @@ export function Play({
                     onAcceptLevel={(id) => void play.acceptLevel(id)}
                     onUndo={(id) => void play.undo(id)}
                     {...(turn.id === last?.id
-                      ? { onChoice: (i: number, label: string) => void send(label, i) }
+                      ? {
+                          onChoice: (label: string) => void send(label),
+                          onClarify: (i: number, label: string) => void send(label, i),
+                        }
                       : {})}
                   />
                 ))}

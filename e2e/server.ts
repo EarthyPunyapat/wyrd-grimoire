@@ -112,6 +112,25 @@ const cases = new FakeProvider([
 const levelModel = new FakeProvider([
   {
     role: "gm",
+    match: (r) => r.messages.some((m) => m.role === "user" && m.content.includes("choice workflow")),
+    reply: (r) => {
+      if (!r.messages.some((m) => m.role === "tool"))
+        return {
+          toolCall: {
+            name: "offer_choices",
+            args: {
+              choices: [
+                { label: "Wait by the stove", description: "Let the room come to you." },
+                { label: "Ask about the hatch" },
+              ],
+            },
+          },
+        };
+      return { text: "The room settles. Two paths lie open." };
+    },
+  },
+  {
+    role: "gm",
     match: (r) => r.messages.some((m) => m.role === "user" && m.content.includes("skip workflow")),
     reply: (r) => {
       const count = r.messages.filter((m) => m.role === "tool").length;

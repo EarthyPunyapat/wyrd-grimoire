@@ -179,6 +179,7 @@ export function Passage({
   math,
   onReroll,
   onChoice,
+  onClarify,
   onFix,
   onUndo,
   onAcceptLevel,
@@ -188,7 +189,10 @@ export function Passage({
   busy: boolean;
   math: boolean;
   onReroll: () => void;
-  onChoice?: (index: number, label: string) => void;
+  /** A GM choice is plain input: it carries no option index, so it can't be read as a clarification. */
+  onChoice?: (label: string) => void;
+  /** Answers this turn's clarification by option index. */
+  onClarify?: (option: number, label: string) => void;
   onFix?: (turnId: string) => void;
   onAcceptLevel?: (proposalId: string) => void;
   onUndo?: (retconId: string) => void;
@@ -251,7 +255,7 @@ export function Passage({
                 type="button"
                 key={choice.label}
                 disabled={busy}
-                onClick={() => onChoice(i, choice.label)}
+                onClick={() => onChoice(choice.label)}
               >
                 <kbd>{i + 1}</kbd> {choice.label}
                 {choice.description && <span className="small muted"> — {choice.description}</span>}
@@ -287,7 +291,7 @@ export function Passage({
             The storyteller could not resolve that turn. Please try your action again.
           </p>
         )}
-        {turn.clarification && onChoice && (
+        {turn.clarification && onClarify && (
           <div className="clarification">
             <h3>
               A moment… <DiceBadge resolution={view.resolution} />
@@ -302,7 +306,7 @@ export function Passage({
                   type="button"
                   key={option.label}
                   disabled={busy}
-                  onClick={() => onChoice(i, option.label)}
+                  onClick={() => onClarify(i, option.label)}
                 >
                   <kbd>{i + 1}</kbd> {option.label}
                 </button>
