@@ -83,7 +83,7 @@ test("narrates without tools", async () => {
     promptVersion: string;
   };
   expect(narr.text).toBe("The river slaps the jetty.");
-  expect(narr.promptVersion).toBe("gm@4");
+  expect(narr.promptVersion).toBe("gm@5");
   const order = s.events.map((e) => e.type).filter((t, i, all) => t !== all[i - 1]);
   expect(s.events.filter((e) => e.type === "narration.delta").length).toBeGreaterThan(0);
   expect(order).toEqual(["turn.accepted", "narration.delta", "narration.final", "turn.completed"]);
@@ -234,6 +234,65 @@ test("the gm is told the roads from the current site so travel can be a tool cal
   await s.pipeline.run({ input: "I travel to Greymill." });
   const req = s.fake.calls("gm")[0]!;
   const context = req.messages.map((m) => m.content).join("\n");
+  expect(context).toContain("Map site containing the current scene: Ashford Ferry [site:ferry]");
   expect(context).toContain("Roads (travel { toSiteId, pace }): Greymill [site:mill]");
   expect(req.instructions).toContain("travel");
+});
+
+test("the GM can record an NPC moving into the player's zone", async () => {
+  const s = setup({
+    gm: [
+      script([
+        call("change_state", {
+          changes: [{ kind: "entity.move", entityId: "npc:wenna", toZoneId: "z:common" }],
+        }),
+        { text: "Wenna steps into the common room." },
+      ]),
+    ],
+  });
+  await s.pipeline.run({ input: "I call to Wenna.", onEvent: s.onEvent });
+  expect(fx.store.state().scene?.positions["npc:wenna"]).toBe("z:common");
+  expect(completed(s.since()).gm?.tools[0]?.ok).toBe(true);
+});
+
+test("the GM cannot move the player or an absent entity through the narrative move tool", async () => {
+  const s = setup({
+    gm: [
+      script([
+        call("change_state", {
+          changes: [
+            { kind: "entity.move", entityId: "pc", toZoneId: "z:jetty" },
+            { kind: "entity.move", entityId: "npc:ghost", toZoneId: "z:common" },
+            { kind: "entity.move", entityId: "npc:wenna", toZoneId: "z:missing" },
+          ],
+        }),
+        { text: "Nothing changes." },
+      ]),
+    ],
+  });
+  await s.pipeline.run({ input: "I wait.", onEvent: s.onEvent });
+  expect(fx.store.state().scene?.positions.pc).toBe("z:common");
+  expect(fx.store.state().scene?.positions["npc:ghost"]).toBeUndefined();
+  expect(fx.store.state().scene?.positions["npc:wenna"]).toBe("z:jetty");
+  expect(completed(s.since()).gm?.tools[0]?.ok).toBe(false);
+});
+
+test("undoing an NPC movement retcon restores the original zone", async () => {
+  const s = setup({
+    gm: [
+      script([
+        call("retcon", {
+          summary: "Wenna comes inside",
+          changes: [{ kind: "entity.move", entityId: "npc:wenna", toZoneId: "z:common" }],
+        }),
+        { text: "Wenna enters." },
+      ]),
+    ],
+  });
+  await s.pipeline.run({ input: "/gm Wenna comes inside.", onEvent: s.onEvent });
+  expect(fx.store.state().scene?.positions["npc:wenna"]).toBe("z:common");
+  const event = s.since().find((e) => e.type === "RetconApplied")!;
+  const inverse = (event.payload as { inverse: Parameters<typeof fx.store.append>[0] }).inverse;
+  fx.store.append(inverse);
+  expect(fx.store.state().scene?.positions["npc:wenna"]).toBe("z:jetty");
 });

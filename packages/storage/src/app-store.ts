@@ -384,10 +384,14 @@ export class AppStore {
       .query("SELECT seq, type, data FROM turn_stream WHERE job_id = ? AND seq > ? ORDER BY seq")
       .all(id, after) as { seq: number; type: string; data: string }[];
   }
+  checking(id: string): void {
+    this.db.run("UPDATE turn_requests SET status = 'checking' WHERE id = ?", [id]);
+  }
   finish(id: string): void {
     this.db.run("UPDATE turn_requests SET status = 'done' WHERE id = ?", [id]);
   }
   recover(): void {
+    this.db.run("UPDATE turn_requests SET status = 'done' WHERE status = 'checking'");
     for (const { id } of this.db.query("SELECT id FROM turn_requests WHERE status = 'running'").all() as {
       id: string;
     }[]) {

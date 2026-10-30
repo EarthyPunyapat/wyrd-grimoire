@@ -15,6 +15,7 @@ export type Progress = { phase: "researching" | "rolling" | "simulating" | "writ
 export function usePlay(view: GameView, onView: (view: GameView) => void) {
   const key = `wyrd-pending-${view.id}`;
   const [pending, setPending] = useState<string | null>(() => sessionStorage.getItem(key));
+  const [streamJob, setStreamJob] = useState<string | null>(() => sessionStorage.getItem(key));
   const [sending, setSending] = useState(false);
   const [mechanics, setMechanics] = useState<MechanicsLine[]>([]);
   const [error, setError] = useState("");
@@ -46,9 +47,8 @@ export function usePlay(view: GameView, onView: (view: GameView) => void) {
     return updated;
   }, [view.id, onView]);
   useEffect(() => {
-    if (!pending) return;
-    sessionStorage.setItem(key, pending);
-    const source = new EventSource(`/api/campaigns/${view.id}/turns/${pending}/stream`);
+    if (!streamJob) return;
+    const source = new EventSource(`/api/campaigns/${view.id}/turns/${streamJob}/stream`);
     const eventIds = new Set<string>();
     let completed = false;
     const listener = async (event: Event) => {
@@ -68,7 +68,10 @@ export function usePlay(view: GameView, onView: (view: GameView) => void) {
         if (data.type === "progress") setProgress(data);
         if (data.type === "card") setCards((shown) => [...shown, data.card]);
         if (data.type === "choices") setChoices(data.choices);
-        if (data.type === "check.flag") setCheckFlags(data.flags);
+        if (data.type === "check.flag") {
+          setCheckFlags(data.flags);
+          void refresh().catch(() => undefined);
+        }
         if (data.type === "turn.completed") {
           completed = true;
           sessionStorage.removeItem(key);
@@ -84,6 +87,7 @@ export function usePlay(view: GameView, onView: (view: GameView) => void) {
         }
       } catch {
         source.close();
+        setStreamJob(null);
         setPending(null);
         sessionStorage.removeItem(key);
         setError("The story stream was interrupted. Refresh the story before continuing.");
@@ -91,13 +95,15 @@ export function usePlay(view: GameView, onView: (view: GameView) => void) {
     };
     // The server closes the stream after the turn's job ends, including a late structural check.
     // Keep listening for that check; a broken stream before completion is a reconnect banner.
-    const ended = () => {
+    const ended = (event: Event) => {
+      if (event instanceof MessageEvent) return;
       if (!completed) {
         setReconnecting(true);
         return;
       }
       setReconnecting(false);
       source.close();
+      setStreamJob(null);
       void refresh().catch(() => undefined);
     };
     const types = [
@@ -119,7 +125,7 @@ export function usePlay(view: GameView, onView: (view: GameView) => void) {
     for (const type of types) source.addEventListener(type, listener);
     source.addEventListener("error", ended);
     return () => source.close();
-  }, [pending, key, view.id, refresh]);
+  }, [streamJob, key, view.id, refresh]);
   async function send(text: string, clarification?: { turnId: string; option: number }) {
     if (pending || sending) return false;
     setSending(true);
@@ -142,7 +148,9 @@ export function usePlay(view: GameView, onView: (view: GameView) => void) {
       retry.current = input;
       const accepted = await api(`/campaigns/${view.id}/turns`, AcceptedTurn.parse, input);
       retry.current = null;
+      sessionStorage.setItem(key, accepted.turnId);
       setPending(accepted.turnId);
+      setStreamJob(accepted.turnId);
       return true;
     } catch (e) {
       setError((e as Error).message);
@@ -158,7 +166,9 @@ export function usePlay(view: GameView, onView: (view: GameView) => void) {
     resetLive();
     try {
       const job = await api(`/campaigns/${view.id}/turns/${turnId}/reroll`, AcceptedTurn.parse, {});
+      sessionStorage.setItem(key, job.turnId);
       setPending(job.turnId);
+      setStreamJob(job.turnId);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -173,7 +183,9 @@ export function usePlay(view: GameView, onView: (view: GameView) => void) {
     resetLive();
     try {
       const job = await api(`/campaigns/${view.id}/turns/${turnId}/fix`, AcceptedTurn.parse, {});
+      sessionStorage.setItem(key, job.turnId);
       setPending(job.turnId);
+      setStreamJob(job.turnId);
     } catch (e) {
       setError((e as Error).message);
     } finally {
