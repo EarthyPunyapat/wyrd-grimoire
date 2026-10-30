@@ -240,8 +240,8 @@ const router = new RoleRouter({
   ),
 });
 const home = mkdtempSync(join(tmpdir(), "wyrd-e2e-"));
-// First Light fixtures: a wiki that knows Relay Nine and offers two candidates for Greywater Market, and a
-// generator, so pictures arrive offline. The PNG is a 1×1 pixel.
+// First Light fixtures: a wiki offering two candidates for Greywater Market, and a generator for everything
+// else, so pictures arrive offline. The PNG is a 1×1 pixel.
 const PNG = Uint8Array.from(
   atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="),
   (c) => c.charCodeAt(0),
@@ -253,7 +253,7 @@ const wikiPage = (title: string) => ({
 });
 const mediaWiki = {
   pageImage: async (_wiki: string, title: string) =>
-    ["Relay Nine", "Greywater (market town)", "Grey Water"].includes(title) ? wikiPage(title) : null,
+    ["Greywater (market town)", "Grey Water"].includes(title) ? wikiPage(title) : null,
   search: async (_wiki: string, query: string) =>
     query === "Greywater Market" ? ["Greywater (market town)", "Grey Water"] : [],
   fetchBytes: async () => ({ bytes: PNG, mime: "image/png" }),

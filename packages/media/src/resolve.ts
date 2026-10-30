@@ -20,6 +20,8 @@ type WikiClient = {
 
 const WIKIPEDIA = "en.wikipedia.org";
 const PEOPLE = new Set(["pc", "npc", "companion"]);
+/** Wikipedia and Wikimedia describe the real world: places only, and never auto-attached. */
+export const isRealWorldWiki = (wiki: string) => /(^|\.)(wikipedia|wikimedia)\.org$/i.test(wiki.trim());
 
 /**
  * Where an entity's picture comes from (D168). Asking the wiki for the entity's exact name and getting an
@@ -34,23 +36,27 @@ export async function resolveImage(input: {
   search?: (query: string) => Promise<ImageHit[]>;
 }): Promise<Resolution> {
   const person = PEOPLE.has(input.entity.kind);
-  const wikis = [input.wiki, person ? null : WIKIPEDIA].filter(
+  // People come only from a fiction wiki; a real-world wiki is never used for them, whatever the campaign says.
+  const sourceWiki = input.wiki && !(person && isRealWorldWiki(input.wiki)) ? input.wiki : null;
+  const wikis = [sourceWiki, person ? null : WIKIPEDIA].filter(
     (w, i, all): w is string => Boolean(w) && all.indexOf(w) === i,
   );
   try {
     for (const wiki of wikis) {
-      const origin = wiki === WIKIPEDIA ? "wikipedia" : "wiki";
+      const real = isRealWorldWiki(wiki);
+      const origin = real ? "wikipedia" : "wiki";
       const exact = await input.wikiClient.pageImage(wiki, input.entity.name);
-      if (exact) return { kind: "confident", hit: { ...exact, origin } };
-      const hits: ImageHit[] = [];
+      // A real-world page sharing a fantasy place's name is often a band or a person: offer it, never attach it.
+      if (exact && !real) return { kind: "confident", hit: { ...exact, origin } };
+      const hits: ImageHit[] = exact ? [{ ...exact, origin }] : [];
       for (const title of await input.wikiClient.search(wiki, input.entity.name)) {
         if (hits.length >= defaultTuning.media.candidates) break;
         const found = await input.wikiClient.pageImage(wiki, title);
-        if (found) hits.push({ ...found, origin });
+        if (found && !hits.some((h) => h.imageUrl === found.imageUrl)) hits.push({ ...found, origin });
       }
       if (hits.length) return { kind: "candidates", hits };
     }
-    if (input.search && (!person || input.wiki)) {
+    if (input.search && (!person || sourceWiki)) {
       const hits = (await input.search(input.entity.name)).slice(0, defaultTuning.media.candidates);
       if (hits.length) return { kind: "candidates", hits };
     }

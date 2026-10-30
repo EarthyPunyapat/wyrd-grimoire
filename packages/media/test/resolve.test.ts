@@ -75,7 +75,7 @@ describe("resolving an entity's picture", () => {
     expect(w.calls).toEqual([]);
   });
 
-  test("a place in an original world falls back to Wikipedia", async () => {
+  test("a place in an original world falls back to Wikipedia, as a candidate to confirm", async () => {
     const w = wiki({ "en.wikipedia.org": { Lighthouse: page("en.wikipedia.org", "Lighthouse") } });
     const out = await resolveImage({
       entity: { id: "site:light", name: "Lighthouse", kind: "site" },
@@ -83,8 +83,8 @@ describe("resolving an entity's picture", () => {
       wikiClient: w.client,
     });
     expect(out).toEqual({
-      kind: "confident",
-      hit: { ...page("en.wikipedia.org", "Lighthouse"), origin: "wikipedia" },
+      kind: "candidates",
+      hits: [{ ...page("en.wikipedia.org", "Lighthouse"), origin: "wikipedia" }],
     });
   });
 
@@ -100,5 +100,40 @@ describe("resolving an entity's picture", () => {
       },
     });
     expect(out).toEqual({ kind: "none" });
+  });
+});
+
+describe("never real people", () => {
+  test("a person is never looked up on Wikipedia, even when it is the campaign's wiki", async () => {
+    const w = wiki({
+      "en.wikipedia.org": { "Abraham Lincoln": page("en.wikipedia.org", "Abraham Lincoln") },
+    });
+    for (const kind of ["pc", "npc", "companion"]) {
+      const out = await resolveImage({
+        entity: { id: "x", name: "Abraham Lincoln", kind },
+        wiki: "en.wikipedia.org",
+        wikiClient: w.client,
+      });
+      expect(out).toEqual({ kind: "none" });
+    }
+    expect(w.calls).toEqual([]);
+  });
+
+  test("Wikipedia only ever offers candidates for places, so a band or a person is never auto-attached", async () => {
+    const w = wiki(
+      {
+        "en.wikipedia.org": {
+          Nirvana: page("en.wikipedia.org", "Nirvana"),
+          "Nirvana (band)": page("en.wikipedia.org", "Nirvana (band)"),
+        },
+      },
+      { "en.wikipedia.org": ["Nirvana (band)"] },
+    );
+    const out = await resolveImage({
+      entity: { id: "site:n", name: "Nirvana", kind: "site" },
+      wiki: null,
+      wikiClient: w.client,
+    });
+    expect(out.kind).toBe("candidates");
   });
 });

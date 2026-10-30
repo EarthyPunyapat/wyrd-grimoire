@@ -266,8 +266,8 @@ describe("media routes and the game view", () => {
     return { instance, request, cookie, id, view, wiki };
   };
 
-  test("the current place gets a banner the view links to, served as image bytes behind the passcode", async () => {
-    const s = await setup({ pages: { "Ashford Ferry House": true } });
+  test("the current place gets a (generated) banner the view links to, served as image bytes behind the passcode", async () => {
+    const s = await setup({ provider: generated });
     await s.view();
     await s.instance.idle();
     const view = await s.view();

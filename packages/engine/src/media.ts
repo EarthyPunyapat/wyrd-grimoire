@@ -13,8 +13,10 @@ export function campaignWiki(state: GameState): string | null {
   const main = state.worlds.find((w) => w.id === MAIN_WORLD);
   if (main?.wiki) return main.wiki;
   const counts = new Map<string, number>();
+  // Research defaults to Wikipedia; a real-world wiki is never a campaign's picture source.
   for (const record of Object.values((state.flags.loreRecords ?? {}) as Record<string, LoreRecord>))
-    counts.set(record.wiki, (counts.get(record.wiki) ?? 0) + 1);
+    if (!/(^|\.)(wikipedia|wikimedia)\.org$/i.test(record.wiki))
+      counts.set(record.wiki, (counts.get(record.wiki) ?? 0) + 1);
   let best: string | null = null;
   for (const [wiki, n] of counts) if (!best || n > (counts.get(best) ?? 0)) best = wiki;
   return best;

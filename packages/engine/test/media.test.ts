@@ -82,3 +82,26 @@ describe("media assets are events (First Light)", () => {
     expect(campaignWiki(s.state)).toBe("dccomics.fandom.com");
   });
 });
+
+test("research on Wikipedia never makes Wikipedia the campaign's picture wiki", () => {
+  const s = new Sim();
+  s.commit([
+    draft(
+      "LoreRecorded",
+      {
+        record: {
+          id: "l1",
+          entityId: "concept:x",
+          worldId: MAIN_WORLD,
+          query: "q",
+          wiki: "en.wikipedia.org",
+          title: "T",
+          summary: "S",
+          confidence: "high",
+        },
+      },
+      "model",
+    ),
+  ]);
+  expect(campaignWiki(s.state)).toBeNull();
+});
