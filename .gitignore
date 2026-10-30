@@ -20,6 +20,9 @@ wyrd-data/
 evals/results/*
 !evals/results/.gitkeep
 
+# replay reports contain the owner's private transcripts and real model output
+/evals/replay/out/
+
 .DS_Store
 Thumbs.db
 playwright-report/
