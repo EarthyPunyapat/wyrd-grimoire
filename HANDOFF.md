@@ -18,6 +18,10 @@ Owner-only checks still outstanding (need real hardware or keys):
 - M5: a real-model world run and the NPC-knowledge eval.
 - M8: media (images, TTS) has not been built.
 
+## Vendors only when someone is selling (2026-10-30, D173)
+
+New campaigns no longer open a starting shop at the opening scene (they kept starting "inside" it). `shopHere` hides template shops unless their merchant is present in the scene, so older campaigns' starting shops disappear too; vendors come from the GM's `open_shop`. Tests that used the starting shop now open a GM vendor (`withVendor` in m7-acceptance, the `vendor workflow` e2e fixture).
+
 ## 00 First Light (2026-10-30)
 
 Built on `w2x-first-light` from [the plan](docs/superpowers/plans/2026-10-30-first-light.md); decisions D168, D172.
