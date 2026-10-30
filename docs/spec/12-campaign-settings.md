@@ -45,6 +45,89 @@ type CampaignSettings = {
 };
 ```
 
+## Creation libraries (D167, D174)
+
+New campaign opens with **Who are you playing?** (a character card or Create new),
+then **Where?** (a world setup, saved world, or Create new). Continue opens the
+existing pitch and review flow. **Begin with these** generates and starts directly
+with the selected setup's rules and card. Without a card it uses the world's
+suggested character name, first origin and first background. Generation keeps its
+streamed progress and recoverable errors.
+
+### World setups
+
+A setup stores a name, pitch, optional source title/wiki, base preset, dice,
+story mode, hardcore and progression, plus review overrides for starting Level,
+subsystems, lethality, companion death, style and theme. Its overrides merge over
+the GM's creation review; the player can change the result before starting.
+**Vary it** proposes a fresh pitch in the same genre without changing the setup.
+
+Eight original-text built-ins ship with illustrated banners: superhero inside DC,
+cultivation inside Reverend Insanity, cosmic god-game (Level ∞), grimdark fantasy,
+classic fantasy, space opera, cyberpunk noir and zombie survival. Built-ins are
+read-only and offer Duplicate. Own setups can be renamed, duplicated or deleted
+with confirmation. Save as world setup is available on creation review and in
+campaign Settings → Keep this campaign.
+
+The existing setting values apply: high lethality means `brutal`; survival and
+scarcity use Simulation's inventory, money, survival and related toggles. A setup
+never opens a shop when the campaign starts (D173).
+
+### Character cards
+
+Cards snapshot the PC's name, Level (including ∞), abilities with ranks, signature
+creation gear, attributes, trained core skills, appearance, pronouns and
+personality, plus loyal companions with their summaries, Levels and voice profiles.
+They can be saved from creation review, a reviewed ChatGPT import, or campaign
+Settings. Cards have initials avatars; media never blocks creation.
+
+On world review, choose **Arrive as-is** or **Let the GM adapt**. An adaptation is
+an editable proposal for that campaign's backstory, Level, powers and gear. The
+name stays the same. The original card is unchanged. The selected card and edited
+adaptation persist in the creation draft for resume, including from another device.
+Temporarily incomplete edits keep the last valid autosaved proposal until the fields
+are valid again.
+
+Starting with a card uses the reviewed-import event path. Saved stats overlay a
+validated new-world origin/background before ActorCreated, with derived stats
+recomputed, so an experienced character does not have to repeat point buy. Unknown
+skill IDs are dropped against the combined core and pack catalogue; abilities
+remain free text and carry over. A missing card is a 404, never a silent replacement.
+
+Rename, duplicate and delete are library actions. Character contents change only
+through **Update card from this campaign** in Settings, with explicit confirmation;
+that action keeps the card's title and origin while replacing its character,
+companions and sheet snapshot.
+
+### Saved worlds
+
+**Save this world** in Settings copies the campaign's original generated creation
+draft: proposal, world bible, sites, routes, NPCs, factions, canon clocks and kit
+when present. It is the generated world, not a snapshot of subsequent play.
+Campaign ID, sheet, interview and card/adaptation are stripped. Choosing it makes
+a new draft with a new ID and follows the existing resume path; each new campaign
+has its own event log. Library entries can be renamed, duplicated and deleted.
+
+A campaign without a creation draft (including quick-start and older campaigns)
+returns 409: “This campaign has no saved world to copy”.
+
+### Storage and API
+
+All three libraries live in `app.db`, shared across devices, in migration v4:
+`world_setups`, `character_cards`, `saved_worlds`. Saves return the stored record
+with an ISO `updatedAt`; edits are last write wins. Invalid stored records are
+skipped. First Light's media tables do not use the version number.
+
+Authenticated routes expose setup and card lists/creation, setup edits and
+removal, card title edits/removal, campaign snapshot actions, saved-world metadata
+and draft cloning. `POST /api/world-setups/vary` and
+`POST /api/character-cards/:id/adapt` use validated worldGen proposals. Without a
+connected model they return actionable 422 errors. Saved-world rename and duplicate
+use `PATCH /api/worlds/:id` and `POST /api/worlds/:id/duplicate`.
+`PUT /api/world-drafts/:id/card` persists a reviewed card selection or clears it
+with null; completed drafts cannot be edited. No library action mutates a campaign's
+engine state. Starting a campaign still records its character and companions as events.
+
 ## What locks when
 
 | Setting | Rule | Why |

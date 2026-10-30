@@ -12,6 +12,7 @@ async function unlock(page: Page) {
 async function create(page: Page) {
   await unlock(page);
   await page.getByRole("button", { name: "+ New campaign", exact: true }).click();
+  await page.getByRole("button", { name: "Create new world", exact: true }).click();
   await expect(page.getByLabel("Campaign name", { exact: true })).toHaveValue("");
   await expect(page.getByLabel("Character name", { exact: false })).toHaveValue("");
   await expect(page.getByLabel("Background", { exact: true })).toHaveCount(0);

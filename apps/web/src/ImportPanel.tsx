@@ -1,4 +1,4 @@
-import { CampaignImport } from "@wyrd/core";
+import { CampaignImport, CharacterCard } from "@wyrd/core";
 import { useEffect, useState } from "react";
 import { api } from "./api.ts";
 
@@ -98,6 +98,7 @@ export function ImportReview({
  * then tick what to keep. Reports the kept selection upward, or null when nothing is imported.
  */
 export function ImportPanel({ onChange }: { onChange: (kept: CampaignImport | null) => void }) {
+  const [savedNote, setSavedNote] = useState("");
   const [links, setLinks] = useState("");
   const [exclude, setExclude] = useState("");
   const [busy, setBusy] = useState(false);
@@ -132,9 +133,35 @@ export function ImportPanel({ onChange }: { onChange: (kept: CampaignImport | nu
       else next.add(index);
       return { ...k, [part]: next };
     });
+  async function saveCard() {
+    if (!draft || !keep) return;
+    setBusy(true);
+    setError("");
+    setSavedNote("");
+    try {
+      const kept = selectImport(draft, keep);
+      await api("/character-cards", CharacterCard.parse, {
+        title: kept.pc.name,
+        origin: "import",
+        pc: kept.pc,
+        companions: kept.companions,
+      });
+      setSavedNote("Character card saved.");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <fieldset className="import-panel">
       <legend>Bring a character from ChatGPT (optional)</legend>
+      {draft && keep && (
+        <button type="button" disabled={busy} onClick={() => void saveCard()}>
+          Save as character card
+        </button>
+      )}
+      {savedNote && <p role="status">{savedNote}</p>}
       {!draft ? (
         <>
           <label>

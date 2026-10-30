@@ -30,6 +30,7 @@ async function quickStart(page: Page, name: string, world: string) {
 async function begin(page: Page) {
   await unlock(page);
   await page.getByRole("button", { name: "+ New campaign", exact: true }).click();
+  await page.getByRole("button", { name: "Create new world", exact: true }).click();
   await page.getByLabel("Campaign name", { exact: true }).fill("World Test");
   await page
     .getByLabel("What kind of adventure or world do you want?")

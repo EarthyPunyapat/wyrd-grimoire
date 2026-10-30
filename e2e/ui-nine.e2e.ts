@@ -12,6 +12,7 @@ async function unlock(page: Page) {
 async function begin(page: Page, name: string) {
   await unlock(page);
   await page.getByRole("button", { name: "+ New campaign", exact: true }).click();
+  await page.getByRole("button", { name: "Create new world", exact: true }).click();
   await page.getByLabel("Campaign name", { exact: true }).fill(name);
   await page
     .getByLabel("What kind of adventure or world do you want?")

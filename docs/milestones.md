@@ -132,6 +132,18 @@ The owner played M7 and found it lacking next to their ChatGPT RPG sessions, so 
 
 ---
 
+## 2.x Presets & Cards
+
+**Plan:** [Presets & Cards](superpowers/plans/2026-10-30-presets-and-cards.md) · **Spec:** [12 Creation libraries](spec/12-campaign-settings.md#creation-libraries-d167-d174) (D167, D174)
+
+**Acceptance**
+- [x] Creation opens on a chooser of character cards and world setups (8 starters + own + saved worlds).
+- [x] A setup prefills creation; Begin with these starts a campaign with its rules in one click; Vary it rewrites the pitch.
+- [x] Cards save from creation, a campaign or an import, start campaigns with Level, abilities and loyal companions, adapt per campaign, and change only via Update card.
+- [x] Saved worlds start new campaigns in the same generated world.
+
+---
+
 ## 00 First Light
 
 **Plan:** [First Light](superpowers/plans/2026-10-30-first-light.md) · **Spec:** [10 Media § Sources](spec/10-media.md) (D168, D172)

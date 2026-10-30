@@ -7,6 +7,7 @@ async function begin(page: Page) {
   await page.getByLabel("Passcode", { exact: true }).fill(passcode);
   await page.getByRole("button", { name: /Set passcode & enter|Unlock grimoire/ }).click();
   await page.getByRole("button", { name: "+ New campaign", exact: true }).click();
+  await page.getByRole("button", { name: "Create new world", exact: true }).click();
   await page.getByLabel("Campaign name", { exact: true }).fill("Pictures Test");
   await page
     .getByLabel("What kind of adventure or world do you want?")

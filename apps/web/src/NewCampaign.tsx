@@ -1,19 +1,25 @@
 import {
-  type CampaignImport,
+  CampaignImport,
   type CampaignPreset,
   type CampaignSettings,
+  CharacterCard,
   CreatedCampaign,
   CreationReview,
   CreationView,
   DraftResume,
   GeneratedWorldPreview,
   presetSelection,
+  SavedWorldMeta,
+  StartCard,
   StartGeneratedCampaign,
   type SuggestField,
   WorldPitch,
+  WorldSetup,
 } from "@wyrd/core";
 import { useEffect, useRef, useState } from "react";
 import { api, streamApi } from "./api.ts";
+import { CharacterArrival } from "./CharacterArrival.tsx";
+import { type ChooserValue, CreationChooser, type ManageAction } from "./CreationChooser.tsx";
 import { CreationReviewEditor } from "./CreationReview.tsx";
 import { ImportPanel } from "./ImportPanel.tsx";
 import { Interview } from "./Interview.tsx";
@@ -85,6 +91,28 @@ export function NewCampaign({
   draftId?: string;
   onOpenSettings?: () => void;
 }) {
+  const [choosing, setChoosing] = useState(!draftId);
+  const [choice, setChoice] = useState<ChooserValue>({ cardId: null, setup: null, worldId: null });
+  const [cards, setCards] = useState<CharacterCard[]>([]);
+  const [setups, setSetups] = useState<WorldSetup[]>([]);
+  const [worlds, setWorlds] = useState<SavedWorldMeta[]>([]);
+  const [adapting, setAdapting] = useState(false);
+  const [adapted, setAdapted] = useState<CampaignImport["pc"] | null>(null);
+  const [libraryNote, setLibraryNote] = useState("");
+  const card = cards.find((c) => c.id === choice.cardId);
+  async function loadLibrary() {
+    const [cards, setups, worlds] = await Promise.all([
+      api("/character-cards", CharacterCard.array().parse),
+      api("/world-setups", WorldSetup.array().parse),
+      api("/worlds", SavedWorldMeta.array().parse),
+    ]);
+    setCards(cards);
+    setSetups(setups);
+    setWorlds(worlds);
+  }
+  useEffect(() => {
+    void loadLibrary().catch((e) => setError(e.message));
+  }, []);
   const [saved] = useState(() => (draftId ? null : loadSavedDraft()));
   const restoredWorld = saved?.world ? GeneratedWorldPreview.safeParse(saved.world) : null;
   const [name, setName] = useState(typeof saved?.name === "string" ? saved.name : "");
@@ -157,6 +185,8 @@ export function NewCampaign({
     void api(`/world-drafts/${draftId}`, DraftResume.parse)
       .then((resumed) => {
         if (cancelled) return;
+        setChoice({ cardId: resumed.card?.id ?? null, setup: null, worldId: null });
+        setAdapted(resumed.card?.adapted ?? null);
         setWorld(resumed.preview);
         setReview(resumed.review ?? resumed.preview.review);
         setName(resumed.preview.name);
@@ -187,6 +217,19 @@ export function NewCampaign({
       cancelled = true;
     };
   }, [draftId]);
+
+  // Serialize per-field proposal saves so closing/resuming on another device keeps the latest edit.
+  const cardSave = useRef<Promise<unknown>>(Promise.resolve());
+  useEffect(() => {
+    if (!world || !choice.cardId) return;
+    // Keep the last valid snapshot while the player temporarily clears or edits a required field.
+    const selected = StartCard.safeParse({ id: choice.cardId, ...(adapted ? { adapted } : {}) });
+    if (!selected.success) return;
+    cardSave.current = cardSave.current
+      .catch(() => undefined)
+      .then(() => api(`/world-drafts/${world.id}/card`, (x) => x, selected.data, "PUT"));
+    void cardSave.current.catch((e) => setError((e as Error).message));
+  }, [world?.id, choice.cardId, adapted]);
 
   // Keep the unfinished creation on this device, so closing the dialog or the tab loses nothing.
   useEffect(() => {
@@ -298,106 +341,318 @@ export function NewCampaign({
     }
   }
 
+  function selectChoice(next: ChooserValue) {
+    setChoice(next);
+    setAdapted(null);
+    setImported(null);
+    if (next.setup) {
+      const v = next.setup;
+      setName(v.name);
+      setPitch(v.pitch);
+      setSourceMode(Boolean(v.source));
+      setSourceTitle(v.source?.title ?? "");
+      setSourceWiki(v.source?.wiki ?? "en.wikipedia.org");
+      setPreset(v.rules.preset ?? "standard");
+      setStoryMode(v.rules.storyMode ?? "threatClock");
+      setResolution(v.rules.resolution ?? "d100");
+      setHardcore(v.rules.hardcore ?? false);
+      setProgression(v.rules.progression ?? "classless");
+    }
+  }
+  async function manage(action: ManageAction) {
+    setBusy(true);
+    setError("");
+    try {
+      const base =
+        action.kind === "setup" ? "world-setups" : action.kind === "card" ? "character-cards" : "worlds";
+      if (action.action === "delete") {
+        await api(`/${base}/${action.id}`, (x) => x, undefined, "DELETE");
+        if (action.id === choice.cardId) setChoice((v) => ({ ...v, cardId: null }));
+        if (action.id === choice.setup?.id) setChoice((v) => ({ ...v, setup: null }));
+        if (action.id === choice.worldId) setChoice((v) => ({ ...v, worldId: null }));
+      } else if (action.action === "rename") {
+        const fresh = await api(
+          `/${base}/${action.id}`,
+          (x) => x,
+          { [action.kind === "card" ? "title" : "name"]: action.name },
+          "PATCH",
+        );
+        if (action.kind === "setup" && action.id === choice.setup?.id)
+          selectChoice({ ...choice, setup: WorldSetup.parse(fresh) });
+      } else if (action.kind === "world") await api(`/worlds/${action.id}/duplicate`, (x) => x, {});
+      else if (action.kind === "setup") {
+        const old = setups.find((s) => s.id === action.id)!;
+        await api("/world-setups", WorldSetup.parse, { ...old, name: `${old.name.slice(0, 75)} copy` });
+      } else {
+        const old = cards.find((c) => c.id === action.id)!;
+        await api("/character-cards", CharacterCard.parse, {
+          ...old,
+          title: `${old.title.slice(0, 75)} copy`,
+        });
+      }
+      await loadLibrary();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  function applyResume(resumed: ReturnType<typeof DraftResume.parse>) {
+    setWorld(resumed.preview);
+    setReview(resumed.review ?? resumed.preview.review);
+    setName(resumed.preview.name);
+    setPitch(resumed.pitch);
+    setCharacterName(resumed.characterName);
+    setAncestry(resumed.preview.origins[0]!.id);
+    setArchetype(resumed.preview.backgrounds[0]!.id);
+    setCustomSheet(false);
+    setSourceMode(Boolean(resumed.preview.source));
+    setSourceTitle(resumed.preview.source?.title ?? "");
+    setSourceWiki(resumed.preview.source?.wiki ?? "en.wikipedia.org");
+    if (resumed.review) {
+      setResolution(resumed.review.resolution);
+      setHardcore(resumed.review.hardcore);
+      setPreset("custom");
+    }
+  }
+  async function startCampaign(w: GeneratedWorldPreview, r: CreationReview | undefined, quick = false) {
+    await cardSave.current;
+    if (!quick && (mode === "editor" || customSheet)) await creation.flush();
+    const created = await api(
+      "/campaigns",
+      CreatedCampaign.parse,
+      StartGeneratedCampaign.parse({
+        draftId: w.id,
+        review: r,
+        ...(!quick && (mode === "editor" || customSheet)
+          ? {}
+          : {
+              ancestry: quick ? w.origins[0]!.id : ancestry,
+              archetype: quick ? w.backgrounds[0]!.id : archetype,
+              characterName: quick ? "" : characterName,
+            }),
+        preset,
+        storyMode,
+        resolution: r?.resolution ?? resolution,
+        hardcore: r?.hardcore ?? hardcore,
+        progression,
+        ...(card
+          ? { card: { id: card.id, ...(adapted ? { adapted } : {}) } }
+          : imported
+            ? { import: imported }
+            : {}),
+      }),
+    );
+    localStorage.removeItem(DRAFT_KEY);
+    onCreate(created.id);
+  }
+  async function continueChoice(next = choice, quick = false) {
+    setChoosing(false);
+    setError("");
+    if (next.worldId) {
+      setBusy(true);
+      setBusyNote("Opening your saved world…");
+      try {
+        const { draftId } = await api(`/worlds/${next.worldId}/draft`, (x) => x as { draftId: string }, {});
+        const resumed = await api(`/world-drafts/${draftId}`, DraftResume.parse);
+        applyResume(resumed);
+        if (quick) await startCampaign(resumed.preview, resumed.review, true);
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setBusy(false);
+        setBusyNote("");
+      }
+    } else if (quick) await submitCreation(true);
+  }
+  async function vary() {
+    setBusy(true);
+    setBusyNote("Finding a fresh twist…");
+    setError("");
+    try {
+      const result = await api("/world-setups/vary", (x) => x as { pitch: string }, {
+        pitch,
+        ...(sourceMode ? { source: { title: sourceTitle, wiki: sourceWiki } } : {}),
+      });
+      setPitch(result.pitch);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+      setBusyNote("");
+    }
+  }
+  async function adapt() {
+    if (!world || !card) return;
+    setBusy(true);
+    setAdapting(true);
+    setBusyNote("Adapting your character…");
+    setError("");
+    try {
+      const result = await api(
+        `/character-cards/${card.id}/adapt`,
+        (x) => CampaignImport.shape.pc.parse((x as { pc: unknown }).pc),
+        { draftId: world.id },
+      );
+      setAdapted(result);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setAdapting(false);
+      setBusy(false);
+      setBusyNote("");
+    }
+  }
+  async function saveSetup() {
+    setBusy(true);
+    setLibraryNote("");
+    setError("");
+    try {
+      await api("/world-setups", WorldSetup.parse, {
+        name,
+        pitch,
+        source: sourceMode ? { title: sourceTitle, wiki: sourceWiki } : undefined,
+        rules: { preset, storyMode, resolution, hardcore, progression },
+        review: review ? { ...review, resolution, hardcore } : {},
+      });
+      setLibraryNote("World setup saved.");
+      await loadLibrary();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function saveCard() {
+    if (!world) return;
+    setBusy(true);
+    setLibraryNote("");
+    setError("");
+    try {
+      const view =
+        customSheet && creation.view
+          ? creation.view
+          : await api(`/world-drafts/${world.id}/creation`, CreationView.parse);
+      const d = customSheet
+        ? view.draft
+        : {
+            ...withArchetype(view.draft, view, archetype),
+            ancestry,
+            name: characterName || world.suggestedCharacterName,
+          };
+      const pc = adapted ??
+        card?.pc ??
+        imported?.pc ?? {
+          name: d.name,
+          level: review?.startingLevel ?? 1,
+          backstory: d.backstory || pitch,
+          abilities: [],
+          gear: d.gear,
+        };
+      await api("/character-cards", CharacterCard.parse, {
+        title: pc.name,
+        origin: imported ? "import" : "created",
+        pc,
+        companions: card?.companions ?? imported?.companions ?? [],
+        sheet: card?.sheet ?? {
+          attributes: d.attributes,
+          skills: d.skills,
+          pronouns: d.pronouns,
+          appearance: d.appearance,
+          personality: d.personality,
+        },
+      });
+      setLibraryNote("Character card saved.");
+      await loadLibrary();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function submitCreation(quick = false) {
+    setBusy(true);
+    setBusyNote(world ? "Preparing your campaign…" : "");
+    setError("");
+    setDetail("");
+    try {
+      if (!world) {
+        setSteps(INITIAL_STEPS);
+        const draft = await streamApi(
+          "/world-drafts/stream",
+          WorldPitch.parse({
+            name,
+            characterName,
+            pitch,
+            ...(sourceMode && sourceTitle.trim()
+              ? { source: { title: sourceTitle.trim(), wiki: sourceWiki.trim() } }
+              : {}),
+          }),
+          GeneratedWorldPreview.parse,
+          (data) => {
+            const next = (data as { steps?: DraftProgressStep[] }).steps;
+            if (next) setSteps(next);
+          },
+        );
+        setSteps((current) => current.map((s) => ({ ...s, status: "done" as const })));
+        // Write it even if the dialog was closed mid-generation, so reopening resumes here.
+        try {
+          const previous = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "{}") as Record<string, unknown>;
+          localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...previous, world: draft, draftId: draft.id }));
+        } catch {
+          // Storage unavailable; the in-memory copy still works for this visit.
+        }
+        setWorld(draft);
+        const merged = draft.review
+          ? CreationReview.parse({
+              ...draft.review,
+              ...(choice.setup
+                ? {
+                    subsystems:
+                      presetSelection(choice.setup.rules.preset ?? "standard").subsystems ??
+                      draft.review.subsystems,
+                  }
+                : {}),
+              ...choice.setup?.review,
+              ...(choice.setup?.rules.resolution ? { resolution: choice.setup.rules.resolution } : {}),
+              ...(choice.setup?.rules.hardcore !== undefined
+                ? { hardcore: choice.setup.rules.hardcore }
+                : {}),
+            })
+          : undefined;
+        setReview(merged);
+        if (merged) {
+          setResolution(merged.resolution);
+          setHardcore(merged.hardcore);
+          if (!choice.setup) setPreset("custom");
+        }
+        setAncestry(draft.origins[0]!.id);
+        setArchetype(draft.backgrounds[0]!.id);
+        setProgression(choice.setup?.rules.progression ?? draft.progressions[0] ?? "classless");
+        if (merged) await api(`/world-drafts/${draft.id}/review`, CreationReview.parse, merged, "PUT");
+        if (quick) await startCampaign(draft, merged, true);
+      } else {
+        await startCampaign(world, review ? { ...review, resolution, hardcore } : undefined);
+      }
+    } catch (e) {
+      setSteps((current) =>
+        current.map((s) => (s.status === "running" ? { ...s, status: "failed" as const } : s)),
+      );
+      setError((e as Error).message);
+      setDetail((e as Error & { detail?: string }).detail ?? "");
+    } finally {
+      setBusy(false);
+      setBusyNote("");
+    }
+  }
+
   return (
     <form
       className="creation-form"
       aria-busy={busy || revising || resuming}
-      onSubmit={async (e) => {
+      onSubmit={(e) => {
         e.preventDefault();
-        setBusy(true);
-        setBusyNote(world ? "Preparing your campaign…" : "");
-        setError("");
-        setDetail("");
-        try {
-          if (!world) {
-            setSteps(INITIAL_STEPS);
-            const draft = await streamApi(
-              "/world-drafts/stream",
-              WorldPitch.parse({
-                name,
-                characterName,
-                pitch,
-                ...(sourceMode && sourceTitle.trim()
-                  ? { source: { title: sourceTitle.trim(), wiki: sourceWiki.trim() } }
-                  : {}),
-              }),
-              GeneratedWorldPreview.parse,
-              (data) => {
-                const next = (data as { steps?: DraftProgressStep[] }).steps;
-                if (next) setSteps(next);
-              },
-            );
-            setSteps((current) => current.map((s) => ({ ...s, status: "done" as const })));
-            // Write it even if the dialog was closed mid-generation, so reopening resumes here.
-            try {
-              const previous = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "{}") as Record<string, unknown>;
-              localStorage.setItem(
-                DRAFT_KEY,
-                JSON.stringify({ ...previous, world: draft, draftId: draft.id }),
-              );
-            } catch {
-              // Storage unavailable; the in-memory copy still works for this visit.
-            }
-            setWorld(draft);
-            setReview(draft.review);
-            if (draft.review) {
-              setResolution(draft.review.resolution);
-              setHardcore(draft.review.hardcore);
-              setPreset("custom");
-            }
-            setAncestry(draft.origins[0]!.id);
-            setArchetype(draft.backgrounds[0]!.id);
-            setProgression(draft.progressions[0] ?? "classless");
-          } else if (mode === "editor" || customSheet) {
-            // The editor's saved sheet is the character, even after returning to the world review.
-            await creation.flush();
-            const created = await api(
-              "/campaigns",
-              CreatedCampaign.parse,
-              StartGeneratedCampaign.parse({
-                draftId: world.id,
-                review: review ? { ...review, resolution, hardcore } : undefined,
-                progression,
-                preset,
-                storyMode,
-                resolution,
-                hardcore,
-                ...(imported ? { import: imported } : {}),
-              }),
-            );
-            localStorage.removeItem(DRAFT_KEY);
-            onCreate(created.id);
-          } else {
-            const created = await api(
-              "/campaigns",
-              CreatedCampaign.parse,
-              StartGeneratedCampaign.parse({
-                draftId: world.id,
-                review: review ? { ...review, resolution, hardcore } : undefined,
-                characterName,
-                ancestry,
-                archetype,
-                progression,
-                preset,
-                storyMode,
-                resolution,
-                hardcore,
-                ...(imported ? { import: imported } : {}),
-              }),
-            );
-            localStorage.removeItem(DRAFT_KEY);
-            onCreate(created.id);
-          }
-        } catch (e) {
-          setSteps((current) =>
-            current.map((s) => (s.status === "running" ? { ...s, status: "failed" as const } : s)),
-          );
-          setError((e as Error).message);
-          setDetail((e as Error & { detail?: string }).detail ?? "");
-        } finally {
-          setBusy(false);
-          setBusyNote("");
-        }
+        void submitCreation();
       }}
     >
       {offline && (
@@ -411,7 +666,25 @@ export function NewCampaign({
           Opening your unfinished story… <Elapsed active />
         </p>
       ) : null}
-      {!world && (
+      {choosing && !world && (
+        <CreationChooser
+          cards={cards}
+          setups={setups}
+          worlds={worlds}
+          value={choice}
+          onChange={selectChoice}
+          onBegin={() => void continueChoice(choice, true)}
+          onContinue={(next) => void continueChoice(next)}
+          onManage={(a) => void manage(a)}
+          disabled={busy}
+        />
+      )}
+      {!choosing && !world && (
+        <button type="button" disabled={busy} onClick={() => setChoosing(true)}>
+          Choose character and world
+        </button>
+      )}
+      {!world && !choosing && (
         <section className="creation-stage" aria-labelledby="pitch-heading">
           <div className="creation-stage-head">
             <span className="creation-stage-number" aria-hidden="true">
@@ -528,6 +801,11 @@ export function NewCampaign({
               placeholder="A hard sci-fi mystery on a failing space station, with a human crew and no magic…"
             />
           </label>
+          {choice.setup && (
+            <button type="button" disabled={busy} onClick={() => void vary()}>
+              Vary it
+            </button>
+          )}
         </section>
       )}
       {world && mode === "interview" ? (
@@ -689,7 +967,28 @@ export function NewCampaign({
               Leave the character name blank to use {world.suggestedCharacterName}.
             </p>
           )}
-          <ImportPanel onChange={setImported} />
+          {card ? (
+            <CharacterArrival
+              pc={adapted ?? card.pc}
+              adapted={Boolean(adapted)}
+              adapting={adapting}
+              onChange={setAdapted}
+              onAdapt={() => void adapt()}
+              onReset={() => setAdapted(null)}
+              disabled={busy}
+            />
+          ) : (
+            <ImportPanel onChange={setImported} />
+          )}
+          <div className="keep-actions">
+            <button type="button" disabled={busy} onClick={() => void saveSetup()}>
+              Save as world setup
+            </button>
+            <button type="button" disabled={busy} onClick={() => void saveCard()}>
+              Save character as card
+            </button>
+          </div>
+          {libraryNote && <p role="status">{libraryNote}</p>}
           <fieldset className="paths">
             <legend>How would you like to make your character?</legend>
             <p className="muted small">
@@ -901,7 +1200,7 @@ export function NewCampaign({
           </div>
         </div>
       )}
-      {(mode === "review" || mode === "editor") && !resuming && (
+      {(mode === "review" || mode === "editor") && !resuming && !choosing && (
         <button
           type="submit"
           className="primary creation-submit"

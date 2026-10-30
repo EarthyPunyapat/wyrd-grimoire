@@ -14,6 +14,7 @@ export * from "./lore/summarise.ts";
 export * from "./offline.ts";
 export * from "./offline-world.ts";
 export * from "./pipeline.ts";
+export * from "./presets.ts";
 export * from "./prompts/index.ts";
 export * from "./prose.ts";
 export * from "./router.ts";

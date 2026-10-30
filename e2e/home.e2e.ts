@@ -12,6 +12,7 @@ async function unlocked(page: Page) {
 
 async function previewWorld(page: Page, name: string) {
   await page.getByRole("button", { name: "+ New campaign", exact: true }).click();
+  await page.getByRole("button", { name: "Create new world", exact: true }).click();
   await page.getByLabel("Campaign name", { exact: true }).fill(name);
   await page
     .getByLabel("What kind of adventure or world do you want?")
@@ -74,6 +75,7 @@ test("an unfinished creation waits in the draft library and resumes on demand", 
 test("the source choice reveals the source fields and clears them again", async ({ page }) => {
   await unlocked(page);
   await page.getByRole("button", { name: "+ New campaign", exact: true }).click();
+  await page.getByRole("button", { name: "Create new world", exact: true }).click();
   await expect(page.getByLabel("Source title", { exact: true })).toBeHidden();
   await page.getByRole("radio", { name: /Inside a source/ }).check();
   await expect(page.getByLabel("Source title", { exact: true })).toBeVisible();
