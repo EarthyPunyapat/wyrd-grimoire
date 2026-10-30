@@ -11,7 +11,8 @@ export type ImageHit = {
 export type Resolution =
   | { kind: "confident"; hit: ImageHit }
   | { kind: "candidates"; hits: ImageHit[] }
-  | { kind: "none" };
+  | { kind: "none" }
+  | { kind: "stopped" };
 type WikiPage = { title: string; pageUrl: string; imageUrl: string; width?: number; height?: number };
 type WikiClient = {
   pageImage(wiki: string, title: string): Promise<WikiPage | null>;
@@ -34,7 +35,10 @@ export async function resolveImage(input: {
   wiki: string | null;
   wikiClient: WikiClient;
   search?: (query: string) => Promise<ImageHit[]>;
+  /** Checked before every request: true stops at once (a turn started and needs the wiki). */
+  stop?: () => boolean;
 }): Promise<Resolution> {
+  const stopped = () => input.stop?.() ?? false;
   const person = PEOPLE.has(input.entity.kind);
   // People come only from a fiction wiki; a real-world wiki is never used for them, whatever the campaign says.
   const sourceWiki = input.wiki && !(person && isRealWorldWiki(input.wiki)) ? input.wiki : null;
@@ -45,12 +49,15 @@ export async function resolveImage(input: {
     for (const wiki of wikis) {
       const real = isRealWorldWiki(wiki);
       const origin = real ? "wikipedia" : "wiki";
+      if (stopped()) return { kind: "stopped" };
       const exact = await input.wikiClient.pageImage(wiki, input.entity.name);
       // A real-world page sharing a fantasy place's name is often a band or a person: offer it, never attach it.
       if (exact && !real) return { kind: "confident", hit: { ...exact, origin } };
       const hits: ImageHit[] = exact ? [{ ...exact, origin }] : [];
+      if (stopped()) return { kind: "stopped" };
       for (const title of await input.wikiClient.search(wiki, input.entity.name)) {
         if (hits.length >= defaultTuning.media.candidates) break;
+        if (stopped()) return { kind: "stopped" };
         const found = await input.wikiClient.pageImage(wiki, title);
         if (found && !hits.some((h) => h.imageUrl === found.imageUrl)) hits.push({ ...found, origin });
       }

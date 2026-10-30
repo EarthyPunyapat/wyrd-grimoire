@@ -123,7 +123,10 @@ export class MediaWorker {
       const tried = this.d.store.mediaAttempt(campaignId, t.id, t.role);
       return tried === null || now - tried > defaultTuning.media.retryMinutes * 60_000;
     });
+    // Wiki calls share the turn's 1 request/s limiter: a running turn stops the pass; after() resumes it.
+    const turnStarted = () => this.d.running(campaignId);
     for (const target of due.slice(0, this.d.limit ?? defaultTuning.media.jobsPerTurn)) {
+      if (turnStarted()) break;
       const web = settings.webImages && !forced.has(`${target.role}:${target.id}`) ? this.d.wiki : null;
       // A person with no source wiki can only be generated; with no generator yet, nothing was tried, so
       // connecting ComfyUI later takes effect at once instead of after the retry window.
@@ -131,7 +134,11 @@ export class MediaWorker {
       if (!webCanRun && !provider) continue;
       this.d.store.markMediaAttempt(campaignId, target.id, target.role, now);
       if (web) {
-        const found = await resolveImage({ entity: target, wiki, wikiClient: web });
+        const found = await resolveImage({ entity: target, wiki, wikiClient: web, stop: turnStarted });
+        if (found.kind === "stopped") {
+          this.d.store.clearMediaAttempt(campaignId, target.id, target.role);
+          break;
+        }
         const reachable = (hit: ImageHit) => !this.refused.has(new URL(hit.imageUrl).host);
         if (found.kind === "candidates") {
           const hits = found.hits.filter(reachable);

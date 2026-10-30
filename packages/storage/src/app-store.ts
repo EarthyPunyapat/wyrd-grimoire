@@ -108,6 +108,13 @@ export class AppStore {
       .get(campaignId, entityId, role) as { at: number } | null;
     return row?.at ?? null;
   }
+  clearMediaAttempt(campaignId: string, entityId: string, role: string): void {
+    this.db.run("DELETE FROM media_attempts WHERE campaign_id = ? AND entity_id = ? AND role = ?", [
+      campaignId,
+      entityId,
+      role,
+    ]);
+  }
   /** Media settings changed: every entity gets a fresh try with the new sources. */
   clearMediaAttempts(): void {
     this.db.run("DELETE FROM media_attempts");

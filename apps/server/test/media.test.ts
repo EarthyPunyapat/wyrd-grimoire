@@ -162,7 +162,9 @@ describe("the media worker", () => {
     expect(mediaOf(a.game.state()).portraits["npc:magda"]).toBeUndefined();
 
     const b = world();
-    b.game.append([draft("KnowledgeGained", { factId: "f:magda-hair", entry: { how: "witnessed", gameTime: 0 } })]);
+    b.game.append([
+      draft("KnowledgeGained", { factId: "f:magda-hair", entry: { how: "witnessed", gameTime: 0 } }),
+    ]);
     const wiki = fakeWiki({});
     const withComfy = worker({ ...b, wiki, provider: generated, limit: 10 });
     withComfy.after("c1");
@@ -504,6 +506,23 @@ test("a generated portrait only uses what the PC knows about the person", async 
   w.after("c1");
   await w.idle();
   expect(mediaOf(game.state()).portraits["npc:magda"]?.prompt).not.toContain("white braids");
-  game.append([draft("KnowledgeGained", { factId: "f:magda-hair", entry: { how: "witnessed", gameTime: 0 } })]);
+  game.append([
+    draft("KnowledgeGained", { factId: "f:magda-hair", entry: { how: "witnessed", gameTime: 0 } }),
+  ]);
   expect(prompt).not.toContain("white braids");
+});
+
+test("the worker stops asking the wiki the moment a turn starts, so research isn't slowed", async () => {
+  const { home, game } = world("dc.fandom.com");
+  const running = { value: false };
+  const wiki = fakeWiki({});
+  const pageImage = wiki.client.pageImage;
+  wiki.client.pageImage = async (w: string, title: string) => {
+    running.value = true; // a turn begins while the first lookup is in flight
+    return pageImage(w, title);
+  };
+  const w = worker({ home, game, wiki, running, limit: 10 });
+  w.after("c1");
+  await w.idle();
+  expect(wiki.calls.filter((c) => c.startsWith("page"))).toHaveLength(1);
 });
