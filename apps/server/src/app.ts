@@ -395,7 +395,12 @@ export function createApp(options: Options) {
     body,
     router: () => (options.offline ? null : models.router()),
   });
-  mountPresets(app, { store, campaign: (id) => campaign(id), body });
+  mountPresets(app, {
+    store,
+    campaign: (id) => campaign(id),
+    body,
+    router: () => (options.offline ? null : models.router()),
+  });
   mountParty(app, { campaign: (id) => campaign(id), body, running: (id) => !!store.running(id) });
   mountCampaignSettings(app, { campaign: (id) => campaign(id), body });
   mountWorld(app, {

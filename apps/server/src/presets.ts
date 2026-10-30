@@ -8,16 +8,18 @@ import {
   WorldSetupInput,
 } from "@wyrd/core";
 import type { GameState } from "@wyrd/engine";
+import { adaptCharacter, type RoleRouter, varyPitch } from "@wyrd/llm";
 import { type AppStore, type CampaignStore, CanonQueries } from "@wyrd/storage";
 import type { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import type { z } from "zod";
+import { z } from "zod";
 import type { AppEnvironment } from "./app.ts";
 import { StoredDraft } from "./creation.ts";
 import { WORLD_STARTERS } from "./world-starters.ts";
 
 type Deps = {
   store: AppStore;
+  router: () => RoleRouter | null;
   campaign: (id: string) => CampaignStore<GameState>;
   body: <T>(c: { req: { json(): Promise<unknown> } }, schema: z.ZodType<T>) => Promise<T>;
 };
@@ -91,6 +93,36 @@ export function cardFromCampaign(game: CampaignStore<GameState>): CharacterCardI
 }
 const immutable = "Built-in setups can't be changed; duplicate it";
 export function mountPresets(app: Hono<AppEnvironment>, d: Deps) {
+  app.post("/api/world-setups/vary", async (c) => {
+    const input = await d.body(
+      c,
+      z.object({ pitch: WorldSetup.shape.pitch, source: WorldSetup.shape.source }).strict(),
+    );
+    const router = d.router();
+    if (!router) throw new HTTPException(422, { message: "Connect a model to vary a pitch." });
+    return c.json({ pitch: await varyPitch(router, input) });
+  });
+  app.post("/api/character-cards/:id/adapt", async (c) => {
+    const router = d.router();
+    if (!router) throw new HTTPException(422, { message: "Connect a model to adapt a card." });
+    const input = await d.body(c, z.object({ draftId: z.uuid() }).strict());
+    const card = d.store.characterCard(c.req.param("id"));
+    if (!card) throw new HTTPException(404, { message: "Character card not found" });
+    const saved = StoredDraft.safeParse(d.store.creationDraft(input.draftId));
+    if (!saved.success) throw new HTTPException(404, { message: "World draft not found" });
+    const p = saved.data.proposal;
+    return c.json({
+      pc: await adaptCharacter(router, {
+        pc: card.pc,
+        world: {
+          name: p.worldName,
+          premise: p.premise,
+          tone: p.tone,
+          source: saved.data.input.source?.title,
+        },
+      }),
+    });
+  });
   app.get("/api/character-cards", (c) => c.json(d.store.characterCards()));
   app.get("/api/character-cards/:id", (c) => {
     const card = d.store.characterCard(c.req.param("id"));

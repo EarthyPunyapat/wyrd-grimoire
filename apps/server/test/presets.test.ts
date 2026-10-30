@@ -233,3 +233,20 @@ test("cards start new worlds, drop unknown skills and adapt without changing the
   expect(missing.status).toBe(404);
   expect(await missing.text()).toContain("Character card not found");
 });
+
+test("vary and adaptation return actionable errors offline", async () => {
+  const { req } = await setup();
+  const varied = await req("/world-setups/vary", { pitch: "You cross a distant star ocean." });
+  expect(varied.status).toBe(422);
+  expect(await varied.text()).toContain("Connect a model to vary a pitch.");
+  const card = (await (
+    await req("/character-cards", {
+      title: "Ethan",
+      origin: "created",
+      pc: { name: "Ethan", level: 1, backstory: "A wandering sovereign" },
+    })
+  ).json()) as { id: string };
+  const adapted = await req(`/character-cards/${card.id}/adapt`, { draftId: crypto.randomUUID() });
+  expect(adapted.status).toBe(422);
+  expect(await adapted.text()).toContain("Connect a model");
+});
