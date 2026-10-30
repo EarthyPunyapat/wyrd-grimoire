@@ -251,6 +251,7 @@ describe("money and shops (spec 11)", () => {
 });
 
 describe("a shop belongs to a place", () => {
+  const vendor = { ...shop, templateId: "gm" };
   const scene = (locationId: string) =>
     draft("SceneOpened", {
       scene: SceneState.parse({
@@ -264,14 +265,14 @@ describe("a shop belongs to a place", () => {
 
   test("a shop opened without a place is stamped with the scene it opened in", () => {
     const s = sim();
-    s.commit([scene("loc:market"), draft("ShopOpened", { shop }, "engine")]);
+    s.commit([scene("loc:market"), draft("ShopOpened", { shop: vendor }, "engine")]);
     expect(s.state.economy.shops["shop:test"]!.locationId).toBe("loc:market");
     expect(shopHere(s.state)?.id).toBe("shop:test");
   });
 
   test("leaving the shop's place leaves the shop behind", () => {
     const s = sim();
-    s.commit([scene("loc:market"), draft("ShopOpened", { shop }, "engine"), scene("loc:rooftop")]);
+    s.commit([scene("loc:market"), draft("ShopOpened", { shop: vendor }, "engine"), scene("loc:rooftop")]);
     expect(shopHere(s.state)).toBeNull();
     s.commit([scene("loc:market")]);
     expect(shopHere(s.state)?.id).toBe("shop:test");
@@ -280,7 +281,7 @@ describe("a shop belongs to a place", () => {
   test("an old shop with no recorded place uses the fallback location", () => {
     const s = sim();
     s.commit([scene("loc:opening")]);
-    s.state = { ...s.state, economy: { wallets: {}, shops: { "shop:test": shop } } };
+    s.state = { ...s.state, economy: { wallets: {}, shops: { "shop:test": vendor } } };
     expect(shopHere(s.state, "loc:opening")?.id).toBe("shop:test");
     expect(shopHere(s.state, "loc:elsewhere")).toBeNull();
   });
@@ -362,5 +363,43 @@ describe("vendors the GM opens (D166)", () => {
     s.commit(out.drafts);
     expect(shopHere(s.state)?.merchantPresent).toBe(false);
     expect(shopHere(s.state)?.merchant.name).toBe("a street vendor");
+  });
+});
+
+describe("a shop is a seller in front of you (D173)", () => {
+  const scene = (locationId: string, positions: Record<string, string> = { pc: "z:1" }) =>
+    draft("SceneOpened", {
+      scene: SceneState.parse({
+        id: `scene:${locationId}`,
+        locationId,
+        zones: [{ id: "z:1", name: "here" }],
+        positions,
+        openedAt: 0,
+      }),
+    });
+
+  test("a starting shop from world setup stays hidden: its merchant is never in the scene", () => {
+    const s = sim();
+    // Older campaigns opened their starting shop at the opening scene.
+    s.commit([
+      scene("loc:opening"),
+      draft("ShopOpened", { shop: { ...shop, templateId: "generated-shop" } }, "engine"),
+    ]);
+    expect(shopHere(s.state)).toBeNull();
+  });
+
+  test("a starting shop whose merchant is actually here trades", () => {
+    const s = sim();
+    const withMerchant = {
+      ...shop,
+      templateId: "market",
+      merchantPresent: true,
+      merchant: { ...shop.merchant, id: "npc:mira" },
+    };
+    s.commit([
+      scene("loc:market", { pc: "z:1", "npc:mira": "z:1" }),
+      draft("ShopOpened", { shop: withMerchant }, "engine"),
+    ]);
+    expect(shopHere(s.state)?.id).toBe("shop:test");
   });
 });

@@ -2,7 +2,15 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { type BaseCampaignPreset, CampaignSettingsView, GameView, presetSubsystems } from "@wyrd/core";
+import {
+  type BaseCampaignPreset,
+  CampaignSettingsView,
+  type CompiledPack,
+  GameView,
+  presetSubsystems,
+} from "@wyrd/core";
+import { catalogWith, type GameState, openShop, reduce, unwrap } from "@wyrd/engine";
+import { CampaignStore } from "@wyrd/storage";
 import { createApp } from "../src/app.ts";
 
 const homes: string[] = [];
@@ -168,10 +176,43 @@ test("downtime activities resolve through the API and advance game time", async 
   expect(research.status).toBe(200);
 });
 
-test("the starting shop trades and haggles through the API", async () => {
-  const server = setup();
-  const cookie = await login(server);
-  const id = await quickStart(server, cookie, "Market Day");
+/** A vendor at the PC's place, opened the way the GM's open_shop does (D173): close, append, reopen. */
+function withVendor(server: Server, id: string): Server {
+  const home = homes.at(-1)!;
+  server.close();
+  servers.splice(servers.indexOf(server), 1);
+  const game = CampaignStore.open<GameState>(join(home, "campaigns", id, "campaign.db"), { reduce });
+  const pack = game.packSnapshot()!.content as CompiledPack;
+  const opened = unwrap(
+    openShop(
+      game.state(),
+      {
+        name: "The River Stall",
+        kind: "general",
+        merchant: { name: "Mira" },
+        stock: [
+          { name: "Hemp Rope", description: "", price: 10, qty: 5, weightKg: 1 },
+          { name: "Torch", description: "", price: 1, qty: 9, weightKg: 0.5 },
+        ],
+      },
+      catalogWith(game.state(), pack.items),
+    ),
+  );
+  game.append(opened.drafts);
+  game.close();
+  const reopened = createApp({ home, offline: true });
+  servers.push(reopened);
+  return reopened;
+}
+
+test("no shop at the start; a vendor here trades and haggles through the API", async () => {
+  const first = setup();
+  const cookie = await login(first);
+  const id = await quickStart(first, cookie, "Market Day");
+  expect(
+    GameView.parse(await (await request(first, `/campaigns/${id}/view`, undefined, cookie)).json()).shop,
+  ).toBeNull();
+  const server = withVendor(first, id);
   let game = GameView.parse(await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json());
   expect(game.shop).not.toBeNull();
   expect(game.inventory.coins).toBe(50);
@@ -194,10 +235,11 @@ test("the starting shop trades and haggles through the API", async () => {
   expect(haggled.status).toBe(200);
 });
 
-test("a quick-start kit reaches the inventory, weighs in and can be sold", async () => {
-  const server = setup();
-  const cookie = await login(server);
-  const id = await quickStart(server, cookie, "Kit", { archetype: "cutpurse" });
+test("a quick-start kit reaches the inventory, weighs in and can be sold to a vendor", async () => {
+  const first = setup();
+  const cookie = await login(first);
+  const id = await quickStart(first, cookie, "Kit", { archetype: "cutpurse" });
+  const server = withVendor(first, id);
   let game = GameView.parse(await (await request(server, `/campaigns/${id}/view`, undefined, cookie)).json());
   const kit = ["fantasy-core:dagger", "fantasy-core:lockpicks", "fantasy-core:rope", "fantasy-core:backpack"];
   for (const itemId of kit) {

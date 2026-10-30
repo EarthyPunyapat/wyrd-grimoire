@@ -66,7 +66,9 @@ export function shopHere(state: GameState, fallbackLocationId?: string): ShopSta
       (shop) =>
         (shop.locationId ?? fallbackLocationId) === scene.locationId &&
         // A merchant who is a person in the scene has to be here to sell (D166).
-        (!shop.merchantPresent || scene.positions[shop.merchant.id] !== undefined),
+        (!shop.merchantPresent || scene.positions[shop.merchant.id] !== undefined) &&
+        // A shop from world setup is stock, not a seller: it trades only with its merchant in front of you (D173).
+        (shop.templateId === "gm" || shop.merchantPresent),
     ) ?? null
   );
 }

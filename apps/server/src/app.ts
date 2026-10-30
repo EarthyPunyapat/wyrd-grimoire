@@ -923,24 +923,6 @@ export function createApp(options: Options) {
       },
     };
     const sheet = hooks ? { ...overlay, identity: { ...overlay.identity, hookIds: hooks.ids } } : overlay;
-    const template = gamePack.economy?.shops[0];
-    const shop = template
-      ? ShopState.parse({
-          id: `shop:${template.id}`,
-          templateId: template.id,
-          name: template.name,
-          kind: template.kind,
-          settlement: template.settlement,
-          markup: template.markup,
-          merchant: {
-            id: `npc:merchant-${template.id}`,
-            name: template.merchant?.name ?? "the shopkeeper",
-            insight: template.merchant?.insight ?? 30,
-          },
-          stock: template.stock.map((line) => ({ itemId: line.item, qty: line.qty })),
-          lastRefresh: 0,
-        })
-      : null;
     const id = randomUUID();
     const dir = join(options.home, "campaigns", id);
     mkdirSync(dir, { recursive: true });
@@ -974,7 +956,7 @@ export function createApp(options: Options) {
         ...worldEvents(world, [sheet.id]),
         ...extra,
         ...(hooks?.events ?? []),
-        ...(shop ? [draft("ShopOpened", { shop }, "engine")] : []),
+        // No shop opens at the start: vendors appear when the story puts a seller in front of you (D173).
         draft(
           "CoinsChanged",
           { actorId: sheet.id, delta: defaultTuning.economy.startingCoins, reason: "starting purse" },
