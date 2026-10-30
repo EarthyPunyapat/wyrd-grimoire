@@ -27,7 +27,7 @@ async function market(page: Page) {
 const coins = (panel: ReturnType<Page["getByRole"]>) =>
   panel.locator(".stat-label", { hasText: "Coins" }).locator("strong");
 
-test("inventory shows coins, gear and a working shop", async ({ page }, info) => {
+test("inventory shows coins and gear; a vendor the story opens trades", async ({ page }, info) => {
   const phone = info.project.name === "phone";
   await market(page);
   await page.getByRole("button", { name: "Inventory", exact: true }).click();
@@ -42,8 +42,14 @@ test("inventory shows coins, gear and a working shop", async ({ page }, info) =>
   await expect(panel.getByRole("button", { name: /^Sell / })).toHaveCount(0);
   await expect(page.getByRole("dialog").getByRole("tab", { name: /Market/ })).toHaveCount(0);
   await page.getByRole("button", { name: "Close status screen" }).click();
-  await page.getByRole("button", { name: /Browse wares/ }).click();
-  const stall = page.getByRole("dialog", { name: "The River Market" });
+  // No shop at the start (D173): asking around makes the GM open a vendor here.
+  await expect(page.getByRole("button", { name: /Browse wares/ })).toHaveCount(0);
+  const box = page.getByLabel("What do you do?", { exact: true });
+  await box.fill("vendor workflow");
+  await box.press("Enter");
+  await expect(box).toBeEnabled({ timeout: 15000 });
+  await page.locator(".shop-here").click();
+  const stall = page.getByRole("dialog", { name: "Relay Commissary" });
   const buy = stall.getByRole("button", { name: /^Buy · / }).first();
   await expect(buy).toBeEnabled();
   await buy.click();

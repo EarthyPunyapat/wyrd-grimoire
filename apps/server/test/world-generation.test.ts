@@ -170,7 +170,7 @@ async function setupWithKit(kitReply: FakeRule["reply"]) {
   return { server, cookie };
 }
 
-test("wizard campaign starts with kit and shop", async () => {
+test("a wizard campaign starts with its kit, and no shop until the story puts a seller in front of you", async () => {
   const { server, cookie } = await setupWithKit({
     toolCall: { name: "propose_starting_kit", args: STARTING_KIT },
   });
@@ -190,7 +190,7 @@ test("wizard campaign starts with kit and shop", async () => {
   expect(made.status).toBe(201);
   const { id } = (await made.json()) as { id: string };
   const view = GameView.parse(await (await request(server, `/campaigns/${id}/view`, cookie)).json());
-  expect(view.shop).not.toBeNull();
+  expect(view.shop).toBeNull();
   expect(view.inventory.items.length).toBeGreaterThan(0);
 });
 

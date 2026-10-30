@@ -2,8 +2,8 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { draft, GameView, SceneState } from "@wyrd/core";
-import { type GameState, reduce } from "@wyrd/engine";
+import { type CompiledPack, draft, GameView, SceneState } from "@wyrd/core";
+import { catalogWith, type GameState, openShop, reduce, unwrap } from "@wyrd/engine";
 import { CampaignStore } from "@wyrd/storage";
 import { createApp } from "../src/app.ts";
 
@@ -117,19 +117,41 @@ test("the shop stays where it opened: leaving the place takes it off the screen 
   const id = await quickStart(server, cookie);
   const view = async (s: Server) =>
     GameView.parse(await (await request(s, `/campaigns/${id}/view`, undefined, cookie)).json());
-  const shop = (await view(server)).shop;
-  expect(shop).not.toBeNull();
-
+  // No shop at the start (D173): a vendor opens here, the way the GM's open_shop does.
+  expect((await view(server)).shop).toBeNull();
   server.close();
   servers.splice(servers.indexOf(server), 1);
   const store = CampaignStore.open<GameState>(join(home, "campaigns", id, "campaign.db"), { reduce });
-  const here = store.state().scene!;
-  store.append([
+  store.append(
+    unwrap(
+      openShop(
+        store.state(),
+        {
+          name: "Stall",
+          kind: "general",
+          merchant: { name: "Mira" },
+          stock: [{ name: "Torch", description: "", price: 1, qty: 3, weightKg: 0.5 }],
+        },
+        catalogWith(store.state(), (store.packSnapshot()!.content as CompiledPack).items),
+      ),
+    ).drafts,
+  );
+  store.close();
+  const here1 = createApp({ home, offline: true });
+  servers.push(here1);
+  const shop = (await view(here1)).shop;
+  expect(shop?.name).toBe("Stall");
+  here1.close();
+  servers.splice(servers.indexOf(here1), 1);
+
+  const moving = CampaignStore.open<GameState>(join(home, "campaigns", id, "campaign.db"), { reduce });
+  const here = moving.state().scene!;
+  moving.append([
     draft("SceneOpened", {
       scene: SceneState.parse({ ...here, id: "scene:rooftop", locationId: "location:rooftop" }),
     }),
   ]);
-  store.close();
+  moving.close();
 
   const moved = createApp({ home, offline: true });
   servers.push(moved);
