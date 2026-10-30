@@ -17,6 +17,7 @@ export * from "./schemas/domains/delegation.ts";
 export * from "./schemas/domains/levels.ts";
 export * from "./schemas/domains/living.ts";
 export * from "./schemas/domains/lore.ts";
+export * from "./schemas/domains/media.ts";
 export * from "./schemas/domains/skips.ts";
 export * from "./schemas/downtime.ts";
 export * from "./schemas/events.ts";

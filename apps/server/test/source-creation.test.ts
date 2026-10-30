@@ -185,6 +185,8 @@ test("source review, sample revision and player overrides survive creation and s
     expect(game.state()).toEqual(before);
     expect(Object.values(game.state().clocks).filter((c) => c.kind === "canon")).toHaveLength(1);
     expect(game.state().worlds[0]?.source).toBe("Wisp");
+    // First Light finds the source's images through the wiki recorded with it.
+    expect(game.state().worlds[0]?.wiki).toBe("en.wikipedia.org");
     expect(Object.keys(game.state().flags.canonResults as object)).toHaveLength(1);
     expect(Object.keys(game.state().flags.canonActors as object).length).toBeGreaterThan(1);
     expect(JSON.stringify(game.state().flags.loreRecords)).toContain("wikipedia.org");

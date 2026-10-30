@@ -11,7 +11,11 @@ export const canonHandlers: Pick<
 > = {
   CanonSourceSet: (s, e) => ({
     ...s,
-    worlds: s.worlds.map((w) => (w.id === e.payload.worldId ? { ...w, source: e.payload.source } : w)),
+    worlds: s.worlds.map((w) =>
+      w.id === e.payload.worldId
+        ? { ...w, source: e.payload.source, ...(e.payload.wiki ? { wiki: e.payload.wiki } : {}) }
+        : w,
+    ),
   }),
   CanonClockIntervened: (s, e) => ({
     ...s,

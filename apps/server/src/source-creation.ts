@@ -24,7 +24,10 @@ export function sourceEvents(
     events.push(draft("EntityCreated", { entity }, "model"));
     return entity.id;
   };
-  if (input.source) events.push(draft("CanonSourceSet", { worldId: MAIN_WORLD, source: input.source.title }));
+  if (input.source)
+    events.push(
+      draft("CanonSourceSet", { worldId: MAIN_WORLD, source: input.source.title, wiki: input.source.wiki }),
+    );
   const concept = find(input.source?.title ?? "Source", "concept");
   for (const [i, value] of source.research.facts.entries())
     events.push(

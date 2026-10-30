@@ -12,6 +12,7 @@ import { injuryEventSchemas } from "./domains/injury.ts";
 import { levelEventSchemas } from "./domains/levels.ts";
 import { livingEventSchemas } from "./domains/living.ts";
 import { loreEventSchemas } from "./domains/lore.ts";
+import { mediaEventSchemas } from "./domains/media.ts";
 import { skipEventSchemas } from "./domains/skips.ts";
 import { spellEventSchemas } from "./domains/spellcasting.ts";
 import { subsystemEventSchemas } from "./domains/subsystems.ts";
@@ -169,6 +170,8 @@ export const eventPayloadSchemas = {
   ...canonEventSchemas,
   ...skipEventSchemas,
   ...delegationEventSchemas,
+  // Wyrd 2.x First Light
+  ...mediaEventSchemas,
 } as const;
 
 export type EventType = keyof typeof eventPayloadSchemas;

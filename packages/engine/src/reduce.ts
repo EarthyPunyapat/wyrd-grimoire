@@ -16,6 +16,7 @@ import { injuryHandlers } from "./reduce/injury.ts";
 import { levelHandlers } from "./reduce/levels.ts";
 import { livingHandlers } from "./reduce/living.ts";
 import { loreHandlers } from "./reduce/lore.ts";
+import { mediaHandlers } from "./reduce/media.ts";
 import { skipHandlers } from "./reduce/skips.ts";
 import { spellHandlers } from "./reduce/spellcasting.ts";
 import { subsystemHandlers } from "./reduce/subsystems.ts";
@@ -46,7 +47,8 @@ type DomainKey =
   | keyof typeof loreHandlers
   | keyof typeof canonHandlers
   | keyof typeof skipHandlers
-  | keyof typeof delegationHandlers;
+  | keyof typeof delegationHandlers
+  | keyof typeof mediaHandlers;
 
 /** One handler per event type; the mapped type makes a missing handler a compile error. */
 const baseHandlers: Omit<Handlers, DomainKey> = {
@@ -434,6 +436,7 @@ const handlers: Handlers = {
   ...canonHandlers,
   ...skipHandlers,
   ...delegationHandlers,
+  ...mediaHandlers,
 };
 
 export const HANDLED_EVENT_TYPES: readonly EventType[] = [

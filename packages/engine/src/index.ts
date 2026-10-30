@@ -18,6 +18,7 @@ export * from "./injury/index.ts";
 export * from "./inventory.ts";
 export * from "./levels.ts";
 export * from "./luck.ts";
+export * from "./media.ts";
 export * from "./player-canon.ts";
 export * from "./progression.ts";
 export * from "./reduce.ts";

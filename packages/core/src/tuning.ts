@@ -49,6 +49,15 @@ export type Tuning = {
   };
   /** ChatGPT campaign import (D142): how much condensed chat text the extraction model reads. */
   import: { condenseChars: number };
+  /** First Light images (D168). */
+  media: {
+    maxBytes: number;
+    thumbSize: number;
+    candidates: number;
+    retryMinutes: number;
+    jobsPerTurn: number;
+    timeoutMs: number;
+  };
   delegation: {
     durationMinutes: number;
     skill: string;
@@ -481,6 +490,14 @@ export const defaultTuning: Tuning = {
     },
   },
   import: { condenseChars: 120_000 },
+  media: {
+    maxBytes: 5_000_000,
+    thumbSize: 640,
+    candidates: 6,
+    retryMinutes: 60,
+    jobsPerTurn: 3,
+    timeoutMs: 20_000,
+  },
   delegation: {
     durationMinutes: 1440,
     skill: "core:insight",
