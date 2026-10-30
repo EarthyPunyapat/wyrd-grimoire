@@ -123,7 +123,16 @@ test("review an editable adaptation without changing the saved card", async ({ p
   await page.getByRole("radio", { name: "Let the GM adapt", exact: true }).check();
   await expect(page.getByLabel("Arrival Level", { exact: true })).toHaveValue("5");
   await page.getByLabel("Arrival Level", { exact: true }).fill("7");
+  await page.getByLabel("Ability 1 name", { exact: true }).fill("");
+  const savedEdit = page.waitForResponse(
+    (r) =>
+      r.url().endsWith("/card") &&
+      r.request().method() === "PUT" &&
+      r.request().postDataJSON()?.adapted?.abilities[0]?.name === "Edited starlight",
+  );
   await page.getByLabel("Ability 1 name", { exact: true }).fill("Edited starlight");
+  await savedEdit;
+  await expect(page.getByRole("alert")).toHaveCount(0);
   await page.getByRole("button", { name: "Close new campaign", exact: true }).click();
   await page.getByRole("button", { name: "Continue Space opera", exact: true }).click();
   await expect(page.getByLabel("Arrival Level", { exact: true })).toHaveValue("7");

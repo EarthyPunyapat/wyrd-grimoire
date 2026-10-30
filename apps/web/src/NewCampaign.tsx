@@ -10,6 +10,7 @@ import {
   GeneratedWorldPreview,
   presetSelection,
   SavedWorldMeta,
+  StartCard,
   StartGeneratedCampaign,
   type SuggestField,
   WorldPitch,
@@ -221,10 +222,12 @@ export function NewCampaign({
   const cardSave = useRef<Promise<unknown>>(Promise.resolve());
   useEffect(() => {
     if (!world || !choice.cardId) return;
-    const selected = { id: choice.cardId, ...(adapted ? { adapted } : {}) };
+    // Keep the last valid snapshot while the player temporarily clears or edits a required field.
+    const selected = StartCard.safeParse({ id: choice.cardId, ...(adapted ? { adapted } : {}) });
+    if (!selected.success) return;
     cardSave.current = cardSave.current
       .catch(() => undefined)
-      .then(() => api(`/world-drafts/${world.id}/card`, (x) => x, selected, "PUT"));
+      .then(() => api(`/world-drafts/${world.id}/card`, (x) => x, selected.data, "PUT"));
     void cardSave.current.catch((e) => setError((e as Error).message));
   }, [world?.id, choice.cardId, adapted]);
 
