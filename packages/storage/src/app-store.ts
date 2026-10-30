@@ -108,6 +108,10 @@ export class AppStore {
       .get(campaignId, entityId, role) as { at: number } | null;
     return row?.at ?? null;
   }
+  /** Media settings changed: every entity gets a fresh try with the new sources. */
+  clearMediaAttempts(): void {
+    this.db.run("DELETE FROM media_attempts");
+  }
   mediaSettings(): unknown {
     const row = this.db.query("SELECT value FROM settings WHERE key = 'media'").get() as {
       value: string;

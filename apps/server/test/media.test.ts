@@ -457,3 +457,28 @@ test("a host that refuses us is remembered: its candidates aren't offered and th
   // One refusal was enough to stop asking that host.
   expect(fetched).toHaveLength(1);
 });
+
+test("connecting ComfyUI takes effect at once for characters nothing could picture before", async () => {
+  const { home, game } = world();
+  let provider: ImageProvider | null = null;
+  const store = new AppStore(join(home, "app.db"));
+  const w = new MediaWorker({
+    cache: new AssetCache(join(home, "media-cache")),
+    wiki: fakeWiki({}).client,
+    provider: () => provider,
+    store,
+    campaign: () => game,
+    running: () => false,
+    settings: () => ({ webImages: true, workflowsDir: join(home, "wf") }),
+    offline: false,
+    limit: 10,
+    now: () => 1000,
+  });
+  w.after("c1");
+  await w.idle();
+  expect(mediaOf(game.state()).portraits["npc:magda"]).toBeUndefined();
+  provider = generated;
+  w.after("c1");
+  await w.idle();
+  expect(mediaOf(game.state()).portraits["npc:magda"]?.origin).toBe("generated");
+});

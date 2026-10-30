@@ -124,8 +124,12 @@ export class MediaWorker {
       return tried === null || now - tried > defaultTuning.media.retryMinutes * 60_000;
     });
     for (const target of due.slice(0, this.d.limit ?? defaultTuning.media.jobsPerTurn)) {
-      this.d.store.markMediaAttempt(campaignId, target.id, target.role, now);
       const web = settings.webImages && !forced.has(`${target.role}:${target.id}`) ? this.d.wiki : null;
+      // A person with no source wiki can only be generated; with no generator yet, nothing was tried, so
+      // connecting ComfyUI later takes effect at once instead of after the retry window.
+      const webCanRun = Boolean(web && (wiki || PLACES.has(target.kind)));
+      if (!webCanRun && !provider) continue;
+      this.d.store.markMediaAttempt(campaignId, target.id, target.role, now);
       if (web) {
         const found = await resolveImage({ entity: target, wiki, wikiClient: web });
         const reachable = (hit: ImageHit) => !this.refused.has(new URL(hit.imageUrl).host);
@@ -355,6 +359,8 @@ export function mountMedia(
       comfyUrl: next.comfyUrl,
       workflowsDir: next.workflowsDir,
     });
+    // New sources: every entity gets a fresh try.
+    d.store.clearMediaAttempts();
     return c.json(next);
   });
   app.post("/api/settings/media/test", async (c) => {
