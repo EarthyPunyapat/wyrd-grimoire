@@ -18,6 +18,16 @@ Owner-only checks still outstanding (need real hardware or keys):
 - M5: a real-model world run and the NPC-knowledge eval.
 - M8: media (images, TTS) has not been built.
 
+## 00 First Light (2026-10-30)
+
+Built on `w2x-first-light` from [the plan](docs/superpowers/plans/2026-10-30-first-light.md); decisions D168, D172.
+
+- `packages/media`: `AssetCache` (sha256, magic-byte sniffing, size cap), `ComfyUIProvider` (verified routes: POST /prompt, GET /history/{id}, GET /view; workflow `portrait.json` + `portrait.map.json` in `WYRD_HOME/media/workflows`), `portraitPrompt`, `resolveImage` (exact name → confident, search → candidates; people only from the source wiki; places fall back to Wikipedia).
+- `MediaWikiClient.pageImage` / `fetchBytes`; `AssetAttached` → `flags.media` (`mediaOf`, `campaignWiki`); `CanonSourceSet` now records the wiki.
+- `apps/server/src/media.ts`: `MediaWorker` (after turns and view loads, never mid-turn, hourly backoff) and routes (`/api/media/:id`, candidates/choose/regenerate, `/api/settings/media` + test). `main.ts` injects the real wiki client unless `--offline`.
+- Web: `Portrait` + `MediaContext`, place banner, Codex picker, map thumbnails, Settings → Media.
+- **Known limit:** Fandom's image CDN refuses honest non-browser requests (403), so DC / Reverend Insanity portraits need another route (owner decision).
+
 ## Next: 2.0 finish, then 2.x and 3.0 (2026-10-30)
 
 - **2.0:** the replay harness (W2 step 4 R) is being built by Codex; then the owner's 20-turn test.

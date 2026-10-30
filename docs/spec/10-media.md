@@ -4,6 +4,10 @@ Media is optional, asynchronous and never blocks a turn. Both images and voice h
 
 ## Images
 
+### Sources (First Light, D168, D172)
+
+Pictures come **web first**: the campaign's source wiki (the lead image from MediaWiki PageImages for the entity's exact name, redirects included) → Wikipedia for **places only** → generation. People are never fetched from Wikipedia or web search, so real people are never pictured; a source wiki is fiction. An exact-name match attaches automatically; otherwise the wiki's search results that have images are offered as candidates in the Codex. Image bytes are fetched with the honest Wyrd user agent only; a host that refuses it (Fandom's image CDN answered 403 on 2026-10-30) is treated as having no image, and the entity falls through to generation or a placeholder. Web image search is a hook for later (no provider yet). Only entities the PC knows, the party and the current place are considered.
+
 ### Adapter
 
 ```ts
@@ -26,7 +30,10 @@ The owner already runs **Qwen-Image 2.1** (a 7B text-to-image *and* editing mode
 - **Workflows:** ComfyUI setups differ, so the app doesn't hardcode one. The owner exports their working Qwen-Image 2.1 text-to-image and edit workflows from ComfyUI in **API format** and drops them into `WYRD_HOME/media/workflows/`, with a small mapping file that says which node fields receive the prompt, negative prompt, seed, width, height and reference image. The repo ships example workflows and mappings (VERIFY them against ComfyUI's Qwen-Image 2.1 tutorial).
 - Settings → Media has a **"Test generation"** button.
 
-### OpenAI image API (option)
+### OpenAI image API (option, not built)
+
+Reserved provider id only (D172): its current API could not be verified, and the owner doesn't use paid image APIs. Settings shows it as not available yet.
+
 
 Pay-per-image via an OpenAI **API key** (the ChatGPT plan route can't generate images). Model and size configurable; VERIFY current model IDs and prices. Edit mode uses the portrait as a reference image.
 
@@ -59,8 +66,9 @@ Each type has its own toggle. Paid providers also get a per-session image budget
 
 ### Storage and events
 
-- Files live in `campaigns/<id>/media/`. An `assets` table holds id, kind, entityId, path, prompt, seed, provider, model and createdSeq.
-- `AssetRequested` and `AssetReady` events; the UI listens for `media.ready` over SSE.
+- Files live in `WYRD_HOME/media-cache/<sha256>.<ext>`, shared by every campaign (same bytes, one file), never committed; served behind the passcode at `GET /api/media/:id`.
+- `AssetAttached { entityId, role: portrait | banner, asset }` attaches a picture with its origin, page and image URLs, licence when known, and the prompt and seed for generated ones; `rebuild` restores it. The GameView carries a `media` map of picture URLs for visible entities and `scene.banner`.
+- A background **media worker** runs after each turn and each view load, one job at a time across the server and `tuning.media.jobsPerTurn` entities per pass; it never appends during a running turn and backs off `tuning.media.retryMinutes` after a miss. Candidates and attempts live in the app store. Settings → Media: web pictures on/off, the ComfyUI address with Test generation, and the workflows folder.
 
 ### GPU sharing
 

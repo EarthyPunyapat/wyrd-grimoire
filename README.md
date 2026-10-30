@@ -33,6 +33,8 @@ Open `http://localhost:4777` on the host PC, set a passcode, and create an Ashfo
 Provider settings and usage migrate from the CLI files into `app.db`; credentials stay in `WYRD_HOME/secrets/`.
 See [the web guide](docs/m3-web.md) for isolated previews, LAN access and browser tests.
 
+**Pictures (First Light):** characters and places get pictures from the campaign's source wiki, and generated portraits once ComfyUI on your main PC is connected. In ComfyUI, export your portrait workflow in API format as `portrait.json` into `WYRD_HOME/media/workflows/`, add a `portrait.map.json` naming the fields to fill (for example `{"prompt": "6.text", "negative": "7.text", "seed": "3.seed", "width": "5.width", "height": "5.height"}`), then set the ComfyUI address in Settings → Media and press Test generation.
+
 ## Read the spec
 
 1. [Overview and glossary](docs/spec/00-overview.md) — start here; it maps every other file.
