@@ -136,13 +136,63 @@ export class MediaWikiClient {
       name = data.parse.title ?? title;
       text = plainWikitext(data.parse.wikitext["*"]);
     }
+    return { title: name, url: pageUrl(host, name), text };
+  }
+  /** The page's lead image (PageImages), following redirects; null for a missing page or one without an image. */
+  async pageImage(
+    wiki: string,
+    title: string,
+  ): Promise<{ title: string; pageUrl: string; imageUrl: string; width?: number; height?: number } | null> {
+    const host = wikiHost(wiki);
+    const data = await this.request(host, {
+      action: "query",
+      prop: "pageimages",
+      piprop: "thumbnail|name",
+      pithumbsize: String(defaultTuning.media.thumbSize),
+      redirects: "1",
+      titles: title,
+    });
+    const page = Object.values(data.query?.pages ?? {})[0] as
+      | {
+          title?: string;
+          missing?: unknown;
+          thumbnail?: { source?: string; width?: number; height?: number };
+        }
+      | undefined;
+    const source = page?.thumbnail?.source;
+    if (!page || "missing" in page || !source?.startsWith("https://")) return null;
+    const name = page.title ?? title;
     return {
       title: name,
-      url: `https://${host}/wiki/${encodeURI(name.replaceAll(" ", "_")).replaceAll("?", "%3F").replaceAll("#", "%23")}`,
-      text,
+      pageUrl: pageUrl(host, name),
+      imageUrl: source,
+      ...(page.thumbnail?.width ? { width: page.thumbnail.width } : {}),
+      ...(page.thumbnail?.height ? { height: page.thumbnail.height } : {}),
+    };
+  }
+  /**
+   * Image bytes, with the same honest user agent and limiter as API calls. A host that refuses that agent
+   * is a source without images: nothing here retries as anyone else.
+   */
+  async fetchBytes(url: string): Promise<{ bytes: Uint8Array; mime: string }> {
+    if (!url.startsWith("https://")) throw new Error("Images are fetched over https only");
+    const response = await this.limiter.run(() =>
+      this.fetch(url, {
+        headers: { "User-Agent": `WyrdGrimoire/${version} (personal, non-commercial)` },
+        redirect: "error",
+        signal: AbortSignal.timeout(defaultTuning.media.timeoutMs),
+      }),
+    );
+    if (!response.ok) throw new Error(`Image source refused (${response.status})`);
+    return {
+      bytes: new Uint8Array(await response.arrayBuffer()),
+      mime: response.headers.get("content-type") ?? "",
     };
   }
 }
+
+const pageUrl = (host: string, name: string) =>
+  `https://${host}/wiki/${encodeURI(name.replaceAll(" ", "_")).replaceAll("?", "%3F").replaceAll("#", "%23")}`;
 
 const client = new MediaWikiClient();
 export const fetchPage = (wiki: string, title: string) => client.fetchPage(wiki, title);

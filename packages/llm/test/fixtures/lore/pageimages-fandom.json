@@ -1,0 +1,20 @@
+{
+  "batchcomplete": "",
+  "query": {
+    "normalized": [{ "from": "Bruce_Wayne_(Prime_Earth)", "to": "Bruce Wayne (Prime Earth)" }],
+    "redirects": [{ "from": "Bruce Wayne (Prime Earth)", "to": "Batman (Bruce Wayne)" }],
+    "pages": {
+      "314286": {
+        "pageid": 314286,
+        "ns": 0,
+        "title": "Batman (Bruce Wayne)",
+        "thumbnail": {
+          "source": "https://static.wikia.nocookie.net/marvel_dc/images/0/08/Batman_Vol_3_131_Textless_Fabok_Variant.jpg/revision/latest/scale-to-width-down/422?cb=20230106222502",
+          "width": 422,
+          "height": 640
+        },
+        "pageimage": "Batman_Vol_3_131_Textless_Fabok_Variant.jpg"
+      }
+    }
+  }
+}

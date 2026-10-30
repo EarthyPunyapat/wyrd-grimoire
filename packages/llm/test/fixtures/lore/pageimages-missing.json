@@ -1,0 +1,7 @@
+{
+  "batchcomplete": "",
+  "query": {
+    "normalized": [{ "from": "Nonexistent_Page_Xyz", "to": "Nonexistent Page Xyz" }],
+    "pages": { "-1": { "ns": 0, "title": "Nonexistent Page Xyz", "missing": "" } }
+  }
+}
