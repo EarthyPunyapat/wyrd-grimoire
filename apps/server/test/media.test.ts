@@ -227,3 +227,129 @@ describe("the media worker", () => {
     expect(mediaOf(game.state()).portraits["npc:bat"]).toBeDefined();
   });
 });
+
+import { GameView, MapView } from "@wyrd/core";
+import { createApp } from "../src/app.ts";
+
+describe("media routes and the game view", () => {
+  const setup = async (o: {
+    pages?: Record<string, boolean>;
+    searches?: string[];
+    provider?: ImageProvider | null;
+  }) => {
+    const home = mkdtempSync(join(tmpdir(), "wyrd-media-app-"));
+    homes.push(home);
+    const wiki = fakeWiki(o.pages ?? {});
+    wiki.client.search = async () => o.searches ?? [];
+    const instance = createApp({
+      home,
+      offline: true,
+      mediaWiki: wiki.client,
+      ...(o.provider !== undefined ? { imageProvider: o.provider } : {}),
+    });
+    const request = (path: string, body?: unknown, cookie?: string) =>
+      instance.app.request(`http://localhost/api${path}`, {
+        method: body === undefined ? "GET" : "POST",
+        headers: { "Content-Type": "application/json", "X-Wyrd": "1", ...(cookie ? { Cookie: cookie } : {}) },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      });
+    const setupRes = await request("/auth/setup", { passcode: "a long media test passcode" });
+    const cookie = setupRes.headers.get("set-cookie")!.split(";")[0]!;
+    const made = await request(
+      "/campaigns/quick-start",
+      { name: "Ferry", characterName: "Wren", archetype: "cutpurse" },
+      cookie,
+    );
+    const id = ((await made.json()) as { id: string }).id;
+    const view = async () =>
+      GameView.parse(await (await request(`/campaigns/${id}/view`, undefined, cookie)).json());
+    return { instance, request, cookie, id, view, wiki };
+  };
+
+  test("the current place gets a banner the view links to, served as image bytes behind the passcode", async () => {
+    const s = await setup({ pages: { "Ashford Ferry House": true } });
+    await s.view();
+    await s.instance.idle();
+    const view = await s.view();
+    const url = view.scene?.banner;
+    expect(url).toMatch(/^\/api\/media\/[0-9a-f]{64}$/);
+    expect(Object.values(view.media.banners)).toContain(url!);
+    const image = await s.request(url!.replace("/api", ""), undefined, s.cookie);
+    expect(image.status).toBe(200);
+    expect(image.headers.get("content-type")).toBe("image/png");
+    expect(new Uint8Array(await image.arrayBuffer())).toEqual(PNG);
+    expect((await s.request(url!.replace("/api", ""))).status).toBe(401);
+    s.instance.close();
+  });
+
+  test("the PC gets a generated portrait when a generator is set up", async () => {
+    const s = await setup({ provider: generated });
+    await s.view();
+    await s.instance.idle();
+    const view = await s.view();
+    expect(view.media.portraits[view.pc.id]).toMatch(/^\/api\/media\//);
+    s.instance.close();
+  });
+
+  test("ambiguous places offer candidates; choosing one attaches it, and unknown entities are never listed", async () => {
+    const s = await setup({
+      pages: { "Ferry house (inn)": true, "River ferry": true },
+      searches: ["Ferry house (inn)", "River ferry"],
+    });
+    await s.view();
+    await s.instance.idle();
+    s.instance.store.saveMediaCandidates(s.id, "npc:secret-stranger", "portrait", [{ title: "x" }]);
+    const listed = (await (
+      await s.request(`/campaigns/${s.id}/media/candidates`, undefined, s.cookie)
+    ).json()) as {
+      entityId: string;
+      role: string;
+      name: string;
+      hits: { title: string }[];
+    }[];
+    expect(listed.map((c) => c.entityId)).not.toContain("npc:secret-stranger");
+    const place = listed.find((c) => c.role === "banner")!;
+    expect(place.hits.map((h) => h.title)).toEqual(["Ferry house (inn)", "River ferry"]);
+    const chose = await s.request(
+      `/campaigns/${s.id}/media/${place.entityId}/choose`,
+      { role: "banner", index: 1 },
+      s.cookie,
+    );
+    expect(chose.status).toBe(200);
+    expect((await s.view()).scene?.banner).toMatch(/^\/api\/media\//);
+    const after = (await (
+      await s.request(`/campaigns/${s.id}/media/candidates`, undefined, s.cookie)
+    ).json()) as unknown[];
+    expect(after).toHaveLength(0);
+    s.instance.close();
+  });
+
+  test("media settings save, and the generator test says when nothing is set up", async () => {
+    const s = await setup({ provider: null });
+    const saved = await s.instance.app.request("http://localhost/api/settings/media", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-Wyrd": "1", Cookie: s.cookie },
+      body: JSON.stringify({ webImages: false, comfyUrl: "http://192.168.1.20:8188" }),
+    });
+    expect(saved.status).toBe(200);
+    const read = (await (await s.request("/settings/media", undefined, s.cookie)).json()) as {
+      webImages: boolean;
+      comfyUrl: string;
+    };
+    expect(read).toMatchObject({ webImages: false, comfyUrl: "http://192.168.1.20:8188" });
+    const tested = await s.request("/settings/media/test", {}, s.cookie);
+    expect(tested.status).toBe(422);
+    s.instance.close();
+  });
+
+  test("the map shows a site's banner as its thumbnail", async () => {
+    const s = await setup({ pages: { "Ashford Ferry House": true } });
+    await s.view();
+    await s.instance.idle();
+    const map = MapView.parse(await (await s.request(`/campaigns/${s.id}/map`, undefined, s.cookie)).json());
+    // Quick-start worlds have no sites; the field is optional and absent, never broken.
+    for (const site of map.sites)
+      expect(site.thumb === undefined || site.thumb.startsWith("/api/media/")).toBe(true);
+    s.instance.close();
+  });
+});

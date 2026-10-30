@@ -55,6 +55,7 @@ import {
   lastSkip,
   legacyEvents,
   levelProposals,
+  mediaOf,
   moveEquipment,
   obituary,
   observableIds,
@@ -129,7 +130,7 @@ import { evaluateDraft, mountCreation, pregenDraft, StoredDraft } from "./creati
 import { EXAMPLE_WORLD } from "./example-world.ts";
 import { mountHistory } from "./history.ts";
 import { importEvents } from "./import.ts";
-import { MediaWorker } from "./media.ts";
+import { MediaWorker, mediaUrl, mountMedia, viewMedia } from "./media.ts";
 import { ModelServices, mountModels } from "./models.ts";
 import { mountParty, profileNewCompanions, recruitSheet } from "./party.ts";
 import { sourceEvents } from "./source-creation.ts";
@@ -241,15 +242,18 @@ export function createApp(options: Options) {
       workflowsDir: join(options.home, "media", "workflows"),
       ...(store.mediaSettings() ?? {}),
     });
+  const mediaCache = new AssetCache(join(options.home, "media-cache"));
+  // The entry point injects the real wiki client, so test servers never reach the network.
+  const mediaWiki = options.mediaWiki ?? null;
+  const imageProvider = () => {
+    if (options.imageProvider !== undefined) return options.imageProvider;
+    const s = mediaSettings();
+    return s.comfyUrl ? new ComfyUIProvider({ url: s.comfyUrl, workflowsDir: s.workflowsDir }) : null;
+  };
   const media = new MediaWorker({
-    cache: new AssetCache(join(options.home, "media-cache")),
-    // The entry point injects the real wiki client, so test servers never reach the network.
-    wiki: options.mediaWiki ?? null,
-    provider: () => {
-      if (options.imageProvider !== undefined) return options.imageProvider;
-      const s = mediaSettings();
-      return s.comfyUrl ? new ComfyUIProvider({ url: s.comfyUrl, workflowsDir: s.workflowsDir }) : null;
-    },
+    cache: mediaCache,
+    wiki: mediaWiki,
+    provider: imageProvider,
     store,
     campaign: (id) => campaign(id),
     running: (id) => store.running(id),
@@ -371,6 +375,17 @@ export function createApp(options: Options) {
     return c.json({ ok: true });
   });
   mountModels(app, models);
+  mountMedia(app, {
+    worker: media,
+    cache: mediaCache,
+    store,
+    wiki: mediaWiki,
+    campaign: (id) => campaign(id),
+    running: (id) => store.running(id),
+    provider: imageProvider,
+    settings: mediaSettings,
+    body,
+  });
   mountCreation(app, {
     styleRouter: () => options.router ?? (options.offline ? null : models.router()),
     store,
@@ -1148,8 +1163,12 @@ export function createApp(options: Options) {
             present: Object.entries(scene.positions)
               .filter(([who, zone]) => who !== pc.id && zone === here)
               .map(([id]) => ({ id, name: canon.entity(id)?.name ?? "Someone" })),
+            ...(mediaOf(state).banners[scene.locationId]
+              ? { banner: mediaUrl(mediaOf(state).banners[scene.locationId]!) }
+              : {}),
           }
         : null,
+      media: viewMedia(state),
       turns: turns.map((t) => {
         const record = TurnCompletedEventPayload.parse(t.record);
         const retcon = state.retcons.filter((r) => r.turnId === t.id).at(-1);

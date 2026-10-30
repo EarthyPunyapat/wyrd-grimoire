@@ -12,7 +12,14 @@ import {
   RetconInput,
   reputationTier,
 } from "@wyrd/core";
-import { abandonResearch, closeEvents, describeDate, type GameState, researchClocks } from "@wyrd/engine";
+import {
+  abandonResearch,
+  closeEvents,
+  describeDate,
+  type GameState,
+  mediaOf,
+  researchClocks,
+} from "@wyrd/engine";
 import { type RoleRouter, recap, writeSummaries } from "@wyrd/llm";
 import { creationContent } from "@wyrd/packs";
 import { type AppStore, type CampaignStore, CanonQueries } from "@wyrd/storage";
@@ -20,6 +27,7 @@ import type { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { z } from "zod";
 import type { AppEnvironment } from "./app.ts";
+import { mediaUrl } from "./media.ts";
 
 type Deps = {
   campaign: (id: string) => CampaignStore<GameState>;
@@ -147,6 +155,7 @@ export function mapView(game: CampaignStore<GameState>): MapView {
   const state = game.state();
   const canon = new CanonQueries(game);
   const known = (id: string) => !!state.knowledge.entities[id];
+  const media = mediaOf(state);
   const here = state.scene
     ? (canon.entity(state.scene.locationId)?.data as { siteId?: string } | undefined)?.siteId
     : undefined;
@@ -162,6 +171,11 @@ export function mapView(game: CampaignStore<GameState>): MapView {
         regionId: d.regionId ?? "",
         visited: !!d.arrivalLocationId,
         here: s.id === here,
+        ...(() => {
+          const banner =
+            media.banners[s.id] ?? (d.arrivalLocationId ? media.banners[d.arrivalLocationId] : undefined);
+          return banner ? { thumb: mediaUrl(banner) } : {};
+        })(),
       };
     });
   const ids = new Set(sites.map((s) => s.id));

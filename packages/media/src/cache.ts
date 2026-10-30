@@ -46,6 +46,16 @@ export class AssetCache {
   }
 
   has(id: string): boolean {
-    return Object.values(EXT).some((ext) => existsSync(join(this.dir, `${id}.${ext}`)));
+    return this.find(id) !== null;
+  }
+
+  /** The stored file for an asset id, or null; ids are validated so a request can't name another path. */
+  find(id: string): { path: string; mime: MediaAsset["mime"] } | null {
+    if (!/^[0-9a-f]{64}$/.test(id)) return null;
+    for (const [mime, ext] of Object.entries(EXT) as [MediaAsset["mime"], string][]) {
+      const path = join(this.dir, `${id}.${ext}`);
+      if (existsSync(path)) return { path, mime };
+    }
+    return null;
   }
 }

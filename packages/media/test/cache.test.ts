@@ -5,7 +5,6 @@ import { join } from "node:path";
 import { AssetCache, sniffImage } from "../src/cache.ts";
 import { PNG } from "./fixtures.ts";
 
-
 const dirs: string[] = [];
 const fresh = () => {
   const dir = mkdtempSync(join(tmpdir(), "wyrd-media-"));
