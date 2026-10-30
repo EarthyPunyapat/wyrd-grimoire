@@ -67,7 +67,8 @@ registerGmTool({
 
 registerGmTool({
   name: "change_state",
-  description: "Change items, coins, HP, entities, facts, quests, clocks or XP; each change is validated.",
+  description:
+    "Change items, coins, HP, entities, facts, quests, clocks or XP; each change is validated. Use entity.move for a non-player person already in the scene moving to a freely adjacent zone outside combat.",
   schema: ChangeStateArgs,
   run: (a, x) => changes("change_state", a, x),
 });

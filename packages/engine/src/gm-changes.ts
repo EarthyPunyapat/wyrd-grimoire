@@ -234,6 +234,29 @@ function applyOne(
       };
     }
 
+    case "entity.move": {
+      const scene = state.scene;
+      if (!scene || state.combat) throw new Error("Movement requires a non-combat scene");
+      if (change.entityId === state.party.pcId || state.party.companionIds.includes(change.entityId))
+        throw new Error("Use act for player or companion movement");
+      const from = scene.positions[change.entityId];
+      if (!from) throw new Error(`entity ${change.entityId} is not in this scene`);
+      if (!scene.zones.some((z) => z.id === change.toZoneId)) throw new Error("unknown destination zone");
+      if (
+        from !== change.toZoneId &&
+        !scene.edges.some(
+          (e) =>
+            !e.requires &&
+            ((e.a === from && e.b === change.toZoneId) || (e.b === from && e.a === change.toZoneId)),
+        )
+      )
+        throw new Error("destination is not freely adjacent");
+      return {
+        drafts: [draft("EntityMoved", { entityId: change.entityId, toZoneId: change.toZoneId }, "model")],
+        inverse: [draft("EntityMoved", { entityId: change.entityId, toZoneId: from }, "engine")],
+      };
+    }
+
     case "entity.create": {
       const id = ctx.newId();
       const entity = {

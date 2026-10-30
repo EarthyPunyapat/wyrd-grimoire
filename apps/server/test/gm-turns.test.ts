@@ -114,6 +114,7 @@ test("gm turn streams deltas and completes", async () => {
   ]);
   expect(last.backup).toBe(false);
   expect(last.checkFlags).toEqual([]);
+  expect(last.guard).toBeUndefined();
 });
 
 test("choices become suggestions", async () => {
@@ -332,4 +333,43 @@ test("GM level corrections have an Undo and XP awards advance Levels through the
   view = await xp.view();
   expect(view.pc.level).toBe(4);
   expect(view.pc.progression.xpEarned).toBe(100);
+});
+
+test("late check results remain on the stream without blocking the next turn", async () => {
+  const s = await setup([
+    { role: "gm", reply: { text: "The ring changes hands." } },
+    {
+      role: "check",
+      reply: call("report_unrecorded", {
+        claims: [{ quote: "The ring changes hands.", claim: "The ring was not moved." }],
+      }),
+    },
+  ]);
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const generate = s.fake.generate.bind(s.fake);
+  s.fake.generate = async function* (req) {
+    if (req.role === "check") await gate;
+    yield* generate(req);
+  };
+  const started = await s.request(
+    `/campaigns/${s.id}/turns`,
+    { input: "I take the ring.", clientTurnId: "late-check-1" },
+    s.cookie,
+  );
+  const { turnId } = (await started.json()) as { turnId: string };
+  for (let i = 0; i < 100 && s.server.store.job(turnId)?.status === "running"; i++)
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  const next = await s.request(
+    `/campaigns/${s.id}/turns`,
+    { input: "I wait.", clientTurnId: "late-check-2" },
+    s.cookie,
+  );
+  expect(next.status).toBe(202);
+  const stream = await s.request(`/campaigns/${s.id}/turns/${turnId}/stream`, undefined, s.cookie);
+  release();
+  expect(await stream.text()).toContain("event: check.flag");
+  await s.server.idle();
 });

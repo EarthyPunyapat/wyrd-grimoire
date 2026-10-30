@@ -245,3 +245,16 @@ test("finishing a turn keeps the reader's scroll position", async ({ page }) => 
   await expect(page.locator(".prose")).toContainText("offline narrator");
   expect(await page.locator(".story-scroll").evaluate((el) => el.scrollTop)).toBeLessThan(10);
 });
+
+test("a late consistency warning appears on the finished passage", async ({ page }) => {
+  await create(page);
+  const box = page.getByLabel("What do you do?", { exact: true });
+  await box.fill("late canon check");
+  await box.press("Enter");
+  await expect(page.locator(".story")).toContainText("The ring changes hands.");
+  await expect(box).toBeEnabled();
+  const warning = page.locator(".passage").last().locator(".canon-check");
+  await expect(warning).toContainText("1 to review");
+  await warning.locator("summary").click();
+  await expect(warning).toContainText("The ring was not moved.");
+});

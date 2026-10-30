@@ -459,7 +459,7 @@ export class TurnPipeline {
         const d = (e.data ?? {}) as { days?: number; terrain?: string; danger?: number };
         return `${name(to)} [${to}] (${d.days ?? 1} days by ${d.terrain ?? "road"}, danger ${d.danger ?? 1}/5)`;
       });
-    const lines = [`You are at ${name(here)} [${here}].`];
+    const lines = [`Map site containing the current scene: ${name(here)} [${here}].`];
     if (journey)
       lines.push(
         `On the road to ${name(journey.toSiteId)} [${journey.toSiteId}]; travelling again continues the journey.`,

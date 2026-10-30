@@ -116,3 +116,10 @@ test("check failure is silent", async () => {
   expect(reported.flags).toEqual([]);
   expect(s.events.some((e) => e.type === "check.flag")).toBe(false);
 });
+
+test("the check does not duplicate a named entity that exists but is not yet known", async () => {
+  const s = setup([report({ entities: [{ name: "The Drowned Man", kind: "npc" }] })]);
+  const r = await s.pipeline.run({ input: "A figure appears." });
+  await r.check;
+  expect(s.since().filter((e) => e.type === "EntityCreated")).toHaveLength(0);
+});

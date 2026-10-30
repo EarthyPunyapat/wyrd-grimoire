@@ -37,6 +37,7 @@ export const StateChange = z.discriminatedUnion("kind", [
   }),
   z.object({ kind: z.literal("coins"), actorId: z.string(), delta: z.number().int() }),
   z.object({ kind: z.literal("hp"), actorId: z.string(), delta: z.number().int() }),
+  z.object({ kind: z.literal("entity.move"), entityId: z.string().min(1), toZoneId: z.string().min(1) }),
   z.object({
     kind: z.literal("entity.create"),
     entity: z.object({
