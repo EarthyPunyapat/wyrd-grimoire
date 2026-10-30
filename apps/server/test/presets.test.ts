@@ -26,7 +26,7 @@ async function setup() {
   cookie = (await req("/auth/setup", { passcode: "a long presets test passcode" })).headers
     .get("set-cookie")!
     .split(";")[0]!;
-  return { req };
+  return { req, home };
 }
 
 test("eight original starters validate and include bundled art", () => {
@@ -84,4 +84,97 @@ test("saving a campaign setup copies pitch and rules", async () => {
   const s = WorldSetup.parse(await saved.json());
   expect(s.pitch).toBe("You sail between broken stars.");
   expect(s.rules.resolution).toBe("d20");
+});
+
+test("character cards snapshot a campaign and update only on request", async () => {
+  const { req, home } = await setup();
+  const preview = (await (
+    await req("/world-drafts", { name: "Card source", pitch: "You cross a distant star ocean." })
+  ).json()) as { id: string; origins: { id: string }[]; backgrounds: { id: string }[] };
+  const imported = {
+    pc: {
+      name: "Ethan",
+      level: "infinite",
+      backstory: "A wandering sovereign",
+      abilities: [
+        { name: "Light", description: "Shapes light", rank: 10 },
+        { name: "Flight", description: "Crosses the sky", rank: 2 },
+      ],
+      gear: [{ name: "Signet", description: "A personal seal" }],
+    },
+    companions: [{ name: "Ari", summary: "A loyal friend", voice: "Warm and precise", level: 20 }],
+  };
+  const started = await req("/campaigns", {
+    draftId: preview.id,
+    ancestry: preview.origins[0]!.id,
+    archetype: preview.backgrounds[0]!.id,
+    import: imported,
+  });
+  const { id } = (await started.json()) as { id: string };
+  const made = await req(`/campaigns/${id}/character-card`, {});
+  expect(made.status).toBe(201);
+  const { CharacterCard } = await import("@wyrd/core");
+  const card = CharacterCard.parse(await made.json());
+  expect(card.pc.level).toBe("infinite");
+  expect(card.pc.abilities).toHaveLength(2);
+  expect(card.pc.gear[0]!.name).toBe("Signet");
+  expect(card.companions[0]!.voice).toBe("Warm and precise");
+  expect(card.sheet?.attributes).toBeTruthy();
+  const renamed = await req(`/character-cards/${card.id}`, { title: "My sovereign" }, "PATCH");
+  expect(renamed.status).toBe(200);
+  const { CampaignStore } = await import("@wyrd/storage");
+  const { reduce } = await import("@wyrd/engine");
+  const { draft } = await import("@wyrd/core");
+  const game = CampaignStore.open(join(home, "campaigns", id, "campaign.db"), { reduce });
+  game.append([
+    draft("AbilityGained", {
+      actorId: "pc",
+      ability: {
+        id: "test:later",
+        name: "Later power",
+        description: "A newly learned power",
+        level: 1,
+        cost: "At will",
+        rank: 1,
+      },
+    }),
+  ]);
+  game.close();
+  expect((await (await req(`/character-cards/${card.id}`)).json()).pc.abilities).toHaveLength(2);
+  const updated = CharacterCard.parse(
+    await (await req(`/character-cards/${card.id}/update-from/${id}`, {})).json(),
+  );
+  expect(updated.title).toBe("My sovereign");
+  expect(updated.origin).toBe("campaign");
+  expect(updated.pc.abilities.map((a) => a.name)).toContain("Later power");
+  expect((await (await req("/character-cards")).json()) as unknown[]).toHaveLength(1);
+  expect((await req(`/character-cards/${card.id}`, undefined, "DELETE")).status).toBe(200);
+});
+
+test("saved worlds clone the generated world without a character; quick starts return 409", async () => {
+  const { req } = await setup();
+  const p = (await (
+    await req("/world-drafts", { name: "Same stars", pitch: "You cross a distant star ocean." })
+  ).json()) as { id: string; worldName: string; origins: { id: string }[]; backgrounds: { id: string }[] };
+  const { id } = (await (
+    await req("/campaigns", { draftId: p.id, ancestry: p.origins[0]!.id, archetype: p.backgrounds[0]!.id })
+  ).json()) as { id: string };
+  const saved = await req(`/campaigns/${id}/save-world`, {});
+  expect(saved.status).toBe(201);
+  const world = (await saved.json()) as { id: string; worldName: string };
+  expect(world.worldName).toBe(p.worldName);
+  expect((await (await req("/worlds")).json()) as unknown[]).toHaveLength(1);
+  const { draftId } = (await (await req(`/worlds/${world.id}/draft`, {})).json()) as { draftId: string };
+  const resumed = (await (await req(`/world-drafts/${draftId}`)).json()) as {
+    preview: { worldName: string };
+    hasSheet: boolean;
+  };
+  expect(resumed.preview.worldName).toBe(p.worldName);
+  expect(resumed.hasSheet).toBe(false);
+  const quick = (await (await req("/campaigns/quick-start", { name: "Quick", pregen: "sefa" })).json()) as {
+    id: string;
+  };
+  const unavailable = await req(`/campaigns/${quick.id}/save-world`, {});
+  expect(unavailable.status).toBe(409);
+  expect(await unavailable.text()).toContain("This campaign has no saved world to copy");
 });
