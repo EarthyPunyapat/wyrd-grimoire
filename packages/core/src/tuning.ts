@@ -57,6 +57,8 @@ export type Tuning = {
     retryMinutes: number;
     jobsPerTurn: number;
     timeoutMs: number;
+    generateTimeoutMs: number;
+    pollMs: number;
   };
   delegation: {
     durationMinutes: number;
@@ -497,6 +499,8 @@ export const defaultTuning: Tuning = {
     retryMinutes: 60,
     jobsPerTurn: 3,
     timeoutMs: 20_000,
+    generateTimeoutMs: 180_000,
+    pollMs: 1000,
   },
   delegation: {
     durationMinutes: 1440,
