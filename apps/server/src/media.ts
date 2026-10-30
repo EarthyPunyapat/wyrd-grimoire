@@ -314,6 +314,8 @@ export function mountMedia(
         message: `That picture could not be fetched: ${(error as Error).message}`,
       });
     }
+    // The download can take seconds; a turn that started meanwhile must not get an event in its middle.
+    if (d.running(id)) throw new HTTPException(409, { message: "Wait for the current turn to finish" });
     game.append([draft("AssetAttached", { entityId, role: input.role, asset }, "player")]);
     d.store.clearMediaCandidates(id, entityId, input.role);
     return c.json({ url: mediaUrl(asset) });

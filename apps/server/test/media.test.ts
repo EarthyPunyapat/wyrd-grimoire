@@ -353,3 +353,32 @@ describe("media routes and the game view", () => {
     s.instance.close();
   });
 });
+
+test("a picture chosen while a turn starts is refused rather than written into the turn", async () => {
+  const home = mkdtempSync(join(tmpdir(), "wyrd-media-race-"));
+  homes.push(home);
+  const wiki = fakeWiki({ "Ferry house (inn)": true });
+  wiki.client.search = async () => ["Ferry house (inn)"];
+  const instance = createApp({ home, offline: true, mediaWiki: wiki.client, imageProvider: null });
+  const req = (path: string, body?: unknown, cookie?: string) =>
+    instance.app.request(`http://localhost/api${path}`, {
+      method: body === undefined ? "GET" : "POST",
+      headers: { "Content-Type": "application/json", "X-Wyrd": "1", ...(cookie ? { Cookie: cookie } : {}) },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+  const cookie = (await req("/auth/setup", { passcode: "a long media race passcode" })).headers.get("set-cookie")!.split(";")[0]!;
+  const id = ((await (await req("/campaigns/quick-start", { name: "F", characterName: "W", archetype: "cutpurse" }, cookie)).json()) as { id: string }).id;
+  await req(`/campaigns/${id}/view`, undefined, cookie);
+  await instance.idle();
+  const place = ((await (await req(`/campaigns/${id}/media/candidates`, undefined, cookie)).json()) as { entityId: string }[])[0]!;
+  // The download is slow; a turn starts while it runs.
+  wiki.client.fetchBytes = async () => {
+    instance.store.startJob({ id: "job-1", campaign_id: id, client_id: "c1", input: "{}", status: "running", target_id: null });
+    return { bytes: PNG, mime: "image/png" };
+  };
+  const chose = await req(`/campaigns/${id}/media/${place.entityId}/choose`, { role: "banner", index: 0 }, cookie);
+  expect(chose.status).toBe(409);
+  const view = GameView.parse(await (await req(`/campaigns/${id}/view`, undefined, cookie)).json());
+  expect(view.scene?.banner).toBeUndefined();
+  instance.close();
+});
