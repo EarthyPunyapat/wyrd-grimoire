@@ -126,6 +126,8 @@ export const CreationReview = z.object({
   style: StyleProfile,
 });
 export type CreationReview = z.infer<typeof CreationReview>;
+export const StartCard = z.object({ id: z.string().min(1), adapted: CampaignImport.shape.pc.optional() });
+export type StartCard = z.infer<typeof StartCard>;
 export const StartGeneratedCampaign = z
   .object({
     draftId: z.uuid(),
@@ -143,8 +145,10 @@ export const StartGeneratedCampaign = z
     hardcore: z.boolean().default(false),
     /** A reviewed ChatGPT campaign import (D142): the character, companions and history kept. */
     import: CampaignImport.optional(),
+    card: StartCard.optional(),
   })
-  .strict();
+  .strict()
+  .refine((v) => !(v.card && v.import), { path: ["card"], message: "Choose a card or an import, not both" });
 export const GeneratedWorldPreview = z.object({
   id: z.uuid(),
   name,
