@@ -178,3 +178,58 @@ test("saved worlds clone the generated world without a character; quick starts r
   expect(unavailable.status).toBe(409);
   expect(await unavailable.text()).toContain("This campaign has no saved world to copy");
 });
+
+test("cards start new worlds, drop unknown skills and adapt without changing the library", async () => {
+  const { req } = await setup();
+  const { CharacterCard, GameView } = await import("@wyrd/core");
+  const card = CharacterCard.parse(
+    await (
+      await req("/character-cards", {
+        title: "Ethan",
+        origin: "created",
+        pc: {
+          name: "Ethan",
+          level: "infinite",
+          backstory: "A wandering sovereign",
+          abilities: [{ name: "Light", description: "Shapes light", rank: 10 }],
+        },
+        companions: [{ name: "Ari", summary: "A loyal friend", voice: "Warm and precise", level: 20 }],
+        sheet: {
+          pronouns: "he/him",
+          skills: { "core:athletics": 10, "custom:nonexistent": 50 },
+          appearance: { hair: "Silver" },
+          personality: ["Patient"],
+        },
+      })
+    ).json(),
+  );
+  for (const adapted of [
+    undefined,
+    { ...card.pc, abilities: [{ name: "Starfire", description: "Shapes starlight", rank: 5 }] },
+  ]) {
+    const p = (await (
+      await req("/world-drafts", { name: "Card world", pitch: "You cross a distant star ocean." })
+    ).json()) as { id: string; origins: { id: string }[]; backgrounds: { id: string }[] };
+    const started = await req("/campaigns", {
+      draftId: p.id,
+      ancestry: p.origins[0]!.id,
+      archetype: p.backgrounds[0]!.id,
+      card: { id: card.id, adapted },
+    });
+    expect(started.status).toBe(201);
+    const { id } = (await started.json()) as { id: string };
+    const view = GameView.parse(await (await req(`/campaigns/${id}/view`)).json());
+    expect(view.pc.identity.name).toBe("Ethan");
+    expect(view.pc.level).toBe("infinite");
+    expect(view.pc.abilities[0]!.name).toBe(adapted ? "Starfire" : "Light");
+    expect(view.pc.skills["custom:nonexistent"]).toBeUndefined();
+    expect(view.pc.skills["core:athletics"]?.trained).toBe(10);
+    expect(view.pc.identity.appearance.hair).toBe("Silver");
+    expect(view.pc.identity.pronouns).toBe("he/him");
+    expect(view.companions[0]).toMatchObject({ name: "Ari", loyal: true, voiceProfile: "Warm and precise" });
+  }
+  expect(CharacterCard.parse(await (await req(`/character-cards/${card.id}`)).json())).toEqual(card);
+  const missing = await req("/campaigns", { draftId: crypto.randomUUID(), card: { id: "missing" } });
+  expect(missing.status).toBe(404);
+  expect(await missing.text()).toContain("Character card not found");
+});

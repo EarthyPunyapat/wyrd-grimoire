@@ -6,6 +6,7 @@ import {
   type CampaignPreset,
   CampaignSettings,
   type CampaignSettingsInput,
+  type CharacterCard,
   type CompiledPack,
   DowntimeRequest,
   type DraftSheet,
@@ -47,6 +48,7 @@ import {
   createCampaign,
   delegationReportCards,
   delegationTasks,
+  deriveStats,
   draftFromArchetype,
   encumbranceBand,
   type GameState,
@@ -643,6 +645,14 @@ export function createApp(options: Options) {
   const starting = new Set<string>();
   app.post("/api/campaigns", async (c) => {
     const input = await body(c, StartGeneratedCampaign);
+    const selectedCard = input.card ? store.characterCard(input.card.id) : null;
+    if (input.card && !selectedCard) throw new HTTPException(404, { message: "Character card not found" });
+    if (selectedCard)
+      input.import = {
+        pc: input.card?.adapted ?? selectedCard.pc,
+        companions: selectedCard.companions,
+        history: [],
+      };
     const submitted = (await c.req.json()) as Record<string, unknown>;
     const saved = StoredDraft.safeParse(store.creationDraft(input.draftId));
     if (!saved.success)
@@ -737,6 +747,7 @@ export function createApp(options: Options) {
         settings,
         saved.data.input.pitch,
         input.import?.pc.level ?? review?.startingLevel,
+        selectedCard?.sheet,
       );
       store.saveCreationDraft(input.draftId, { ...saved.data, campaignId: id });
       return c.json({ id }, 201);
@@ -865,6 +876,7 @@ export function createApp(options: Options) {
     settings: CampaignSettingsInput = {},
     pitch?: string,
     startingLevel?: Level,
+    cardSheet?: CharacterCard["sheet"],
   ) {
     // Player-written gear becomes real pack items before anything is frozen or built.
     const gamePack = withPlayerGear(pack, character.gear);
@@ -881,7 +893,31 @@ export function createApp(options: Options) {
       ...buildPc("pc", character, gamePack, created.payload.settings),
       ...(startingLevel ? { level: startingLevel } : {}),
     };
-    const sheet = hooks ? { ...built, identity: { ...built.identity, hookIds: hooks.ids } } : built;
+    // Cards carry an already-played character, so creation point-buy limits apply to the base
+    // origin/background only. Schema-validated saved stats overlay it before ActorCreated.
+    const attributes = cardSheet?.attributes ?? built.attributes;
+    const derived = deriveStats(attributes, defaultTuning);
+    const overlay = {
+      ...built,
+      attributes,
+      derived,
+      status: { ...built.status, hp: derived.hpMax },
+      skills: {
+        ...built.skills,
+        ...Object.fromEntries(
+          Object.entries(cardSheet?.skills ?? {})
+            .filter(([id]) => isKnownSkill(id, creationContent([gamePack]).skills))
+            .map(([id, trained]) => [id, { trained }]),
+        ),
+      },
+      identity: {
+        ...built.identity,
+        ...(cardSheet?.appearance ? { appearance: cardSheet.appearance } : {}),
+        ...(cardSheet?.pronouns !== undefined ? { pronouns: cardSheet.pronouns } : {}),
+        ...(cardSheet?.personality ? { personality: cardSheet.personality } : {}),
+      },
+    };
+    const sheet = hooks ? { ...overlay, identity: { ...overlay.identity, hookIds: hooks.ids } } : overlay;
     const template = gamePack.economy?.shops[0];
     const shop = template
       ? ShopState.parse({

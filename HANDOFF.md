@@ -271,3 +271,6 @@ After W2: **M8 — Media** (see `docs/spec/10-media.md`): image adapters (ComfyU
 - Ruling: `StartCard` lives beside `StartGeneratedCampaign` in world-generation.ts — importing it from presets.ts would create a runtime schema initialization cycle.
 - Ruling: Starter “lethality high” maps to `brutal`; scarcity uses Simulation's inventory, money and survival toggles — those are the existing schema values; there is no separate scarcity switch.
 - Ruling: The Reverend Insanity starter uses the wiki host supplied in the plan, pending owner verification — this task explicitly forbids network access, so the plan's external VERIFY cannot run here.
+
+- Ruling: Card stats overlay a validated new-world base sheet before ActorCreated, with derived stats recomputed — an already-played card can exceed new-character point-buy budgets; IDs are checked against the combined core + pack skill catalogue.
+- Ruling: Card PATCH edits the title only — character contents change through the explicit Update card route, as D167 requires.
