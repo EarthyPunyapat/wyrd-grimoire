@@ -958,6 +958,8 @@ export function createApp(options: Options) {
     const canon = new CanonQueries(game);
     const pc = state.actors[state.party.pcId!]!.sheet;
     const scene = state.scene;
+    // Only pictures whose files exist: a moved server shows placeholders until the worker refetches.
+    const pictures = viewMedia(state, (assetId) => mediaCache.has(assetId));
     const here = scene?.positions[pc.id];
     const snapshots = new Map(
       game
@@ -1163,12 +1165,10 @@ export function createApp(options: Options) {
             present: Object.entries(scene.positions)
               .filter(([who, zone]) => who !== pc.id && zone === here)
               .map(([id]) => ({ id, name: canon.entity(id)?.name ?? "Someone" })),
-            ...(mediaOf(state).banners[scene.locationId]
-              ? { banner: mediaUrl(mediaOf(state).banners[scene.locationId]!) }
-              : {}),
+            ...(pictures.banners[scene.locationId] ? { banner: pictures.banners[scene.locationId] } : {}),
           }
         : null,
-      media: viewMedia(state),
+      media: pictures,
       turns: turns.map((t) => {
         const record = TurnCompletedEventPayload.parse(t.record);
         const retcon = state.retcons.filter((r) => r.turnId === t.id).at(-1);

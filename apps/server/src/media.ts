@@ -112,8 +112,11 @@ export class MediaWorker {
     );
     const forced = this.forced.get(campaignId) ?? new Set<string>();
     this.forced.delete(campaignId);
+    const media = mediaOf(state);
     const due = this.targets(game, state, forced).filter((t) => {
       if (forced.has(`${t.role}:${t.id}`)) return true;
+      // An attached picture reaching here has lost its file: fetch it again now.
+      if (t.role === "portrait" ? media.portraits[t.id] : media.banners[t.id]) return true;
       if (waiting.has(t.id)) return false;
       const tried = this.d.store.mediaAttempt(campaignId, t.id, t.role);
       return tried === null || now - tried > defaultTuning.media.retryMinutes * 60_000;
@@ -177,7 +180,9 @@ export class MediaWorker {
       canon.factsAbout(id).map((f) => ({ predicate: f.predicate, value: String(f.value) }));
     const out: Target[] = [];
     const add = (t: Target) => {
-      const have = t.role === "portrait" ? media.portraits[t.id] : media.banners[t.id];
+      const attached = t.role === "portrait" ? media.portraits[t.id] : media.banners[t.id];
+      // A picture whose file is gone (a moved or restored server) counts as missing.
+      const have = attached && this.d.cache.has(attached.id);
       if ((!have || forced.has(`${t.role}:${t.id}`)) && !out.some((o) => o.id === t.id)) out.push(t);
     };
     const here = state.scene?.locationId;
@@ -241,14 +246,16 @@ export function visibleIds(state: GameState): Set<string> {
   );
 }
 
-export function viewMedia(state: GameState): {
-  portraits: Record<string, string>;
-  banners: Record<string, string>;
-} {
+export function viewMedia(
+  state: GameState,
+  stored: (assetId: string) => boolean = () => true,
+): { portraits: Record<string, string>; banners: Record<string, string> } {
   const media = mediaOf(state);
   const seen = visibleIds(state);
   const urls = (from: Record<string, { id: string }>) =>
-    Object.fromEntries(Object.entries(from).flatMap(([id, a]) => (seen.has(id) ? [[id, mediaUrl(a)]] : [])));
+    Object.fromEntries(
+      Object.entries(from).flatMap(([id, a]) => (seen.has(id) && stored(a.id) ? [[id, mediaUrl(a)]] : [])),
+    );
   return { portraits: urls(media.portraits), banners: urls(media.banners) };
 }
 

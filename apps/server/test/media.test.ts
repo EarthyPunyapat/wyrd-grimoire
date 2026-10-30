@@ -15,7 +15,7 @@ import {
 import { AssetCache, type ImageProvider } from "@wyrd/media";
 import { AppStore, CampaignStore } from "@wyrd/storage";
 import { PNG } from "../../../packages/media/test/fixtures.ts";
-import { MediaWorker } from "../src/media.ts";
+import { MediaWorker, viewMedia } from "../src/media.ts";
 
 const homes: string[] = [];
 afterEach(() => {
@@ -366,19 +366,54 @@ test("a picture chosen while a turn starts is refused rather than written into t
       headers: { "Content-Type": "application/json", "X-Wyrd": "1", ...(cookie ? { Cookie: cookie } : {}) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
-  const cookie = (await req("/auth/setup", { passcode: "a long media race passcode" })).headers.get("set-cookie")!.split(";")[0]!;
-  const id = ((await (await req("/campaigns/quick-start", { name: "F", characterName: "W", archetype: "cutpurse" }, cookie)).json()) as { id: string }).id;
+  const cookie = (await req("/auth/setup", { passcode: "a long media race passcode" })).headers
+    .get("set-cookie")!
+    .split(";")[0]!;
+  const id = (
+    (await (
+      await req("/campaigns/quick-start", { name: "F", characterName: "W", archetype: "cutpurse" }, cookie)
+    ).json()) as { id: string }
+  ).id;
   await req(`/campaigns/${id}/view`, undefined, cookie);
   await instance.idle();
-  const place = ((await (await req(`/campaigns/${id}/media/candidates`, undefined, cookie)).json()) as { entityId: string }[])[0]!;
+  const place = (
+    (await (await req(`/campaigns/${id}/media/candidates`, undefined, cookie)).json()) as {
+      entityId: string;
+    }[]
+  )[0]!;
   // The download is slow; a turn starts while it runs.
   wiki.client.fetchBytes = async () => {
-    instance.store.startJob({ id: "job-1", campaign_id: id, client_id: "c1", input: "{}", status: "running", target_id: null });
+    instance.store.startJob({
+      id: "job-1",
+      campaign_id: id,
+      client_id: "c1",
+      input: "{}",
+      status: "running",
+      target_id: null,
+    });
     return { bytes: PNG, mime: "image/png" };
   };
-  const chose = await req(`/campaigns/${id}/media/${place.entityId}/choose`, { role: "banner", index: 0 }, cookie);
+  const chose = await req(
+    `/campaigns/${id}/media/${place.entityId}/choose`,
+    { role: "banner", index: 0 },
+    cookie,
+  );
   expect(chose.status).toBe(409);
   const view = GameView.parse(await (await req(`/campaigns/${id}/view`, undefined, cookie)).json());
   expect(view.scene?.banner).toBeUndefined();
   instance.close();
+});
+
+test("a picture whose file is gone (a moved server) is hidden and fetched again", async () => {
+  const { home, game } = world();
+  const ghost = { id: "f".repeat(64), mime: "image/png" as const, origin: "generated" as const };
+  game.append([draft("AssetAttached", { entityId: "npc:magda", role: "portrait", asset: ghost }, "engine")]);
+  const cache = new AssetCache(join(home, "media-cache"));
+  expect(viewMedia(game.state(), (id) => cache.has(id)).portraits["npc:magda"]).toBeUndefined();
+  const w = worker({ home, game, wiki: fakeWiki({}), provider: generated, limit: 10 });
+  w.after("c1");
+  await w.idle();
+  const now = mediaOf(game.state()).portraits["npc:magda"];
+  expect(now?.id).not.toBe(ghost.id);
+  expect(cache.has(now!.id)).toBe(true);
 });
