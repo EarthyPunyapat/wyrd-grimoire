@@ -24,7 +24,11 @@ export type CanonClockResult = { status: "occurred" | "averted"; factId?: string
 export type CanonActorProgress = { profile: CanonAutonomy; lastActedAt: number };
 
 export const canonEventSchemas = {
-  CanonSourceSet: z.object({ worldId: WorldId, source: id }),
+  CanonSourceSet: z.object({
+    worldId: WorldId,
+    source: id,
+    wiki: z.string().trim().min(1).max(200).optional(),
+  }),
   CanonClockIntervened: z.object({ clockId: id, factId: id }),
   CanonClockResolved: z.object({
     clockId: id,

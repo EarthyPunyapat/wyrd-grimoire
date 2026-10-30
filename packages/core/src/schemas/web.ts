@@ -199,6 +199,8 @@ export const GameView = z.object({
       zone: z.string(),
       weather: z.string(),
       present: z.array(z.object({ id: z.string(), name: z.string() })),
+      /** The current place's picture (First Light). */
+      banner: z.string().optional(),
     })
     .nullable(),
   turns: z.array(WebTurn),
@@ -210,6 +212,10 @@ export const GameView = z.object({
   address: z.string().default("traveller"),
   /** Entities the PC knows, for reference cards on names in the narration (spec 13). */
   known: z.array(z.object({ id: z.string(), name: z.string(), kind: z.string() })).default([]),
+  /** Picture URLs by entity id for the PC, companions, known people and places (First Light). */
+  media: z
+    .object({ portraits: z.record(z.string(), z.string()), banners: z.record(z.string(), z.string()) })
+    .default({ portraits: {}, banners: {} }),
   /** Set when the PC has died in a hardcore campaign: the obituary and the Legacy offer. */
   ended: z
     .object({ reason: z.literal("death"), obituary: z.string() })
@@ -415,6 +421,8 @@ export const MapView = z.object({
       regionId: z.string(),
       visited: z.boolean(),
       here: z.boolean(),
+      /** The site's picture, when it has one (First Light). */
+      thumb: z.string().optional(),
     }),
   ),
   routes: z.array(

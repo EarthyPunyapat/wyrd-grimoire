@@ -117,3 +117,90 @@ test("a failed HTTP request consumes its rate-limit slot and does not poison the
     ),
   ).toBeNull();
 });
+
+import pageFandom from "./fixtures/lore/pageimages-fandom.json";
+import pageMissing from "./fixtures/lore/pageimages-missing.json";
+import pageNone from "./fixtures/lore/pageimages-none.json";
+import pageWikipedia from "./fixtures/lore/pageimages-wikipedia.json";
+
+test("a page's lead image comes from PageImages on Wikipedia and Fandom alike", async () => {
+  const w = fixture(pageWikipedia);
+  const wisp = await w.client.pageImage("en.wikipedia.org", "Will-o'-the-wisp");
+  expect(wisp).toEqual({
+    title: "Will-o'-the-wisp",
+    pageUrl: "https://en.wikipedia.org/wiki/Will-o'-the-wisp",
+    imageUrl: expect.stringMatching(/^https:\/\/thumb\.wikimedia\.org\//),
+    width: 640,
+    height: 425,
+  });
+  const q = w.calls[0]!.url.searchParams;
+  expect(w.calls[0]!.url.pathname).toBe("/w/api.php");
+  expect(q.get("prop")).toBe("pageimages");
+  expect(q.get("pithumbsize")).toBe("640");
+  expect(q.get("redirects")).toBe("1");
+
+  const f = fixture(pageFandom);
+  const bat = await f.client.pageImage("dc.fandom.com", "Bruce_Wayne_(Prime_Earth)");
+  expect(f.calls[0]!.url.pathname).toBe("/api.php");
+  // Redirects resolve: the image belongs to the page the title led to.
+  expect(bat?.title).toBe("Batman (Bruce Wayne)");
+  expect(bat?.pageUrl).toBe("https://dc.fandom.com/wiki/Batman_(Bruce_Wayne)");
+});
+
+test("a page without an image, or no page at all, has no lead image", async () => {
+  expect(await fixture(pageNone).client.pageImage("dc.fandom.com", "Old Magda")).toBeNull();
+  expect(await fixture(pageMissing).client.pageImage("dc.fandom.com", "Nonexistent Page Xyz")).toBeNull();
+});
+
+test("image bytes come over https with the honest user agent; a refusal or a redirect is an error", async () => {
+  const seen: { url: string; init?: RequestInit }[] = [];
+  const client = (status: number, type = "image/png") =>
+    new MediaWikiClient({
+      fetch: async (url, init) => {
+        seen.push({ url: String(url), ...(init ? { init } : {}) });
+        return new Response(new Uint8Array([0x89, 0x50]), { status, headers: { "content-type": type } });
+      },
+      limiter: new RequestLimiter(clock()),
+    });
+  const ok = await client(200).fetchBytes("https://thumb.wikimedia.org/a.png");
+  expect(ok.mime).toBe("image/png");
+  expect(ok.bytes).toEqual(new Uint8Array([0x89, 0x50]));
+  expect(new Headers(seen[0]!.init?.headers).get("user-agent")).toBe(
+    "WyrdGrimoire/0.1.0 (personal, non-commercial)",
+  );
+  expect(seen[0]!.init?.redirect).toBe("error");
+  await expect(
+    client(403, "text/html").fetchBytes("https://static.wikia.nocookie.net/x.jpg"),
+  ).rejects.toThrow("Image source refused (403)");
+  await expect(client(200).fetchBytes("http://example.org/a.png")).rejects.toThrow(
+    "Images are fetched over https only",
+  );
+});
+
+test("an image download is refused by its declared size or type, and capped while streaming", async () => {
+  const respond = (body: BodyInit, headers: Record<string, string>) =>
+    new MediaWikiClient({
+      fetch: async () => new Response(body, { headers }),
+      limiter: new RequestLimiter(clock()),
+    });
+  await expect(
+    respond("x", { "content-type": "image/png", "content-length": "40000000" }).fetchBytes(
+      "https://a/big.png",
+    ),
+  ).rejects.toThrow("Image too large");
+  await expect(
+    respond("<html>", { "content-type": "text/html" }).fetchBytes("https://a/page"),
+  ).rejects.toThrow("Not an image");
+  let pulled = 0;
+  const endless = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      pulled++;
+      controller.enqueue(new Uint8Array(1_000_000));
+    },
+  });
+  await expect(
+    respond(endless, { "content-type": "image/jpeg" }).fetchBytes("https://a/endless.jpg"),
+  ).rejects.toThrow("Image too large");
+  // It stopped soon after the cap instead of buffering forever.
+  expect(pulled).toBeLessThan(10);
+});

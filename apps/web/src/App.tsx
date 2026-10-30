@@ -3,6 +3,7 @@ import { AuthStatus, CampaignCard, DraftCard, GameView } from "@wyrd/core";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api.ts";
 import { Home } from "./Home.tsx";
+import { MediaSettingsPanel } from "./MediaSettings.tsx";
 import { ModelSettings } from "./ModelSettings.tsx";
 import { NewCampaign } from "./NewCampaign.tsx";
 import { Play } from "./Play.tsx";
@@ -181,6 +182,7 @@ export function App() {
           <option value="large">Large print</option>
         </select>
       </label>
+      <MediaSettingsPanel />
       <ModelSettings />
       <button type="button" onClick={lockGrimoire}>
         Lock grimoire

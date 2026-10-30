@@ -1,6 +1,7 @@
 import { type CodexEntry, CodexView, type GameView } from "@wyrd/core";
 import { createContext, type ReactNode, useContext, useId, useState } from "react";
 import { api } from "./api.ts";
+import { Portrait } from "./Portrait.tsx";
 
 /** Entities the PC knows, for reference cards on names (spec 13), and how to open them in the Codex. */
 export const RefContext = createContext<{
@@ -44,6 +45,13 @@ function RefName({ id, text }: { id: string; text: string }) {
             "…"
           ) : entry ? (
             <>
+              <Portrait
+                id={entry.id}
+                name={entry.name}
+                kind={entry.kind}
+                size={72}
+                className="ref-portrait"
+              />
               <strong>{entry.name}</strong> <span className="muted">· {entry.kind}</span>
               {entry.summary && <span className="ref-summary">{entry.summary}</span>}
               {entry.facts.slice(0, 3).map((f) => (

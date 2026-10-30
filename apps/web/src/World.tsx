@@ -1,7 +1,16 @@
-import { type CodexEntry, CodexView, DowntimeResult, type GameView, JournalView, MapView } from "@wyrd/core";
+import {
+  type CodexEntry,
+  CodexView,
+  DowntimeResult,
+  type GameView,
+  JournalView,
+  MapView,
+  MediaCandidateList,
+} from "@wyrd/core";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api.ts";
 import { ChromeIcon } from "./icons.tsx";
+import { Portrait } from "./Portrait.tsx";
 
 /** Loads a world panel and reloads it when the story moves on (`stamp` changes). */
 export function usePanel<T>(path: string, parse: (d: unknown) => T, stamp: number) {
@@ -25,6 +34,7 @@ export function usePanel<T>(path: string, parse: (d: unknown) => T, stamp: numbe
 const parseJournal = (d: unknown) => JournalView.parse(d);
 const parseCodex = (d: unknown) => CodexView.parse(d);
 const parseMap = (d: unknown) => MapView.parse(d);
+const parseCandidates = (d: unknown) => MediaCandidateList.parse(d);
 
 /** Quest lines for the Quests tab (U4). */
 function QuestList({ quests }: { quests: JournalView["quests"] }) {
@@ -215,9 +225,27 @@ export function Codex({
   const [editing, setEditing] = useState<{ id: string; value: string } | null>(null);
   const [problem, setProblem] = useState("");
   const [address, setAddress] = useState<string | null>(null);
+  const candidates = usePanel(`/campaigns/${campaignId}/media/candidates`, parseCandidates, stamp);
+  const [picking, setPicking] = useState<string | null>(null);
   useEffect(() => {
     if (focus) document.getElementById(`codex-${focus}`)?.scrollIntoView({ block: "start" });
   }, [focus]);
+  const choose = async (entityId: string, role: "portrait" | "banner", index: number) => {
+    setPicking(entityId);
+    setProblem("");
+    try {
+      await api(`/campaigns/${campaignId}/media/${encodeURIComponent(entityId)}/choose`, (d) => d, {
+        role,
+        index,
+      });
+      candidates.reload();
+      await onChanged?.();
+    } catch (e) {
+      setProblem((e as Error).message);
+    } finally {
+      setPicking(null);
+    }
+  };
   if (error)
     return (
       <p role="alert" className="error panel-pad">
@@ -286,7 +314,30 @@ export function Codex({
                 id={`codex-${e.id}`}
                 className={`codex-entry${focus === e.id ? " focus" : ""}`}
               >
-                <h4>{e.name}</h4>
+                <div className="codex-head">
+                  <Portrait id={e.id} name={e.name} kind={e.kind} size={56} />
+                  <h4>{e.name}</h4>
+                </div>
+                {(() => {
+                  const offer = candidates.data?.find((c) => c.entityId === e.id);
+                  if (!offer) return null;
+                  return (
+                    <fieldset className="picture-picker" disabled={picking !== null}>
+                      <legend>Choose a picture for {e.name}</legend>
+                      {offer.hits.map((hit, i) => (
+                        <button
+                          key={hit.imageUrl}
+                          type="button"
+                          aria-label={`Use ${hit.title} from ${new URL(hit.pageUrl).host}`}
+                          onClick={() => void choose(e.id, offer.role, i)}
+                        >
+                          <span className="picker-title">{hit.title}</span>
+                          <span className="picker-host">{new URL(hit.pageUrl).host}</span>
+                        </button>
+                      ))}
+                    </fieldset>
+                  );
+                })()}
                 <button
                   type="button"
                   aria-pressed={watched.includes(e.id)}
@@ -578,6 +629,7 @@ export function WorldMap({
         <aside className="map-side">
           {selected ? (
             <div className="map-site" aria-live="polite">
+              {selected.thumb && <img className="map-site-thumb" src={selected.thumb} alt={selected.name} />}
               <h4>{entry?.name ?? selected.name}</h4>
               <p className="small muted">
                 {selected.kind}

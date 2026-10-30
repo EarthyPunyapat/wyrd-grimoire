@@ -132,6 +132,18 @@ The owner played M7 and found it lacking next to their ChatGPT RPG sessions, so 
 
 ---
 
+## 00 First Light
+
+**Plan:** [First Light](superpowers/plans/2026-10-30-first-light.md) · **Spec:** [10 Media § Sources](spec/10-media.md) (D168, D172)
+
+**Acceptance**
+- [ ] Known canon characters in a source campaign get wiki portraits automatically; ambiguous names offer a picker. *(Offline: passing with recorded fixtures. Real Fandom wikis: their image CDN refuses non-browser requests, so those campaigns get generated pictures or placeholders until the owner picks another route.)*
+- [x] Places get banners and map thumbnails.
+- [ ] With ComfyUI configured on the main PC, originals get generated portraits; without it, placeholders. *(Offline: passing with a fake generator. Real ComfyUI: owner, once the portrait workflow is exported.)*
+- [x] Media never delays a turn; offline makes no network calls.
+
+---
+
 ## M8 — Media (split into First Light and Lights & Voices, D168)
 
 **Spec:** [10](spec/10-media.md)

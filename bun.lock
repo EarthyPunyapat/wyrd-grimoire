@@ -36,6 +36,7 @@
         "@wyrd/core": "workspace:*",
         "@wyrd/engine": "workspace:*",
         "@wyrd/llm": "workspace:*",
+        "@wyrd/media": "workspace:*",
         "@wyrd/packs": "workspace:*",
         "@wyrd/storage": "workspace:*",
         "hono": "^4.10.0",
@@ -88,6 +89,13 @@
       },
       "devDependencies": {
         "@wyrd/storage": "workspace:*",
+      },
+    },
+    "packages/media": {
+      "name": "@wyrd/media",
+      "version": "0.1.0",
+      "dependencies": {
+        "@wyrd/core": "workspace:*",
       },
     },
     "packages/memory": {
@@ -288,6 +296,8 @@
     "@wyrd/engine": ["@wyrd/engine@workspace:packages/engine"],
 
     "@wyrd/llm": ["@wyrd/llm@workspace:packages/llm"],
+
+    "@wyrd/media": ["@wyrd/media@workspace:packages/media"],
 
     "@wyrd/memory": ["@wyrd/memory@workspace:packages/memory"],
 
