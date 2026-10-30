@@ -3,48 +3,57 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Wyrd Grimoire · An RPG engine where the dice decide</title>
+    <title>Wyrd Grimoire 2.0 · Long AI campaigns with a world that remembers</title>
     <meta
       name="description"
-      content="A solo role playing engine that runs on your own machine. Code holds the rules, the sheet and the world. Language models only parse intent and narrate what the dice returned."
+      content="A free, self hosted RPG engine for long AI campaigns. A GM model tells the story while code keeps the rules, your sheet, every item and every NPC's memory. Real dice, any genre, playable from your phone."
     />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#0d0e10" />
     <link rel="canonical" href="https://earthypunyapat.github.io/wyrd-grimoire/" />
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Wyrd Grimoire · An RPG engine where the dice decide" />
+    <meta property="og:title" content="Wyrd Grimoire 2.0 · Long AI campaigns with a world that remembers" />
     <meta
       property="og:description"
-      content="Real rules, real stakes, and a world that remembers. Self hosted, open source, plays in any browser on your network."
+      content="Your ChatGPT style campaign, but the dice are real, nothing you own quietly disappears, and canon characters keep living while you're away. Free and self hosted."
     />
     <meta property="og:url" content="https://earthypunyapat.github.io/wyrd-grimoire/" />
+    <meta property="og:image" content="https://earthypunyapat.github.io/wyrd-grimoire/img/share.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Wyrd Grimoire 2.0: long AI campaigns, with a world that remembers. An open grimoire glowing green beside a d20." />
+    <meta name="twitter:image" content="https://earthypunyapat.github.io/wyrd-grimoire/img/share.jpg" />
     <meta name="twitter:card" content="summary_large_image" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&display=swap"
       rel="stylesheet"
     />
 
     <style>
-      /* ---------- tokens: every value comes from the design rules ---------- */
+      /* Night Codex, the app's own look (D150): the site should feel like the game. */
       :root {
-        /* dark mode surfaces (B4) */
-        --bg: #000000;
-        --surface-1: #131209;
-        --surface-2: #181818;
-        --surface-3: #1f1f1f;
-        --surface-4: #272727;
-        --border: #313131;
+        --bg: #0d0e10;
+        --surface: #131417;
+        --surface-2: #181a1e;
+        --line: #23252a;
+        --line-strong: #3a3d44;
+        --line-gold: #3a3221;
+        --ink: #ecebe6;
+        --ink-muted: #9a9a96;
+        --ink-faint: #77776f;
+        --gold: #e2b552;
+        --green: #3ddc97;
+        --cyan: #5cc8e0;
+        --red: #e5566f;
+        --person: #b3c8ff;
 
-        --text: #f4f3ee;
-        --text-muted: #9b9b9b;
-        --text-faint: #6b6b6b;
+        --read: "Newsreader", "Iowan Old Style", Georgia, serif;
+        --chrome: "IBM Plex Mono", "Cascadia Mono", ui-monospace, Menlo, monospace;
 
-        /* spacing scale (B2) */
-        --s-25: 2px;
         --s-50: 4px;
         --s-75: 8px;
         --s-100: 12px;
@@ -57,29 +66,14 @@
         --s-800: 80px;
         --s-900: 96px;
 
-        /* tailwind radius steps (B3) */
-        --r-sm: 4px;
         --r-md: 6px;
         --r-lg: 8px;
         --r-xl: 12px;
         --r-2xl: 16px;
-        --r-3xl: 24px;
         --r-full: 9999px;
 
-        /* type scale (B1) */
-        --t-xs: 12px;
-        --t-sm: 14px;
-        --t-base: 16px;
-        --t-lg: 18px;
-        --t-xl: 20px;
-        --t-2xl: 24px;
-        --t-3xl: 30px;
-        --t-4xl: 36px;
-        --t-5xl: 48px;
-        --t-6xl: 60px;
-
-        /* motion (B7) */
         --ease: cubic-bezier(0.22, 1, 0.36, 1);
+        --wrap: 1120px;
       }
 
       *,
@@ -87,837 +81,724 @@
       *::after {
         box-sizing: border-box;
       }
-
       html {
         scroll-behavior: smooth;
-        -webkit-text-size-adjust: 100%;
+        scroll-padding-top: 96px;
       }
-
       body {
         margin: 0;
         background: var(--bg);
-        color: var(--text);
-        font-family: "Geist", system-ui, sans-serif;
-        font-size: var(--t-base);
-        line-height: 24px;
+        color: var(--ink);
+        font: 400 18px/28px var(--read);
         -webkit-font-smoothing: antialiased;
       }
-
+      img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+      }
+      a {
+        color: inherit;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
       h1,
       h2,
       h3 {
-        margin: 0;
-        font-weight: 600;
-        letter-spacing: -0.02em;
         text-wrap: balance;
+        font-weight: 500;
       }
-
       p {
-        margin: 0;
         text-wrap: pretty;
       }
-
-      a {
-        color: inherit;
-        text-decoration: none;
-      }
-
-      /* focus ring is an accessibility requirement, not optional (B9) */
       :focus-visible {
-        outline: 2px solid var(--text);
+        outline: 2px solid var(--green);
         outline-offset: 3px;
-        border-radius: var(--r-sm);
+        border-radius: var(--r-md);
       }
 
       .skip {
         position: absolute;
-        left: var(--s-300);
-        top: -80px;
-        background: var(--text);
-        color: var(--bg);
+        left: var(--s-200);
+        top: -64px;
+        z-index: 50;
         padding: var(--s-75) var(--s-100);
-        border-radius: var(--r-lg);
-        font-size: var(--t-sm);
-        font-weight: 600;
-        z-index: 100;
+        background: var(--green);
+        color: var(--bg);
+        font: 600 14px/20px var(--chrome);
+        border-radius: var(--r-md);
         transition: transform 300ms var(--ease);
       }
-
       .skip:focus {
-        transform: translateY(96px);
+        transform: translateY(80px);
       }
 
       .wrap {
-        width: 100%;
-        max-width: 1120px;
+        width: min(var(--wrap), 100% - 2 * var(--s-300));
         margin: 0 auto;
-        padding: 0 var(--s-300);
+      }
+      .eyebrow {
+        color: var(--gold);
+        font: 500 14px/20px var(--chrome);
+        letter-spacing: 0.04em;
+        margin-bottom: var(--s-200);
+      }
+      .section {
+        padding: var(--s-900) 0;
+        border-top: 1px solid var(--line);
+      }
+      .section h2 {
+        font: italic 400 36px/40px var(--read);
+        max-width: 680px;
+      }
+      .section .lede {
+        margin-top: var(--s-200);
+        max-width: 680px;
+        color: var(--ink-muted);
       }
 
-      /* ---------- navigation: floats off the top edge, not flush (B7) ---------- */
+      /* ---------- buttons ---------- */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--s-75);
+        padding: var(--s-75) var(--s-100);
+        min-height: 44px;
+        border-radius: var(--r-full);
+        border: 1px solid transparent;
+        font: 600 16px/24px var(--chrome);
+        text-decoration: none;
+        transition:
+          transform 300ms var(--ease),
+          background-color 300ms var(--ease),
+          border-color 300ms var(--ease);
+      }
+      .btn:active {
+        transform: scale(0.98);
+      }
+      .btn-primary {
+        background: var(--green);
+        color: var(--bg);
+        padding-inline: var(--s-200);
+      }
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        background: #5ae6aa;
+      }
+      .btn-quiet {
+        border-color: var(--line-strong);
+        color: var(--ink);
+        padding-inline: var(--s-200);
+      }
+      .btn-quiet:hover {
+        border-color: var(--green);
+      }
+      .btn-sm {
+        min-height: 36px;
+        font-size: 14px;
+        line-height: 20px;
+      }
+
+      /* ---------- nav ---------- */
       .nav-shell {
         position: fixed;
-        inset: var(--s-200) 0 auto 0;
+        top: var(--s-200);
+        left: 0;
+        right: 0;
+        z-index: 40;
         display: flex;
         justify-content: center;
-        z-index: 50;
         pointer-events: none;
       }
-
       .nav {
         pointer-events: auto;
         display: flex;
         align-items: center;
-        gap: var(--s-200);
+        gap: var(--s-300);
         padding: var(--s-75) var(--s-75) var(--s-75) var(--s-200);
-        border-radius: var(--r-full);
-        background: rgba(19, 18, 9, 0.72);
-        border: 1px solid var(--border);
+        background: rgb(19 20 23 / 0.72);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--line);
+        border-radius: var(--r-full);
+        font: 500 14px/20px var(--chrome);
       }
-
       .brand {
-        display: flex;
+        display: inline-flex;
         align-items: center;
         gap: var(--s-75);
-        font-size: var(--t-sm);
+        text-decoration: none;
+        color: var(--ink);
         font-weight: 600;
-        white-space: nowrap;
       }
-
-      .brand svg {
-        display: block;
+      .brand .rune {
+        color: var(--green);
+        font: 500 20px/1 var(--read);
       }
-
       .nav-links {
         display: flex;
         align-items: center;
-        gap: var(--s-25);
+        gap: var(--s-300);
       }
-
-      .nav-links a {
-        padding: var(--s-50) var(--s-100);
-        border-radius: var(--r-full);
-        font-size: var(--t-sm);
-        color: var(--text-muted);
-        transition: color 300ms var(--ease), background-color 300ms var(--ease);
+      .nav-links a:not(.btn) {
+        color: var(--ink-muted);
+        text-decoration: none;
+        transition: color 300ms var(--ease);
       }
-
-      .nav-links a:hover {
-        color: var(--text);
-        background: var(--surface-4);
-      }
-
+      .nav-links a:not(.btn):hover,
       .nav-links a[aria-current="true"] {
-        color: var(--text);
-        background: var(--surface-3);
+        color: var(--ink);
       }
-
+      .nav-links a[aria-current="true"] {
+        text-decoration: underline 1px var(--green);
+        text-underline-offset: 6px;
+      }
       .nav-toggle {
         display: none;
         position: relative;
         width: 40px;
         height: 40px;
-        align-items: center;
-        justify-content: center;
-        background: var(--surface-3);
-        border: 0;
+        border: 1px solid var(--line-strong);
         border-radius: var(--r-full);
+        background: none;
+        color: var(--ink);
         cursor: pointer;
-        color: var(--text);
       }
-
       .nav-toggle span {
         position: absolute;
-        left: 50%;
-        top: 50%;
-        display: block;
-        width: 18px;
-        height: 2px;
+        left: 12px;
+        right: 12px;
+        height: 1.5px;
         background: currentColor;
-        border-radius: var(--r-full);
-        transition: transform 500ms var(--ease), opacity 300ms var(--ease);
+        transition: transform 500ms var(--ease);
       }
-
       .nav-toggle span:first-child {
-        transform: translate(-50%, calc(-50% - 3.5px));
+        transform: translateY(-4px);
       }
-
       .nav-toggle span:last-child {
-        transform: translate(-50%, calc(-50% + 3.5px));
+        transform: translateY(4px);
       }
-
       .nav-toggle[aria-expanded="true"] span:first-child {
-        transform: translate(-50%, -50%) rotate(45deg);
+        transform: rotate(45deg);
       }
-
       .nav-toggle[aria-expanded="true"] span:last-child {
-        transform: translate(-50%, -50%) rotate(-45deg);
+        transform: rotate(-45deg);
       }
-
-      /* mobile menu: full height panel, not a dropdown (B7) */
       .menu {
         position: fixed;
         inset: 0;
-        z-index: 40;
+        z-index: 30;
         display: flex;
         flex-direction: column;
         justify-content: center;
-        gap: var(--s-75);
-        padding: var(--s-700) var(--s-400);
-        background: rgba(0, 0, 0, 0.94);
-        backdrop-filter: blur(28px);
-        -webkit-backdrop-filter: blur(28px);
+        gap: var(--s-300);
+        padding: var(--s-900) var(--s-400);
+        background: rgb(13 14 16 / 0.94);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
         opacity: 0;
         visibility: hidden;
-        transition: opacity 300ms var(--ease), visibility 300ms var(--ease);
+        transition:
+          opacity 500ms var(--ease),
+          visibility 0s linear 500ms;
       }
-
       .menu[data-open="true"] {
         opacity: 1;
         visibility: visible;
+        transition: opacity 500ms var(--ease);
       }
-
       .menu a {
-        font-size: var(--t-3xl);
-        font-weight: 600;
-        letter-spacing: -0.02em;
-        color: var(--text-muted);
+        font: italic 400 36px/40px var(--read);
+        text-decoration: none;
         opacity: 0;
-        transform: translateY(var(--s-300));
-        transition: opacity 300ms var(--ease), transform 400ms var(--ease), color 300ms var(--ease);
+        transform: translateY(24px);
+        transition:
+          opacity 500ms var(--ease),
+          transform 500ms var(--ease);
       }
-
       .menu[data-open="true"] a {
         opacity: 1;
         transform: none;
       }
-
-      .menu[data-open="true"] a:nth-child(1) { transition-delay: 0ms; }
       .menu[data-open="true"] a:nth-child(2) { transition-delay: 60ms; }
       .menu[data-open="true"] a:nth-child(3) { transition-delay: 120ms; }
       .menu[data-open="true"] a:nth-child(4) { transition-delay: 180ms; }
-
-      .menu a:hover {
-        color: var(--text);
-      }
-
-      /* ---------- buttons (B1, B2) ---------- */
-      .btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--s-75);
-        padding: var(--s-75) var(--s-100);
-        border-radius: var(--r-full);
-        font-size: var(--t-base);
-        font-weight: 600;
-        line-height: 24px;
-        transition: transform 300ms var(--ease), background-color 300ms var(--ease);
-      }
-
-      .btn-primary {
-        background: var(--text);
-        color: #0b0b0b;
-      }
-
-      .btn-primary:hover {
-        background: #dedcd2;
-      }
-
-      .btn-primary:active {
-        transform: scale(0.98);
-      }
-
-      .btn-quiet {
-        color: var(--text-muted);
-        padding: var(--s-75) var(--s-50);
-      }
-
-      .btn-quiet:hover {
-        color: var(--text);
-      }
-
-      .btn-sm {
-        font-size: var(--t-sm);
-        padding: var(--s-50) var(--s-100);
-      }
+      .menu[data-open="true"] a:nth-child(5) { transition-delay: 240ms; }
 
       /* ---------- hero ---------- */
       .hero {
-        padding: calc(var(--s-900) + var(--s-400)) 0 var(--s-800);
+        padding: 160px 0 var(--s-800);
       }
-
-      .hero-grid {
-        display: grid;
-        grid-template-columns: 1.05fr 0.95fr;
-        gap: var(--s-700);
-        align-items: center;
-      }
-
-      /* the one place a gradient is allowed: heading text (B5) */
       .hero h1 {
         max-width: 680px;
-        font-size: clamp(var(--t-4xl), 5.2vw, var(--t-6xl));
-        line-height: 1.04;
-        background: linear-gradient(to right, #ffffff, #9b9b9b);
+        font: italic 400 60px/1 var(--read);
+        background: linear-gradient(90deg, #ffffff, #9b9b9b);
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
       }
-
-      .hero p.lede {
+      .hero .lede {
         max-width: 680px;
         margin-top: var(--s-300);
-        font-size: var(--t-lg);
+        color: var(--ink-muted);
+        font-size: 20px;
         line-height: 28px;
-        color: var(--text-muted);
       }
-
       .hero-actions {
         display: flex;
-        align-items: center;
-        gap: var(--s-200);
+        flex-wrap: wrap;
+        gap: var(--s-100);
         margin-top: var(--s-400);
       }
-
-      .proof-line {
+      .proof {
         display: flex;
         flex-wrap: wrap;
-        gap: var(--s-75) var(--s-200);
-        margin-top: var(--s-400);
-        font-family: "Geist Mono", ui-monospace, monospace;
-        font-size: var(--t-sm);
-        color: var(--text-faint);
+        gap: var(--s-75) var(--s-300);
+        margin-top: var(--s-300);
+        color: var(--ink-faint);
+        font: 400 14px/20px var(--chrome);
+        list-style: none;
+        padding: 0;
       }
-
-      .proof-line span {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--s-75);
+      .proof li::before {
+        content: "◆ ";
+        color: var(--gold);
       }
-
-      .dot {
-        width: 5px;
-        height: 5px;
-        border-radius: var(--r-full);
-        background: #4b7a4b;
-      }
-
-      /* hero visual: a real turn, rendered */
-      .play {
-        border: 1px solid var(--border);
-        border-radius: var(--r-2xl);
-        background: var(--surface-1);
-        padding: var(--s-200);
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-      }
-
-      .play-head {
-        display: flex;
-        align-items: center;
-        gap: var(--s-50);
-        padding-bottom: var(--s-100);
-        border-bottom: 1px solid var(--border);
-      }
-
-      .play-head i {
-        width: 8px;
-        height: 8px;
-        border-radius: var(--r-full);
-        background: var(--surface-4);
-      }
-
-      .play-head em {
-        margin-left: auto;
-        font-family: "Geist Mono", monospace;
-        font-style: normal;
-        font-size: var(--t-xs);
-        color: var(--text-faint);
-      }
-
-      .mech {
-        margin-top: var(--s-200);
-        padding: var(--s-100);
+      .frame {
+        margin: var(--s-700) 0 0;
+        border: 1px solid var(--line-strong);
         border-radius: var(--r-xl);
-        background: var(--surface-2);
-        border: 1px solid var(--border);
-        font-family: "Geist Mono", monospace;
-        font-size: var(--t-xs);
-        line-height: 20px;
-        color: var(--text-muted);
+        background: var(--surface);
+        padding: var(--s-75);
+        box-shadow: 0 40px 120px rgb(0 0 0 / 0.5);
       }
-
-      .mech b {
-        color: var(--text);
-        font-weight: 500;
+      .frame img {
+        border-radius: 4px;
       }
-
-      .mech .hit {
-        color: #c9a227;
-      }
-
-      .narr {
-        margin-top: var(--s-200);
-        padding: 0 var(--s-100) var(--s-100);
-        font-size: var(--t-base);
-        line-height: 28px;
-        color: #dedcd2;
-      }
-
-      .narr .say {
-        display: block;
+      .frame figcaption,
+      .shot figcaption {
         margin-top: var(--s-100);
-        color: var(--text-muted);
+        color: var(--ink-faint);
+        font: 400 12px/16px var(--chrome);
+        text-align: center;
       }
 
-      .chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--s-50);
-        margin-top: var(--s-100);
-        padding: 0 var(--s-100) var(--s-50);
-      }
-
-      .chip {
-        font-size: var(--t-xs);
-        padding: var(--s-25) var(--s-75);
-        border-radius: var(--r-full);
-        border: 1px solid var(--border);
-        color: var(--text-muted);
-      }
-
-      /* ---------- sections ---------- */
-      .section {
-        padding: var(--s-900) 0;
-      }
-
-      .eyebrow {
-        font-family: "Geist Mono", monospace;
-        font-size: var(--t-xs);
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--text-faint);
-      }
-
-      .section h2 {
-        margin-top: var(--s-100);
-        max-width: 680px;
-        font-size: clamp(var(--t-3xl), 3.4vw, var(--t-4xl));
-        line-height: 1.12;
-      }
-
-      .section .sub {
-        margin-top: var(--s-200);
-        max-width: 680px;
-        color: var(--text-muted);
-        font-size: var(--t-lg);
-        line-height: 28px;
-      }
-
-      /* tagline reveal (B11) */
+      /* ---------- tagline reveal (word by word) ---------- */
       .tagline {
         padding: var(--s-900) 0;
-        border-top: 1px solid var(--border);
-        border-bottom: 1px solid var(--border);
+        border-top: 1px solid var(--line);
       }
-
       .tagline p {
-        max-width: 680px;
-        font-size: clamp(var(--t-4xl), 4.6vw, var(--t-5xl));
-        line-height: 1.16;
-        font-weight: 600;
-        letter-spacing: -0.02em;
+        max-width: 860px;
+        font: italic 400 48px/1.15 var(--read);
       }
-
       .tagline .w {
-        color: rgba(244, 243, 238, 0.3);
+        color: rgb(236 235 230 / 0.28);
         transition: color 700ms var(--ease);
-        display: inline-block;
-        white-space: pre;
       }
-
       .tagline .w.on {
-        color: var(--text);
+        color: var(--ink);
+      }
+      .tagline .w.gold.on {
+        color: var(--gold);
       }
 
-      /* cards */
-      .cards {
+      /* ---------- why (problem → answer) ---------- */
+      .why {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: var(--s-300);
-        margin-top: var(--s-500);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--s-200);
+        margin-top: var(--s-600);
       }
-
-      .card {
-        border: 1px solid var(--border);
-        border-radius: var(--r-2xl);
-        background: var(--surface-1);
+      .why article {
         padding: var(--s-300);
+        border: 1px solid var(--line);
+        border-radius: var(--r-xl);
+        background: var(--surface);
       }
-
-      /* nested radius: 16px outer, 12px gap -> 4px inner (B3) */
-      .card .badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-        border-radius: var(--r-sm);
-        background: var(--surface-3);
-        margin-bottom: var(--s-200);
+      .why .pain {
+        color: var(--ink-faint);
+        font: 400 14px/20px var(--chrome);
+        text-decoration: line-through;
+        text-decoration-color: var(--red);
       }
-
-      .card h3 {
-        font-size: var(--t-xl);
-        line-height: 28px;
-      }
-
-      .card p {
+      .why h3 {
         margin-top: var(--s-100);
-        color: var(--text-muted);
-        font-size: var(--t-base);
+        font: 500 24px/32px var(--read);
+      }
+      .why p:last-child {
+        margin-top: var(--s-100);
+        color: var(--ink-muted);
+        font-size: 16px;
         line-height: 24px;
       }
 
-      /* steps */
+      /* ---------- features ---------- */
+      .feature {
+        display: grid;
+        grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+        gap: var(--s-600);
+        align-items: center;
+        margin-top: var(--s-800);
+      }
+      .feature:nth-of-type(even) {
+        grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+      }
+      .feature:nth-of-type(even) .copy {
+        order: 2;
+      }
+      .feature .tag {
+        color: var(--green);
+        font: 500 12px/16px var(--chrome);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .feature h3 {
+        margin-top: var(--s-100);
+        font: italic 400 30px/36px var(--read);
+      }
+      .feature p {
+        margin-top: var(--s-200);
+        color: var(--ink-muted);
+      }
+      .feature ul {
+        margin: var(--s-200) 0 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: var(--s-75);
+        font-size: 16px;
+        line-height: 24px;
+      }
+      .feature li {
+        padding-left: var(--s-300);
+        position: relative;
+      }
+      .feature li::before {
+        content: "✦";
+        position: absolute;
+        left: 0;
+        color: var(--gold);
+        font-size: 12px;
+      }
+      .feature li strong {
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .shot {
+        margin: 0;
+        border: 1px solid var(--line-strong);
+        border-radius: var(--r-xl);
+        background: var(--surface);
+        padding: var(--s-75);
+      }
+      .shot img {
+        border-radius: 4px;
+      }
+      .shot.phone {
+        max-width: 320px;
+        margin-inline: auto;
+        border-radius: var(--r-2xl);
+      }
+      .shot.phone img {
+        border-radius: var(--r-lg);
+      }
+
+      .more {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--s-200);
+        margin-top: var(--s-800);
+      }
+      .more article {
+        padding: var(--s-300);
+        border: 1px solid var(--line);
+        border-radius: var(--r-xl);
+      }
+      .more h3 {
+        display: flex;
+        align-items: center;
+        gap: var(--s-75);
+        font: 500 20px/28px var(--read);
+      }
+      .more svg {
+        flex: none;
+        color: var(--gold);
+      }
+      .more p {
+        margin-top: var(--s-75);
+        color: var(--ink-muted);
+        font-size: 16px;
+        line-height: 24px;
+      }
+
+      /* ---------- how ---------- */
       .steps {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: var(--s-300);
-        margin-top: var(--s-500);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--s-200);
+        margin-top: var(--s-600);
+        counter-reset: step;
+        padding: 0;
+        list-style: none;
       }
-
-      .step {
-        border: 1px solid var(--border);
-        border-radius: var(--r-2xl);
+      .steps li {
         padding: var(--s-300);
-        background: var(--surface-1);
+        border: 1px solid var(--line);
+        border-radius: var(--r-xl);
+        background: var(--surface);
+        counter-increment: step;
       }
-
-      .step .n {
-        font-family: "Geist Mono", monospace;
-        font-size: var(--t-xs);
-        color: var(--text-faint);
+      .steps li::before {
+        content: counter(step, upper-roman);
+        display: block;
+        color: var(--green);
+        font: italic 400 36px/40px var(--read);
       }
-
-      .step h3 {
+      .steps h3 {
+        margin-top: var(--s-200);
+        font: 500 20px/28px var(--read);
+      }
+      .steps p {
         margin-top: var(--s-75);
-        font-size: var(--t-lg);
-        line-height: 28px;
-      }
-
-      .step p {
-        margin-top: var(--s-75);
-        font-size: var(--t-sm);
-        line-height: 20px;
-        color: var(--text-muted);
-      }
-
-      .step code {
-        display: block;
-        margin-top: var(--s-100);
-        padding: var(--s-75);
-        border-radius: var(--r-lg);
-        background: var(--surface-3);
-        font-family: "Geist Mono", monospace;
-        font-size: var(--t-xs);
-        line-height: 20px;
-        color: var(--text);
-      }
-
-      /* stats */
-      .stats {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: var(--s-300);
-        margin-top: var(--s-500);
-        padding: var(--s-400) 0;
-        border-top: 1px solid var(--border);
-        border-bottom: 1px solid var(--border);
-      }
-
-      .stat b {
-        display: block;
-        font-family: "Geist Mono", monospace;
-        font-size: var(--t-3xl);
-        line-height: 36px;
-        font-weight: 500;
-        color: var(--text);
-      }
-
-      .stat span {
-        display: block;
-        margin-top: var(--s-50);
-        font-size: var(--t-sm);
-        color: var(--text-muted);
-      }
-
-      /* testimonials */
-      .quotes {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: var(--s-300);
-        margin-top: var(--s-500);
-      }
-
-      .quote {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        gap: var(--s-300);
-        padding: var(--s-300);
-        border: 1px solid var(--border);
-        border-radius: var(--r-2xl);
-        background: var(--surface-1);
-      }
-
-      .quote p {
-        font-size: var(--t-base);
+        color: var(--ink-muted);
+        font-size: 16px;
         line-height: 24px;
-        color: #dedcd2;
+      }
+      code,
+      pre {
+        font-family: var(--chrome);
+      }
+      pre {
+        margin: var(--s-200) 0 0;
+        padding: var(--s-100) var(--s-200);
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        background: var(--bg);
+        color: var(--ink);
+        font-size: 14px;
+        line-height: 20px;
+        overflow-x: auto;
+      }
+      pre .c {
+        color: var(--ink-faint);
       }
 
-      .who {
-        display: flex;
-        align-items: center;
-        gap: var(--s-100);
+      /* ---------- roadmap ---------- */
+      .roadmap-img {
+        margin: var(--s-600) 0 0;
+        border: 1px solid var(--line-strong);
+        border-radius: var(--r-xl);
+        overflow: hidden;
       }
-
-      .avatar {
+      .updates {
         display: grid;
-        place-items: center;
-        width: 32px;
-        height: 32px;
-        flex: none;
-        border-radius: var(--r-full);
-        background: var(--surface-3);
-        font-family: "Geist Mono", monospace;
-        font-size: var(--t-xs);
-        color: var(--text-muted);
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: var(--s-100);
+        margin: var(--s-400) 0 0;
+        padding: 0;
+        list-style: none;
+        font: 400 14px/20px var(--chrome);
       }
-
-      .who b {
+      .updates li {
+        padding: var(--s-200);
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+      }
+      .updates b {
         display: block;
-        font-size: var(--t-sm);
+        color: var(--ink);
         font-weight: 600;
       }
-
-      .who span {
-        display: block;
-        font-size: var(--t-xs);
-        color: var(--text-faint);
+      .updates span {
+        color: var(--ink-muted);
+      }
+      .updates em {
+        display: inline-block;
+        margin-top: var(--s-75);
+        color: var(--gold);
+        font-style: normal;
+        font-size: 12px;
+        line-height: 16px;
       }
 
-      /* faq */
+      /* ---------- faq ---------- */
       .faq {
-        margin-top: var(--s-500);
-        border-top: 1px solid var(--border);
+        margin-top: var(--s-600);
+        max-width: 820px;
+        border-top: 1px solid var(--line);
       }
-
-      details {
-        border-bottom: 1px solid var(--border);
+      .faq details {
+        border-bottom: 1px solid var(--line);
       }
-
-      summary {
+      .faq summary {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: var(--s-200);
         padding: var(--s-300) 0;
         cursor: pointer;
-        font-size: var(--t-lg);
-        line-height: 28px;
-        font-weight: 500;
         list-style: none;
-        transition: color 300ms var(--ease);
+        font: 500 20px/28px var(--read);
       }
-
-      summary::-webkit-details-marker {
+      .faq summary::-webkit-details-marker {
         display: none;
       }
-
-      summary:hover {
-        color: var(--text-muted);
-      }
-
-      summary svg {
+      .faq summary svg {
         flex: none;
+        color: var(--ink-muted);
         transition: transform 500ms var(--ease);
       }
-
-      details[open] summary svg {
+      .faq details[open] summary svg {
         transform: rotate(45deg);
       }
-
-      details p {
+      .faq details p {
         padding: 0 0 var(--s-300);
+        color: var(--ink-muted);
         max-width: 680px;
-        color: var(--text-muted);
-        font-size: var(--t-base);
-        line-height: 24px;
       }
 
-      /* closing cta */
+      /* ---------- close ---------- */
       .close {
         padding: var(--s-900) 0;
-      }
-
-      .close-inner {
-        border: 1px solid var(--border);
-        border-radius: var(--r-3xl);
-        background: var(--surface-1);
-        padding: var(--s-700) var(--s-500);
+        border-top: 1px solid var(--line);
         text-align: center;
       }
-
       .close h2 {
-        margin: 0 auto;
+        font: italic 400 48px/1 var(--read);
         max-width: 680px;
-        font-size: clamp(var(--t-3xl), 4vw, var(--t-5xl));
-        line-height: 1.08;
+        margin: 0 auto;
       }
-
       .close p {
         margin: var(--s-200) auto 0;
-        max-width: 680px;
-        color: var(--text-muted);
-        font-size: var(--t-lg);
-        line-height: 28px;
+        max-width: 560px;
+        color: var(--ink-muted);
+      }
+      .close .hero-actions {
+        justify-content: center;
       }
 
-      .close .btn {
-        margin-top: var(--s-400);
-      }
-
-      /* footer */
       footer {
-        border-top: 1px solid var(--border);
-        padding: var(--s-600) 0;
+        border-top: 1px solid var(--line);
+        padding: var(--s-400) 0 var(--s-600);
+        font: 400 14px/20px var(--chrome);
+        color: var(--ink-faint);
       }
-
       .foot {
         display: flex;
         flex-wrap: wrap;
-        align-items: center;
-        gap: var(--s-200);
         justify-content: space-between;
+        gap: var(--s-200);
       }
-
       .foot-links {
         display: flex;
         flex-wrap: wrap;
-        gap: var(--s-200);
-        font-size: var(--t-sm);
-        color: var(--text-muted);
+        gap: var(--s-200) var(--s-300);
       }
-
+      .foot-links a {
+        color: var(--ink-muted);
+        text-decoration: none;
+      }
       .foot-links a:hover {
-        color: var(--text);
+        color: var(--ink);
       }
 
-      .foot small {
-        font-size: var(--t-sm);
-        color: var(--text-faint);
-      }
-
-      /* scroll reveals (B7): rise 32px, fade in, once */
+      /* ---------- reveal ---------- */
       [data-reveal] {
         opacity: 0;
-        transform: translateY(var(--s-400));
-        transition: opacity 700ms var(--ease), transform 700ms var(--ease);
+        transform: translateY(32px);
+        transition:
+          opacity 700ms var(--ease),
+          transform 700ms var(--ease);
       }
-
       [data-reveal].in {
         opacity: 1;
         transform: none;
-      }
-
-      @media (max-width: 900px) {
-        .hero-grid {
-          grid-template-columns: 1fr;
-          gap: var(--s-600);
-        }
-
-        .cards,
-        .steps,
-        .stats,
-        .quotes {
-          grid-template-columns: 1fr;
-        }
-
-        .nav-links {
-          display: none;
-        }
-
-        .nav-toggle {
-          display: flex;
-        }
-
-        .nav {
-          width: calc(100vw - var(--s-400));
-          justify-content: space-between;
-        }
-
-        .hero {
-          padding-top: calc(var(--s-900) + var(--s-200));
-        }
       }
 
       @media (prefers-reduced-motion: reduce) {
         html {
           scroll-behavior: auto;
         }
-
-        *,
-        *::before,
-        *::after {
-          transition-duration: 1ms !important;
-          animation-duration: 1ms !important;
-        }
-
         [data-reveal] {
-          opacity: 1;
           transform: none;
+          transition: opacity 300ms linear;
         }
-
-        .tagline .w {
-          color: var(--text);
-        }
-
         .menu a {
-          opacity: 1;
           transform: none;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .why,
+        .more,
+        .steps {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .updates {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .feature,
+        .feature:nth-of-type(even) {
+          grid-template-columns: minmax(0, 1fr);
+          gap: var(--s-300);
+        }
+        .feature:nth-of-type(even) .copy {
+          order: 0;
+        }
+      }
+      @media (max-width: 760px) {
+        .frame {
+          max-width: 360px;
+          margin-inline: auto;
+        }
+        .nav-links {
+          display: none;
+        }
+        .nav-toggle {
+          display: block;
+        }
+        .hero {
+          padding-top: 128px;
+        }
+        .hero h1 {
+          font-size: 48px;
+        }
+        .tagline p,
+        .close h2 {
+          font-size: 36px;
+          line-height: 40px;
+        }
+        .section {
+          padding: var(--s-800) 0;
+        }
+        .section h2 {
+          font-size: 30px;
+          line-height: 36px;
+        }
+        .updates {
+          grid-template-columns: minmax(0, 1fr);
         }
       }
     </style>
   </head>
-
   <body>
     <a class="skip" href="#main">Skip to content</a>
 
     <div class="nav-shell">
       <nav class="nav" aria-label="Primary">
-        <a class="brand" href="#top">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 2 22 8.5v9L12 22 2 17.5v-9L12 2Z" stroke="currentColor" stroke-width="1.4" />
-            <path d="M12 2v20M2 8.5 12 12l10-3.5" stroke="currentColor" stroke-width="1.4" opacity=".55" />
-          </svg>
-          Wyrd Grimoire
-        </a>
-
+        <a class="brand" href="#top"><span class="rune" aria-hidden="true">ᚹ</span> Wyrd Grimoire</a>
         <div class="nav-links">
-          <a href="#how" data-spy="how">How it works</a>
-          <a href="#rules" data-spy="rules">The rules</a>
+          <a href="#new" data-spy="new">What's new</a>
+          <a href="#how" data-spy="how">Get started</a>
+          <a href="#roadmap" data-spy="roadmap">Roadmap</a>
           <a href="#faq" data-spy="faq">Questions</a>
-          <a
-            href="https://github.com/EarthyPunyapat/wyrd-grimoire"
-            class="btn btn-primary btn-sm"
-            >Get it running</a
-          >
+          <a class="btn btn-primary btn-sm" href="#how">Get it running</a>
         </div>
-
         <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="menu" aria-label="Open menu">
           <span></span><span></span>
         </button>
@@ -925,143 +806,205 @@
     </div>
 
     <div class="menu" id="menu" data-open="false">
-      <a href="#how">How it works</a>
-      <a href="#rules">The rules</a>
+      <a href="#new">What's new</a>
+      <a href="#how">Get started</a>
+      <a href="#roadmap">Roadmap</a>
       <a href="#faq">Questions</a>
-      <a href="https://github.com/EarthyPunyapat/wyrd-grimoire">Get it running</a>
+      <a href="https://github.com/EarthyPunyapat/wyrd-grimoire">Source on GitHub</a>
     </div>
 
     <main id="main">
       <span id="top"></span>
 
       <section class="hero">
-        <div class="wrap hero-grid">
-          <div>
-            <h1>An RPG engine where the dice actually decide</h1>
-            <p class="lede">
-              Wyrd Grimoire is a solo role playing engine that runs on your own machine. Code holds the
-              rules, the sheet and the world. Language models only parse what you type and narrate what the
-              dice returned.
-            </p>
-
-            <div class="hero-actions">
-              <a class="btn btn-primary" href="https://github.com/EarthyPunyapat/wyrd-grimoire">
-                Get it running
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.8" />
-                </svg>
-              </a>
-              <a class="btn btn-quiet" href="https://github.com/EarthyPunyapat/wyrd-grimoire/blob/main/docs/spec/00-overview.md">
-                Read the spec
-              </a>
-            </div>
-
-            <p class="proof-line">
-              <span><i class="dot"></i>442 tests passing</span>
-              <span>6 of 8 milestones built</span>
-              <span>MIT licensed</span>
-            </p>
+        <div class="wrap">
+          <p class="eyebrow">Wyrd Grimoire 2.0</p>
+          <h1>Long AI campaigns, with a world that remembers and dice that are real</h1>
+          <p class="lede">
+            A free RPG engine you run on your own PC. A GM model tells the story; code keeps the rules, your sheet,
+            every item and every NPC's memory, so nothing quietly disappears on turn forty.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#how">
+              Get it running
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.8" />
+              </svg>
+            </a>
+            <a class="btn btn-quiet" href="#new">See what's in 2.0</a>
           </div>
+          <ul class="proof">
+            <li>889 automated tests</li>
+            <li>MIT licensed</li>
+            <li>Your campaigns stay on your machine</li>
+          </ul>
+          <figure class="frame" data-reveal>
+            <picture>
+              <source media="(max-width: 760px)" srcset="img/phone.jpg" width="412" height="860" />
+              <img
+              src="img/play.jpg"
+              width="1440"
+              height="900"
+              alt="The Wyrd play screen: narration with Mina Vale's dialogue, a Mechanics roll of 82 against 92 marked success in the margin, three numbered choices, and the hotbar with Abilities, Observe, Time skip and GM mode."
+              />
+            </picture>
+            <figcaption>A real turn in Wyrd. Every roll comes from the engine, never from the model.</figcaption>
+          </figure>
+        </div>
+      </section>
 
-          <div class="play" data-reveal role="img" aria-label="A single turn in the play screen: a mechanics line, then narration">
-            <div class="play-head">
-              <i></i><i></i><i></i>
-              <em>Ashford Ferry · turn 41</em>
-            </div>
+      <section class="tagline" aria-label="Why Wyrd exists">
+        <div class="wrap">
+          <p data-tagline>
+            ChatGPT tells a great story. Then it forgets your sword, fudges your dice and loses the plot. Wyrd keeps the record.
+          </p>
+        </div>
+      </section>
 
-            <div class="mech">
-              <b>Strike</b> · d100 <b>31</b> vs <b>72</b> · Success<br />
-              hit: left arm · <span class="hit">7 damage</span> · bleeding
-            </div>
-
-            <div class="narr">
-              The stool catches the bandit across the forearm and he loses his grip on the table's edge.
-              <span class="say">"You'll pay for that."</span>
-            </div>
-
-            <div class="chips">
-              <span class="chip">shove the table</span>
-              <span class="chip">disarm him</span>
-              <span class="chip">back to the door</span>
-            </div>
+      <section class="section" id="why">
+        <div class="wrap">
+          <p class="eyebrow">Why not just a chat window</p>
+          <h2>The story stays a story because the rules live in code</h2>
+          <div class="why">
+            <article data-reveal>
+              <p class="pain">"Wait, I had a ring?"</p>
+              <h3>Everything is on the record</h3>
+              <p>
+                Items, wounds, coins, quests and what each NPC knows are events in a log. The GM can only change them
+                through tools, and you can rewind any turn.
+              </p>
+            </article>
+            <article data-reveal>
+              <p class="pain">"It just decided I won"</p>
+              <h3>Dice you can see</h3>
+              <p>
+                Uncertain moments roll on the engine's seeded dice, d100 or d20, and the math sits in the margin. The
+                narrator describes the result. It never picks it.
+              </p>
+            </article>
+            <article data-reveal>
+              <p class="pain">"Paste the recap again"</p>
+              <h3>A world that keeps moving</h3>
+              <p>
+                Canon characters follow their own goals, factions push their plans and time can skip a day or a year.
+                The world is still there when you come back.
+              </p>
+            </article>
           </div>
         </div>
       </section>
 
-      <section class="tagline" aria-label="Project tagline">
+      <section class="section" id="new">
         <div class="wrap">
-          <p data-tagline>Code owns the rules. The dice own the outcome. The model only tells you what happened.</p>
-        </div>
-      </section>
-
-      <section class="section" id="rules">
-        <div class="wrap">
-          <p class="eyebrow">What it does differently</p>
-          <h2>Stakes that cannot be talked away</h2>
-          <p class="sub">
-            Most AI game masters drift. They forget the inventory, let you argue past a locked door, and
-            contradict themselves three sessions later. Here the sheet is code, and the dice are real.
+          <p class="eyebrow">What's new in 2.0</p>
+          <h2>Built for the campaigns people actually run in ChatGPT</h2>
+          <p class="lede">
+            2.0 rebuilt the turn around a game master that uses tools, then added the things long campaigns need.
           </p>
 
-          <div class="cards">
-            <article class="card" data-reveal>
-              <span class="badge" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2 21 7v10l-9 5-9-5V7l9-5Z" stroke="currentColor" stroke-width="1.4" />
-                  <path d="M12 12v10M12 12 3 7m9 5 9-5" stroke="currentColor" stroke-width="1.4" opacity=".5" />
-                </svg>
-              </span>
-              <h3>Dice you cannot argue with</h3>
-              <p>
-                d100 roll under by default, or d20 with modifiers, returning the same four degrees either
-                way. Strikes land on body locations, armour covers what it covers, and an untreated wound
-                can turn infected.
-              </p>
-            </article>
+          <div class="feature" data-reveal>
+            <div class="copy">
+              <span class="tag">The GM turn</span>
+              <h3>One storyteller, with real tools</h3>
+              <p>The GM writes the prose and calls the engine for everything that matters.</p>
+              <ul>
+                <li><strong>Rolls and cards</strong> for checks, items, characters and level ups</li>
+                <li><strong>Choices</strong> when a decision is real, or any time you ask</li>
+                <li><strong>GM mode</strong>: type <code>/gm</code> to rewrite the world, with an Undo card</li>
+                <li><strong>A canon check</strong> flags anything the prose claimed that no tool recorded</li>
+              </ul>
+            </div>
+            <figure class="shot">
+              <img src="img/turn.jpg" loading="lazy" alt="Close up of a turn: narration with dialogue, the Mechanics roll in the margin and three numbered choices." />
+            </figure>
+          </div>
 
-            <article class="card" data-reveal>
-              <span class="badge" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 5h16v14H4z" stroke="currentColor" stroke-width="1.4" />
-                  <path d="M4 9h16M8 9v10" stroke="currentColor" stroke-width="1.4" opacity=".5" />
-                </svg>
-              </span>
-              <h3>A world that remembers</h3>
+          <div class="feature" data-reveal>
+            <div class="copy">
+              <span class="tag">Levels and abilities</span>
+              <h3>From Level 1 to infinity</h3>
               <p>
-                Every change is an event in an append only log, and the state is a fold over that log. NPCs
-                know only what they saw, were told, or heard as rumour, so a lie told in one town can reach
-                the captain above the man you lied about.
+                Ranked abilities the GM grants as you grow, Level gaps that decide who can even contest whom, and a
+                sovereign at Level ∞ who can seal their power or send a finite avatar into the world.
               </p>
-            </article>
+              <ul>
+                <li><strong>Abilities list</strong> on the hotbar, one key away</li>
+                <li><strong>Milestones, XP or breakthroughs</strong>, accepted by you, never silently applied</li>
+              </ul>
+            </div>
+            <figure class="shot">
+              <img src="img/abilities.jpg" loading="lazy" alt="The Abilities list open above the hotbar, showing Signal Ghost at rank 2." />
+            </figure>
+          </div>
 
-            <article class="card" data-reveal>
-              <span class="badge" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <rect x="3" y="4" width="18" height="12" rx="2" stroke="currentColor" stroke-width="1.4" />
-                  <path d="M8 20h8M12 16v4" stroke="currentColor" stroke-width="1.4" opacity=".5" />
-                </svg>
-              </span>
-              <h3>Your hardware, not a subscription</h3>
+          <div class="feature" data-reveal>
+            <div class="copy">
+              <span class="tag">Worlds</span>
+              <h3>Play inside the stories you love</h3>
               <p>
-                Text through your ChatGPT plan or DeepSeek. Portraits through local image generation in
-                ComfyUI. Voice through local text to speech. Each campaign is one SQLite file on your disk,
-                and nothing leaves the machine unless you route it to a model.
+                Start an original world, or one inside a source like a comic universe or a web novel. Wyrd researches it
+                from its wiki, keeps the summaries, and schedules canon events that happen on time unless you get in
+                the way.
               </p>
-            </article>
+              <ul>
+                <li><strong>A real map</strong> of the sites you know, with roads, days and danger</li>
+                <li><strong>Vendors are people at places</strong>, with wares that fit who they are</li>
+              </ul>
+            </div>
+            <figure class="shot">
+              <img src="img/map.jpg" loading="lazy" alt="The map: a You are here card for Relay Nine, sites in two regions joined by roads marked in days, and a list of roads with danger ratings." />
+            </figure>
+          </div>
 
-            <article class="card" data-reveal>
-              <span class="badge" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 3v18M3 12h18" stroke="currentColor" stroke-width="1.4" opacity=".5" />
-                  <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.4" />
-                </svg>
-              </span>
-              <h3>Any genre, one rules core</h3>
+          <div class="feature" data-reveal>
+            <div class="copy">
+              <span class="tag">Trade</span>
+              <h3>Shops where the story puts them</h3>
               <p>
-                Genres are data packs plus small plugins. The fantasy pack ships with 4 ancestries, 6
-                archetypes, 12 talents, 7 weapons, 4 armour sets, 15 pieces of gear and 11 creatures. A
-                cyberpunk pack is the next proof that the core holds.
+                Ask around for supplies and the GM opens a vendor right there, with stock that fits the place. Walk away
+                and the shop stays behind. Things you wrote into your character are never for sale.
               </p>
+            </div>
+            <figure class="shot">
+              <img src="img/vendor.jpg" loading="lazy" alt="A vendor pop up for the Dock Four Commissary, sold by Quartermaster Ide, listing ration bars, fuses, a hand lamp and sealant foam." />
+            </figure>
+          </div>
+
+          <div class="feature" data-reveal>
+            <div class="copy">
+              <span class="tag">Anywhere</span>
+              <h3>Your PC runs it. Your phone plays it.</h3>
+              <p>
+                The server lives on the machine with your models. Play from any browser on your network or over
+                Tailscale, in one of three layouts: Reader, Cockpit or Chat.
+              </p>
+            </div>
+            <figure class="shot phone">
+              <img src="img/phone.jpg" width="412" height="860" loading="lazy" alt="The play screen on a phone: narration, Mina Vale's dialogue and the roll card stacked in one column." />
+            </figure>
+          </div>
+
+          <div class="more">
+            <article data-reveal>
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3.5 2" /></svg>
+                Time skips
+              </h3>
+              <p>Skip a day or a season. The world simulates every day, and anyone you watch sends a report.</p>
+            </article>
+            <article data-reveal>
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5.3a3 3 0 0 1 0 5.4M17.5 14.3c2.1.7 3.5 2.9 3.5 5.7" /></svg>
+                Loyal companions
+              </h3>
+              <p>A companion who stays, speaks in the voice you gave them, and takes on tasks while you do something else.</p>
+            </article>
+            <article data-reveal>
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14" /></svg>
+                Bring your character
+              </h3>
+              <p>Paste ChatGPT share links and keep the character, companions and history worth keeping.</p>
             </article>
           </div>
         </div>
@@ -1069,106 +1012,64 @@
 
       <section class="section" id="how">
         <div class="wrap">
-          <p class="eyebrow">One turn</p>
-          <h2>Type what you try. The engine settles it.</h2>
-          <p class="sub">
-            The model is a parser and a narrator, never a referee. It proposes; the engine disposes.
-          </p>
-
-          <div class="steps">
-            <article class="step" data-reveal>
-              <span class="n">01</span>
-              <h3>You type what you try</h3>
-              <p>Plain language, as you would say it at a table. Three actions is a normal combat turn.</p>
-              <code>kick the table over, duck behind it, shoot the archer</code>
-            </article>
-
-            <article class="step" data-reveal>
-              <span class="n">02</span>
-              <h3>The engine resolves it</h3>
+          <p class="eyebrow">Get started</p>
+          <h2>Three steps to your first roll</h2>
+          <ol class="steps">
+            <li data-reveal>
+              <h3>Install it on your PC</h3>
+              <p>You need <a href="https://bun.sh">Bun</a> and the source from GitHub.</p>
+              <pre><code>git clone https://github.com/EarthyPunyapat/wyrd-grimoire
+cd wyrd-grimoire
+bun install && bun run build</code></pre>
+            </li>
+            <li data-reveal>
+              <h3>Start it and connect a model</h3>
+              <p>Sign in with your ChatGPT plan, add a DeepSeek key, or point it at a local model.</p>
+              <pre><code>bun run start
+<span class="c"># or try it with no models at all</span>
+bun run start --offline</code></pre>
+            </li>
+            <li data-reveal>
+              <h3>Play from any browser</h3>
               <p>
-                The parser proposes actions against the sheet and the scene. The engine checks legality,
-                spends action points and rolls.
+                Open <code>localhost:4777</code>, set a passcode, and begin. Your laptop and phone join over your
+                network.
               </p>
-              <code>3 AP spent · 2 checks · 1 opposed</code>
-            </article>
-
-            <article class="step" data-reveal>
-              <span class="n">03</span>
-              <h3>The narrator reports it</h3>
-              <p>
-                Prose describes exactly what the dice returned, then a canon guard tests it against what
-                has already happened before you see it.
-              </p>
-              <code>guard: no contradictions · committed</code>
-            </article>
-          </div>
-
-          <div class="stats">
-            <div class="stat">
-              <b>442</b>
-              <span>tests, all offline against a fake provider</span>
-            </div>
-            <div class="stat">
-              <b>6 / 8</b>
-              <span>milestones built, each ending runnable</span>
-            </div>
-            <div class="stat">
-              <b>1 file</b>
-              <span>per campaign, plus a media folder beside it</span>
-            </div>
-          </div>
+              <p><a href="https://github.com/EarthyPunyapat/wyrd-grimoire/blob/main/docs/m3-web.md">LAN and phone guide →</a></p>
+            </li>
+          </ol>
         </div>
       </section>
 
-      <!--
-        SAMPLE COPY, NOT REAL USERS.
-        The three quotes below were invented to fill the layout. Wyrd Grimoire has no
-        real players yet. Do not cite them as evidence in docs, PRs or release notes,
-        and replace rather than add when a genuine quote exists. See site/README.md.
-      -->
-      <section class="section" id="players">
+      <section class="section" id="roadmap">
         <div class="wrap">
-          <p class="eyebrow">In play</p>
-          <h2>What players say</h2>
-          <p class="sub">
-            Three people running campaigns of their own, on hardware they already owned.
+          <p class="eyebrow">What's next</p>
+          <h2>The road to Wyrd 3.0</h2>
+          <p class="lede">
+            Seven updates, planned in the open. Nothing here has a date; each one ships when it plays well.
           </p>
-
-          <div class="quotes">
-            <figure class="quote" data-reveal>
-              <p>
-                "I stopped keeping session notes. Turn 300 still remembered that I owed the dockmaster
-                eleven silver, and it remembered a good while before I did."
-              </p>
-              <figcaption class="who">
-                <span class="avatar" aria-hidden="true">HV</span>
-                <span><b>Halden Vos</b><span>plays three nights a week</span></span>
-              </figcaption>
-            </figure>
-
-            <figure class="quote" data-reveal>
-              <p>
-                "A bandit broke my arm in the second fight. It stayed broken for six in game days and my
-                archery was worse the whole time. That was the moment I believed the sheet."
-              </p>
-              <figcaption class="who">
-                <span class="avatar" aria-hidden="true">PR</span>
-                <span><b>Priya Ranasinghe</b><span>software engineer, plays solo</span></span>
-              </figcaption>
-            </figure>
-
-            <figure class="quote" data-reveal>
-              <p>
-                "It runs on the laptop I write on and finds the server on my desktop by itself. I have
-                never opened a config file, and I have been playing since the combat milestone."
-              </p>
-              <figcaption class="who">
-                <span class="avatar" aria-hidden="true">TW</span>
-                <span><b>Tomasz Wierzbicki</b><span>plays over Tailscale</span></span>
-              </figcaption>
-            </figure>
-          </div>
+          <figure class="roadmap-img" data-reveal>
+            <img
+              src="img/roadmap-3.0.webp"
+              width="1672"
+              height="941"
+              loading="lazy"
+              alt="The Wyrd 3.0 roadmap as seven update cards, listed in text below."
+            />
+          </figure>
+          <ul class="updates">
+            <li><b>2.x Presets & Cards</b><span>Character cards, 8 world starters, saved worlds</span><br /><em>next</em></li>
+            <li><b>00 First Light</b><span>Wiki portraits, place banners, generated portraits</span><br /><em>next</em></li>
+            <li><b>01 Bonds & Lore</b><span>Relationships, encyclopedia, achievements, story export</span><br /><em>planned</em></li>
+            <li><b>02 Dominion</b><span>Bases, factions and sects, kingdoms, battle map</span><br /><em>planned</em></li>
+            <li><b>03 Second Pass</b><span>Shaped by playtesting</span><br /><em>loading</em></li>
+            <li><b>04 Lights & Voices</b><span>Scene art, NPC voices, ambience, visual novel mode</span><br /><em>planned</em></li>
+            <li><b>05 The Forge</b><span>Tavern card import, item and NPC editor</span><br /><em>planned</em></li>
+            <li>
+              <b>Read the plan</b>
+              <span><a href="https://github.com/EarthyPunyapat/wyrd-grimoire/blob/main/docs/superpowers/plans/2026-10-30-w3-roadmap.md">The full roadmap on GitHub →</a></span>
+            </li>
+          </ul>
         </div>
       </section>
 
@@ -1176,115 +1077,38 @@
         <div class="wrap">
           <p class="eyebrow">Questions</p>
           <h2>What people ask before running it</h2>
-
           <div class="faq">
             <details>
-              <summary>
-                Do I need an API key?
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" />
-                </svg>
-              </summary>
-              <p>
-                Not for the ChatGPT route. You sign in with your own ChatGPT account, and the app keeps the
-                tokens in a secrets folder. DeepSeek and other compatible servers take a key. Ollama takes
-                nothing but a model on disk.
-              </p>
+              <summary>Is it free?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" /></svg></summary>
+              <p>Yes. It's open source under the MIT licence. The models are yours: your ChatGPT plan, your own API key, or a model running on your machine.</p>
             </details>
-
             <details>
-              <summary>
-                Can I play from my phone or laptop?
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" />
-                </svg>
-              </summary>
-              <p>
-                Yes. The server runs on the machine with your GPU and serves the browser client over your
-                LAN or Tailscale. A passcode gates it, and settings and usage are per install.
-              </p>
+              <summary>Do I need an API key?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" /></svg></summary>
+              <p>Not for the ChatGPT route: you sign in with your own ChatGPT account and the tokens stay in a secrets folder on your PC. DeepSeek and other compatible servers take a key. Ollama needs only a model on disk.</p>
             </details>
-
             <details>
-              <summary>
-                What happens when I lose a fight?
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" />
-                </svg>
-              </summary>
-              <p>
-                By default, defeat is not death. You are captured, robbed, left for dead or rescued, and the
-                consequence opens a new thread. Hardcore mode is chosen at creation and makes death
-                permanent, with an obituary and a chance to carry the world into a new character.
-              </p>
+              <summary>Do I need a strong GPU?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" /></svg></summary>
+              <p>Not for text. With ChatGPT or DeepSeek the heavy lifting happens on their side. A GPU matters for local models now and for generated portraits when First Light arrives.</p>
             </details>
-
             <details>
-              <summary>
-                Which dice system does it use?
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" />
-                </svg>
-              </summary>
-              <p>
-                d100 roll under is the default, d20 with modifiers is the alternative, and the choice is made
-                per campaign. Both return crit success, success, failure and crit failure, so the rules only
-                ever consume the degree.
-              </p>
+              <summary>Can I play from my phone?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" /></svg></summary>
+              <p>Yes. The server runs on your PC and serves the game to any browser on your network or over Tailscale. A passcode keeps it yours.</p>
             </details>
-
             <details>
-              <summary>
-                Does it work without internet?
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" />
-                </svg>
-              </summary>
-              <p>
-                It can run entirely local, and there is an offline mode that previews the whole interface
-                without calling a model at all. Tests never reach the network either: they use a fake
-                provider and recorded cassettes.
-              </p>
+              <summary>Can I bring my ChatGPT campaign?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" /></svg></summary>
+              <p>Paste your share links during creation. Wyrd drafts your character, companions and the history worth keeping, and you tick what to carry over.</p>
             </details>
-
             <details>
-              <summary>
-                Where do my campaigns live?
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" />
-                </svg>
-              </summary>
-              <p>
-                One SQLite file per campaign, with a media folder beside it, under your own home directory.
-                Credentials, tokens and the passcode sit in a separate secrets folder that never reaches a
-                log, an error message or the browser.
-              </p>
+              <summary>What happens when I lose a fight?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" /></svg></summary>
+              <p>By default defeat is not death: you are captured, robbed, left for dead or rescued, and the story goes on from there. Hardcore mode makes death permanent, with an obituary and a new life in the same world.</p>
             </details>
-
             <details>
-              <summary>
-                How finished is it?
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" />
-                </svg>
-              </summary>
-              <p>
-                Six of eight milestones are built and runnable: rules, model loop, web client, combat, world
-                and memory, characters and companions. Breadth is next, which brings d20 campaigns, the
-                Living World mode, subsystem toggles and the spellcasting plugin.
-              </p>
+              <summary>Where do my campaigns live?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" /></svg></summary>
+              <p>On your machine, one file per campaign with automatic backups. Nothing is sent anywhere except the model calls you configure.</p>
             </details>
-
             <details>
-              <summary>
-                What licence is it under?
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" />
-                </svg>
-              </summary>
-              <p>
-                MIT. Read it, fork it, run it, change the rules in your own pack.
-              </p>
+              <summary>How finished is it?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" /></svg></summary>
+              <p>2.0's features are built and covered by hundreds of tests, and it's being played in long campaigns now. It's a personal project in active development, so expect rough edges and frequent updates.</p>
             </details>
           </div>
         </div>
@@ -1292,18 +1116,16 @@
 
       <section class="close">
         <div class="wrap">
-          <div class="close-inner" data-reveal>
-            <h2>Read the spec, then roll your first check</h2>
-            <p>
-              The design is written down before it is coded: eight milestones, a decision log, and a spec
-              that says why every number is the number it is.
-            </p>
-            <a class="btn btn-primary" href="https://github.com/EarthyPunyapat/wyrd-grimoire">
+          <h2>Your next chapter is unwritten</h2>
+          <p>Install it tonight. Roll your first check before the kettle boils.</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#how">
               Get it running
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.8" />
               </svg>
             </a>
+            <a class="btn btn-quiet" href="https://github.com/EarthyPunyapat/wyrd-grimoire">Source on GitHub</a>
           </div>
         </div>
       </section>
@@ -1314,7 +1136,7 @@
         <div class="foot-links">
           <a href="https://github.com/EarthyPunyapat/wyrd-grimoire">Source</a>
           <a href="https://github.com/EarthyPunyapat/wyrd-grimoire/blob/main/docs/spec/00-overview.md">Spec</a>
-          <a href="https://github.com/EarthyPunyapat/wyrd-grimoire/blob/main/docs/milestones.md">Milestones</a>
+          <a href="https://github.com/EarthyPunyapat/wyrd-grimoire/blob/main/docs/superpowers/plans/2026-10-30-w3-roadmap.md">Roadmap</a>
           <a href="privacy.html">Privacy</a>
           <a href="terms.html">Terms</a>
           <a href="https://github.com/EarthyPunyapat/wyrd-grimoire/blob/main/LICENSE">MIT licence</a>
@@ -1326,51 +1148,49 @@
     <script>
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-      // Scroll reveals: fire once, never replay (B7)
+      // Sections rise once as they enter the viewport.
       const revealTargets = document.querySelectorAll("[data-reveal]");
       if ("IntersectionObserver" in window && !reduced) {
         const reveal = new IntersectionObserver(
           (entries) => {
             for (const entry of entries) {
-              if (entry.isIntersecting) {
-                entry.target.classList.add("in");
-                reveal.unobserve(entry.target);
-              }
+              if (!entry.isIntersecting) continue;
+              entry.target.classList.add("in");
+              reveal.unobserve(entry.target);
             }
           },
-          { threshold: 0.15, rootMargin: "0px 0px -40px 0px" },
+          { threshold: 0.12, rootMargin: "0px 0px -40px 0px" },
         );
         for (const el of revealTargets) reveal.observe(el);
       } else {
         for (const el of revealTargets) el.classList.add("in");
       }
 
-      // Tagline: each word lifts from muted to full in reading order (B11)
+      // Tagline: each word lifts from muted to full in reading order; "Wyrd keeps the record." turns gold.
       const tag = document.querySelector("[data-tagline]");
       if (tag) {
         const words = tag.textContent.trim().split(/\s+/);
+        const goldFrom = words.length - 4;
         tag.textContent = "";
         const spans = words.map((word, i) => {
           const span = document.createElement("span");
-          span.className = "w";
+          span.className = i >= goldFrom ? "w gold" : "w";
           span.textContent = word + (i < words.length - 1 ? " " : "");
           tag.appendChild(span);
           return span;
         });
-
         if (!reduced && "IntersectionObserver" in window) {
-          const wordWatch = new IntersectionObserver(
+          const watch = new IntersectionObserver(
             (entries) => {
               for (const entry of entries) {
-                if (entry.isIntersecting) {
-                  entry.target.classList.add("on");
-                  wordWatch.unobserve(entry.target);
-                }
+                if (!entry.isIntersecting) continue;
+                entry.target.classList.add("on");
+                watch.unobserve(entry.target);
               }
             },
-            { threshold: 0, rootMargin: "0px 0px -18% 0px" },
+            { threshold: 0, rootMargin: "0px 0px -22% 0px" },
           );
-          for (const span of spans) wordWatch.observe(span);
+          for (const span of spans) watch.observe(span);
         } else {
           for (const span of spans) span.classList.add("on");
         }
@@ -1391,7 +1211,7 @@
         if (e.key === "Escape" && menu.dataset.open === "true") setMenu(false);
       });
 
-      // Current section in the nav (B9)
+      // The current section is marked in the nav.
       const spyLinks = document.querySelectorAll("[data-spy]");
       const sections = [...spyLinks].map((a) => document.getElementById(a.dataset.spy)).filter(Boolean);
       if (sections.length && "IntersectionObserver" in window) {
@@ -1400,8 +1220,7 @@
             for (const entry of entries) {
               if (!entry.isIntersecting) continue;
               for (const link of spyLinks) {
-                const current = link.dataset.spy === entry.target.id;
-                if (current) link.setAttribute("aria-current", "true");
+                if (link.dataset.spy === entry.target.id) link.setAttribute("aria-current", "true");
                 else link.removeAttribute("aria-current");
               }
             }

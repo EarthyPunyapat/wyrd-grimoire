@@ -8,12 +8,11 @@ The project landing page. Static files, no build step, deployed to GitHub Pages 
 - `404.html` — served by Pages for unknown paths
 - `favicon.svg`
 
+- `img/` — screenshots captured from the real app by `scripts/site-screenshots.ts`
+  (`bun run build && bun scripts/site-screenshots.ts`; set `ROADMAP_PNG` to re-encode the roadmap graphic)
+
 ## Note for agents working here
 
-The three quotes in the `#players` section of `index.html` are **invented sample copy**, written to
-fill the layout. There are no real users of this project yet. They are marked with an HTML comment
-in the file.
-
-Do not treat them as evidence that people use the app, do not cite them in docs or release notes,
-and do not derive product decisions from them. If a real quote ever exists, replace the sample one
-rather than adding to the pile.
+The page carries **no testimonials**: the project has no outside users yet, and invented quotes were
+removed in the 2.0 refresh. Don't add any until real ones exist. Proof on the page is real screenshots
+and checkable facts (test count, licence). Keep the test count in the hero current when you touch it.
