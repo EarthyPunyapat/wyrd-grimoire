@@ -133,6 +133,7 @@ import { importEvents } from "./import.ts";
 import { MediaWorker, mediaUrl, mountMedia, viewMedia } from "./media.ts";
 import { ModelServices, mountModels } from "./models.ts";
 import { mountParty, profileNewCompanions, recruitSheet } from "./party.ts";
+import { mountPresets } from "./presets.ts";
 import { sourceEvents } from "./source-creation.ts";
 import { addressOf, mountWorld } from "./world-views.ts";
 
@@ -392,6 +393,7 @@ export function createApp(options: Options) {
     body,
     router: () => (options.offline ? null : models.router()),
   });
+  mountPresets(app, { store, campaign: (id) => campaign(id), body });
   mountParty(app, { campaign: (id) => campaign(id), body, running: (id) => !!store.running(id) });
   mountCampaignSettings(app, { campaign: (id) => campaign(id), body });
   mountWorld(app, {

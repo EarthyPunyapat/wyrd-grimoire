@@ -265,3 +265,9 @@ In short:
 `PICK-WITH`, so save only after a real model id is chosen.
 
 After W2: **M8 — Media** (see `docs/spec/10-media.md`): image adapters (ComfyUI/Qwen-Image 2.1, OpenAI), portraits and scene-art consistency, TTS adapters (local, Deepgram), voice casting, segment playback and the GPU mutex.
+
+## 2.x Presets & Cards (in progress, 2026-10-30)
+
+- Ruling: `StartCard` lives beside `StartGeneratedCampaign` in world-generation.ts — importing it from presets.ts would create a runtime schema initialization cycle.
+- Ruling: Starter “lethality high” maps to `brutal`; scarcity uses Simulation's inventory, money and survival toggles — those are the existing schema values; there is no separate scarcity switch.
+- Ruling: The Reverend Insanity starter uses the wiki host supplied in the plan, pending owner verification — this task explicitly forbids network access, so the plan's external VERIFY cannot run here.
