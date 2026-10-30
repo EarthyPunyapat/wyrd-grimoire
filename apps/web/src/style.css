@@ -575,3 +575,17 @@ progress::-webkit-progress-value { background: var(--accent); }
 .canon-check .check-flag p,
 .canon-check .guard-card p { margin: 0 0 .35rem; }
 .canon-check button { min-height: 32px; padding: 2px 10px; font-size: 12px; }
+
+/* The vendor where the PC stands (D166): a pill by the composer opens the wares as a pop-up. */
+.shop-here {
+  display: flex; align-items: center; gap: 10px; width: 100%; margin: 0 0 10px; padding: 8px 12px;
+  border: 1px solid var(--line-gold, var(--line)); border-radius: 999px; background: var(--surface);
+  color: var(--ink); font: var(--text-meta, .85rem) / 1.4 var(--font-chrome); text-align: left;
+}
+.shop-here .chrome-icon { color: var(--gold); flex: none; }
+.shop-here strong { color: var(--gold); font-weight: 600; }
+.shop-here-cta { margin-left: auto; color: var(--accent); white-space: nowrap; }
+.shop-here:hover { border-color: var(--accent); background: var(--surface); }
+.dialog.shop-dialog { width: min(920px, calc(100vw - 32px)); max-width: none; max-height: calc(100dvh - 48px); overflow-y: auto; }
+.shop-dialog .market-head h3 { display: none; }
+.shop-card button { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; }

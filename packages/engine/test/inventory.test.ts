@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { draft, type ItemCatalog, Rng, SceneState, type ShopState } from "@wyrd/core";
-import { buy, haggle, sell, shopHere } from "../src/economy.ts";
+import { buy, haggle, openShop, sell, shopHere } from "../src/economy.ts";
 import { startingEquipment, startingKitEvents } from "../src/equipment.ts";
 import {
   capacityKg,
@@ -129,6 +129,7 @@ const shop: ShopState = {
   stock: [{ itemId: "test:rock", qty: 10 }],
   lastRefresh: 0,
   bargain: null,
+  merchantPresent: false,
 };
 
 function rich(settings = {}) {
@@ -304,4 +305,62 @@ test("a merchant won't buy the player's own creation gear; it leaves only throug
   const out = sell(s.state, "pc", "shop:test", ring.id, 1, { ...ectx, items: withRing });
   expect(out.ok).toBe(false);
   if (!out.ok) expect(out.errors[0]!.code).toBe("SIGNATURE_ITEM");
+});
+
+describe("vendors the GM opens (D166)", () => {
+  const scene = (locationId: string, positions: Record<string, string> = { pc: "z:1" }) =>
+    draft("SceneOpened", {
+      scene: SceneState.parse({
+        id: `scene:${locationId}`,
+        locationId,
+        zones: [{ id: "z:1", name: "inside" }],
+        positions,
+        openedAt: 0,
+      }),
+    });
+  const newsstand = {
+    name: "Planet Newsstand",
+    kind: "newsstand",
+    merchant: { id: "npc:sal", name: "Sal" },
+    stock: [
+      { name: "Daily Planet", description: "Today's edition.", price: 1, qty: 20, weightKg: 0.2 },
+      { name: "Rock", price: 9, qty: 2, description: "", weightKg: 1 },
+    ],
+  };
+
+  test("a vendor opens here with their own wares, reusing catalog items by name", () => {
+    const s = sim();
+    s.commit([scene("loc:planet", { pc: "z:1", "npc:sal": "z:1" })]);
+    const out = unwrap(openShop(s.state, newsstand, items));
+    s.commit(out.drafts);
+    const shopNow = shopHere(s.state)!;
+    expect(shopNow.name).toBe("Planet Newsstand");
+    expect(shopNow.merchant).toMatchObject({ id: "npc:sal", name: "Sal" });
+    expect(shopNow.merchantPresent).toBe(true);
+    expect(shopNow.locationId).toBe("loc:planet");
+    const ids = shopNow.stock.map((line) => line.itemId);
+    // "Rock" already exists in the catalog; the paper is defined for this campaign.
+    expect(ids).toContain("test:rock");
+    expect(ids.some((id) => id.startsWith("campaign:daily-planet"))).toBe(true);
+    expect(shopNow.stock.find((line) => line.itemId === "test:rock")!.price).toBe(9);
+  });
+
+  test("the shop closes when its merchant walks away, and only one vendor opens per place", () => {
+    const s = sim();
+    s.commit([scene("loc:planet", { pc: "z:1", "npc:sal": "z:1" })]);
+    s.commit(unwrap(openShop(s.state, newsstand, items)).drafts);
+    const again = openShop(s.state, { ...newsstand, name: "Another Stand" }, items);
+    expect(again.ok).toBe(false);
+    s.commit([scene("loc:planet")]);
+    expect(shopHere(s.state)).toBeNull();
+  });
+
+  test("a merchant who isn't a person in the scene is named, not required", () => {
+    const s = sim();
+    s.commit([scene("loc:alley")]);
+    const out = unwrap(openShop(s.state, { ...newsstand, merchant: { name: "a street vendor" } }, items));
+    s.commit(out.drafts);
+    expect(shopHere(s.state)?.merchantPresent).toBe(false);
+    expect(shopHere(s.state)?.merchant.name).toBe("a street vendor");
+  });
 });

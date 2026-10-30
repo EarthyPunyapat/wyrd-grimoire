@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import type { GameView } from "@wyrd/core";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Menus } from "../src/Menus.tsx";
+import { ShopWares } from "../src/Shop.tsx";
 
 const view = {
   id: "c1",
@@ -136,33 +137,24 @@ test("inventory offers instant moves, sorting and story-turn actions", () => {
   expect(html).toContain("Sort:");
   for (const action of ["Use", "Give", "Throw", "Drop"]) expect(html).toContain(`>${action}<`);
   expect(html).toContain("In the story · takes a turn");
-  // Trading is the Market tab's job, never the bag's.
+  // Trading happens at a vendor, never in the bag.
   expect(html).not.toContain("Buy ·");
   expect(html).not.toContain("Sell one");
 });
 
-test("the Market tab exists only while a merchant is here, and trades there", () => {
+test("no menu tab trades: the vendor's wares are their own pop-up content", () => {
+  for (const tab of ["inventory", "quests", "map"] as const) expect(render(tab)).not.toContain("Buy ·");
   expect(render("inventory")).not.toContain('data-tab="market"');
   const shop = {
     id: "shop:stall",
     name: "The River Stall",
+    merchant: "Old Tamsin",
+    kind: "rope stall",
     attitude: 0,
     items: [{ id: "rope", name: "Hemp Rope", basePrice: 2, price: 2, stock: 3 }],
   };
-  const html = renderToStaticMarkup(
-    <Menus
-      view={{ ...view, shop } as GameView}
-      tab="market"
-      onTab={noop}
-      onRefresh={noop}
-      onSend={noop}
-      onTravel={noop}
-      onOpenCodex={noop}
-      onClose={noop}
-    />,
-  );
-  expect(html).toContain('data-tab="market"');
-  expect(html).toContain("The River Stall");
+  const html = renderToStaticMarkup(<ShopWares view={{ ...view, shop } as GameView} shop={shop} />);
+  expect(html).toContain("sold by Old Tamsin");
   expect(html).toContain("Buy · 2c");
   expect(html).toContain("Sell one Healing Draught");
   // The player's own creation gear is shown as not for sale, never with a Sell button.
@@ -176,24 +168,12 @@ test("the Market tab exists only while a merchant is here, and trades there", ()
     description: "",
     quality: "standard",
   };
-  const keep = renderToStaticMarkup(
-    <Menus
-      view={
-        {
-          ...view,
-          shop,
-          inventory: { ...view.inventory, items: [...view.inventory.items, ring] },
-        } as GameView
-      }
-      tab="market"
-      onTab={noop}
-      onRefresh={noop}
-      onSend={noop}
-      onTravel={noop}
-      onOpenCodex={noop}
-      onClose={noop}
-    />,
-  );
+  const withRing = {
+    ...view,
+    shop,
+    inventory: { ...view.inventory, items: [...view.inventory.items, ring] },
+  } as GameView;
+  const keep = renderToStaticMarkup(<ShopWares view={withRing} shop={shop} />);
   expect(keep).not.toContain("Sell one Lantern Ring");
   expect(keep).toContain("Not for sale: Lantern Ring");
 });

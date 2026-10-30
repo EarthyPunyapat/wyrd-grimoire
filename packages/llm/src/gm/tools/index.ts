@@ -6,3 +6,4 @@ import "./levels.ts";
 import "./delegation.ts";
 import "./source.ts";
 import "./skips.ts";
+import "./shops.ts";

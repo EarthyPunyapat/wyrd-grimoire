@@ -220,6 +220,9 @@ export const GameView = z.object({
     .object({
       id: z.string(),
       name: z.string(),
+      /** Who is selling. */
+      merchant: z.string().default(""),
+      kind: z.string().default(""),
       attitude: z.number().int(),
       items: z.array(
         z.object({

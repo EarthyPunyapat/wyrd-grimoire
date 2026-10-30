@@ -37,14 +37,13 @@ test("inventory shows coins, gear and a working shop", async ({ page }, info) =>
   await expect(panel.getByRole("heading", { name: "Equipped" })).toBeVisible();
   await expect(panel.getByRole("heading", { name: "Carried" })).toBeVisible();
   await expect(coins(panel)).toHaveText("50");
-  // The bag never trades (D163): the shop here is the Market tab.
+  // The bag never trades (D163) and no menu tab does either: the vendor is at this place (D166).
   await expect(panel.getByRole("button", { name: /^Buy · / })).toHaveCount(0);
   await expect(panel.getByRole("button", { name: /^Sell / })).toHaveCount(0);
-  await page
-    .getByRole("dialog")
-    .getByRole("tab", { name: /Market/ })
-    .click();
-  const stall = page.getByRole("dialog").getByRole("region", { name: "The River Market" });
+  await expect(page.getByRole("dialog").getByRole("tab", { name: /Market/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "Close status screen" }).click();
+  await page.getByRole("button", { name: /Browse wares/ }).click();
+  const stall = page.getByRole("dialog", { name: "The River Market" });
   const buy = stall.getByRole("button", { name: /^Buy · / }).first();
   await expect(buy).toBeEnabled();
   await buy.click();
@@ -70,8 +69,8 @@ test("a generated campaign has no merchant and does not crash on an empty pack",
   await expect(page.getByRole("heading", { name: "Relay Nine" })).toBeVisible();
   await page.getByRole("button", { name: "Inventory", exact: true }).click();
   const panel = page.getByRole("dialog").getByRole("region", { name: "Inventory" });
-  // No merchant here: no Market in the strip or the tabs.
-  await expect(page.getByRole("dialog").getByRole("tab", { name: /Market/ })).toHaveCount(0);
+  // No vendor here: nothing to browse.
+  await expect(page.getByRole("button", { name: /Browse wares/ })).toHaveCount(0);
   await expect(panel.getByText("Nothing but what you stand in.")).toBeVisible();
   await expect(coins(panel)).toHaveText(/\d+/);
 });

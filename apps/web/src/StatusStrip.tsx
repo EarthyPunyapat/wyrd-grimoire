@@ -8,7 +8,6 @@ export type Menu = MenuTab;
 const MENUS: { id: Menu; name: string; key?: string; icon: ChromeIconName }[] = [
   { id: "character", name: "Character", key: "C", icon: "person" },
   { id: "inventory", name: "Inventory", key: "I", icon: "backpack" },
-  { id: "market", name: "Market", icon: "coins" },
   { id: "quests", name: "Quests", key: "Q", icon: "quest" },
   { id: "journal", name: "Journal", key: "J", icon: "book" },
   { id: "codex", name: "Codex", icon: "gem" },
@@ -60,8 +59,7 @@ export function StatusStrip({
       </span>
       <span className="strip-spacer" />
       <nav className="strip-menus" aria-label="Menus">
-        {/* Market appears only while a merchant is where the PC stands. */}
-        {MENUS.filter((m) => m.id !== "market" || view.shop).map((m) => (
+        {MENUS.map((m) => (
           <button
             key={m.id}
             type="button"

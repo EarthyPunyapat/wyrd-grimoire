@@ -4,10 +4,10 @@ import { api } from "./api.ts";
 import { GameIcon, itemIcon } from "./icons.tsx";
 
 /**
- * The merchant at the PC's current location (spec 11, Money). It is its own status-screen tab, shown only
- * while a shop is here: trading is something you do somewhere, not a property of your bag.
+ * A vendor's wares (spec 11, Money; D166). It opens as a pop-up only where a vendor trades: from the
+ * "shop here" pill by the composer or the GM's shop card. Stock is whatever this vendor sells.
  */
-export function Market({
+export function ShopWares({
   view,
   shop,
   onChanged,
@@ -47,13 +47,13 @@ export function Market({
     <section className="market-screen" aria-label={shop.name}>
       <header className="market-head">
         <div>
-          <h3>{shop.name}</h3>
           <p className="small muted">
-            {shop.attitude > 20
-              ? "The merchant is warm toward you."
-              : shop.attitude < -20
-                ? "The merchant is wary of you."
-                : "The merchant waits."}
+            {[shop.kind, shop.merchant && `sold by ${shop.merchant}`].filter(Boolean).join(" · ")}
+          </p>
+          <p className="small muted">
+            {`${shop.merchant || "The merchant"} ${
+              shop.attitude > 20 ? "is warm toward you." : shop.attitude < -20 ? "is wary of you." : "waits."
+            }`}
           </p>
         </div>
         <div className="stat-label">

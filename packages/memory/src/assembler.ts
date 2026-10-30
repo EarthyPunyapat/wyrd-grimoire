@@ -4,6 +4,7 @@ import {
   delegationTasks,
   type GameState,
   type RulesContext,
+  shopHere,
   skillLabel,
   skillValue,
   watchedIds,
@@ -141,6 +142,12 @@ function gmStateText(state: GameState): string {
     `- HP ${pc.sheet.status.hp}/${pc.sheet.derived.hpMax}`,
     `- Coins ${coins}`,
     `- Watching: ${watchedIds(state).join(", ") || "none"}`,
+    `- Shop here: ${(() => {
+      const shop = shopHere(state);
+      return shop
+        ? `${shop.name} [${shop.id}], sold by ${shop.merchant.name} (show it with a shop card)`
+        : "none (open_shop opens one if the player wants to trade)";
+    })()}`,
     "- Delegated tasks (use IDs in until conditions):",
     ...delegationTasks(state)
       .slice(-defaultTuning.skips.reportEvents)

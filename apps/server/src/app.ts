@@ -1030,6 +1030,8 @@ export function createApp(options: Options) {
         return {
           id: shopState.id,
           name: shopState.name,
+          merchant: shopState.merchant.name === "the shopkeeper" ? "" : shopState.merchant.name,
+          kind: shopState.kind,
           attitude: shopState.attitude,
           items: shopState.stock.map((line) => {
             const item =

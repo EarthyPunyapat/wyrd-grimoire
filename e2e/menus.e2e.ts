@@ -60,9 +60,6 @@ test("tabs change with the arrow keys and touch", async ({ page }) => {
   await expect(panel.getByRole("heading", { name: "Carried" })).toBeVisible();
 
   await dialog.getByRole("tab", { name: /Inventory/ }).focus();
-  // A merchant is here, so Market follows Inventory, then Quests.
-  await page.keyboard.press("ArrowRight");
-  await expect(page.getByRole("dialog", { name: "Market" })).toBeVisible();
   await page.keyboard.press("ArrowRight");
   await expect(page.getByRole("dialog", { name: "Quests" })).toBeVisible();
   await page.keyboard.press("End");

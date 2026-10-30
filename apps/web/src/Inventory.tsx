@@ -11,18 +11,15 @@ type Sort = (typeof SORTS)[number];
 
 const SORT_LABEL: Record<Sort, string> = { kind: "type", name: "name", qty: "quantity" };
 
-/** Equipped slots plus a bag grid; item cards are the story's own card renderer (U4). Trading is the Market tab. */
+/** Equipped slots plus a bag grid; item cards are the story's own card renderer (U4). Trading happens at a vendor, never in the bag. */
 export function Inventory({
   view,
   onChanged,
   onSend,
-  onMarket,
 }: {
   view: GameView;
   onChanged?: () => void | Promise<void>;
   onSend?: (text: string) => void;
-  /** Present only while a merchant is here. */
-  onMarket?: () => void;
 }) {
   const inv = view.inventory;
   const equipment = view.pc.equipment;
@@ -126,11 +123,6 @@ export function Inventory({
               <span>Coins</span>
               <strong>{inv.coins}</strong>
             </span>
-            {onMarket && (
-              <button type="button" className="small-link" onClick={onMarket}>
-                Trade at {view.shop?.name ?? "the market"} →
-              </button>
-            )}
           </div>
         </section>
 

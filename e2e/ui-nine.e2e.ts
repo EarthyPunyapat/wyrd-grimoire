@@ -65,3 +65,27 @@ test("training picks a skill from a list; research continues one topic and can b
   await expect(journal.locator(".research-row")).toHaveCount(0);
   await expect(journal.getByText("No research under way.")).toBeVisible();
 });
+
+test("a vendor is a person at a place: the GM opens one here and the wares open as a pop-up", async ({
+  page,
+}) => {
+  await begin(page, "Vendor Test");
+  // No vendor at the start of this world: nothing to browse, and no shop tab anywhere.
+  await expect(page.getByRole("button", { name: /Browse wares/ })).toHaveCount(0);
+  await say(page, "vendor workflow");
+  const card = page.locator(".shop-card");
+  await expect(card).toContainText("Relay Commissary");
+  await expect(card).toContainText("Quartermaster Ide");
+  await expect(page.locator(".shop-here")).toContainText("Relay Commissary");
+  await card.getByRole("button", { name: /Browse wares/ }).click();
+  const shop = page.getByRole("dialog", { name: "Relay Commissary" });
+  await expect(shop).toContainText("sold by Quartermaster Ide");
+  await expect(shop).toContainText("Ration Bar");
+  await shop.getByRole("button", { name: /^Buy · 2c/ }).click();
+  await expect(shop.getByText("Bought.")).toBeVisible();
+  await shop.getByRole("button", { name: "Close shop" }).click();
+  await page.getByRole("button", { name: "Inventory", exact: true }).click();
+  await expect(page.getByRole("dialog").getByRole("region", { name: "Inventory" })).toContainText(
+    "Ration Bar",
+  );
+});

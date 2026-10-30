@@ -113,10 +113,33 @@ export const Card = z.discriminatedUnion("type", [
   z.object({ type: z.literal("roll"), lineIndex: z.number().int().min(0) }),
   z.object({ type: z.literal("retcon"), retconId: z.string() }),
   z.object({ type: z.literal("report"), title: z.string().max(80), body: z.string().max(1200) }),
+  /** "Browse the wares": opens the shop at the PC's location, if one is here. */
+  z.object({ type: z.literal("shop") }),
 ]);
 export type Card = z.infer<typeof Card>;
 
 export const ShowCardArgs = z.object({ cards: z.array(Card).min(1).max(4) });
+
+/** A vendor the GM opens at the current place, with wares that fit who they are (D166). */
+export const OpenShopArgs = z.object({
+  name: z.string().trim().min(1).max(80),
+  kind: z.string().trim().max(60).default("general"),
+  /** A person present in the scene by id, or just a name for a merchant the story introduces. */
+  merchant: z.object({ id: z.string().optional(), name: z.string().trim().min(1).max(60) }),
+  stock: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(80),
+        description: z.string().max(400).default(""),
+        price: z.number().int().min(0),
+        qty: z.number().int().min(1).max(99).default(1),
+        weightKg: z.number().min(0).default(0.5),
+      }),
+    )
+    .min(1)
+    .max(20),
+});
+export type OpenShopArgs = z.infer<typeof OpenShopArgs>;
 export type ShowCardArgs = z.infer<typeof ShowCardArgs>;
 
 export const Choice = z.object({

@@ -3,7 +3,6 @@ import { type KeyboardEvent, type ReactNode, useEffect, useRef } from "react";
 import { CampaignSettingsPanel } from "./CampaignSettings.tsx";
 import { Inventory } from "./Inventory.tsx";
 import { ChromeIcon, type ChromeIconName } from "./icons.tsx";
-import { Market } from "./Market.tsx";
 import { Party } from "./Party.tsx";
 import { Sheet } from "./Sheet.tsx";
 import { Timeline } from "./Timeline.tsx";
@@ -13,7 +12,6 @@ import { Codex, Journal, Quests, WorldMap } from "./World.tsx";
 export const MENU_TABS = [
   { id: "character", label: "Character", key: "C", icon: "person" },
   { id: "inventory", label: "Inventory", key: "I", icon: "backpack" },
-  { id: "market", label: "Market", key: null, icon: "coins" },
   { id: "quests", label: "Quests", key: "Q", icon: "quest" },
   { id: "journal", label: "Journal", key: "J", icon: "book" },
   { id: "codex", label: "Codex", key: null, icon: "gem" },
@@ -26,10 +24,6 @@ export const MENU_TABS = [
   key: string | null;
   icon: ChromeIconName;
 }[];
-
-/** The tabs this view can open: Market only while a merchant is where the PC stands. */
-export const menuTabs = (view: Pick<GameView, "shop">) =>
-  MENU_TABS.filter((tab) => tab.id !== "market" || view.shop !== null);
 
 export type MenuTab = (typeof MENU_TABS)[number]["id"];
 
@@ -77,7 +71,7 @@ export function Menus({
       inline: "nearest",
     });
   }, [tab]);
-  const tabs = menuTabs(view);
+  const tabs = MENU_TABS;
   const move = (event: KeyboardEvent<HTMLDivElement>) => {
     const index = tabs.findIndex((entry) => entry.id === tab);
     let next = index;
@@ -144,22 +138,7 @@ export function Menus({
               </section>
             </div>
           )}
-          {tab === "inventory" && (
-            <Inventory
-              view={view}
-              onChanged={onRefresh}
-              onSend={onSend}
-              {...(view.shop ? { onMarket: () => onTab("market") } : {})}
-            />
-          )}
-          {tab === "market" &&
-            (view.shop ? (
-              <Market view={view} shop={view.shop} onChanged={onRefresh} />
-            ) : (
-              <p className="small muted">
-                No merchant here. Trading happens where a shop is; your coins stay with you until then.
-              </p>
-            ))}
+          {tab === "inventory" && <Inventory view={view} onChanged={onRefresh} onSend={onSend} />}
           {tab === "quests" && <Quests campaignId={view.id} stamp={stamp} />}
           {tab === "journal" && (
             <Journal
