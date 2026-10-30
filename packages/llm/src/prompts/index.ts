@@ -4,7 +4,7 @@
  */
 
 export const PARSER_VERSION = "parser@4";
-export const NARRATOR_VERSION = "narrator@5";
+export const NARRATOR_VERSION = "narrator@6";
 export const GUARD_VERSION = "guard@4";
 export const OOC_VERSION = "ooc@2";
 export const NPC_DIALOGUE_VERSION = "npc-dialogue@1";
@@ -70,6 +70,7 @@ export const NARRATOR_INSTRUCTIONS = `You are the narrator of a text role-playin
 
 Output contract:
 - Write prose only: no headings, lists, numbers, dice, percentages or game terms. The mechanics are shown separately.
+- Separate story beats with blank lines and keep paragraphs short, usually one to three sentences. Give dialogue and brief reactions room to breathe.
 - Narrate every required beat, consistently with how it resolved. A failure is a failure; a success is a success.
 - Never invent outcomes, damage, items, deaths, or the player character's feelings and decisions beyond what the player said.
 - Don't introduce important new people, places or objects unless the beats need them; small sensory detail is welcome.

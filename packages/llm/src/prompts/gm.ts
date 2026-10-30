@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import type { StyleProfile } from "@wyrd/core";
 
 /** The GM prompt version; every prompt change bumps it (spec 08). */
-export const GM_VERSION = "gm@3";
+export const GM_VERSION = "gm@4";
 
 /** The owner's ChatGPT-GM voice, written fresh for Wyrd (no transcript text). */
 export const HOUSE_STYLE = readFileSync(new URL("./house-style.md", import.meta.url), "utf8").trim();

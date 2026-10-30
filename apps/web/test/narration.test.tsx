@@ -39,3 +39,18 @@ test("HTML stays inert, emphasis works within dialogue, and unmatched formatting
   expect(html).not.toContain("<img");
   expect(html).toContain("**unfinished");
 });
+
+test("single line breaks and blank lines separate story beats and numbered choices", () => {
+  const html = render("The door opens.\nAri looks up.\n\n1. Follow her.\n2. Wait here.");
+  expect(html).toContain(
+    "<p>The door opens.</p><p>Ari looks up.</p><p>1. Follow her.</p><p>2. Wait here.</p>",
+  );
+});
+
+test("line breaks around dialogue preserve each beat without adding empty paragraphs", () => {
+  const html = render('Rain falls.\r\n<say who="npc:mina">Come inside.</say>\r\n\r\nThe door closes.');
+  expect(html).toContain("<p>Rain falls.</p>");
+  expect(html).toContain('class="speaker">Mina Vale</strong>');
+  expect(html).toContain("<p>The door closes.</p>");
+  expect(html).not.toContain("<p></p>");
+});
