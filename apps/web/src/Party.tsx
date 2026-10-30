@@ -2,6 +2,7 @@ import { type ProgressionMember, ProgressionView } from "@wyrd/core";
 import { useState } from "react";
 import { api } from "./api.ts";
 import { DiceBadge, type Resolution, skillDisplay } from "./Dice.tsx";
+import { Portrait } from "./Portrait.tsx";
 import { usePanel } from "./World.tsx";
 
 const parseProgression = (d: unknown) => ProgressionView.parse(d);
@@ -65,7 +66,10 @@ export function CompanionCard({
   const [voice, setVoice] = useState(c.voiceProfile ?? "");
   return (
     <div className="sheet-section companion-card">
-      <h3>How {m.name} feels about you</h3>
+      <div className="companion-head">
+        <Portrait id={m.actorId} name={m.name} kind="companion" size={48} />
+        <h3>How {m.name} feels about you</h3>
+      </div>
       {c.loyal ? (
         <p className="approval-word">Loyal — stays by your side.</p>
       ) : (

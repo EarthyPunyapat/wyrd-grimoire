@@ -1,5 +1,6 @@
 import { ATTRIBUTE_IDS, ATTRIBUTE_NAMES, defaultTuning, type GameView } from "@wyrd/core";
 import { DiceBadge, skillDisplay } from "./Dice.tsx";
+import { Portrait } from "./Portrait.tsx";
 
 export function Sheet({ view }: { view: GameView }) {
   const { pc } = view;
@@ -16,9 +17,7 @@ export function Sheet({ view }: { view: GameView }) {
     <div className="sheet-content">
       <div className="eyebrow">Your character</div>
       <div className="character-heading">
-        <div className="portrait" aria-hidden="true">
-          {pc.identity.name.slice(0, 1)}
-        </div>
+        <Portrait id={pc.id} name={pc.identity.name} kind="pc" size={56} className="portrait" />
         <div>
           <h2>{pc.identity.name}</h2>
           <p>

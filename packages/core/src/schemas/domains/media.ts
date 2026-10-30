@@ -32,3 +32,13 @@ export const MediaSettings = z.object({
   workflowsDir: z.string().min(1),
 });
 export type MediaSettings = z.infer<typeof MediaSettings>;
+
+/** Pictures offered for an entity when no match was certain; the player picks one in the Codex. */
+export const MediaCandidateList = z.array(
+  z.object({
+    entityId: z.string(),
+    role: MediaRole,
+    name: z.string(),
+    hits: z.array(z.object({ title: z.string(), pageUrl: z.string(), imageUrl: z.string() })),
+  }),
+);
