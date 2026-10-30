@@ -31,6 +31,8 @@ export class MediaWorker {
   private readonly queue: string[] = [];
   private readonly held = new Map<string, EventDraft[]>();
   private readonly forced = new Map<string, Set<string>>();
+  /** Image hosts that refused the honest Wyrd user agent (Fandom's CDN does); never asked again this run. */
+  private readonly refused = new Set<string>();
   private loop: Promise<void> = Promise.resolve();
 
   constructor(
@@ -126,11 +128,15 @@ export class MediaWorker {
       const web = settings.webImages && !forced.has(`${target.role}:${target.id}`) ? this.d.wiki : null;
       if (web) {
         const found = await resolveImage({ entity: target, wiki, wikiClient: web });
+        const reachable = (hit: ImageHit) => !this.refused.has(new URL(hit.imageUrl).host);
         if (found.kind === "candidates") {
-          this.d.store.saveMediaCandidates(campaignId, target.id, target.role, found.hits);
-          continue;
+          const hits = found.hits.filter(reachable);
+          if (hits.length) {
+            this.d.store.saveMediaCandidates(campaignId, target.id, target.role, hits);
+            continue;
+          }
         }
-        if (found.kind === "confident") {
+        if (found.kind === "confident" && reachable(found.hit)) {
           try {
             const { bytes } = await web.fetchBytes(found.hit.imageUrl);
             const asset = this.d.cache.put(bytes, {
@@ -143,7 +149,9 @@ export class MediaWorker {
             this.attach(campaignId, target.id, target.role, asset);
             continue;
           } catch (error) {
-            // A host that refuses us (Fandom's CDN does) falls through to generation.
+            // A host that refuses us (Fandom's CDN does) falls through to generation, and isn't asked again.
+            if ((error as Error).message.startsWith("Image source refused"))
+              this.refused.add(new URL(found.hit.imageUrl).host);
             this.d.log?.(`[media] ${target.name}: ${(error as Error).message}`);
           }
         }

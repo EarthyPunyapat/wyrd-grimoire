@@ -417,3 +417,43 @@ test("a picture whose file is gone (a moved server) is hidden and fetched again"
   expect(now?.id).not.toBe(ghost.id);
   expect(cache.has(now!.id)).toBe(true);
 });
+
+test("a host that refuses us is remembered: its candidates aren't offered and the character is generated", async () => {
+  const { home, game } = world("dc.fandom.com");
+  game.append([
+    draft("KnowledgeGained", { entityId: "npc:stranger", entry: { how: "witnessed", gameTime: 0 } }),
+  ]);
+  const cdn = (title: string) => ({
+    title,
+    pageUrl: `https://dc.fandom.com/wiki/${title}`,
+    imageUrl: `https://static.wikia.nocookie.net/${title}.jpg`,
+  });
+  const fetched: string[] = [];
+  const wiki = {
+    calls: [] as string[],
+    hold: () => () => {},
+    client: {
+      pageImage: async (_w: string, title: string) =>
+        ["Batman", "Stranger (comics)"].includes(title) ? cdn(title) : null,
+      search: async (_w: string, q: string) => (q === "The Stranger" ? ["Stranger (comics)"] : []),
+      fetchBytes: async (url: string) => {
+        fetched.push(url);
+        throw new Error("Image source refused (403)");
+      },
+    },
+  };
+  const w = worker({
+    home,
+    game,
+    wiki: wiki as unknown as ReturnType<typeof fakeWiki>,
+    provider: generated,
+    limit: 10,
+  });
+  w.after("c1");
+  await w.idle();
+  expect(mediaOf(game.state()).portraits["npc:bat"]?.origin).toBe("generated");
+  expect(mediaOf(game.state()).portraits["npc:stranger"]?.origin).toBe("generated");
+  expect(new AppStore(join(home, "app.db")).mediaCandidates("c1")).toEqual([]);
+  // One refusal was enough to stop asking that host.
+  expect(fetched).toHaveLength(1);
+});
