@@ -7,7 +7,7 @@ import { CombatPanel, CombatStrip } from "./Combat.tsx";
 import { ABILITIES_KEY, Hotbar } from "./Hotbar.tsx";
 import { ChromeIcon } from "./icons.tsx";
 import { MENU_LABEL, Menus, type MenuTab } from "./Menus.tsx";
-import { NarrativeText, narrationContext, RefContext } from "./Narration.tsx";
+import { Narration, NarrativeText, narrationContext, RefContext } from "./Narration.tsx";
 import { Passage, RollNotes } from "./Passage.tsx";
 import { MediaContext } from "./Portrait.tsx";
 import { usePlayPreset } from "./presets.ts";
@@ -274,7 +274,7 @@ export function Play({
                       )}
                       {play.live && (
                         <div className="live-passage">
-                          <NarrativeText text={play.live} names={narrationContext(view).names} />
+                          <Narration text={play.live} {...narrationContext(view)} />
                         </div>
                       )}
                       <Cards cards={play.cards} view={view} mechanics={play.mechanics} />

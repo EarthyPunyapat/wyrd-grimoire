@@ -159,8 +159,9 @@ export function Narration({
             </blockquote>
           );
         return part
-          .split(/\n\s*\n/)
-          .filter((p) => p.trim())
+          .split(/\r?\n/)
+          .map((p) => p.trim())
+          .filter(Boolean)
           .map((p, i) => (
             <p key={`${index}-${i}`}>
               <NarrativeText text={p} names={names} />

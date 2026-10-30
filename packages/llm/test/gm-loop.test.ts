@@ -83,7 +83,7 @@ test("narrates without tools", async () => {
     promptVersion: string;
   };
   expect(narr.text).toBe("The river slaps the jetty.");
-  expect(narr.promptVersion).toBe("gm@3");
+  expect(narr.promptVersion).toBe("gm@4");
   const order = s.events.map((e) => e.type).filter((t, i, all) => t !== all[i - 1]);
   expect(s.events.filter((e) => e.type === "narration.delta").length).toBeGreaterThan(0);
   expect(order).toEqual(["turn.accepted", "narration.delta", "narration.final", "turn.completed"]);
