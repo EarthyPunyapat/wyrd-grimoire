@@ -3,6 +3,7 @@ import { type KeyboardEvent, type ReactNode, useEffect, useRef } from "react";
 import { CampaignSettingsPanel } from "./CampaignSettings.tsx";
 import { Inventory } from "./Inventory.tsx";
 import { ChromeIcon, type ChromeIconName } from "./icons.tsx";
+import { KeepCampaign } from "./KeepCampaign.tsx";
 import { Party } from "./Party.tsx";
 import { Sheet } from "./Sheet.tsx";
 import { Timeline } from "./Timeline.tsx";
@@ -197,6 +198,7 @@ export function Menus({
                 <h3 id="settings-campaign">This campaign</h3>
                 <p className="status-lede">The rules of {view.name}.</p>
                 <CampaignSettingsPanel campaignId={view.id} />
+                <KeepCampaign campaignId={view.id} />
               </section>
               {appSettings && (
                 <section className="status-section" aria-labelledby="settings-app">

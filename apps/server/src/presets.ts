@@ -168,7 +168,7 @@ export function mountPresets(app: Hono<AppEnvironment>, d: Deps) {
     const state = d.campaign(id).state();
     const saved = draftFor(d, id);
     if (!saved) throw new HTTPException(409, { message: "This campaign has no saved world to copy" });
-    const { campaignId: _, sheet: __, interview: ___, ...copy } = saved;
+    const { campaignId: _, sheet: __, interview: ___, card: ____, ...copy } = saved;
     const stored = d.store.saveSavedWorld(
       {
         id: randomUUID(),
@@ -181,6 +181,25 @@ export function mountPresets(app: Hono<AppEnvironment>, d: Deps) {
       copy,
     );
     return c.json(SavedWorldMeta.parse(stored), 201);
+  });
+  app.patch("/api/worlds/:id", async (c) => {
+    const world = d.store.savedWorld(c.req.param("id"));
+    if (!world) throw new HTTPException(404, { message: "Saved world not found" });
+    const patch = await d.body(c, SavedWorldMeta.pick({ name: true }).strict());
+    return c.json(SavedWorldMeta.parse(d.store.saveSavedWorld({ ...world, ...patch }, world.draft)));
+  });
+  app.post("/api/worlds/:id/duplicate", (c) => {
+    const world = d.store.savedWorld(c.req.param("id"));
+    if (!world) throw new HTTPException(404, { message: "Saved world not found" });
+    return c.json(
+      SavedWorldMeta.parse(
+        d.store.saveSavedWorld(
+          { ...world, id: randomUUID(), name: `${world.name.slice(0, 75)} copy` },
+          world.draft,
+        ),
+      ),
+      201,
+    );
   });
   app.get("/api/worlds", (c) => c.json(d.store.savedWorlds().map((w) => SavedWorldMeta.parse(w))));
   app.delete("/api/worlds/:id", (c) => {

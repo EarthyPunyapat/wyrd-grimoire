@@ -15,6 +15,32 @@ const offline = offlineProvider();
 const cases = new FakeProvider([
   {
     role: "worldGen",
+    match: (r) => r.tools?.[0]?.name === "propose_pitch",
+    reply: {
+      toolCall: {
+        name: "propose_pitch",
+        args: { pitch: "You discover a lost starship beneath a frozen sea." },
+      },
+    },
+  },
+  {
+    role: "worldGen",
+    match: (r) => r.tools?.[0]?.name === "propose_adaptation",
+    reply: {
+      toolCall: {
+        name: "propose_adaptation",
+        args: {
+          name: "Ethan",
+          level: 5,
+          backstory: "A sovereign arriving on a new frontier",
+          abilities: [{ name: "Starfire", description: "Shapes starlight", rank: 5 }],
+          gear: [],
+        },
+      },
+    },
+  },
+  {
+    role: "worldGen",
     match: (r) => r.tools?.[0]?.name === "propose_lore",
     reply: {
       toolCall: { name: "propose_lore", args: { facts: ["Marsh lights guide travellers away from paths."] } },

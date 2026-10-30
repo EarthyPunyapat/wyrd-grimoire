@@ -8,7 +8,7 @@ import { LevelProposal } from "./domains/levels.ts";
 import { Card, Choice } from "./gm.ts";
 import { BaseCampaignPreset, CampaignPreset, CampaignSettings, ProgressionMode } from "./settings.ts";
 import { CharacterSheet } from "./sheet.ts";
-import { CreationReview, GeneratedWorldPreview } from "./world-generation.ts";
+import { CreationReview, GeneratedWorldPreview, StartCard } from "./world-generation.ts";
 export const ConnectionStatus = z.object({
   offline: z.boolean(),
   configured: z.boolean(),
@@ -111,6 +111,7 @@ export const DraftResume = z.object({
   id: z.string(),
   preview: GeneratedWorldPreview,
   review: CreationReview.optional(),
+  card: StartCard.optional(),
   hasSheet: z.boolean(),
   /** The pitch and name the creation form needs to look exactly as it did. */
   pitch: z.string(),

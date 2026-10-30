@@ -3,15 +3,16 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { WorldSetup } from "@wyrd/core";
 import { createApp } from "../src/app.ts";
+import { EXAMPLE_WORLD } from "../src/example-world.ts";
 import { WORLD_STARTERS } from "../src/world-starters.ts";
 
 const cleanups: (() => void)[] = [];
 afterEach(() => {
   for (const f of cleanups.splice(0).reverse()) f();
 });
-async function setup() {
+async function setup(options: Partial<Parameters<typeof createApp>[0]> = {}) {
   const home = mkdtempSync("/tmp/wyrd-presets-");
-  const app = createApp({ home, offline: true });
+  const app = createApp({ home, offline: true, ...options });
   cleanups.push(
     () => rmSync(home, { recursive: true, force: true }),
     () => app.close(),
@@ -249,4 +250,121 @@ test("vary and adaptation return actionable errors offline", async () => {
   const adapted = await req(`/character-cards/${card.id}/adapt`, { draftId: crypto.randomUUID() });
   expect(adapted.status).toBe(422);
   expect(await adapted.text()).toContain("Connect a model");
+});
+
+test("saved worlds can be renamed and duplicated without exposing private draft data", async () => {
+  const { req } = await setup();
+  const p = (await (
+    await req("/world-drafts", { name: "Reuse", pitch: "You cross a distant star ocean." })
+  ).json()) as { id: string; origins: { id: string }[]; backgrounds: { id: string }[] };
+  const { id } = (await (
+    await req("/campaigns", { draftId: p.id, ancestry: p.origins[0]!.id, archetype: p.backgrounds[0]!.id })
+  ).json()) as { id: string };
+  const w = (await (await req(`/campaigns/${id}/save-world`, {})).json()) as { id: string };
+  const renamed = await req(`/worlds/${w.id}`, { name: "Fresh world" }, "PATCH");
+  expect(renamed.status).toBe(200);
+  expect((await renamed.json()).name).toBe("Fresh world");
+  const duplicate = await req(`/worlds/${w.id}/duplicate`, {});
+  expect(duplicate.status).toBe(201);
+  expect((await duplicate.json()).draft).toBeUndefined();
+});
+
+test("injected FakeProvider varies and adapts proposals without changing saved cards", async () => {
+  const { FakeProvider, RoleRouter } = await import("@wyrd/llm");
+  const { CampaignImport } = await import("@wyrd/core");
+  const pc = CampaignImport.shape.pc.parse({
+    name: "Ethan",
+    level: "infinite",
+    backstory: "A wandering sovereign",
+  });
+  const fake = new FakeProvider([
+    {
+      match: (r) => r.tools?.[0]?.name === "propose_world",
+      reply: { toolCall: { name: "propose_world", args: EXAMPLE_WORLD } },
+    },
+    {
+      match: (r) => r.tools?.[0]?.name === "propose_pitch",
+      reply: {
+        toolCall: { name: "propose_pitch", args: { pitch: "You discover a ship under a frozen sea." } },
+      },
+    },
+    {
+      match: (r) => r.tools?.[0]?.name === "propose_adaptation",
+      reply: { toolCall: { name: "propose_adaptation", args: { ...pc, level: 5, name: "Wrong" } } },
+    },
+  ]);
+  const { req } = await setup({
+    router: new RoleRouter({
+      providers: { fake },
+      routing: { worldGen: { provider: "fake", model: "test", fallbacks: [] } },
+    }),
+  });
+  const varied = await req("/world-setups/vary", { pitch: "You cross a distant star ocean." });
+  expect(varied.status).toBe(200);
+  const card = (await (await req("/character-cards", { title: "Ethan", origin: "created", pc })).json()) as {
+    id: string;
+  };
+  const p = (await (
+    await req("/world-drafts", { name: "Adapt", pitch: "You cross a distant star ocean." })
+  ).json()) as { id: string };
+  const adapted = await req(`/character-cards/${card.id}/adapt`, { draftId: p.id });
+  expect(adapted.status).toBe(200);
+  expect((await adapted.json()).pc).toMatchObject({ name: "Ethan", level: 5 });
+  expect((await (await req(`/character-cards/${card.id}`)).json()).pc.level).toBe("infinite");
+});
+
+test("a reviewed card survives draft resume and is not copied into a saved world", async () => {
+  const { req } = await setup();
+  const p = (await (
+    await req("/world-drafts", { name: "Resume card", pitch: "You cross a distant star ocean." })
+  ).json()) as { id: string; origins: { id: string }[]; backgrounds: { id: string }[] };
+  const card = (await (
+    await req("/character-cards", {
+      title: "Ethan",
+      origin: "created",
+      pc: { name: "Ethan", level: "infinite", backstory: "A wandering sovereign" },
+    })
+  ).json()) as { id: string };
+  const choice = {
+    id: card.id,
+    adapted: { name: "Ethan", level: 7, backstory: "A new arrival", abilities: [], gear: [] },
+  };
+  expect((await req(`/world-drafts/${p.id}/card`, choice, "PUT")).status).toBe(200);
+  const resumed = await (await req(`/world-drafts/${p.id}`)).json();
+  expect(resumed.card).toEqual(choice);
+  const { id } = (await (
+    await req("/campaigns", {
+      draftId: p.id,
+      ancestry: p.origins[0]!.id,
+      archetype: p.backgrounds[0]!.id,
+      card: choice,
+    })
+  ).json()) as { id: string };
+  const world = (await (await req(`/campaigns/${id}/save-world`, {})).json()) as { id: string };
+  const cloned = (await (await req(`/worlds/${world.id}/draft`, {})).json()) as { draftId: string };
+  expect((await (await req(`/world-drafts/${cloned.draftId}`)).json()).card).toBeUndefined();
+});
+
+test("a reused source world's preview retains the source for saving another setup", async () => {
+  const { req, home } = await setup();
+  const p = (await (
+    await req("/world-drafts", { name: "Source copy", pitch: "You cross a distant star ocean." })
+  ).json()) as { id: string; origins: { id: string }[]; backgrounds: { id: string }[] };
+  const { AppStore } = await import("@wyrd/storage");
+  const store = new AppStore(join(home, "app.db"));
+  const saved = store.creationDraft(p.id) as { input: Record<string, unknown> };
+  store.saveCreationDraft(p.id, {
+    ...saved,
+    input: { ...saved.input, source: { title: "A fictional source", wiki: "source.example" } },
+  });
+  store.close();
+  const { id } = (await (
+    await req("/campaigns", { draftId: p.id, ancestry: p.origins[0]!.id, archetype: p.backgrounds[0]!.id })
+  ).json()) as { id: string };
+  const world = (await (await req(`/campaigns/${id}/save-world`, {})).json()) as { id: string };
+  const { draftId } = (await (await req(`/worlds/${world.id}/draft`, {})).json()) as { draftId: string };
+  expect((await (await req(`/world-drafts/${draftId}`)).json()).preview.source).toEqual({
+    title: "A fictional source",
+    wiki: "source.example",
+  });
 });

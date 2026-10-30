@@ -60,6 +60,7 @@ test("inventory shows coins, gear and a working shop", async ({ page }, info) =>
 test("a generated campaign has no merchant and does not crash on an empty pack", async ({ page }, info) => {
   await unlock(page);
   await page.getByRole("button", { name: "+ New campaign", exact: true }).click();
+  await page.getByRole("button", { name: "Create new world", exact: true }).click();
   await page.getByLabel("Campaign name", { exact: true }).fill("Empty Pack Test");
   await page
     .getByLabel("What kind of adventure or world do you want?")

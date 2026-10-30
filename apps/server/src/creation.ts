@@ -13,6 +13,7 @@ import {
   InterviewState,
   InterviewView,
   SourceCreation,
+  StartCard,
   StartingKitProposal,
   StyleProfile,
   SuggestInput,
@@ -73,6 +74,7 @@ export const StoredDraft = z.object({
   campaignId: z.string().optional(),
   /** The character as the sheet editor last saved it; absent until the player opens the editor. */
   sheet: DraftSheet.optional(),
+  card: StartCard.optional(),
   /** The session-zero interview, if the player chose that path. */
   interview: InterviewState.optional(),
 });
@@ -276,10 +278,12 @@ export function mountCreation(app: Hono<AppEnvironment>, d: Deps) {
         id,
         preview: GeneratedWorldPreview.parse({
           ...generatedWorldPreview(id, saved.input.name, saved.proposal, pack, saved.offline),
+          source: saved.input.source,
           ...(saved.review ? { review: saved.review } : {}),
         }),
         ...(saved.review ? { review: saved.review } : {}),
         hasSheet: Boolean(saved.sheet),
+        card: saved.card,
         pitch: saved.input.pitch,
         characterName:
           saved.sheet?.name || saved.input.characterName || saved.proposal.suggestedCharacterName,
@@ -291,6 +295,17 @@ export function mountCreation(app: Hono<AppEnvironment>, d: Deps) {
     load(id);
     d.store.removeCreationDraft(id);
     return c.body(null, 204);
+  });
+  app.put("/api/world-drafts/:id/card", async (c) => {
+    const id = c.req.param("id");
+    const card = await d.body(c, StartCard.nullable());
+    const { saved } = load(id);
+    if (busy.has(id) || saved.campaignId)
+      throw new HTTPException(409, { message: "This draft is busy or already started" });
+    if (card && !d.store.characterCard(card.id))
+      throw new HTTPException(404, { message: "Character card not found" });
+    d.store.saveCreationDraft(id, { ...saved, card: card ?? undefined });
+    return c.json(card);
   });
   app.get("/api/world-drafts/:id/review", (c) =>
     c.json(load(c.req.param("id")).saved.review ?? defaultCreationReview()),

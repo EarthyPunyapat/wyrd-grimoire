@@ -5,6 +5,7 @@ test("source creation offers a revisable style sample and all review overrides",
   await page.getByLabel("Passcode", { exact: true }).fill("a local browser test passcode");
   await page.getByRole("button", { name: /Set passcode & enter|Unlock grimoire/ }).click();
   await page.getByRole("button", { name: "+ New campaign", exact: true }).click();
+  await page.getByRole("button", { name: "Create new world", exact: true }).click();
   await page.getByLabel("Campaign name", { exact: true }).fill("Source Test");
   await page.getByRole("radio", { name: /Inside a source/ }).check();
   await page.getByLabel("Source title", { exact: true }).fill("Will-o'-the-wisp");

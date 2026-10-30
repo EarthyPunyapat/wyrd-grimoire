@@ -399,7 +399,7 @@ export function createApp(options: Options) {
     store,
     campaign: (id) => campaign(id),
     body,
-    router: () => (options.offline ? null : models.router()),
+    router: () => options.router ?? (options.offline ? null : models.router()),
   });
   mountParty(app, { campaign: (id) => campaign(id), body, running: (id) => !!store.running(id) });
   mountCampaignSettings(app, { campaign: (id) => campaign(id), body });

@@ -1,0 +1,22 @@
+/* The creation library extends the Night Codex: illustrations, flat rules, named selections. */
+[data-preset="reader"] .creation-chooser fieldset { border: 0; border-top: 1px solid var(--line); padding: var(--space-5) 0; margin: 0; min-width: 0; }
+[data-preset="reader"] .creation-chooser legend { padding-right: var(--space-3); font: 400 24px / 1.25 var(--font-read); }
+[data-preset="reader"] .chooser-worlds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); margin-top: var(--space-4); }
+[data-preset="reader"] .creation-chooser article { min-width: 0; border-bottom: 1px solid var(--line); }
+[data-preset="reader"] .creation-chooser button { min-height: 44px; white-space: normal; }
+[data-preset="reader"] .chooser-world, [data-preset="reader"] .chooser-character, [data-preset="reader"] .chooser-saved-worlds > article > button { display: flex; flex-direction: column; width: 100%; text-align: left; border: 0; background: transparent; padding: var(--space-2); gap: var(--space-2); color: var(--ink); }
+[data-preset="reader"] .chooser-world img { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+[data-preset="reader"] .chooser-world strong { font: 400 22px / 1.25 var(--font-read); }
+[data-preset="reader"] .chooser-world > span { font: 400 17px / 1.45 var(--font-read); color: var(--ink-muted); }
+[data-preset="reader"] .creation-chooser button[aria-pressed="true"] { outline: 1px solid var(--hue); outline-offset: -1px; color: var(--hue); }
+[data-preset="reader"] .creation-chooser button:hover { background: var(--panel); }
+[data-preset="reader"] .chooser-manage { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+[data-preset="reader"] .chooser-manage button { border: 0; background: transparent; padding: var(--space-2); font: var(--text-meta) / 1.4 var(--font-chrome); color: var(--ink-muted); }
+[data-preset="reader"] .chooser-characters { display: flex; flex-wrap: wrap; gap: var(--space-4); }
+[data-preset="reader"] .chooser-character { flex-direction: row; align-items: center; }
+[data-preset="reader"] .chooser-initials { display: grid; place-items: center; min-width: 44px; min-height: 44px; background: var(--panel); font-family: var(--font-chrome); }
+[data-preset="reader"] .chooser-meta { display: block; font: var(--text-meta) / 1.6 var(--font-chrome); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+[data-preset="reader"] .chooser-actions, [data-preset="reader"] .keep-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin: var(--space-4) 0; }
+[data-preset="reader"] .card-arrival { margin: var(--space-5) 0; border: 0; border-top: 1px solid var(--line); padding: var(--space-4) 0; }
+[data-preset="reader"] .keep-campaign { margin-top: var(--space-5); border-top: 1px solid var(--line); padding-top: var(--space-4); }
+@media (max-width: 560px) { [data-preset="reader"] .chooser-worlds { grid-template-columns: 1fr; } }

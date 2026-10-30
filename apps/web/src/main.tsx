@@ -20,6 +20,7 @@ import "./tokens.css";
 import "./reader.css";
 import "./menus.css";
 import "./home.css";
+import "./chooser.css";
 import "./cockpit.css";
 import "./chat.css";
 
