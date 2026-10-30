@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { MediaWikiClient } from "@wyrd/llm";
 import { wyrdHome } from "../../cli/src/providers.ts";
 import { createApp } from "./app.ts";
 import { webAssets } from "./web.ts";
@@ -8,6 +9,8 @@ const offline = process.argv.includes("--offline");
 const instance = createApp({
   home: wyrdHome(),
   offline,
+  // Offline previews make no network calls, pictures included.
+  ...(offline ? {} : { mediaWiki: new MediaWikiClient() }),
 });
 const webRoot = resolve(import.meta.dir, "../../web/dist");
 if (!existsSync(webRoot)) throw new Error("Build the web client first: bun run build");

@@ -24,3 +24,11 @@ export type MediaRole = z.infer<typeof MediaRole>;
 export const mediaEventSchemas = {
   AssetAttached: z.object({ entityId: z.string().trim().min(1), role: MediaRole, asset: MediaAsset }),
 } as const;
+
+/** Device-wide image settings (Settings → Media). No keys live here; secrets stay in WYRD_HOME/secrets. */
+export const MediaSettings = z.object({
+  webImages: z.boolean().default(true),
+  comfyUrl: z.url().optional(),
+  workflowsDir: z.string().min(1),
+});
+export type MediaSettings = z.infer<typeof MediaSettings>;

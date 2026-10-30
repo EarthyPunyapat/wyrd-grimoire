@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { portraitPrompt } from "../src/prompt.ts";
 import { ComfyUIProvider } from "../src/providers/comfyui.ts";
-import { PNG } from "./cache.test.ts";
+import { PNG } from "./fixtures.ts";
 
 const dirs: string[] = [];
 afterEach(() => {

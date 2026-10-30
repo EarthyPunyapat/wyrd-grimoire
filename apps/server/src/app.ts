@@ -17,6 +17,7 @@ import {
   ImportRequest,
   LegacyInput,
   type Level,
+  MediaSettings,
   PasscodeInput,
   type ProgressionMode,
   parseEventPayload,
@@ -99,6 +100,7 @@ import {
   type TurnStreamEvent,
   writeSummaries,
 } from "@wyrd/llm";
+import { AssetCache, ComfyUIProvider, type ImageProvider } from "@wyrd/media";
 import {
   bibleEvents,
   compileGeneratedWorld,
@@ -127,6 +129,7 @@ import { evaluateDraft, mountCreation, pregenDraft, StoredDraft } from "./creati
 import { EXAMPLE_WORLD } from "./example-world.ts";
 import { mountHistory } from "./history.ts";
 import { importEvents } from "./import.ts";
+import { MediaWorker } from "./media.ts";
 import { ModelServices, mountModels } from "./models.ts";
 import { mountParty, profileNewCompanions, recruitSheet } from "./party.ts";
 import { sourceEvents } from "./source-creation.ts";
@@ -144,6 +147,9 @@ type Options = {
   router?: RoleRouter;
   /** Inject wiki IO for offline fixtures. */
   loreClient?: Pick<MediaWikiClient, "fetchPage" | "search">;
+  /** Wiki image IO (main.ts passes the real client; absent means no web images) and the generator override. */
+  mediaWiki?: ConstructorParameters<typeof MediaWorker>[0]["wiki"];
+  imageProvider?: ImageProvider | null;
   /** Inject the fetch used to read ChatGPT share links, for offline fixtures. */
   shareFetch?: typeof fetch;
   now?: () => number;
@@ -229,6 +235,28 @@ export function createApp(options: Options) {
   const tasks = new Set<Promise<void>>();
   const attempts = new Map<string, { count: number; until: number }>();
   const models = new ModelServices(store, secrets, options.home, options.offline, options.router);
+  // First Light (D168): pictures for known people and places, fetched or generated in the background.
+  const mediaSettings = () =>
+    MediaSettings.parse({
+      workflowsDir: join(options.home, "media", "workflows"),
+      ...(store.mediaSettings() ?? {}),
+    });
+  const media = new MediaWorker({
+    cache: new AssetCache(join(options.home, "media-cache")),
+    // The entry point injects the real wiki client, so test servers never reach the network.
+    wiki: options.mediaWiki ?? null,
+    provider: () => {
+      if (options.imageProvider !== undefined) return options.imageProvider;
+      const s = mediaSettings();
+      return s.comfyUrl ? new ComfyUIProvider({ url: s.comfyUrl, workflowsDir: s.workflowsDir }) : null;
+    },
+    store,
+    campaign: (id) => campaign(id),
+    running: (id) => store.running(id),
+    settings: mediaSettings,
+    offline: options.offline && !options.mediaWiki,
+    log: (message) => console.warn(message),
+  });
   // Daily backups start in the background at boot; a slow disk never delays the server.
   for (const entry of store.campaigns())
     void backupCampaign({ home: options.home, campaignId: entry.id, now }).catch(() => {});
@@ -1177,7 +1205,11 @@ export function createApp(options: Options) {
       }),
     });
   }
-  app.get("/api/campaigns/:id/view", (c) => c.json(gameView(c.req.param("id"))));
+  app.get("/api/campaigns/:id/view", (c) => {
+    const view = gameView(c.req.param("id"));
+    media.after(c.req.param("id"));
+    return c.json(view);
+  });
   app.put("/api/campaigns/:id/watch/:entityId", async (c) => {
     const input = await body(c, WatchInput);
     const id = c.req.param("id");
@@ -1385,6 +1417,7 @@ export function createApp(options: Options) {
         emit({ type: "turn.completed", turnId: target ?? jobId });
       } finally {
         store.finish(jobId);
+        media.after(id);
       }
     })();
     tasks.add(task);
@@ -1655,7 +1688,7 @@ export function createApp(options: Options) {
   return {
     app,
     store,
-    idle: () => Promise.all(tasks),
+    idle: () => Promise.all([...tasks, media.idle()]),
     close: () => {
       for (const game of campaigns.values()) game.close();
       store.close();

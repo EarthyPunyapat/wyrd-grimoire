@@ -63,6 +63,59 @@ export class AppStore {
         this.db.run("PRAGMA user_version = 3");
       })();
     }
+    // First Light's tables are created by existence, not by user_version, so they merge cleanly with
+    // version-numbered migrations built in parallel (D168).
+    this.db.run(
+      "CREATE TABLE IF NOT EXISTS media_candidates (campaign_id TEXT NOT NULL, entity_id TEXT NOT NULL, role TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY(campaign_id, entity_id, role))",
+    );
+    this.db.run(
+      "CREATE TABLE IF NOT EXISTS media_attempts (campaign_id TEXT NOT NULL, entity_id TEXT NOT NULL, role TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(campaign_id, entity_id, role))",
+    );
+  }
+  saveMediaCandidates(campaignId: string, entityId: string, role: string, hits: unknown[]): void {
+    this.db.run("INSERT OR REPLACE INTO media_candidates VALUES (?, ?, ?, ?)", [
+      campaignId,
+      entityId,
+      role,
+      JSON.stringify(hits),
+    ]);
+  }
+  mediaCandidates(campaignId: string): { entityId: string; role: string; hits: unknown[] }[] {
+    return (
+      this.db
+        .query("SELECT entity_id, role, value FROM media_candidates WHERE campaign_id = ?")
+        .all(campaignId) as { entity_id: string; role: string; value: string }[]
+    ).map((r) => ({ entityId: r.entity_id, role: r.role, hits: JSON.parse(r.value) as unknown[] }));
+  }
+  clearMediaCandidates(campaignId: string, entityId: string, role: string): void {
+    this.db.run("DELETE FROM media_candidates WHERE campaign_id = ? AND entity_id = ? AND role = ?", [
+      campaignId,
+      entityId,
+      role,
+    ]);
+  }
+  markMediaAttempt(campaignId: string, entityId: string, role: string, at: number): void {
+    this.db.run("INSERT OR REPLACE INTO media_attempts VALUES (?, ?, ?, ?)", [
+      campaignId,
+      entityId,
+      role,
+      at,
+    ]);
+  }
+  mediaAttempt(campaignId: string, entityId: string, role: string): number | null {
+    const row = this.db
+      .query("SELECT at FROM media_attempts WHERE campaign_id = ? AND entity_id = ? AND role = ?")
+      .get(campaignId, entityId, role) as { at: number } | null;
+    return row?.at ?? null;
+  }
+  mediaSettings(): unknown {
+    const row = this.db.query("SELECT value FROM settings WHERE key = 'media'").get() as {
+      value: string;
+    } | null;
+    return row ? JSON.parse(row.value) : null;
+  }
+  saveMediaSettings(value: unknown): void {
+    this.db.run("INSERT OR REPLACE INTO settings (key, value) VALUES ('media', ?)", [JSON.stringify(value)]);
   }
   saveCreationDraft(id: string, value: unknown): void {
     this.db.run("INSERT OR REPLACE INTO creation_drafts VALUES (?, ?, ?)", [

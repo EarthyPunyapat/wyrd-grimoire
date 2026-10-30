@@ -36,6 +36,7 @@
         "@wyrd/core": "workspace:*",
         "@wyrd/engine": "workspace:*",
         "@wyrd/llm": "workspace:*",
+        "@wyrd/media": "workspace:*",
         "@wyrd/packs": "workspace:*",
         "@wyrd/storage": "workspace:*",
         "hono": "^4.10.0",
