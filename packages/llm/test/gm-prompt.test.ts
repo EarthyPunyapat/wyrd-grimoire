@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { GM_INSTRUCTIONS, GM_VERSION, gmInstructions } from "../src/prompts/gm.ts";
 
 describe("the GM prompt (D144)", () => {
-  test("the version is gm@2", () => {
-    expect(GM_VERSION).toBe("gm@2");
+  test("the version is gm@3", () => {
+    expect(GM_VERSION).toBe("gm@3");
   });
 
   test("instructions carry the choice policy and length", () => {
@@ -14,10 +14,10 @@ describe("the GM prompt (D144)", () => {
     expect(text).not.toContain("{length}");
   });
 
-  test("the ten rules are stated in order", () => {
+  test("the eleven rules are stated in order", () => {
     const text = gmInstructions({ policy: "gm", length: "normal" });
     const lines = GM_INSTRUCTIONS.split("\n");
-    expect(lines).toHaveLength(10);
+    expect(lines).toHaveLength(11);
     expect(lines[0]).toContain("You are the game master");
     expect(lines[1]).toContain("Never claim an item");
     expect(lines[2]).toContain("Roll with `roll` or `act`");
@@ -28,6 +28,7 @@ describe("the GM prompt (D144)", () => {
     expect(lines[7]).toContain("{policy}");
     expect(lines[8]).toContain("{length}");
     expect(lines[9]).toContain("house style");
+    expect(lines[10]).toContain("travel { toSiteId }");
     expect(text).toContain("House style");
   });
 

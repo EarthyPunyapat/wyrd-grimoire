@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
-import { defaultTuning } from "@wyrd/core";
+import { defaultTuning, draft, Entity } from "@wyrd/core";
 import { FakeProvider, type FakeReply, type FakeRule } from "../src/fake.ts";
 import { TurnPipeline, type TurnStreamEvent } from "../src/pipeline.ts";
 import { RoleRouter } from "../src/router.ts";
@@ -83,7 +83,7 @@ test("narrates without tools", async () => {
     promptVersion: string;
   };
   expect(narr.text).toBe("The river slaps the jetty.");
-  expect(narr.promptVersion).toBe("gm@2");
+  expect(narr.promptVersion).toBe("gm@3");
   const order = s.events.map((e) => e.type).filter((t, i, all) => t !== all[i - 1]);
   expect(s.events.filter((e) => e.type === "narration.delta").length).toBeGreaterThan(0);
   expect(order).toEqual(["turn.accepted", "narration.delta", "narration.final", "turn.completed"]);
@@ -209,4 +209,31 @@ test("classic still runs without a gm route", async () => {
   const r = await s.pipeline.run({ input: "I wait." });
   expect(r.status).toBe("resolved");
   expect(s.fake.calls("gm")).toHaveLength(0);
+});
+
+test("the gm is told the roads from the current site so travel can be a tool call", async () => {
+  fx.store.append([
+    draft("EntityCreated", {
+      entity: Entity.parse({ id: "site:ferry", kind: "site", name: "Ashford Ferry", detail: "stub" }),
+    }),
+    draft("EntityCreated", {
+      entity: Entity.parse({ id: "site:mill", kind: "site", name: "Greymill", detail: "stub" }),
+    }),
+    draft("EntityUpdated", { entityId: "loc:ferry", patch: { data: { siteId: "site:ferry" } } }),
+    draft("RelationshipChanged", {
+      edge: {
+        from: "site:ferry",
+        to: "site:mill",
+        type: "routeTo",
+        strength: 1,
+        data: { days: 1, terrain: "river road", danger: 1 },
+      },
+    }),
+  ]);
+  const s = setup({ gm: [{ role: "gm", reply: { text: "You set off." } }] });
+  await s.pipeline.run({ input: "I travel to Greymill." });
+  const req = s.fake.calls("gm")[0]!;
+  const context = req.messages.map((m) => m.content).join("\n");
+  expect(context).toContain("Roads (travel { toSiteId, pace }): Greymill [site:mill]");
+  expect(req.instructions).toContain("travel");
 });

@@ -39,7 +39,8 @@ When the router has a `gm` route, a new turn runs the GM loop instead of parser 
 
 ```
 1. CONTEXT      the GM prompt: the narrator sections plus "Your state" (items with ids,
-                coins, HP, conditions, quests and companions with ids), the input
+                coins, HP, conditions, quests and companions with ids), the current
+                site and its Roads with site ids (as the parser gets them), the input
                 (a leading /gm is stripped and becomes a retcon instruction)
 2. LOOP         router.complete("gm", …, tools) up to tuning.gm.maxToolRounds (8) rounds;
                 each tool call runs against a working state folded from the turn's drafts,
