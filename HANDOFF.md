@@ -18,6 +18,11 @@ Owner-only checks still outstanding (need real hardware or keys):
 - M5: a real-model world run and the NPC-knowledge eval.
 - M8: media (images, TTS) has not been built.
 
+## Next: 2.0 finish, then 2.x and 3.0 (2026-10-30)
+
+- **2.0:** the replay harness (W2 step 4 R) is being built by Codex; then the owner's 20-turn test.
+- **Planned with the owner:** [W3 roadmap](docs/superpowers/plans/2026-10-30-w3-roadmap.md), decisions D167–D171. Next builds: **2.x Presets & Cards** and **00 First Light** (images, web-first). Write each one's TDD plan before building.
+
 ## Owner UI review fixes (2026-10-30)
 
 Built on `fix-ui-nine` from the owner's playtest list; decisions D162–D165.

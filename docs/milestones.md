@@ -126,7 +126,13 @@ The owner played M7 and found it lacking next to their ChatGPT RPG sessions, so 
 
 ---
 
-## M8 — Media
+## 2.x and Wyrd 3.0
+
+**Roadmap:** [W3 roadmap](superpowers/plans/2026-10-30-w3-roadmap.md) (D167–D171). After W2: **2.x Presets & Cards** and **00 First Light** (M8's images, web-first), then **01 Bonds & Lore → 02 Dominion → 03 Second Pass → 04 Lights & Voices** (M8's voices and the rest of media) **→ 05 The Forge**. Each update gets its own plan and acceptance list here when it starts.
+
+---
+
+## M8 — Media (split into First Light and Lights & Voices, D168)
 
 **Spec:** [10](spec/10-media.md)
 
