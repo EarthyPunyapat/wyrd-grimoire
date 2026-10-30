@@ -15,6 +15,7 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "test": "bun test",
+    "eval:replay": "bun evals/replay/run.ts",
     "check": "bun run typecheck && bun run lint && bun test && bun run wyrd pack validate packs/fantasy-core"
   },
   "devDependencies": {

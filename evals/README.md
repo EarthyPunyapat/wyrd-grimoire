@@ -1,11 +1,12 @@
 # Evals (spec 15)
 
 Real-model evals run on the host with the owner's configured providers; they never run in CI.
-Each appends a line to its `results.jsonl` keyed by provider, model and prompt version.
+NPC knowledge appends `results.jsonl`; replay writes a private side-by-side HTML report.
 
 | Eval | Command | Pass bar |
 |---|---|---|
 | NPC knowledge | `bun evals/npc-knowledge/run.ts --turns 40` | < 1 leak per 200 NPC lines |
+| [Replay](replay/README.md) | `bun run eval:replay --campaign <baseline campaign.db>` | Owner reviews systematic losses; no automatic pass verdict |
 
 Offline evals run with `bun test` in CI:
 

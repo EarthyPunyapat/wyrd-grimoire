@@ -18,6 +18,37 @@ Owner-only checks still outstanding (need real hardware or keys):
 - M5: a real-model world run and the NPC-knowledge eval.
 - M8: media (images, TTS) has not been built.
 
+## W2 step 4 R — replay harness (2026-10-30)
+
+Built test-first from `docs/superpowers/plans/2026-10-30-w2-replay.md`. Runbook:
+`evals/replay/README.md`. This is a manual eval, not CI or W2 acceptance.
+
+- Run `bun run eval:replay --campaign <baseline campaign.db>` on the owner's host. Inputs
+  default to `~/Downloads/chatgpt-rpg/`; saved share HTML uses the existing import decoder,
+  and decoded JSON uses its SharedChat shape. `--file` selects files, `--limit N` limits
+  player inputs per transcript, and `--help` documents settings/output overrides.
+- The baseline must be prepared at the start of the replay, with its reviewed import and
+  opening scene. Read-only SQLite serialization includes committed WAL data. Each transcript
+  runs against a fresh temporary copy with the same active branch/seed and accumulates Wyrd's
+  own history. The source campaign is untouched; reference ChatGPT replies never enter prompts.
+- Real routing uses web app.db settings before legacy config.json, or explicit `--config`;
+  credentials stay in WYRD_HOME/secrets. Frozen pack rules/content, world bible, campaign/house
+  style and lore research feed TurnPipeline's GM path. Structural checks finish before advancing.
+  Web job management, companion profiling and between-turn summary jobs are not part of this eval.
+- Private, self-contained, escaped HTML checkpoints to `evals/replay/out/<UTC date>.html`
+  after each input. It includes reference/generated prose, actual provider/model/prompt version,
+  backup/classic fallback status, tools/cards/choices/mechanics and structural flags. Output is
+  ignored and owner-only; no browser opens. Same-day reruns replace that day's report. Failures
+  remain visible, later inputs are attempted, and failures/classic fallback produce exit 1.
+- Validation: `bun run check` passed (typecheck, Biome with existing warnings, **901 offline
+  tests**, fantasy-core validation). Replay coverage includes 13 tests using FakeProvider and
+  an invented/anonymised share fixture, source DB/WAL immutability, branch isolation, fallback,
+  check completion, config precedence, escaping, private checkpoints and full orchestration.
+- The cloud checkout has no owner's Downloads transcripts, baseline campaign or configured
+  provider credentials. The real-provider eval, review of systematic losses and owner 20-turn
+  test still need to run on the host. Step 4 and W2 remain unticked. No transcript text or real
+  report was copied or committed.
+
 ## Owner UI review fixes (2026-10-30)
 
 Built on `fix-ui-nine` from the owner's playtest list; decisions D162–D165.
