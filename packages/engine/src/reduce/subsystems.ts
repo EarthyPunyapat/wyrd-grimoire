@@ -101,9 +101,12 @@ export const subsystemHandlers: Pick<
 
   ShopOpened: (s, e) => {
     const economy = economyOf(s);
+    // A shop opened without a place belongs to the scene it opened in.
+    const locationId = e.payload.shop.locationId ?? s.scene?.locationId;
+    const shop = locationId ? { ...e.payload.shop, locationId } : e.payload.shop;
     return {
       ...s,
-      economy: { ...economy, shops: { ...economy.shops, [e.payload.shop.id]: e.payload.shop } },
+      economy: { ...economy, shops: { ...economy.shops, [shop.id]: shop } },
     };
   },
 

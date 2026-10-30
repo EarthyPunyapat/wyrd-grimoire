@@ -112,6 +112,47 @@ const cases = new FakeProvider([
 const levelModel = new FakeProvider([
   {
     role: "gm",
+    match: (r) => r.messages.some((m) => m.role === "user" && m.content.includes("vendor workflow")),
+    reply: (r) => {
+      if (!r.messages.some((m) => m.role === "tool"))
+        return {
+          toolCall: {
+            name: "open_shop",
+            args: {
+              name: "Relay Commissary",
+              kind: "station commissary",
+              merchant: { name: "Quartermaster Ide" },
+              stock: [
+                { name: "Ration Bar", description: "Dense and dull.", price: 2, qty: 12 },
+                { name: "Spare Fuse", price: 5, qty: 4 },
+              ],
+            },
+          },
+        };
+      return { text: "Quartermaster Ide slides the commissary shutter up." };
+    },
+  },
+  {
+    role: "gm",
+    match: (r) => r.messages.some((m) => m.role === "user" && m.content.includes("choice workflow")),
+    reply: (r) => {
+      if (!r.messages.some((m) => m.role === "tool"))
+        return {
+          toolCall: {
+            name: "offer_choices",
+            args: {
+              choices: [
+                { label: "Wait by the stove", description: "Let the room come to you." },
+                { label: "Ask about the hatch" },
+              ],
+            },
+          },
+        };
+      return { text: "The room settles. Two paths lie open." };
+    },
+  },
+  {
+    role: "gm",
     match: (r) => r.messages.some((m) => m.role === "user" && m.content.includes("skip workflow")),
     reply: (r) => {
       const count = r.messages.filter((m) => m.role === "tool").length;

@@ -57,6 +57,7 @@ test("lists core, Levels and source GM tools", () => {
       "roll",
       "show_card",
       "time_skip",
+      "open_shop",
     ].sort(),
   );
 });
@@ -154,4 +155,18 @@ test("bad args never throw", async () => {
   expect((await run("roll", { nope: 1 })).ok).toBe(false);
   expect((await run("roll", { nope: 1 })).result).toContain("errors");
   expect((await run("summon_dragon", {})).ok).toBe(false);
+});
+
+test("open_shop opens the present merchant's wares here and shows the shop card", async () => {
+  const r = await run("open_shop", {
+    name: "Wenna's Ferry Stall",
+    kind: "ferry stall",
+    merchant: { id: "npc:wenna", name: "Wenna" },
+    stock: [{ name: "Eel Pie", description: "Still warm.", price: 2, qty: 6 }],
+  });
+  expect(r.ok).toBe(true);
+  expect(types(r)).toEqual(["ItemDefined", "ShopOpened"]);
+  expect(r.effects.cards).toEqual([{ type: "shop" }]);
+  const shop = r.effects.drafts.at(-1)!.payload as { shop: { locationId: string; merchantPresent: boolean } };
+  expect(shop.shop).toMatchObject({ locationId: "loc:ferry", merchantPresent: true });
 });

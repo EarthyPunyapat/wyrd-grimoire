@@ -44,8 +44,8 @@ test("source creation offers a revisable style sample and all review overrides",
   expect(data.view.pc.level).toBe(12);
   expect(data.view.pc.abilities[0].name).toBe("Marshlight");
   expect(JSON.stringify(data.view)).not.toContain("relayStopped");
-  await page.getByRole("button", { name: /Campaign settings/ }).click();
-  const settings = page.getByRole("dialog", { name: "Campaign settings" });
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  const settings = page.getByRole("dialog", { name: "Settings" });
   await settings.getByRole("textbox", { name: /Your own words/ }).fill("Even terser");
   await settings
     .getByRole("textbox", { name: "Sample paragraph", exact: true })

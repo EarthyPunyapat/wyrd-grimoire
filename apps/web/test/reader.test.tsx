@@ -26,7 +26,13 @@ test("status strip names the character, place and time", () => {
   expect(html).toContain("Ethan Hunt");
   expect(html).toContain("Watchtower");
   expect(html).toContain("19:06");
-  expect(html).toContain("Campaign settings");
+  // One Settings button: campaign rules and device settings share one screen (D163).
+  expect(html.match(/>Settings</g)).toHaveLength(1);
+  // Shops are places, not menus (D166): the strip never offers one.
+  const shop = { ...view, shop: { id: "s", name: "Stall", attitude: 0, items: [] } } as GameView;
+  expect(renderToStaticMarkup(<StatusStrip view={shop} onMenu={noop} onSettings={noop} />)).not.toContain(
+    "Stall",
+  );
 });
 
 test("status strip menu keys are hints, never the accessible name", () => {

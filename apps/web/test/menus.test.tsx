@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import type { GameView } from "@wyrd/core";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Menus } from "../src/Menus.tsx";
+import { ShopWares } from "../src/Shop.tsx";
 
 const view = {
   id: "c1",
@@ -113,9 +114,9 @@ test("the status screen has all eight tabs with key hints as hints", () => {
   expect(html).toContain("Back to the story");
 });
 
-test("inventory is a paper doll plus a bag, and every item uses the story's item card", () => {
+test("inventory is equipped slots plus a bag, and every item uses the story's item card", () => {
   const html = render("inventory");
-  expect(html).toContain('class="paper-doll"');
+  expect(html).toContain('class="equipped"');
   expect(html).toContain("Main hand");
   expect(html).toContain("Off hand");
   expect(html).toContain("Worn");
@@ -135,6 +136,63 @@ test("inventory offers instant moves, sorting and story-turn actions", () => {
   const html = render("inventory");
   expect(html).toContain("Sort:");
   for (const action of ["Use", "Give", "Throw", "Drop"]) expect(html).toContain(`>${action}<`);
-  expect(html).toContain("Equip, move and sort happen at once");
-  expect(html).toContain("Use, give, throw and drop become a story turn");
+  expect(html).toContain("In the story · takes a turn");
+  // Trading happens at a vendor, never in the bag.
+  expect(html).not.toContain("Buy ·");
+  expect(html).not.toContain("Sell one");
+});
+
+test("no menu tab trades: the vendor's wares are their own pop-up content", () => {
+  for (const tab of ["inventory", "quests", "map"] as const) expect(render(tab)).not.toContain("Buy ·");
+  expect(render("inventory")).not.toContain('data-tab="market"');
+  const shop = {
+    id: "shop:stall",
+    name: "The River Stall",
+    merchant: "Old Tamsin",
+    kind: "rope stall",
+    attitude: 0,
+    items: [{ id: "rope", name: "Hemp Rope", basePrice: 2, price: 2, stock: 3 }],
+  };
+  const html = renderToStaticMarkup(<ShopWares view={{ ...view, shop } as GameView} shop={shop} />);
+  expect(html).toContain("sold by Old Tamsin");
+  expect(html).toContain("Buy · 2c");
+  expect(html).toContain("Sell one Healing Draught");
+  // The player's own creation gear is shown as not for sale, never with a Sell button.
+  const ring = {
+    id: "player:lantern-ring",
+    name: "Lantern Ring",
+    qty: 1,
+    location: "carried",
+    condition: "pristine",
+    kind: "gear",
+    description: "",
+    quality: "standard",
+  };
+  const withRing = {
+    ...view,
+    shop,
+    inventory: { ...view.inventory, items: [...view.inventory.items, ring] },
+  } as GameView;
+  const keep = renderToStaticMarkup(<ShopWares view={withRing} shop={shop} />);
+  expect(keep).not.toContain("Sell one Lantern Ring");
+  expect(keep).toContain("Not for sale: Lantern Ring");
+});
+
+test("settings is one screen: the campaign's rules and this device's settings", () => {
+  const html = renderToStaticMarkup(
+    <Menus
+      view={view}
+      tab="settings"
+      onTab={noop}
+      onRefresh={noop}
+      onSend={noop}
+      onTravel={noop}
+      onOpenCodex={noop}
+      onClose={noop}
+      appSettings={<p>Device panel</p>}
+    />,
+  );
+  expect(html).toContain("This campaign");
+  expect(html).toContain("This device and your models");
+  expect(html).toContain("Device panel");
 });

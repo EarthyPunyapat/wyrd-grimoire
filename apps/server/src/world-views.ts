@@ -12,7 +12,7 @@ import {
   RetconInput,
   reputationTier,
 } from "@wyrd/core";
-import { closeEvents, describeDate, type GameState } from "@wyrd/engine";
+import { abandonResearch, closeEvents, describeDate, type GameState, researchClocks } from "@wyrd/engine";
 import { type RoleRouter, recap, writeSummaries } from "@wyrd/llm";
 import { creationContent } from "@wyrd/packs";
 import { type AppStore, type CampaignStore, CanonQueries } from "@wyrd/storage";
@@ -99,6 +99,7 @@ export function journalView(game: CampaignStore<GameState>, notes: string): Jour
   const state = game.state();
   const canon = new CanonQueries(game);
   const pcId = state.party.pcId ?? "";
+  const research = researchClocks(state, pcId);
   const objectiveText = (o: { kind: string; [k: string]: unknown }) =>
     o.kind === "narrative"
       ? String(o.description)
@@ -133,8 +134,9 @@ export function journalView(game: CampaignStore<GameState>, notes: string): Jour
       )
       .map((e) => ({ id: e.id, title: e.name, summary: e.summary })),
     clocks: Object.values(state.clocks)
-      .filter((c) => c.visible)
+      .filter((c) => c.visible && !research.includes(c))
       .map((c) => ({ name: c.name, filled: c.filled, segments: c.segments })),
+    research: research.map((c) => ({ id: c.id, name: c.name, filled: c.filled, segments: c.segments })),
     rumours: Object.values(state.rumors).flatMap((r) => (r.holders[pcId] ? [r.holders[pcId]!.content] : [])),
     notes,
   });
@@ -185,6 +187,16 @@ export function mountWorld(app: Hono<AppEnvironment>, d: Deps) {
     c.json(journalView(d.campaign(c.req.param("id")), d.store.notes(c.req.param("id")))),
   );
   app.get("/api/campaigns/:id/map", (c) => c.json(mapView(d.campaign(c.req.param("id")))));
+  app.delete("/api/campaigns/:id/research/:clockId", (c) => {
+    const id = c.req.param("id");
+    guard(id);
+    const game = d.campaign(id);
+    const state = game.state();
+    const out = abandonResearch(state, state.party.pcId ?? "", c.req.param("clockId"));
+    if (!out.ok) throw new HTTPException(404, { message: out.errors.map((e) => e.message).join("; ") });
+    game.append(out.value);
+    return c.json(journalView(game, d.store.notes(id)));
+  });
   app.put("/api/campaigns/:id/notes", async (c) => {
     const id = c.req.param("id");
     d.campaign(id);

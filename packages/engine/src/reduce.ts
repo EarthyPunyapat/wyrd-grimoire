@@ -300,6 +300,11 @@ const baseHandlers: Omit<Handlers, DomainKey> = {
       clocks: { ...s.clocks, [c.id]: { ...c, filled: clamp(c.filled + e.payload.by, 0, c.segments) } },
     };
   },
+  ClockRemoved: (s, e) => {
+    if (!s.clocks[e.payload.clockId]) throw new Error(`No clock ${e.payload.clockId}`);
+    const { [e.payload.clockId]: _removed, ...clocks } = s.clocks;
+    return { ...s, clocks };
+  },
   FactionUpdated: (s, e) => ({
     ...s,
     factions: { ...s.factions, [e.payload.faction.id]: e.payload.faction },

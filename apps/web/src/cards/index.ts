@@ -7,6 +7,7 @@ import { LevelUpCard } from "./level-up.tsx";
 import { ReportCard } from "./report.tsx";
 import { RetconCard } from "./retcon.tsx";
 import { RollCard } from "./roll.tsx";
+import { ShopCard } from "./shop.tsx";
 import { StatusCard } from "./status.tsx";
 import type { CardProps } from "./types.ts";
 
@@ -25,4 +26,5 @@ export const CARD_VIEWS: { [K in Card["type"]]: ComponentType<CardProps<K>> } = 
   roll: RollCard,
   retcon: RetconCard,
   report: ReportCard,
+  shop: ShopCard,
 };

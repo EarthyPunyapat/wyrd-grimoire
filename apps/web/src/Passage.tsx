@@ -179,6 +179,7 @@ export function Passage({
   math,
   onReroll,
   onChoice,
+  onClarify,
   onFix,
   onUndo,
   onAcceptLevel,
@@ -188,7 +189,10 @@ export function Passage({
   busy: boolean;
   math: boolean;
   onReroll: () => void;
-  onChoice?: (index: number, label: string) => void;
+  /** A GM choice is plain input: it carries no option index, so it can't be read as a clarification. */
+  onChoice?: (label: string) => void;
+  /** Answers this turn's clarification by option index. */
+  onClarify?: (option: number, label: string) => void;
   onFix?: (turnId: string) => void;
   onAcceptLevel?: (proposalId: string) => void;
   onUndo?: (retconId: string) => void;
@@ -213,6 +217,8 @@ export function Passage({
     }
   };
   const flags = turn.checkFlags.filter((flag) => !dismissed.includes(flag.quote));
+  const guardFlags = turn.guard?.flagged ?? [];
+  const unchecked = Boolean(turn.guard && !turn.guard.checked && !guardFlags.length);
   const all =
     turn.retcon && !turn.cards.some((card) => card.type === "retcon")
       ? [...turn.cards, { type: "retcon" as const, retconId: turn.retcon.retconId }]
@@ -247,39 +253,12 @@ export function Passage({
           <fieldset className="gm-choices">
             <legend className="sr-only">Choices</legend>
             {turn.choices.map((choice, i) => (
-              <button
-                type="button"
-                key={choice.label}
-                disabled={busy}
-                onClick={() => onChoice(i, choice.label)}
-              >
+              <button type="button" key={choice.label} disabled={busy} onClick={() => onChoice(choice.label)}>
                 <kbd>{i + 1}</kbd> {choice.label}
                 {choice.description && <span className="small muted"> — {choice.description}</span>}
               </button>
             ))}
           </fieldset>
-        )}
-        {flags.length > 0 && (
-          <div className="check-flags" role="status">
-            <h3>Possible unrecorded change</h3>
-            {flags.map((flag) => (
-              <div key={flag.quote} className="check-flag">
-                <p>
-                  <q>{flag.quote}</q> — {flag.claim}
-                </p>
-                <div className="check-flag-actions">
-                  {onFix && (
-                    <button type="button" disabled={busy} onClick={() => onFix(turn.id)}>
-                      Fix
-                    </button>
-                  )}
-                  <button type="button" onClick={() => dismiss(flag.quote)}>
-                    Dismiss
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
         )}
         {turn.answer && <p className="ooc">{turn.answer}</p>}
         {turn.status === "failed" && (
@@ -287,7 +266,7 @@ export function Passage({
             The storyteller could not resolve that turn. Please try your action again.
           </p>
         )}
-        {turn.clarification && onChoice && (
+        {turn.clarification && onClarify && (
           <div className="clarification">
             <h3>
               A moment… <DiceBadge resolution={view.resolution} />
@@ -302,7 +281,7 @@ export function Passage({
                   type="button"
                   key={option.label}
                   disabled={busy}
-                  onClick={() => onChoice(i, option.label)}
+                  onClick={() => onClarify(i, option.label)}
                 >
                   <kbd>{i + 1}</kbd> {option.label}
                 </button>
@@ -310,21 +289,6 @@ export function Passage({
             </div>
           </div>
         )}
-        {turn.guard?.flagged.length ? (
-          <div className="guard-card">
-            <h3>Canon needs a second look</h3>
-            {turn.guard.flagged.map((flag) => (
-              <p key={flag.quote}>
-                <q>{flag.quote}</q> — {flag.detail}
-              </p>
-            ))}
-            <button type="button" disabled={busy} onClick={onReroll}>
-              Keep canon & regenerate
-            </button>
-          </div>
-        ) : turn.guard && !turn.guard.checked ? (
-          <p className="muted guard-note">Canon check unavailable for this passage.</p>
-        ) : null}
         {turn.status === "resolved" && (
           <div className="passage-tools">
             <button type="button" disabled={busy} onClick={onReroll}>
@@ -350,6 +314,55 @@ export function Passage({
           {...(onUndo ? { onUndo } : {})}
         />
         <RollNotes lines={turn.mechanics} math={math} resolution={view.resolution} />
+        {/* The canon check is a margin note, folded by default, so it never interrupts the prose (D164). */}
+        {(flags.length > 0 || guardFlags.length > 0 || unchecked) && (
+          <details className={`canon-check${guardFlags.length ? " needs-look" : ""}`}>
+            <summary>
+              <span className="canon-check-title">Canon check</span>
+              <span className="canon-check-count">
+                {unchecked && !flags.length && !guardFlags.length
+                  ? "unavailable"
+                  : `${flags.length + guardFlags.length} to review`}
+              </span>
+            </summary>
+            {guardFlags.length > 0 && (
+              <div className="guard-card">
+                <h3>Canon needs a second look</h3>
+                {guardFlags.map((flag) => (
+                  <p key={flag.quote}>
+                    <q>{flag.quote}</q> — {flag.detail}
+                  </p>
+                ))}
+                <button type="button" disabled={busy} onClick={onReroll}>
+                  Keep canon & regenerate
+                </button>
+              </div>
+            )}
+            {flags.length > 0 && (
+              <div className="check-flags" role="status">
+                <h3>Possible unrecorded change</h3>
+                {flags.map((flag) => (
+                  <div key={flag.quote} className="check-flag">
+                    <p>
+                      <q>{flag.quote}</q> — {flag.claim}
+                    </p>
+                    <div className="check-flag-actions">
+                      {onFix && (
+                        <button type="button" disabled={busy} onClick={() => onFix(turn.id)}>
+                          Fix
+                        </button>
+                      )}
+                      <button type="button" onClick={() => dismiss(flag.quote)}>
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {unchecked && <p className="muted guard-note">Canon check unavailable for this passage.</p>}
+          </details>
+        )}
       </aside>
     </article>
   );

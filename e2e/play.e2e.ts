@@ -148,6 +148,9 @@ test("clarification choices are resolved and guard flags can regenerate", async 
   await expect(page.locator(".prose")).toBeVisible();
   await page.getByLabel("What do you do?", { exact: true }).fill("force a canon flag");
   await page.getByLabel("What do you do?", { exact: true }).press("Enter");
+  // The canon check is folded into the margin; it says it needs a look and opens on click.
+  await expect(page.locator(".canon-check.needs-look")).toBeVisible();
+  await page.locator(".canon-check.needs-look summary").click();
   await expect(page.getByRole("heading", { name: "Canon needs a second look" })).toBeVisible();
   await page.getByRole("button", { name: "Keep canon & regenerate" }).click();
   await expect(page.getByLabel("What do you do?", { exact: true })).toBeEnabled();
@@ -183,7 +186,7 @@ test("model routes save, connection stays host-side, and usage is confined to se
   await dialog.getByLabel("Group by").selectOption("role");
   await expect(dialog.getByRole("table")).toContainText("parser");
   await expect(dialog.getByRole("table")).toContainText("guard");
-  await dialog.getByRole("button", { name: "Close settings" }).click();
+  await dialog.getByRole("button", { name: "Close status screen" }).click();
   await expect(page.locator(".story")).not.toContainText(/Tokens|API estimate|Plan calls/);
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await expect(

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import type { StyleProfile } from "@wyrd/core";
 
 /** The GM prompt version; every prompt change bumps it (spec 08). */
-export const GM_VERSION = "gm@2";
+export const GM_VERSION = "gm@3";
 
 /** The owner's ChatGPT-GM voice, written fresh for Wyrd (no transcript text). */
 export const HOUSE_STYLE = readFileSync(new URL("./house-style.md", import.meta.url), "utf8").trim();
@@ -23,7 +23,8 @@ export const GM_INSTRUCTIONS = `1. You are the game master. Write the story and 
 7. Answer questions about rules or state directly from Your state.
 8. The choice policy is {policy}: \`gm\` means offer choices only at real decision points; \`always\` means every turn; \`onRequest\` means only when asked. "Give me choices" always works.
 9. Length is {length}: guidance, not a limit.
-10. Follow the house style.`;
+10. Follow the house style.
+11. Going to another site on the map is \`act\` with \`travel { toSiteId }\` from the Roads list; narrate only the arrival it returns.`;
 
 export type GmPromptOptions = {
   policy: GmChoicesPolicy;

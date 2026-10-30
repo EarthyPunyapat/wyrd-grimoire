@@ -1,16 +1,16 @@
 import { defaultTuning, type GameView } from "@wyrd/core";
-import { GameIcon, type GameIconName } from "./icons.tsx";
+import { ChromeIcon, type ChromeIconName } from "./icons.tsx";
 import type { MenuTab } from "./Menus.tsx";
 
 export type Menu = MenuTab;
 
 /** Menus in strip order; a key is a hint beside the name, never the accessible name (DESIGN.md Status Strip). */
-const MENUS: { id: Menu; name: string; key?: string; icon: GameIconName }[] = [
+const MENUS: { id: Menu; name: string; key?: string; icon: ChromeIconName }[] = [
   { id: "character", name: "Character", key: "C", icon: "person" },
-  { id: "inventory", name: "Inventory", key: "I", icon: "bag" },
-  { id: "quests", name: "Quests", key: "Q", icon: "scroll" },
+  { id: "inventory", name: "Inventory", key: "I", icon: "backpack" },
+  { id: "quests", name: "Quests", key: "Q", icon: "quest" },
   { id: "journal", name: "Journal", key: "J", icon: "book" },
-  { id: "codex", name: "Codex", icon: "gems" },
+  { id: "codex", name: "Codex", icon: "gem" },
   { id: "map", name: "Map", key: "M", icon: "map" },
   { id: "timeline", name: "Timeline", icon: "hourglass" },
 ];
@@ -26,16 +26,14 @@ export function StatusStrip({
   onMenu,
   onSettings,
   onHome,
-  onAppSettings,
   offline,
 }: {
   view: GameView;
   active?: Menu | null;
   onMenu: (menu: Menu) => void;
   onSettings: () => void;
-  /** The app bar's home and settings live in the strip while playing: Reader has one band of chrome. */
+  /** The app bar's home lives in the strip while playing: Reader has one band of chrome. */
   onHome?: () => void;
-  onAppSettings?: () => void;
   offline?: boolean;
 }) {
   const day = Math.floor(view.gameTime / 1440) + 1;
@@ -68,7 +66,7 @@ export function StatusStrip({
             aria-current={active === m.id ? "true" : undefined}
             onClick={() => onMenu(m.id)}
           >
-            <GameIcon name={m.icon} size={14} />
+            <ChromeIcon name={m.icon} size={15} />
             {m.key && (
               <span className="key" aria-hidden="true">
                 {m.key}
@@ -77,15 +75,12 @@ export function StatusStrip({
             <span className="menu-name">{m.name}</span>
           </button>
         ))}
-        <button type="button" onClick={onSettings} aria-label="Campaign settings" title="Campaign settings">
-          <GameIcon name="gears" size={14} />
+        {/* One Settings screen: the campaign's rules and this device's display and models (D163). */}
+        <button type="button" aria-current={active === "settings" ? "true" : undefined} onClick={onSettings}>
+          <ChromeIcon name="gear" size={15} />
+          <span className="menu-name">Settings</span>
         </button>
         {offline && <span className="strip-offline">Offline</span>}
-        {onAppSettings && (
-          <button type="button" onClick={onAppSettings}>
-            Settings
-          </button>
-        )}
       </nav>
     </header>
   );

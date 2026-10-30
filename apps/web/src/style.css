@@ -355,21 +355,43 @@ progress::-webkit-progress-value { background: var(--accent); }
 .facts li { display: flex; justify-content: space-between; gap: .5rem; align-items: start; }
 .fact-tools { display: flex; gap: .25rem; flex: none; }
 .fact-tools button { min-height: 32px; min-width: 32px; padding: .1rem .35rem; border: 0; color: var(--crit); }
-.map { width: 100%; height: auto; }
-.map .region { font-size: 11px; fill: var(--ink-muted); text-transform: uppercase; letter-spacing: .08em; }
-.map .route { stroke: var(--line); stroke-width: 2; }
-.map .route.danger-3, .map .route.danger-4, .map .route.danger-5 { stroke: var(--danger); stroke-dasharray: 4 3; }
-.map .route-label { font-size: 9.5px; fill: var(--ink-muted); }
-.map .site circle { fill: var(--surface-2); stroke: var(--ink-muted); stroke-width: 1.5; }
-.map .site.visited circle { fill: var(--accent-soft); stroke: var(--accent); }
-.map .site.here circle { fill: var(--pc); stroke: var(--pc); }
-.map .site text { font-size: 11px; fill: var(--ink); }
-.map .site { cursor: pointer; }
-.map .site:hover circle, .map .site:focus-visible circle, .map .site.selected circle { stroke: var(--accent); stroke-width: 3; }
-.map-site { border: 1px solid var(--line); border-radius: 6px; padding: .6rem .75rem; display: grid; gap: .45rem; }
-.map-site h4 { margin: 0; font-size: 1rem; }
+.map-here { display: flex; align-items: flex-start; gap: .75rem; padding: .75rem 1rem; border: 1px solid var(--line); border-left: 3px solid var(--pc); border-radius: 6px; background: var(--surface); }
+.map-here .chrome-icon { color: var(--pc); margin-top: 2px; }
+.map-here strong { font: 400 18px / 1.3 var(--font-read); color: var(--ink); }
+.map-here p { margin: .15rem 0 0; }
+.map-here-label { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.map-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 300px); gap: 1.5rem; align-items: start; }
+.map-canvas { min-width: 0; overflow-x: auto; }
+.map { display: block; max-width: none; }
+.map .region-panel { fill: var(--surface); stroke: var(--line); }
+.map .region-name { font: 600 11px var(--font-chrome); fill: var(--ink-muted); text-transform: uppercase; letter-spacing: .1em; }
+.map .route path { fill: none; stroke: var(--line-strong, var(--ink-faint)); stroke-width: 2; }
+.map .route.danger-3 path, .map .route.danger-4 path, .map .route.danger-5 path { stroke: var(--danger); stroke-dasharray: 6 4; }
+.map .route-pill { fill: var(--bg); stroke: var(--line); }
+.map .route-label { font: 11px var(--font-chrome); fill: var(--ink-muted); }
+.map .site { cursor: pointer; outline: none; }
+.map .site .node { fill: var(--bg); stroke: var(--ink-muted); stroke-width: 1.5; }
+.map .site.visited .node { fill: var(--accent-soft); stroke: var(--accent); }
+.map .site.here .node { fill: var(--pc); stroke: var(--pc); }
+.map .here-ring { fill: none; stroke: var(--pc); stroke-width: 1.5; opacity: .5; }
+.map .here-tag { font: 700 10px var(--font-chrome); letter-spacing: .12em; fill: var(--pc); }
+.map .site-name { font: 14px var(--font-read); fill: var(--ink); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.map .site:hover .node, .map .site:focus-visible .node, .map .site.selected .node { stroke: var(--accent); stroke-width: 3; }
+.map .site:focus-visible .site-name { text-decoration: underline; }
+.map-legend { margin: .5rem 0 0; }
+.legend-here { color: var(--pc); }
+.legend-visited { color: var(--accent); }
+.map-side { display: grid; gap: .75rem; }
+.map-roads { display: grid; gap: .5rem; }
+.map-roads button { display: grid; gap: 2px; width: 100%; text-align: left; }
+.road-to { font: 400 16px / 1.3 var(--font-read); color: var(--ink); }
+.road-danger { font-size: 11px; letter-spacing: .05em; color: var(--ink-muted); }
+.road-danger.danger-3, .road-danger.danger-4, .road-danger.danger-5 { color: var(--danger); }
+.map-site { border: 1px solid var(--line); border-radius: 6px; padding: .75rem .9rem; display: grid; gap: .45rem; background: var(--surface); }
+.map-site h4 { margin: 0; font: 400 20px / 1.3 var(--font-read); }
 .map-site p { margin: 0; }
 .map-site-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+@media (max-width: 900px) { .map-layout { grid-template-columns: minmax(0, 1fr); } }
 .ref-wrap { position: relative; }
 .ref { display: inline; min-height: 0; padding: 0; border: 0; font: inherit; font-weight: 700; color: inherit; text-decoration: underline dotted var(--accent) 1.5px; text-underline-offset: 3px; cursor: pointer; }
 .ref:hover { background: var(--accent-soft); }
@@ -488,6 +510,13 @@ progress::-webkit-progress-value { background: var(--accent); }
 .downtime-actions { display: flex; flex-wrap: wrap; align-items: end; gap: .5rem; }
 .downtime-actions label { flex: 1 1 12rem; display: grid; gap: .25rem; font-size: .85rem; }
 .downtime-actions button { min-height: 36px; }
+.research { display: grid; gap: .5rem; }
+.research h4 { margin: .25rem 0 0; }
+.research-list { display: grid; gap: .35rem; }
+.research-row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; }
+.research-name { flex: 1 1 10rem; }
+.research-row button { min-height: 32px; }
+.danger-link { color: var(--danger); }
 
 .small-link { min-height: 30px; padding: .15rem .5rem; font-size: .72rem; }
 
@@ -500,3 +529,63 @@ progress::-webkit-progress-value { background: var(--accent); }
 .generation-steps li.failed { color: var(--danger); }
 .generation-steps li.running span { animation: wyrd-pulse 1s ease-in-out infinite; }
 @keyframes wyrd-pulse { 50% { opacity: .35; } }
+
+/* Hotbar icons and the Abilities list (all presets). The list sits above the bar, outside its scroller. */
+.hotbar button { display: inline-flex; align-items: center; gap: 6px; }
+.hotbar .chrome-icon { flex: none; color: var(--ink-muted); }
+.hotbar button:hover:not(:disabled) .chrome-icon,
+.hotbar .hotbar-open .chrome-icon { color: var(--accent); }
+.hotbar .hotbar-danger .chrome-icon { color: var(--danger); }
+.hotbar-count { min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); font-size: 11px; line-height: 18px; text-align: center; }
+.abilities-panel {
+  position: fixed; z-index: 30; left: 50%; bottom: calc(var(--hotbar-height, 56px) + 8px); transform: translateX(-50%);
+  display: grid; gap: .75rem; width: min(520px, calc(100vw - 32px)); max-height: min(60vh, 520px); overflow-y: auto;
+  padding: 14px 16px 16px; border: 1px solid var(--line-strong, var(--line)); border-radius: 8px;
+  background: var(--surface); box-shadow: 0 12px 40px rgb(0 0 0 / .35);
+}
+.abilities-panel[hidden] { display: none; }
+.abilities-panel header { display: flex; align-items: center; justify-content: space-between; }
+.abilities-panel h2 { margin: 0; font: italic 400 20px / 1.3 var(--font-read); }
+.abilities-close { min-height: 36px; min-width: 36px; padding: 0; border: 0; background: none; font-size: 20px; }
+.abilities-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.abilities-list button {
+  display: grid; gap: 3px; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--bg); text-align: left; font: var(--text-meta, .85rem) / 1.5 var(--font-chrome);
+}
+.abilities-list button:hover:not(:disabled) { border-color: var(--accent); background: var(--bg); }
+.ability-head { display: flex; align-items: center; gap: 8px; color: var(--gold); }
+.ability-head strong { color: var(--ink); font: 400 16px / 1.3 var(--font-read); }
+.ability-meta { margin-left: auto; color: var(--ink-muted); font-size: 11px; }
+.ability-desc { color: var(--ink); font: 14px / 1.45 var(--font-read); }
+.ability-cost { color: var(--ink-muted); font-size: 11px; }
+
+/* Canon check: a folded margin note (D164). Inside it the flag cards drop their own frames. */
+.canon-check { margin: .75rem 0 0; border-top: 1px solid var(--line); padding-top: .5rem; font: var(--text-meta, .8rem) / 1.5 var(--font-chrome); color: var(--ink-muted); }
+.canon-check > summary { display: flex; align-items: center; gap: .5rem; min-height: 32px; list-style: none; cursor: pointer; border-radius: 0; }
+.canon-check > summary::-webkit-details-marker { display: none; }
+.canon-check > summary::before { content: "▸"; color: var(--ink-faint); }
+.canon-check[open] > summary::before { content: "▾"; }
+.canon-check-title { color: var(--ink-muted); }
+.canon-check-count { margin-left: auto; color: var(--ink-faint); font-size: 11px; }
+.canon-check.needs-look .canon-check-count { color: var(--danger); }
+.canon-check .check-flags,
+.canon-check .guard-card { margin: .5rem 0 0; padding: .5rem 0 0; border: 0; border-left: 0; background: none; font-size: 12px; }
+.canon-check .check-flags h3,
+.canon-check .guard-card h3 { margin: 0 0 .35rem; font: 600 12px / 1.4 var(--font-chrome); color: var(--ink); }
+.canon-check .check-flag p,
+.canon-check .guard-card p { margin: 0 0 .35rem; }
+.canon-check button { min-height: 32px; padding: 2px 10px; font-size: 12px; }
+
+/* The vendor where the PC stands (D166): a pill by the composer opens the wares as a pop-up. */
+.shop-here {
+  display: flex; align-items: center; gap: 10px; width: 100%; margin: 0 0 10px; padding: 8px 12px;
+  border: 1px solid var(--line-gold, var(--line)); border-radius: 999px; background: var(--surface);
+  color: var(--ink); font: var(--text-meta, .85rem) / 1.4 var(--font-chrome); text-align: left;
+}
+.shop-here .chrome-icon { color: var(--gold); flex: none; }
+.shop-here strong { color: var(--gold); font-weight: 600; }
+.shop-here-cta { margin-left: auto; color: var(--accent); white-space: nowrap; }
+.shop-here:hover { border-color: var(--accent); background: var(--surface); }
+.dialog.shop-dialog { width: min(920px, calc(100vw - 32px)); max-width: none; max-height: calc(100dvh - 48px); overflow-y: auto; }
+.shop-dialog .market-head h3 { display: none; }
+.shop-card button { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; }

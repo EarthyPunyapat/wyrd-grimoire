@@ -49,6 +49,23 @@ const WORDS: Record<Degree, string> = {
   critFailure: "badly",
 };
 
+type Clock = GameState["clocks"][string];
+
+const isResearchOf = (clock: Clock, actorId: ActorId) =>
+  clock.id.startsWith("clock:research:") && clock.ownerId === actorId;
+
+/** The actor's research topics, oldest first. */
+export function researchClocks(state: GameState, actorId: ActorId): Clock[] {
+  return Object.values(state.clocks).filter((c) => isResearchOf(c, actorId));
+}
+
+/** Drop one of the actor's research topics; nothing else can be removed this way. */
+export function abandonResearch(state: GameState, actorId: ActorId, clockId: string): Result<EventDraft[]> {
+  const clock = state.clocks[clockId];
+  if (!clock || !isResearchOf(clock, actorId)) return fail("CLOCK_UNKNOWN", `No research called ${clockId}`);
+  return ok([draft("ClockRemoved", { clockId, reason: "research abandoned" }, "player")]);
+}
+
 export function resolveDowntime(
   state: GameState,
   actorId: ActorId,
@@ -168,13 +185,23 @@ export function resolveDowntime(
       break;
     }
     case "research": {
-      if (action.clockId) {
-        const clock = state.clocks[action.clockId];
-        if (!clock) return fail("CLOCK_UNKNOWN", `No research called ${action.clockId}`);
+      // One clock per topic: researching it again continues it (D162).
+      const topic = action.topic.trim();
+      const clock = action.clockId
+        ? state.clocks[action.clockId]
+        : researchClocks(state, actorId).find((c) => c.name.trim().toLowerCase() === topic.toLowerCase());
+      if (action.clockId && (!clock || !isResearchOf(clock, actorId)))
+        return fail("CLOCK_UNKNOWN", `No research called ${action.clockId}`);
+      if (clock) {
+        if (clock.filled >= clock.segments)
+          return fail(
+            "RESEARCH_DONE",
+            `${ctx.nameOf(actorId)} has already finished researching ${clock.name}`,
+          );
         events.push(
-          draft("ClockAdvanced", { clockId: action.clockId, by: 1, reason: "a spell of research" }, "engine"),
+          draft("ClockAdvanced", { clockId: clock.id, by: 1, reason: "a spell of research" }, "engine"),
         );
-        rewards.clockId = action.clockId;
+        rewards.clockId = clock.id;
         summary = `${ctx.nameOf(actorId)} advances the research on ${clock.name}.`;
       } else {
         const id = `clock:research:${actorId}:${state.campaign.gameTime}`;
@@ -184,7 +211,7 @@ export function resolveDowntime(
             {
               clock: {
                 id,
-                name: action.topic,
+                name: topic,
                 kind: "progress",
                 segments: t.researchSegments,
                 filled: 1,
@@ -196,7 +223,7 @@ export function resolveDowntime(
           ),
         );
         rewards.clockId = id;
-        summary = `${ctx.nameOf(actorId)} begins research into ${action.topic}.`;
+        summary = `${ctx.nameOf(actorId)} begins research into ${topic}.`;
       }
       break;
     }

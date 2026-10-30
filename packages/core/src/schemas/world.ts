@@ -177,6 +177,8 @@ export type Threat = z.infer<typeof Threat>;
 export const worldEventSchemas = {
   ClockCreated: z.object({ clock: Clock }),
   ClockAdvanced: z.object({ clockId: Id, by: z.number().int(), reason: z.string() }),
+  /** A clock taken off the board, e.g. research the player abandons. */
+  ClockRemoved: z.object({ clockId: Id, reason: z.string() }),
   FactionUpdated: z.object({ faction: FactionState }),
   ReputationChanged: z.object({ factionId: Id, delta: z.number().int(), reason: z.string() }),
   RelationshipChanged: z.object({ edge: Edge }),

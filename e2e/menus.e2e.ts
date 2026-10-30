@@ -21,7 +21,7 @@ async function market(page: Page) {
     return ((await response.json()) as { id: string }).id;
   });
   await page.goto(`/#campaign=${id}`);
-  await expect(page.getByRole("button", { name: /Campaign settings/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Settings", exact: true })).toBeVisible();
 }
 
 const blur = (page: Page) => page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
@@ -63,7 +63,7 @@ test("tabs change with the arrow keys and touch", async ({ page }) => {
   await page.keyboard.press("ArrowRight");
   await expect(page.getByRole("dialog", { name: "Quests" })).toBeVisible();
   await page.keyboard.press("End");
-  await expect(page.getByRole("dialog", { name: "Campaign settings" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
 });
 
 test("an item opens the story card; equip and move are instant and use sends a turn", async ({ page }) => {

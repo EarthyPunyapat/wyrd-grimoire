@@ -497,8 +497,10 @@ export class TurnPipeline {
     turn: Parameters<typeof assemble>[0]["turn"],
   ): AssembledPrompt {
     const combat = this.combatText(state);
-    const travel = role === "parser" && !state.combat ? this.travelText(state) : undefined;
-    const spells = role === "parser" && !state.combat ? this.spellText(state) : undefined;
+    // The GM resolves actions itself, so it needs the same site IDs and roads the parser gets.
+    const acts = role === "parser" || role === "gm";
+    const travel = acts && !state.combat ? this.travelText(state) : undefined;
+    const spells = acts && !state.combat ? this.spellText(state) : undefined;
     const survival = this.survivalText(state);
     const roleInstructions =
       role === "gm"

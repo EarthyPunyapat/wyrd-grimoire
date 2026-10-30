@@ -18,6 +18,18 @@ Owner-only checks still outstanding (need real hardware or keys):
 - M5: a real-model world run and the NPC-knowledge eval.
 - M8: media (images, TTS) has not been built.
 
+## Owner UI review fixes (2026-10-30)
+
+Built on `fix-ui-nine` from the owner's playtest list; decisions D162–D165.
+
+- **Choices:** clicking a GM choice sent it as a clarification answer, so the server returned 409 "That clarification is no longer current". `Passage` now has separate `onChoice(label)` and `onClarify(option, label)`.
+- **Map / location:** the GM role never got the travel context (site ids, Roads), so journeys were narrated without `act travel` and the scene stayed put. GM prompt gm@3 includes Roads and rule 11. The map was redrawn: a "You are here" header from the real scene, region panels, curved same-column roads, 1:1 text, road list with danger, side panel.
+- **Research / training:** one clock per topic (repeat continues, finished refused, only own research clocks), `ClockRemoved` + `DELETE /api/campaigns/:id/research/:clockId` to abandon; skills and teachers are dropdowns.
+- **Shops (D163, D166):** `ShopOpened` stamps the scene location; `shopHere` gates the view and trade route (legacy shops fall back to the first scene; a present-person merchant must be in the scene). No menu trades: a "shop here" pill and the GM's `shop` card open `ShopWares` as a pop-up. GM tool `open_shop` (`gm/tools/shops.ts`, engine `openShop`) opens vendors with their own wares. `player:` creation gear can't be sold (`SIGNATURE_ITEM`); sales confirm.
+- **UI:** one Settings tab (campaign rules + device/display/models; App passes the shared panel); Abilities list on the hotbar (K); `ChromeIcon` stroke icons for chrome; inventory redesigned; canon check folded into the margin rail.
+- **Owner's DC campaign:** the ring and battery were sold at seq 426–430 through the old bag Sell button; the scene is still `location:opening` because of the travel bug. Not repaired in data — see the reply to the owner.
+- **Validation:** `bun run check` green (885 tests); full sequential Playwright 74 passed, 4 existing skips.
+
 ## W2 E — Time skips and the god-game (2026-10-29)
 
 Built test-first on `w2-skips`, merged to `main`. Plan: `docs/superpowers/plans/2026-10-29-w2-skips.md`; defaults: D161.

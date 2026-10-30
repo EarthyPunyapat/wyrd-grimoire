@@ -39,7 +39,8 @@ When the router has a `gm` route, a new turn runs the GM loop instead of parser 
 
 ```
 1. CONTEXT      the GM prompt: the narrator sections plus "Your state" (items with ids,
-                coins, HP, conditions, quests and companions with ids), the input
+                coins, HP, conditions, quests and companions with ids), the current
+                site and its Roads with site ids (as the parser gets them), the input
                 (a leading /gm is stripped and becomes a retcon instruction)
 2. LOOP         router.complete("gm", …, tools) up to tuning.gm.maxToolRounds (8) rounds;
                 each tool call runs against a working state folded from the turn's drafts,
@@ -52,7 +53,7 @@ When the router has a `gm` route, a new turn runs the GM loop instead of parser 
                 EntityCreated stubs, and emits check.flag. It never rewrites or fails the turn.
 ```
 
-Tools: `roll`, `act`, `change_state`, `retcon`, `lookup_lore`, `observe`, `time_skip`, `show_card`, `offer_choices`. `act` and `roll` wrap `validateTurn`/`resolveTurn`, so exploration, travel, combat, reactions and world ticks are reused. `change_state` and `retcon` emit ordinary events plus `ItemDefined`, `RetconApplied` and `RetconUndone`. Each change is validated independently: an unknown id rejects only that change, with the reason in the tool result.
+Tools: `roll`, `act`, `change_state`, `retcon`, `lookup_lore`, `observe`, `time_skip`, `show_card`, `offer_choices`, `open_shop` (D166). `act` and `roll` wrap `validateTurn`/`resolveTurn`, so exploration, travel, combat, reactions and world ticks are reused. `change_state` and `retcon` emit ordinary events plus `ItemDefined`, `RetconApplied` and `RetconUndone`. Each change is validated independently: an unknown id rejects only that change, with the reason in the tool result.
 
 Only known campaign entities and their public facts reach `lookup_lore`, `observe` or the GM context. `lookup_lore` can additionally research external wiki lore (D136): selected-world canon → global summary cache → wiki → low-confidence model knowledge, with researching progress before async work. Campaign secrets are never included in the external research prompt. A retcon card carries `Undo`, available until the player's next turn; Undo appends the stored inverse events and `RetconUndone`, and a later attempt returns `409 Undo is only available until your next turn`.
 

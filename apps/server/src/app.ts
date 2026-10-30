@@ -64,6 +64,7 @@ import {
   resolveDowntime,
   runTicks,
   sell,
+  shopHere,
   skillLabel,
   skillValue,
   startingKitEvents,
@@ -172,6 +173,20 @@ export function visibleSpells(state: GameState, pack: CompiledPack, pcId: string
 }
 
 /** Read the player's house-style examples from WYRD_HOME/style/house/*.md; failure means none. */
+/** Where a campaign's first scene opened: the home of a shop recorded before shops had a place. */
+function openingLocationId(game: CampaignStore<GameState>): string | undefined {
+  for (const e of game.events())
+    if (e.type === "SceneOpened") return (e.payload as { scene: { locationId: string } }).scene.locationId;
+  return undefined;
+}
+
+/** The shop at the PC's current location, or null (spec 11, Money). */
+function currentShop(game: CampaignStore<GameState>) {
+  const state = game.state();
+  const shops = Object.values(state.economy?.shops ?? {});
+  return shopHere(state, shops.some((shop) => !shop.locationId) ? openingLocationId(game) : undefined);
+}
+
 function houseStyleExamples(home: string): string[] {
   const dir = join(home, "style", "house");
   try {
@@ -1010,11 +1025,13 @@ export function createApp(options: Options) {
       resolution,
       theme: state.campaign.settings.theme ?? gamePack.theme ?? null,
       shop: (() => {
-        const shopState = Object.values(state.economy?.shops ?? {})[0];
+        const shopState = currentShop(game);
         if (!shopState) return null;
         return {
           id: shopState.id,
           name: shopState.name,
+          merchant: shopState.merchant.name === "the shopkeeper" ? "" : shopState.merchant.name,
+          kind: shopState.kind,
           attitude: shopState.attitude,
           items: shopState.stock.map((line) => {
             const item =
@@ -1569,7 +1586,7 @@ export function createApp(options: Options) {
     const game = campaign(id);
     const state = game.state();
     const pcId = state.party.pcId;
-    const shopState = Object.values(state.economy?.shops ?? {})[0];
+    const shopState = currentShop(game);
     if (!pcId || !shopState) throw new HTTPException(409, { message: "There is no shop here to trade with" });
     const pack = game.packSnapshot()!.content as CompiledPack;
     const canon = new CanonQueries(game);

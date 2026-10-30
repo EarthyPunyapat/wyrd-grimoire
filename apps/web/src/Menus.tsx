@@ -1,8 +1,8 @@
 import type { GameView } from "@wyrd/core";
-import { type KeyboardEvent, useEffect, useRef } from "react";
+import { type KeyboardEvent, type ReactNode, useEffect, useRef } from "react";
 import { CampaignSettingsPanel } from "./CampaignSettings.tsx";
 import { Inventory } from "./Inventory.tsx";
-import { GameIcon, type GameIconName } from "./icons.tsx";
+import { ChromeIcon, type ChromeIconName } from "./icons.tsx";
 import { Party } from "./Party.tsx";
 import { Sheet } from "./Sheet.tsx";
 import { Timeline } from "./Timeline.tsx";
@@ -11,18 +11,18 @@ import { Codex, Journal, Quests, WorldMap } from "./World.tsx";
 /** The full-screen status screen's tabs (spec §12, U4). Key hints are hints, never names. */
 export const MENU_TABS = [
   { id: "character", label: "Character", key: "C", icon: "person" },
-  { id: "inventory", label: "Inventory", key: "I", icon: "bag" },
-  { id: "quests", label: "Quests", key: "Q", icon: "scroll" },
+  { id: "inventory", label: "Inventory", key: "I", icon: "backpack" },
+  { id: "quests", label: "Quests", key: "Q", icon: "quest" },
   { id: "journal", label: "Journal", key: "J", icon: "book" },
-  { id: "codex", label: "Codex", key: null, icon: "gems" },
+  { id: "codex", label: "Codex", key: null, icon: "gem" },
   { id: "map", label: "Map", key: "M", icon: "map" },
   { id: "timeline", label: "Timeline", key: null, icon: "hourglass" },
-  { id: "settings", label: "Settings", key: null, icon: "gears" },
+  { id: "settings", label: "Settings", key: null, icon: "gear" },
 ] as const satisfies readonly {
   id: string;
   label: string;
   key: string | null;
-  icon: GameIconName;
+  icon: ChromeIconName;
 }[];
 
 export type MenuTab = (typeof MENU_TABS)[number]["id"];
@@ -48,6 +48,7 @@ export function Menus({
   onOpenCampaign,
   onClose,
   codexFocus,
+  appSettings,
 }: {
   view: GameView;
   tab: MenuTab;
@@ -59,6 +60,8 @@ export function Menus({
   onOpenCampaign?: (id: string) => void | Promise<void>;
   onClose: () => void;
   codexFocus?: string | null;
+  /** Device, display and model settings: the one Settings screen holds them with the campaign's rules. */
+  appSettings?: ReactNode;
 }) {
   const tablist = useRef<HTMLDivElement>(null);
   const stamp = view.turns.length;
@@ -68,17 +71,18 @@ export function Menus({
       inline: "nearest",
     });
   }, [tab]);
+  const tabs = MENU_TABS;
   const move = (event: KeyboardEvent<HTMLDivElement>) => {
-    const index = MENU_TABS.findIndex((entry) => entry.id === tab);
+    const index = tabs.findIndex((entry) => entry.id === tab);
     let next = index;
-    if (event.key === "ArrowRight" || event.key === "ArrowDown") next = (index + 1) % MENU_TABS.length;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") next = (index + 1) % tabs.length;
     else if (event.key === "ArrowLeft" || event.key === "ArrowUp")
-      next = (index - 1 + MENU_TABS.length) % MENU_TABS.length;
+      next = (index - 1 + tabs.length) % tabs.length;
     else if (event.key === "Home") next = 0;
-    else if (event.key === "End") next = MENU_TABS.length - 1;
+    else if (event.key === "End") next = tabs.length - 1;
     else return;
     event.preventDefault();
-    const target = MENU_TABS[next]!;
+    const target = tabs[next]!;
     onTab(target.id);
     requestAnimationFrame(() =>
       tablist.current?.querySelector<HTMLElement>(`[data-tab="${target.id}"]`)?.focus(),
@@ -92,7 +96,7 @@ export function Menus({
         </p>
       </header>
       <div ref={tablist} className="status-tabs" role="tablist" aria-label="Status screen" onKeyDown={move}>
-        {MENU_TABS.map((entry) => (
+        {tabs.map((entry) => (
           <button
             key={entry.id}
             type="button"
@@ -104,7 +108,7 @@ export function Menus({
             tabIndex={tab === entry.id ? 0 : -1}
             onClick={() => onTab(entry.id)}
           >
-            <GameIcon name={entry.icon} size={18} />
+            <ChromeIcon name={entry.icon} size={18} />
             {entry.key && (
               <span className="key" aria-hidden="true">
                 {entry.key}
@@ -136,7 +140,14 @@ export function Menus({
           )}
           {tab === "inventory" && <Inventory view={view} onChanged={onRefresh} onSend={onSend} />}
           {tab === "quests" && <Quests campaignId={view.id} stamp={stamp} />}
-          {tab === "journal" && <Journal campaignId={view.id} stamp={stamp} />}
+          {tab === "journal" && (
+            <Journal
+              campaignId={view.id}
+              stamp={stamp}
+              skills={view.skills}
+              present={view.scene?.present ?? []}
+            />
+          )}
           {tab === "codex" && (
             <Codex
               campaignId={view.id}
@@ -147,7 +158,13 @@ export function Menus({
             />
           )}
           {tab === "map" && (
-            <WorldMap campaignId={view.id} stamp={stamp} onTravel={onTravel} onCodex={onOpenCodex} />
+            <WorldMap
+              campaignId={view.id}
+              stamp={stamp}
+              onTravel={onTravel}
+              onCodex={onOpenCodex}
+              place={view.scene ? { location: view.scene.location, zone: view.scene.zone } : null}
+            />
           )}
           {tab === "timeline" && (
             <Timeline
@@ -158,12 +175,36 @@ export function Menus({
             />
           )}
           {tab === "settings" && (
-            <section className="status-section" aria-label="Settings">
-              <p className="status-lede">
-                The rules of this campaign. App-wide settings live behind the Settings button in the strip.
-              </p>
-              <CampaignSettingsPanel campaignId={view.id} />
-            </section>
+            <div className="settings-screen">
+              {appSettings && (
+                <nav className="settings-jump" aria-label="Settings sections">
+                  {[
+                    ["settings-campaign", "This campaign"],
+                    ["settings-app", "Display, device and models"],
+                  ].map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className="small-link"
+                      onClick={() => document.getElementById(id!)?.scrollIntoView({ block: "start" })}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </nav>
+              )}
+              <section className="status-section" aria-labelledby="settings-campaign">
+                <h3 id="settings-campaign">This campaign</h3>
+                <p className="status-lede">The rules of {view.name}.</p>
+                <CampaignSettingsPanel campaignId={view.id} />
+              </section>
+              {appSettings && (
+                <section className="status-section" aria-labelledby="settings-app">
+                  <h3 id="settings-app">This device and your models</h3>
+                  {appSettings}
+                </section>
+              )}
+            </div>
           )}
         </div>
       </section>

@@ -134,6 +134,8 @@ export const ShopState = z.object({
   kind: z.string().default("general"),
   settlement: SettlementSize.default("village"),
   merchant: z.object({ id: z.string(), name: z.string(), insight: z.number().int().min(1).max(99) }),
+  /** The merchant is a person in the scene: the shop trades only while they are present (D166). */
+  merchantPresent: z.boolean().default(false),
   /** Merchant attitude toward the PC, −100…100; selling rates and haggling use it. */
   attitude: z.number().int().min(-100).max(100).default(0),
   /** Template markup over the pack price. */

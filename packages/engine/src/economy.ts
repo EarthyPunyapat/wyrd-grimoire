@@ -3,9 +3,11 @@ import {
   type ArmorDef,
   draft,
   type EventDraft,
-  type GearDef,
+  GearDef,
   type ItemCatalog,
-  type ShopState,
+  type OpenShopArgs,
+  ShopState,
+  slugify,
   type WeaponDef,
 } from "@wyrd/core";
 import { resolveCheck } from "./checks.ts";
@@ -50,6 +52,105 @@ export function sellPrice(shop: ShopState, basePrice: number, ctx: EconomyContex
   const { min, max } = ctx.tuning.economy.selling;
   const share = min + ((shop.attitude + 100) / 200) * (max - min);
   return Math.max(1, Math.round(basePrice * share));
+}
+
+/**
+ * The shop at the PC's current location, or null. A shop lives where it opened; one recorded before
+ * shops had a place uses `fallbackLocationId` (the campaign's opening location).
+ */
+export function shopHere(state: GameState, fallbackLocationId?: string): ShopState | null {
+  const scene = state.scene;
+  if (!scene) return null;
+  return (
+    Object.values(state.economy?.shops ?? {}).find(
+      (shop) =>
+        (shop.locationId ?? fallbackLocationId) === scene.locationId &&
+        // A merchant who is a person in the scene has to be here to sell (D166).
+        (!shop.merchantPresent || scene.positions[shop.merchant.id] !== undefined),
+    ) ?? null
+  );
+}
+
+const ITEM_TABLES = ["weapons", "armor", "gear"] as const;
+
+/** An existing item with this name (or whose id ends in its slug), so a vendor's wares reuse the catalog. */
+function catalogItem(items: ItemCatalog, name: string): string | null {
+  const wanted = name.trim().toLowerCase();
+  const slug = slugify(name, "item");
+  for (const table of ITEM_TABLES)
+    for (const [id, def] of Object.entries(items[table]))
+      if (def.name.toLowerCase() === wanted || id.split(":").pop() === slug) return id;
+  return null;
+}
+
+/**
+ * Open a vendor at the PC's location (D166): the GM names the merchant and wares that fit them. Wares
+ * reuse catalog items by name; new ones are defined for this campaign. One vendor trades per place.
+ */
+export function openShop(
+  state: GameState,
+  args: OpenShopArgs,
+  items: ItemCatalog,
+): Result<{ drafts: EventDraft[]; shopId: string }> {
+  const scene = state.scene;
+  if (!scene) return fail("NO_SCENE", "There is no scene to open a shop in");
+  const existing = shopHere(state);
+  if (existing)
+    return fail(
+      "SHOP_HERE",
+      `${existing.name} already trades here (${existing.id}); show it with a shop card`,
+    );
+  const drafts: EventDraft[] = [];
+  const defined = new Set<string>();
+  const taken = (id: string) => defined.has(id) || ITEM_TABLES.some((t) => Object.hasOwn(items[t], id));
+  const stock = args.stock.map((line) => {
+    const known = catalogItem(items, line.name);
+    if (known) return { itemId: known, qty: line.qty, price: line.price };
+    const base = slugify(line.name, "item");
+    let local = base;
+    for (let n = 2; taken(`campaign:${local}`); n++) local = `${base}-${n}`;
+    const itemId = `campaign:${local}`;
+    defined.add(itemId);
+    drafts.push(
+      draft(
+        "ItemDefined",
+        {
+          itemId,
+          def: GearDef.parse({
+            id: local,
+            name: line.name,
+            description: line.description,
+            weightKg: line.weightKg,
+            price: line.price,
+            tags: ["gm", "shop"],
+          }),
+        },
+        "model",
+      ),
+    );
+    return { itemId, qty: line.qty, price: line.price };
+  });
+  const present = !!args.merchant.id && scene.positions[args.merchant.id] !== undefined;
+  const slug = slugify(args.name, "shop");
+  let shopId = `shop:${slug}`;
+  for (let n = 2; state.economy?.shops[shopId]; n++) shopId = `shop:${slug}-${n}`;
+  const shop = ShopState.parse({
+    id: shopId,
+    templateId: "gm",
+    locationId: scene.locationId,
+    name: args.name,
+    kind: args.kind,
+    merchant: {
+      id: present ? args.merchant.id : `npc:merchant-${slugify(args.merchant.name, "merchant")}`,
+      name: args.merchant.name,
+      insight: 30,
+    },
+    merchantPresent: present,
+    stock,
+    lastRefresh: state.campaign.gameTime,
+  });
+  drafts.push(draft("ShopOpened", { shop }, "model"));
+  return ok({ drafts, shopId });
 }
 
 function shopOf(state: GameState, shopId: string): ShopState | null {
@@ -101,6 +202,12 @@ export function sell(
   const shop = shopOf(state, shopId);
   if (!shop) return fail("SHOP_UNKNOWN", `No shop called ${shopId}`);
   if (qty <= 0) return fail("QTY_INVALID", "Sell at least one");
+  // Gear the player wrote into their character is player canon (D147): it isn't pawned with one click.
+  if (itemId.startsWith("player:"))
+    return fail(
+      "SIGNATURE_ITEM",
+      "That's part of who your character is, so the merchant won't take it here. Sell it in the story if you mean it.",
+    );
   const have = state.inventory?.actors[actorId]?.stacks
     .filter((s) => s.itemId === itemId)
     .reduce((sum, s) => sum + s.qty, 0);

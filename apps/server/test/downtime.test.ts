@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { draft } from "@wyrd/core";
+import { draft, GameView, SceneState } from "@wyrd/core";
 import { type GameState, reduce } from "@wyrd/engine";
 import { CampaignStore } from "@wyrd/storage";
 import { createApp } from "../src/app.ts";
@@ -81,4 +81,64 @@ test("a campaign with an unknown mark already in its log still loads", async () 
   const progression = await request(reopened, `/campaigns/${id}/progression`, undefined, cookie);
   expect(progression.status).toBe(200);
   expect(JSON.stringify(await progression.json())).not.toContain("core:nope");
+});
+
+test("the journal lists research topics, repeats continue them, and one can be abandoned", async () => {
+  const { server } = setup();
+  const cookie = await login(server);
+  const id = await quickStart(server, cookie);
+  const research = { action: { type: "research", topic: "Kryptonite" } };
+  expect((await request(server, `/campaigns/${id}/downtime`, research, cookie)).status).toBe(200);
+  expect((await request(server, `/campaigns/${id}/downtime`, research, cookie)).status).toBe(200);
+  const journal = (await (await request(server, `/campaigns/${id}/journal`, undefined, cookie)).json()) as {
+    research: { id: string; name: string; filled: number }[];
+    clocks: { name: string }[];
+  };
+  expect(journal.research).toHaveLength(1);
+  expect(journal.research[0]).toMatchObject({ name: "Kryptonite", filled: 2 });
+  expect(journal.clocks.some((c) => c.name === "Kryptonite")).toBe(false);
+
+  const gone = await request(
+    server,
+    `/campaigns/${id}/research/${encodeURIComponent(journal.research[0]!.id)}`,
+    undefined,
+    cookie,
+    "DELETE",
+  );
+  expect(gone.status).toBe(200);
+  expect(((await gone.json()) as { research: unknown[] }).research).toHaveLength(0);
+  const again = await request(server, `/campaigns/${id}/research/clock:nope`, undefined, cookie, "DELETE");
+  expect(again.status).toBe(404);
+});
+
+test("the shop stays where it opened: leaving the place takes it off the screen and the API", async () => {
+  const { server, home } = setup();
+  const cookie = await login(server);
+  const id = await quickStart(server, cookie);
+  const view = async (s: Server) =>
+    GameView.parse(await (await request(s, `/campaigns/${id}/view`, undefined, cookie)).json());
+  const shop = (await view(server)).shop;
+  expect(shop).not.toBeNull();
+
+  server.close();
+  servers.splice(servers.indexOf(server), 1);
+  const store = CampaignStore.open<GameState>(join(home, "campaigns", id, "campaign.db"), { reduce });
+  const here = store.state().scene!;
+  store.append([
+    draft("SceneOpened", {
+      scene: SceneState.parse({ ...here, id: "scene:rooftop", locationId: "location:rooftop" }),
+    }),
+  ]);
+  store.close();
+
+  const moved = createApp({ home, offline: true });
+  servers.push(moved);
+  expect((await view(moved)).shop).toBeNull();
+  const buy = await request(
+    moved,
+    `/campaigns/${id}/shop/buy`,
+    { itemId: shop!.items[0]!.id, qty: 1 },
+    cookie,
+  );
+  expect(buy.status).toBe(409);
 });
