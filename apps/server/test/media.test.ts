@@ -162,6 +162,7 @@ describe("the media worker", () => {
     expect(mediaOf(a.game.state()).portraits["npc:magda"]).toBeUndefined();
 
     const b = world();
+    b.game.append([draft("KnowledgeGained", { factId: "f:magda-hair", entry: { how: "witnessed", gameTime: 0 } })]);
     const wiki = fakeWiki({});
     const withComfy = worker({ ...b, wiki, provider: generated, limit: 10 });
     withComfy.after("c1");
@@ -481,4 +482,28 @@ test("connecting ComfyUI takes effect at once for characters nothing could pictu
   w.after("c1");
   await w.idle();
   expect(mediaOf(game.state()).portraits["npc:magda"]?.origin).toBe("generated");
+});
+
+test("a generated portrait only uses what the PC knows about the person", async () => {
+  const { home, game } = world();
+  // Magda isn't here, and the PC never learned her hair: the prompt mustn't reveal it.
+  let prompt = "";
+  const w = worker({
+    home,
+    game,
+    wiki: fakeWiki({}),
+    limit: 10,
+    provider: {
+      id: "comfyui",
+      generate: async (req) => {
+        if (req.prompt.includes("braids") || prompt === "") prompt = req.prompt;
+        return { bytes: PNG, mime: "image/png", seed: 1, meta: {} };
+      },
+    },
+  });
+  w.after("c1");
+  await w.idle();
+  expect(mediaOf(game.state()).portraits["npc:magda"]?.prompt).not.toContain("white braids");
+  game.append([draft("KnowledgeGained", { factId: "f:magda-hair", entry: { how: "witnessed", gameTime: 0 } })]);
+  expect(prompt).not.toContain("white braids");
 });

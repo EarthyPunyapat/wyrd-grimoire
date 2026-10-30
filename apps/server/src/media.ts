@@ -188,8 +188,14 @@ export class MediaWorker {
   private targets(game: CampaignStore<GameState>, state: GameState, forced = new Set<string>()): Target[] {
     const canon = new CanonQueries(game);
     const media = mediaOf(state);
-    const facts = (id: string): Fact[] =>
-      canon.factsAbout(id).map((f) => ({ predicate: f.predicate, value: String(f.value) }));
+    // The same rule as the Codex: facts the PC learned, or anything about someone in the scene right now.
+    const facts = (id: string): Fact[] => {
+      const present = !!state.scene && (id in state.scene.positions || id === state.scene.locationId);
+      return canon
+        .factsAbout(id)
+        .filter((f) => present || state.knowledge.facts[f.id])
+        .map((f) => ({ predicate: f.predicate, value: String(f.value) }));
+    };
     const out: Target[] = [];
     const add = (t: Target) => {
       const attached = t.role === "portrait" ? media.portraits[t.id] : media.banners[t.id];
