@@ -4,7 +4,7 @@ Working notes for whoever picks this up next. Read `AGENTS.md` first, then this 
 
 ## Status (2026-10-30)
 
-**M1–M7, W2 step 2, workstreams A (Levels/abilities), B (avatars/sealing), C (wiki lore), D (source creation/style/canon clocks), E (time skips/watch list) and F (companions/delegation), plus UI 2.0 U3, U4, U5 (home and creation) and U6 (presets and dials), are built.** Owner-only and remaining W2 checks stay unticked in `docs/milestones.md`.
+**M1–M7, W2 step 2, workstreams A (Levels/abilities), B (avatars/sealing), C (wiki lore), D (source creation/style/canon clocks), E (time skips/watch list) and F (companions/delegation), plus UI 2.0 U3, U4, U5 (home and creation) and U6 (presets and dials), plus 2.x Presets & Cards, are built.** Owner-only and remaining W2 checks stay unticked in `docs/milestones.md`.
 The GM-with-tools turn (Tasks 1–8 of `docs/superpowers/plans/2026-10-29-w2-step2-gm-turn.md`) is on
 `w2-gm-ui` and merges to `main`: one GM model runs a turn with engine tools, streams prose, shows
 cards and choices, retcons with Undo, marks a backup model and runs a non-blocking structural check
@@ -17,6 +17,29 @@ Owner-only checks still outstanding (need real hardware or keys):
 - M3: LAN/phone playtest from the Arch laptop and a phone.
 - M5: a real-model world run and the NPC-knowledge eval.
 - M8: media (images, TTS) has not been built.
+
+## 2.x Presets & Cards (2026-10-30)
+
+Built from [the plan](docs/superpowers/plans/2026-10-30-presets-and-cards.md) on `w2x-presets`; decisions D167, D174. Main through `10f90ea` is merged, including D173.
+
+- App-store migration v4 adds validated world setups, character cards and saved worlds, with timestamps and last-write-wins saves. First Light's existence-based tables are retained.
+- Creation opens on the character/world chooser. Eight original starters include generated 800×450 WebP banners under 150 KB each; prompts are in `apps/web/public/starters/PROMPTS.md`. Continue prefills the pitch/review; Begin with these skips to generation/start; Vary it changes only the in-progress pitch.
+- Cards save from review, import and campaign Settings; carry ∞, abilities, signature gear, stats and loyal companions/voices; adapt per campaign; update explicitly. Card/adaptation choices survive draft resume; clearing a required field while editing keeps the last valid autosaved proposal. Saved worlds clone their original generated draft with a fresh ID and no old character.
+- Settings → Keep this campaign provides all campaign save/update actions. Built-ins only duplicate; own library entries rename, duplicate and delete. Source metadata survives resumed saved-world previews. A no-draft campaign returns the specified 409 when asked to save its world.
+- Review covered schema/API boundaries, built-in immutability, snapshot updates, skill portability, source resume, browser readiness, adaptation loading and invalid intermediate autosaves. Inverting the built-in guard makes the API regression test fail. Desktop and phone chooser axe checks pass; the UI detector reports no findings.
+- Validation: final `bun run check` passes: typecheck, lint (14 warnings), **953 offline tests**, and fantasy-core pack validation. Build passes. Full sequential Playwright: **88 passed, 4 existing skips**, including the autosave regression and D173 vendor behavior. Tests use FakeProvider/fixtures, never real model or wiki calls. Browser runs use one worker on `WYRD_E2E_PORT=4799`.
+- Deferred: independently verifying the plan-supplied Reverend Insanity wiki host, because this task forbids external network calls. Starter art is complete; no other build work is deferred.
+
+- Ruling: `StartCard` lives beside `StartGeneratedCampaign` in world-generation.ts — importing it from presets.ts would create a runtime schema initialization cycle.
+- Ruling: Starter “lethality high” maps to `brutal`; scarcity uses Simulation's inventory, money and survival toggles — those are the existing schema values; there is no separate scarcity switch.
+- Ruling: The Reverend Insanity starter uses the wiki host supplied in the plan, pending owner verification — this task explicitly forbids network access, so the plan's external VERIFY cannot run here.
+- Ruling: Card stats overlay a validated new-world base sheet before ActorCreated, with derived stats recomputed — an already-played card can exceed new-character point-buy budgets; IDs are checked against the combined core + pack skill catalogue.
+- Ruling: Card PATCH edits the title only — character contents change through the explicit Update card route, as D167 requires.
+- Ruling: The merge of main retains D173's removal of starting shops and merchant-presence gating, while preserving the card sheet overlay — choosing a setup or card must never reopen a vendor at campaign start.
+- Ruling: New schema tests live in `packages/core/test/cards.test.ts` — `presets.test.ts` already covers rules presets; its existing regression coverage is preserved.
+- Ruling: Explicitly injected routers may run Vary it/adapt in offline fixtures — this matches the existing creation-style injection and keeps production offline errors while allowing FakeProvider browser tests.
+- Ruling: Saved worlds also have rename and duplicate endpoints — chooser management requires these actions for own entries, beyond the plan's minimum list/delete/clone interface.
+- Ruling: Creation drafts persist the selected card and edited adaptation; saved-world copies remove both — otherwise closing creation loses the chosen character, or reusing a world carries the old PC.
 
 ## Vendors only when someone is selling (2026-10-30, D173)
 
@@ -269,14 +292,3 @@ In short:
 `PICK-WITH`, so save only after a real model id is chosen.
 
 After W2: **M8 — Media** (see `docs/spec/10-media.md`): image adapters (ComfyUI/Qwen-Image 2.1, OpenAI), portraits and scene-art consistency, TTS adapters (local, Deepgram), voice casting, segment playback and the GPU mutex.
-
-## 2.x Presets & Cards (in progress, 2026-10-30)
-
-- Ruling: `StartCard` lives beside `StartGeneratedCampaign` in world-generation.ts — importing it from presets.ts would create a runtime schema initialization cycle.
-- Ruling: Starter “lethality high” maps to `brutal`; scarcity uses Simulation's inventory, money and survival toggles — those are the existing schema values; there is no separate scarcity switch.
-- Ruling: The Reverend Insanity starter uses the wiki host supplied in the plan, pending owner verification — this task explicitly forbids network access, so the plan's external VERIFY cannot run here.
-
-- Ruling: Card stats overlay a validated new-world base sheet before ActorCreated, with derived stats recomputed — an already-played card can exceed new-character point-buy budgets; IDs are checked against the combined core + pack skill catalogue.
-- Ruling: Card PATCH edits the title only — character contents change through the explicit Update card route, as D167 requires.
-
-- Ruling: The merge of main retains D173's removal of starting shops and merchant-presence gating, while preserving the card sheet overlay — choosing a setup or card must never reopen a vendor at campaign start.
