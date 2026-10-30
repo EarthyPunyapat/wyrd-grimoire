@@ -27,7 +27,8 @@ async function campaign(page: Page) {
 
 async function openSettings(page: Page) {
   await page.getByRole("button", { name: "Settings", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Make yourself at home" });
+  // In play, Settings is the status screen tab holding the campaign rules and this device (D163).
+  const dialog = page.getByRole("dialog", { name: "Settings" });
   await expect(dialog.getByRole("group", { name: "Play screen preset" })).toBeVisible();
   return dialog;
 }
@@ -60,7 +61,7 @@ test("Cockpit and Chat switch mid-campaign on the same play components", async (
     expect(rail.x).toBeGreaterThan(prose.x + prose.width - 2);
   }
   // The settings dialog is modal; close it before pointing at the chrome underneath.
-  await page.getByRole("button", { name: "Close settings" }).click();
+  await page.getByRole("button", { name: "Close status screen" }).click();
   // 1px accent line for the selected menu item.
   const sheet = page.locator(".strip-menus button").filter({ hasText: "Character" }).first();
   await sheet.hover();
@@ -80,13 +81,13 @@ test("Cockpit and Chat switch mid-campaign on the same play components", async (
   if (await note.count()) {
     expect(await note.evaluate((node) => getComputedStyle(node).borderRadius)).toContain("14px");
   }
-  await page.getByRole("button", { name: "Close settings" }).click();
+  await page.getByRole("button", { name: "Close status screen" }).click();
   await page.screenshot({ path: info.outputPath("chat.png"), fullPage: true });
   dialog = await openSettings(page);
 
   // Back to Reader, then reload: the last choice is remembered.
   await dialog.getByRole("button", { name: "Reader", exact: true }).click();
-  await page.getByRole("button", { name: "Close settings" }).click();
+  await page.getByRole("button", { name: "Close status screen" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-preset", "reader");
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-preset", "reader");
@@ -122,7 +123,7 @@ test("the dials scale the story, column, density and motion and persist", async 
     const measureAfter = (await page.locator(".story-inner").boundingBox())!.width;
     expect(measureAfter).toBeGreaterThan(measureBefore);
   }
-  await page.getByRole("button", { name: "Close settings" }).click();
+  await page.getByRole("button", { name: "Close status screen" }).click();
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-text-size", "large");
   await expect(page.locator("html")).toHaveAttribute("data-motion", "none");

@@ -220,6 +220,10 @@
   font: 15px / 1.6 var(--font-read);
   max-width: 78ch;
 }
+/* The map draws at 1:1 so its names stay readable; it takes the screen's full width. */
+.status-screen .world-panel.map-panel {
+  max-width: none;
+}
 .status-screen .world-panel .small {
   font: var(--text-meta) / 1.6 var(--font-chrome);
 }
@@ -685,6 +689,11 @@
   display: grid;
   gap: var(--space-7);
   max-width: 760px;
+}
+.settings-jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
 }
 .app-settings {
   display: grid;

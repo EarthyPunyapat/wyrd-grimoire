@@ -161,7 +161,7 @@ When time advances past a boundary, the engine runs ticks. Long time skips run t
 
 ## Downtime
 
-When time passes in a safe place, the player can choose activities: **train** (with a teacher: an improvement opportunity or reduced XP cost), **craft**, **work** (earn money with a skill check), **research** (an extended task), **carouse** (gather rumours, risk trouble), **recover** (healing with care). The engine resolves the outcomes; the narrator summarises them in a short passage.
+When time passes in a safe place, the player can choose activities: **train** (with a teacher: an improvement opportunity or reduced XP cost), **craft**, **work** (earn money with a skill check), **research** (an extended task: one clock per topic, continued by researching it again, abandonable; D162), **carouse** (gather rumours, risk trouble), **recover** (healing with care). The engine resolves the outcomes; the narrator summarises them in a short passage.
 
 ## Time skips and observation (W2 E, D161)
 

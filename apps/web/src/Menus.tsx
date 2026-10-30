@@ -179,7 +179,13 @@ export function Menus({
             />
           )}
           {tab === "map" && (
-            <WorldMap campaignId={view.id} stamp={stamp} onTravel={onTravel} onCodex={onOpenCodex} />
+            <WorldMap
+              campaignId={view.id}
+              stamp={stamp}
+              onTravel={onTravel}
+              onCodex={onOpenCodex}
+              place={view.scene ? { location: view.scene.location, zone: view.scene.zone } : null}
+            />
           )}
           {tab === "timeline" && (
             <Timeline
@@ -191,6 +197,23 @@ export function Menus({
           )}
           {tab === "settings" && (
             <div className="settings-screen">
+              {appSettings && (
+                <nav className="settings-jump" aria-label="Settings sections">
+                  {[
+                    ["settings-campaign", "This campaign"],
+                    ["settings-app", "Display, device and models"],
+                  ].map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className="small-link"
+                      onClick={() => document.getElementById(id!)?.scrollIntoView({ block: "start" })}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </nav>
+              )}
               <section className="status-section" aria-labelledby="settings-campaign">
                 <h3 id="settings-campaign">This campaign</h3>
                 <p className="status-lede">The rules of {view.name}.</p>

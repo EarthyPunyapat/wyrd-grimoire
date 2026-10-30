@@ -355,21 +355,43 @@ progress::-webkit-progress-value { background: var(--accent); }
 .facts li { display: flex; justify-content: space-between; gap: .5rem; align-items: start; }
 .fact-tools { display: flex; gap: .25rem; flex: none; }
 .fact-tools button { min-height: 32px; min-width: 32px; padding: .1rem .35rem; border: 0; color: var(--crit); }
-.map { width: 100%; height: auto; }
-.map .region { font-size: 11px; fill: var(--ink-muted); text-transform: uppercase; letter-spacing: .08em; }
-.map .route { stroke: var(--line); stroke-width: 2; }
-.map .route.danger-3, .map .route.danger-4, .map .route.danger-5 { stroke: var(--danger); stroke-dasharray: 4 3; }
-.map .route-label { font-size: 9.5px; fill: var(--ink-muted); }
-.map .site circle { fill: var(--surface-2); stroke: var(--ink-muted); stroke-width: 1.5; }
-.map .site.visited circle { fill: var(--accent-soft); stroke: var(--accent); }
-.map .site.here circle { fill: var(--pc); stroke: var(--pc); }
-.map .site text { font-size: 11px; fill: var(--ink); }
-.map .site { cursor: pointer; }
-.map .site:hover circle, .map .site:focus-visible circle, .map .site.selected circle { stroke: var(--accent); stroke-width: 3; }
-.map-site { border: 1px solid var(--line); border-radius: 6px; padding: .6rem .75rem; display: grid; gap: .45rem; }
-.map-site h4 { margin: 0; font-size: 1rem; }
+.map-here { display: flex; align-items: flex-start; gap: .75rem; padding: .75rem 1rem; border: 1px solid var(--line); border-left: 3px solid var(--pc); border-radius: 6px; background: var(--surface); }
+.map-here .chrome-icon { color: var(--pc); margin-top: 2px; }
+.map-here strong { font: 400 18px / 1.3 var(--font-read); color: var(--ink); }
+.map-here p { margin: .15rem 0 0; }
+.map-here-label { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.map-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 300px); gap: 1.5rem; align-items: start; }
+.map-canvas { min-width: 0; overflow-x: auto; }
+.map { display: block; max-width: none; }
+.map .region-panel { fill: var(--surface); stroke: var(--line); }
+.map .region-name { font: 600 11px var(--font-chrome); fill: var(--ink-muted); text-transform: uppercase; letter-spacing: .1em; }
+.map .route path { fill: none; stroke: var(--line-strong, var(--ink-faint)); stroke-width: 2; }
+.map .route.danger-3 path, .map .route.danger-4 path, .map .route.danger-5 path { stroke: var(--danger); stroke-dasharray: 6 4; }
+.map .route-pill { fill: var(--bg); stroke: var(--line); }
+.map .route-label { font: 11px var(--font-chrome); fill: var(--ink-muted); }
+.map .site { cursor: pointer; outline: none; }
+.map .site .node { fill: var(--bg); stroke: var(--ink-muted); stroke-width: 1.5; }
+.map .site.visited .node { fill: var(--accent-soft); stroke: var(--accent); }
+.map .site.here .node { fill: var(--pc); stroke: var(--pc); }
+.map .here-ring { fill: none; stroke: var(--pc); stroke-width: 1.5; opacity: .5; }
+.map .here-tag { font: 700 10px var(--font-chrome); letter-spacing: .12em; fill: var(--pc); }
+.map .site-name { font: 14px var(--font-read); fill: var(--ink); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.map .site:hover .node, .map .site:focus-visible .node, .map .site.selected .node { stroke: var(--accent); stroke-width: 3; }
+.map .site:focus-visible .site-name { text-decoration: underline; }
+.map-legend { margin: .5rem 0 0; }
+.legend-here { color: var(--pc); }
+.legend-visited { color: var(--accent); }
+.map-side { display: grid; gap: .75rem; }
+.map-roads { display: grid; gap: .5rem; }
+.map-roads button { display: grid; gap: 2px; width: 100%; text-align: left; }
+.road-to { font: 400 16px / 1.3 var(--font-read); color: var(--ink); }
+.road-danger { font-size: 11px; letter-spacing: .05em; color: var(--ink-muted); }
+.road-danger.danger-3, .road-danger.danger-4, .road-danger.danger-5 { color: var(--danger); }
+.map-site { border: 1px solid var(--line); border-radius: 6px; padding: .75rem .9rem; display: grid; gap: .45rem; background: var(--surface); }
+.map-site h4 { margin: 0; font: 400 20px / 1.3 var(--font-read); }
 .map-site p { margin: 0; }
 .map-site-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+@media (max-width: 900px) { .map-layout { grid-template-columns: minmax(0, 1fr); } }
 .ref-wrap { position: relative; }
 .ref { display: inline; min-height: 0; padding: 0; border: 0; font: inherit; font-weight: 700; color: inherit; text-decoration: underline dotted var(--accent) 1.5px; text-underline-offset: 3px; cursor: pointer; }
 .ref:hover { background: var(--accent-soft); }

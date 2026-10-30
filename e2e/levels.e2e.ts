@@ -30,7 +30,8 @@ test("Levels: ability hotbar, explicit milestone acceptance, sheet and reload", 
   await input.press("Enter");
   await expect(page.getByRole("button", { name: "Accept level-up", exact: true })).toBeEnabled();
   await expect(page.locator(".status-strip")).toContainText("Level 1");
-  await expect(page.locator(".hotbar")).toContainText("Marshfire");
+  // Powers live in the Abilities list beside the GM actions (D165).
+  await expect(page.locator(".hotbar")).toContainText("Abilities1");
   await page.getByRole("button", { name: "Accept level-up", exact: true }).click();
   await expect(page.locator(".status-strip")).toContainText("Level 2");
   await page.getByRole("button", { name: /Abilities/ }).click();

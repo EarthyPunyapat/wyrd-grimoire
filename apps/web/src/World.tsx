@@ -1,6 +1,7 @@
 import { type CodexEntry, CodexView, DowntimeResult, type GameView, JournalView, MapView } from "@wyrd/core";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api.ts";
+import { ChromeIcon } from "./icons.tsx";
 
 /** Loads a world panel and reloads it when the story moves on (`stamp` changes). */
 export function usePanel<T>(path: string, parse: (d: unknown) => T, stamp: number) {
@@ -373,23 +374,79 @@ export function Codex({
   );
 }
 
-/** Map (spec 13): known sites by region, the roads between them; pick one to travel. */
+/** Map layout constants, in SVG units drawn at 1:1 so text stays readable at any map size. */
+const MAP = { col: 230, row: 112, top: 74, pad: 20 } as const;
+
+type MapSite = MapView["sites"][number];
+type MapRoute = MapView["routes"][number];
+
+/**
+ * Lay sites out by region: the PC's region first, one column per region, sites stacked down it. A road
+ * between two sites in one column bows sideways so its label never sits on a site name.
+ */
+export function layoutMap(data: MapView) {
+  const here = data.sites.find((s) => s.here);
+  const regions = [...data.regions].sort(
+    (a, b) => Number(b.id === here?.regionId) - Number(a.id === here?.regionId),
+  );
+  const columns: { id: string; name: string; sites: MapSite[] }[] = regions.map((r) => ({
+    id: r.id,
+    name: r.name,
+    sites: data.sites.filter((s) => s.regionId === r.id),
+  }));
+  const loose = data.sites.filter((s) => !regions.some((r) => r.id === s.regionId));
+  if (loose.length) columns.push({ id: "", name: "Elsewhere", sites: loose });
+  const pos = new Map<string, { x: number; y: number; col: number }>();
+  for (const [ci, column] of columns.entries()) {
+    // The PC's site leads its column.
+    const sites = [...column.sites].sort((a, b) => Number(b.here) - Number(a.here));
+    for (const [i, site] of sites.entries())
+      pos.set(site.id, { x: MAP.pad + MAP.col * ci + MAP.col / 2, y: MAP.top + i * MAP.row, col: ci });
+  }
+  const rows = Math.max(1, ...columns.map((c) => c.sites.length));
+  const width = MAP.pad * 2 + MAP.col * Math.max(1, columns.length);
+  const height = MAP.top + (rows - 1) * MAP.row + 64;
+  const road = (r: MapRoute) => {
+    const a = pos.get(r.a)!;
+    const b = pos.get(r.b)!;
+    if (a.col !== b.col) {
+      const mx = (a.x + b.x) / 2;
+      const my = (a.y + b.y) / 2;
+      return { d: `M${a.x} ${a.y}L${b.x} ${b.y}`, label: { x: mx, y: my } };
+    }
+    // Leave and arrive from the node's side so the road never crosses the name printed under it.
+    const bow = MAP.col * 0.32 * (Math.abs(b.y - a.y) > MAP.row ? 1.25 : 1);
+    const cy = (a.y + b.y) / 2;
+    return {
+      d: `M${a.x + 11} ${a.y}Q${a.x + bow} ${cy} ${b.x + 11} ${b.y}`,
+      label: { x: a.x + 11 + (bow - 11) / 2, y: cy },
+    };
+  };
+  return { columns, pos, width, height, road };
+}
+
+const DANGER_WORD = ["", "safe", "watchful", "risky", "dangerous", "deadly"];
+
+/** Map (spec 13): where you are, the sites you know by region and the roads between them. */
 export function WorldMap({
   campaignId,
   stamp,
   onTravel,
   onCodex,
+  place,
 }: {
   campaignId: string;
   stamp: number;
   onTravel: (text: string) => void;
   onCodex?: (id: string) => void;
+  /** Where the scene actually is, which may be somewhere the road map doesn't show. */
+  place?: { location: string; zone?: string } | null;
 }) {
   const { data, error } = usePanel(`/campaigns/${campaignId}/map`, parseMap, stamp);
   // Clicking a site opens what the PC knows about it, without leaving the map.
-  const [selected, setSelected] = useState<MapView["sites"][number] | null>(null);
+  const [selected, setSelected] = useState<MapSite | null>(null);
   const [entry, setEntry] = useState<CodexEntry | null>(null);
-  const choose = (site: MapView["sites"][number]) => {
+  const choose = (site: MapSite) => {
     setSelected(site);
     setEntry(null);
     api(`/campaigns/${campaignId}/codex`, parseCodex)
@@ -403,131 +460,209 @@ export function WorldMap({
       </p>
     );
   if (!data) return <p className="panel-pad muted">Unrolling the map…</p>;
-  if (!data.sites.length)
-    return <p className="panel-pad muted">You don't know the lie of the land beyond this place yet.</p>;
-  const cols = Math.max(1, data.regions.length);
-  const w = 330;
-  const colW = w / cols;
-  const pos = new Map<string, { x: number; y: number }>();
-  for (const [ci, r] of data.regions.entries()) {
-    for (const [i, s] of data.sites.filter((x) => x.regionId === r.id).entries())
-      pos.set(s.id, { x: colW * ci + colW / 2, y: 50 + i * 70 });
-  }
-  for (const [i, s] of data.sites.filter((x) => !pos.has(x.id)).entries())
-    pos.set(s.id, { x: w / 2, y: 50 + i * 70 });
-  const h = Math.max(...[...pos.values()].map((p) => p.y)) + 50;
   const here = data.sites.find((s) => s.here);
+  const header = (
+    <header className="map-here">
+      <ChromeIcon name="pin" size={20} />
+      <div>
+        <span className="map-here-label">You are here</span>
+        <strong>{place?.location ?? here?.name ?? "Somewhere unmapped"}</strong>
+        {place?.zone && <span className="small muted"> · {place.zone}</span>}
+        <p className="small muted">
+          {here
+            ? place && place.location !== here.name
+              ? `In ${here.name}${data.regions.find((r) => r.id === here.regionId) ? `, ${data.regions.find((r) => r.id === here.regionId)!.name}` : ""}.`
+              : (data.regions.find((r) => r.id === here.regionId)?.name ?? "")
+            : "This place isn't on the road map yet."}
+        </p>
+      </div>
+    </header>
+  );
+  if (!data.sites.length)
+    return (
+      <section className="world-panel map-panel" aria-label="Map">
+        {header}
+        <p className="panel-pad muted">You don't know the lie of the land beyond this place yet.</p>
+      </section>
+    );
+  const { columns, pos, width, height, road } = layoutMap(data);
+  const roads = data.routes
+    .filter((r) => here && (r.a === here.id || r.b === here.id))
+    .map((r) => ({ route: r, to: data.sites.find((s) => s.id === (r.a === here!.id ? r.b : r.a))! }));
   return (
-    <section className="world-panel" aria-label="Map">
-      {/* biome-ignore lint/a11y/useSemanticElements: an SVG can't hold buttons; role=group exposes the site controls */}
-      <svg
-        className="map"
-        viewBox={`0 0 ${w} ${h}`}
-        role="group"
-        aria-label={`Map of ${data.sites.map((s) => s.name).join(", ")}`}
-      >
-        {data.regions.map((r, ci) => (
-          <text key={r.id} x={colW * ci + colW / 2} y={18} textAnchor="middle" className="region">
-            {r.name}
-          </text>
-        ))}
-        {data.routes.map((r) => {
-          const a = pos.get(r.a)!;
-          const b = pos.get(r.b)!;
-          return (
-            <g key={`${r.a}-${r.b}`}>
-              <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} className={`route danger-${r.danger}`} />
-              <text x={(a.x + b.x) / 2} y={(a.y + b.y) / 2 - 4} textAnchor="middle" className="route-label">
-                {r.days}d
-              </text>
-            </g>
-          );
-        })}
-        {data.sites.map((s) => {
-          const p = pos.get(s.id)!;
-          return (
-            // biome-ignore lint/a11y/useSemanticElements: SVG groups can't be <button> elements
-            <g
-              key={s.id}
-              className={`site${s.here ? " here" : ""}${s.visited ? " visited" : ""}${selected?.id === s.id ? " selected" : ""}`}
-              role="button"
-              tabIndex={0}
-              aria-label={`${s.name}${s.here ? " (you are here)" : ""}`}
-              onClick={() => choose(s)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  choose(s);
-                }
-              }}
-            >
-              <circle cx={p.x} cy={p.y} r={s.here ? 9 : 7} />
-              <text x={p.x} y={p.y + 22} textAnchor="middle">
-                {s.name}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-      {selected && (
-        <div className="map-site" aria-live="polite">
-          <h4>{entry?.name ?? selected.name}</h4>
-          {entry ? (
+    <section className="world-panel map-panel" aria-label="Map">
+      {header}
+      <div className="map-layout">
+        <div className="map-canvas">
+          {/* biome-ignore lint/a11y/useSemanticElements: an SVG can't hold buttons; role=group exposes the site controls */}
+          <svg
+            className="map"
+            viewBox={`0 0 ${width} ${height}`}
+            width={width}
+            height={height}
+            role="group"
+            aria-label={`Map of ${data.sites.map((s) => s.name).join(", ")}`}
+          >
+            {columns.map((c, ci) => (
+              <g key={c.id || "elsewhere"} className="region">
+                <rect
+                  x={MAP.pad + MAP.col * ci + 8}
+                  y={8}
+                  width={MAP.col - 16}
+                  height={height - 16}
+                  rx={10}
+                  className="region-panel"
+                />
+                <text
+                  x={MAP.pad + MAP.col * ci + MAP.col / 2}
+                  y={34}
+                  textAnchor="middle"
+                  className="region-name"
+                >
+                  {c.name}
+                </text>
+              </g>
+            ))}
+            {data.routes.map((r) => {
+              const { d, label } = road(r);
+              return (
+                <g key={`${r.a}-${r.b}`} className={`route danger-${r.danger}`}>
+                  <path d={d} />
+                  <g transform={`translate(${label.x} ${label.y})`}>
+                    <rect x={-17} y={-10} width={34} height={20} rx={10} className="route-pill" />
+                    <text textAnchor="middle" y={4} className="route-label">
+                      {r.days}d
+                    </text>
+                  </g>
+                </g>
+              );
+            })}
+            {data.sites.map((s) => {
+              const p = pos.get(s.id)!;
+              return (
+                // biome-ignore lint/a11y/useSemanticElements: SVG groups can't be <button> elements
+                <g
+                  key={s.id}
+                  className={`site${s.here ? " here" : ""}${s.visited ? " visited" : ""}${selected?.id === s.id ? " selected" : ""}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${s.name}${s.here ? " (you are here)" : ""}`}
+                  onClick={() => choose(s)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      choose(s);
+                    }
+                  }}
+                >
+                  {s.here && <circle cx={p.x} cy={p.y} r={17} className="here-ring" />}
+                  <circle cx={p.x} cy={p.y} r={s.here ? 10 : 8} className="node" />
+                  <text x={p.x} y={p.y + 28} textAnchor="middle" className="site-name">
+                    {s.name}
+                  </text>
+                  {s.here && (
+                    <text x={p.x} y={p.y - 22} textAnchor="middle" className="here-tag">
+                      YOU
+                    </text>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+          <p className="map-legend small muted">
+            <span className="legend-here">●</span> you · <span className="legend-visited">●</span> visited ·{" "}
+            <span className="legend-unknown">○</span> heard of · dashed road = dangerous · numbers are days on
+            foot
+          </p>
+        </div>
+        <aside className="map-side">
+          {selected ? (
+            <div className="map-site" aria-live="polite">
+              <h4>{entry?.name ?? selected.name}</h4>
+              <p className="small muted">
+                {selected.kind}
+                {selected.here ? " · you are here" : selected.visited ? " · visited" : " · not yet visited"}
+              </p>
+              {entry ? (
+                <>
+                  {entry.summary && <p className="small">{entry.summary}</p>}
+                  <p className="small muted">Known: {entry.how}</p>
+                  {entry.facts.length > 0 && (
+                    <ul className="plain">
+                      {entry.facts.slice(0, 4).map((f) => (
+                        <li key={f.id} className="small">
+                          <em>{f.predicate}:</em> {f.value}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              ) : (
+                <p className="small muted">What you know of {selected.name} is still taking shape.</p>
+              )}
+              <div className="map-site-actions">
+                {!selected.here && (
+                  <button
+                    type="button"
+                    className="act"
+                    onClick={() => {
+                      onTravel(`I travel to ${selected.name}`);
+                      setSelected(null);
+                    }}
+                  >
+                    Travel here
+                  </button>
+                )}
+                {onCodex && (
+                  <button type="button" onClick={() => onCodex(selected.id)}>
+                    Open codex entry
+                  </button>
+                )}
+                <button type="button" onClick={() => setSelected(null)}>
+                  Back to roads
+                </button>
+              </div>
+            </div>
+          ) : (
             <>
-              <p className="small">{entry.summary}</p>
-              <p className="small muted">Known: {entry.how}</p>
-              {entry.facts.length > 0 && (
-                <ul className="plain">
-                  {entry.facts.slice(0, 4).map((f) => (
-                    <li key={f.id} className="small">
-                      <em>{f.predicate}:</em> {f.value}
+              <h3>Roads from here</h3>
+              {roads.length ? (
+                <ul className="plain map-roads" aria-label="Roads from here">
+                  {roads.map(({ route, to }) => (
+                    <li key={to.id}>
+                      <button
+                        type="button"
+                        className="act"
+                        onClick={() => onTravel(`I travel to ${to.name}`)}
+                      >
+                        <span className="road-to">{to.name}</span>
+                        <span className="cost">
+                          {route.days} {route.days === 1 ? "day" : "days"} · {route.terrain}
+                        </span>
+                        <span
+                          className={`road-danger danger-${route.danger}`}
+                          role="img"
+                          aria-label={`danger ${route.danger} of 5`}
+                        >
+                          {"●".repeat(route.danger)}
+                          {"○".repeat(Math.max(0, 5 - route.danger))} {DANGER_WORD[route.danger] ?? ""}
+                        </span>
+                      </button>
                     </li>
                   ))}
                 </ul>
+              ) : (
+                <p className="small muted">
+                  {here
+                    ? "No known roads lead out of here."
+                    : "Find your way back to a known place to use its roads."}
+                </p>
               )}
+              <p className="small muted">Pick a place on the map to see what you know of it.</p>
             </>
-          ) : (
-            <p className="small muted">What you know of {selected.name} is still taking shape.</p>
           )}
-          <div className="map-site-actions">
-            {!selected.here && (
-              <button
-                type="button"
-                className="act"
-                onClick={() => {
-                  onTravel(`I travel to ${selected.name}`);
-                  setSelected(null);
-                }}
-              >
-                Travel here
-              </button>
-            )}
-            {onCodex && (
-              <button type="button" onClick={() => onCodex(selected.id)}>
-                Open codex entry
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-      <h3>Roads from here</h3>
-      <ul className="plain" aria-label="Roads from here">
-        {data.routes
-          .filter((r) => here && (r.a === here.id || r.b === here.id))
-          .map((r) => {
-            const to = data.sites.find((s) => s.id === (r.a === here!.id ? r.b : r.a))!;
-            return (
-              <li key={to.id}>
-                <button type="button" className="act" onClick={() => onTravel(`I travel to ${to.name}`)}>
-                  {to.name}
-                  <span className="cost">
-                    {r.days} days · {r.terrain} · danger {r.danger}/5
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-      </ul>
+        </aside>
+      </div>
     </section>
   );
 }

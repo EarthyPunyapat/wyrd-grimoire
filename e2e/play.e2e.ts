@@ -186,7 +186,7 @@ test("model routes save, connection stays host-side, and usage is confined to se
   await dialog.getByLabel("Group by").selectOption("role");
   await expect(dialog.getByRole("table")).toContainText("parser");
   await expect(dialog.getByRole("table")).toContainText("guard");
-  await dialog.getByRole("button", { name: "Close settings" }).click();
+  await dialog.getByRole("button", { name: "Close status screen" }).click();
   await expect(page.locator(".story")).not.toContainText(/Tokens|API estimate|Plan calls/);
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await expect(
