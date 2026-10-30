@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { draft, type RecipeDef, RecipeDef as RecipeSchema } from "@wyrd/core";
-import { type DowntimeContext, resolveDowntime } from "../src/downtime.ts";
+import { abandonResearch, type DowntimeContext, resolveDowntime } from "../src/downtime.ts";
 import { unwrap } from "../src/result.ts";
 import { ctx as rules, Sim } from "./sim.ts";
 
@@ -52,6 +52,63 @@ describe("downtime (spec 06)", () => {
     );
     s.commit(second.events);
     expect(s.state.clocks[clockId]!.filled).toBe(2);
+  });
+
+  test("researching the same topic again continues its clock instead of starting another", () => {
+    const s = sim();
+    const first = unwrap(resolveDowntime(s.state, "pc", { type: "research", topic: "Kryptonite" }, ctx));
+    s.commit(first.events);
+    const again = unwrap(resolveDowntime(s.state, "pc", { type: "research", topic: "  kryptonite " }, ctx));
+    s.commit(again.events);
+    const research = Object.values(s.state.clocks).filter((c) => c.id.startsWith("clock:research:"));
+    expect(research).toHaveLength(1);
+    expect(research[0]!.filled).toBe(2);
+    expect(again.result.rewards.clockId).toBe(first.result.rewards.clockId);
+  });
+
+  test("finished research can't be repeated, and only your own research clocks can be continued", () => {
+    const s = sim();
+    const first = unwrap(resolveDowntime(s.state, "pc", { type: "research", topic: "the old well" }, ctx));
+    s.commit(first.events);
+    const clockId = first.result.rewards.clockId!;
+    const left = s.state.clocks[clockId]!.segments - s.state.clocks[clockId]!.filled;
+    s.commit([draft("ClockAdvanced", { clockId, by: left, reason: "test" }, "engine")]);
+    const done = resolveDowntime(s.state, "pc", { type: "research", topic: "The old well" }, ctx);
+    expect(done.ok).toBe(false);
+    if (!done.ok) expect(done.errors[0]!.code).toBe("RESEARCH_DONE");
+    s.commit([
+      draft("ClockCreated", {
+        clock: {
+          id: "clock:threat",
+          name: "The Hollow Lantern",
+          kind: "progress",
+          segments: 6,
+          filled: 0,
+          visible: true,
+        },
+      }),
+    ]);
+    const hijack = resolveDowntime(
+      s.state,
+      "pc",
+      { type: "research", topic: "x", clockId: "clock:threat" },
+      ctx,
+    );
+    expect(hijack.ok).toBe(false);
+    expect(s.state.clocks["clock:threat"]!.filled).toBe(0);
+  });
+
+  test("research can be abandoned, and only research the actor owns", () => {
+    const s = sim();
+    const first = unwrap(resolveDowntime(s.state, "pc", { type: "research", topic: "Kryptonite" }, ctx));
+    s.commit(first.events);
+    const clockId = first.result.rewards.clockId!;
+    expect(abandonResearch(s.state, "pc", "clock:threat").ok).toBe(false);
+    s.commit(unwrap(abandonResearch(s.state, "pc", clockId)));
+    expect(s.state.clocks[clockId]).toBeUndefined();
+    const fresh = unwrap(resolveDowntime(s.state, "pc", { type: "research", topic: "Kryptonite" }, ctx));
+    s.commit(fresh.events);
+    expect(s.state.clocks[fresh.result.rewards.clockId!]!.filled).toBe(1);
   });
 
   test("recovery heals, and training with a teacher grants an improvement", () => {

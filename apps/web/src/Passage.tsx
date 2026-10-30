@@ -251,12 +251,7 @@ export function Passage({
           <fieldset className="gm-choices">
             <legend className="sr-only">Choices</legend>
             {turn.choices.map((choice, i) => (
-              <button
-                type="button"
-                key={choice.label}
-                disabled={busy}
-                onClick={() => onChoice(choice.label)}
-              >
+              <button type="button" key={choice.label} disabled={busy} onClick={() => onChoice(choice.label)}>
                 <kbd>{i + 1}</kbd> {choice.label}
                 {choice.description && <span className="small muted"> — {choice.description}</span>}
               </button>

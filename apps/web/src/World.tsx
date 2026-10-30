@@ -1,4 +1,4 @@
-import { type CodexEntry, CodexView, DowntimeResult, JournalView, MapView } from "@wyrd/core";
+import { type CodexEntry, CodexView, DowntimeResult, type GameView, JournalView, MapView } from "@wyrd/core";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api.ts";
 
@@ -74,7 +74,19 @@ export function Quests({ campaignId, stamp }: { campaignId: string; stamp: numbe
 }
 
 /** Journal (spec 07): recap, leads, clocks, rumours, the summary pyramid and notes. */
-export function Journal({ campaignId, stamp }: { campaignId: string; stamp: number }) {
+export function Journal({
+  campaignId,
+  stamp,
+  skills = [],
+  present = [],
+}: {
+  campaignId: string;
+  stamp: number;
+  /** The PC's skills, so training is picked from a list rather than typed as an id. */
+  skills?: GameView["skills"];
+  /** People in the scene who could teach. */
+  present?: { id: string; name: string }[];
+}) {
   const { data, setData, error, reload } = usePanel(`/campaigns/${campaignId}/journal`, parseJournal, stamp);
   const [notes, setNotes] = useState<string | null>(null);
   if (error)
@@ -170,7 +182,14 @@ export function Journal({ campaignId, stamp }: { campaignId: string; stamp: numb
       >
         End session
       </button>
-      <Downtime campaignId={campaignId} onDone={reload} />
+      <Downtime
+        campaignId={campaignId}
+        skills={skills}
+        present={present}
+        research={data.research}
+        onDone={reload}
+        onResearch={(journal) => setData(journal)}
+      />
     </section>
   );
 }
@@ -514,12 +533,33 @@ export function WorldMap({
 }
 
 /** Downtime (spec 06): the safe-place activities the engine resolves between adventures. */
-function Downtime({ campaignId, onDone }: { campaignId: string; onDone: () => void }) {
+function Downtime({
+  campaignId,
+  skills,
+  present,
+  research,
+  onDone,
+  onResearch,
+}: {
+  campaignId: string;
+  skills: GameView["skills"];
+  present: { id: string; name: string }[];
+  research: JournalView["research"];
+  onDone: () => void;
+  onResearch: (journal: JournalView) => void;
+}) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
-  const [research, setResearch] = useState("");
+  const [topic, setTopic] = useState("");
   const [train, setTrain] = useState("");
+  const [teacher, setTeacher] = useState("");
+  const sortedSkills = [...skills].sort((a, b) => a.name.localeCompare(b.name));
+  const trainId = train || sortedSkills[0]?.id || "";
+  const open = research.filter((r) => r.filled < r.segments);
+  const done = research.filter((r) => r.filled >= r.segments);
+  // A topic already on the list continues its clock instead of starting another (D162).
+  const existing = research.find((r) => r.name.trim().toLowerCase() === topic.trim().toLowerCase());
   const run = async (body: Record<string, unknown>) => {
     setBusy(true);
     setError("");
@@ -527,6 +567,26 @@ function Downtime({ campaignId, onDone }: { campaignId: string; onDone: () => vo
       const result = await api(`/campaigns/${campaignId}/downtime`, DowntimeResult.parse, body, "POST");
       setNote(result.summary);
       onDone();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const abandon = async (clockId: string, name: string) => {
+    if (!window.confirm(`Abandon your research into ${name}? Its progress is lost.`)) return;
+    setBusy(true);
+    setError("");
+    try {
+      onResearch(
+        await api(
+          `/campaigns/${campaignId}/research/${encodeURIComponent(clockId)}`,
+          parseJournal,
+          undefined,
+          "DELETE",
+        ),
+      );
+      setNote(`You set aside your research into ${name}.`);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -548,32 +608,105 @@ function Downtime({ campaignId, onDone }: { campaignId: string; onDone: () => vo
           Recover
         </button>
       </div>
-      <div className="downtime-actions">
+      <form
+        className="downtime-actions"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!trainId) return;
+          void run({ action: { type: "train", skill: trainId, ...(teacher ? { teacherId: teacher } : {}) } });
+        }}
+      >
         <label>
           Train a skill
-          <input value={train} onChange={(e) => setTrain(e.target.value)} placeholder="core:melee" />
+          <select value={trainId} onChange={(e) => setTrain(e.target.value)} disabled={!sortedSkills.length}>
+            {sortedSkills.map((skill) => (
+              <option key={skill.id} value={skill.id}>
+                {skill.name}
+                {skill.display ? ` (${skill.display})` : ""}
+              </option>
+            ))}
+          </select>
         </label>
-        <button
-          type="button"
-          disabled={busy || !train.trim()}
-          onClick={() => run({ action: { type: "train", skill: train.trim() } })}
-        >
+        <label>
+          Teacher
+          <select value={teacher} onChange={(e) => setTeacher(e.target.value)}>
+            <option value="">Alone (slow)</option>
+            {present.map((person) => (
+              <option key={person.id} value={person.id}>
+                {person.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="submit" disabled={busy || !trainId}>
           Train
         </button>
-      </div>
-      <div className="downtime-actions">
-        <label>
-          Research a topic
-          <input value={research} onChange={(e) => setResearch(e.target.value)} placeholder="the old well" />
-        </label>
-        <button
-          type="button"
-          disabled={busy || !research.trim()}
-          onClick={() => run({ action: { type: "research", topic: research.trim() } })}
+      </form>
+      <section className="research" aria-labelledby="research-heading">
+        <h4 id="research-heading">Research</h4>
+        {open.length > 0 ? (
+          <ul className="plain research-list">
+            {open.map((r) => (
+              <li key={r.id} className="research-row">
+                <span className="research-name">{r.name}</span>
+                <span className="pips" role="img" aria-label={`${r.filled} of ${r.segments}`}>
+                  {Array.from({ length: r.segments }, (_, i) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: segments are positional
+                    <i key={i} className={i < r.filled ? "on" : ""} />
+                  ))}
+                </span>
+                <button
+                  type="button"
+                  disabled={busy}
+                  aria-label={`Continue researching ${r.name}`}
+                  onClick={() => run({ action: { type: "research", topic: r.name, clockId: r.id } })}
+                >
+                  Continue
+                </button>
+                <button
+                  type="button"
+                  className="danger-link"
+                  disabled={busy}
+                  aria-label={`Abandon research into ${r.name}`}
+                  onClick={() => void abandon(r.id, r.name)}
+                >
+                  Abandon
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="small muted">No research under way.</p>
+        )}
+        {done.length > 0 && <p className="small muted">Finished: {done.map((r) => r.name).join(", ")}</p>}
+        <form
+          className="downtime-actions"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!topic.trim()) return;
+            void run({
+              action: {
+                type: "research",
+                topic: topic.trim(),
+                ...(existing ? { clockId: existing.id } : {}),
+              },
+            }).then(() => setTopic(""));
+          }}
         >
-          Research
-        </button>
-      </div>
+          <label>
+            New topic
+            <input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="the old well" />
+          </label>
+          <button
+            type="submit"
+            disabled={
+              busy || !topic.trim() || (existing !== undefined && existing.filled >= existing.segments)
+            }
+          >
+            {existing ? "Continue" : "Begin research"}
+          </button>
+        </form>
+      </section>
       {note && <p className="small">{note}</p>}
       {error && (
         <p role="alert" className="error small">

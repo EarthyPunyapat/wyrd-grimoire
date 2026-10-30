@@ -38,3 +38,30 @@ test("clicking a GM choice plays it as a turn, not as a stale clarification", as
   await expect(page.getByText("no longer current")).toHaveCount(0);
   await expect(page.locator(".player-input", { hasText: "Wait by the stove" })).toBeVisible();
 });
+
+test("training picks a skill from a list; research continues one topic and can be abandoned", async ({
+  page,
+}) => {
+  await begin(page, "Research Test");
+  await page.getByRole("button", { name: "Journal", exact: true }).click();
+  const journal = page.getByRole("dialog").getByRole("region", { name: "Journal" });
+  const skill = journal.getByLabel("Train a skill");
+  await expect(skill).toBeVisible();
+  expect(await skill.evaluate((el) => el.tagName)).toBe("SELECT");
+  expect(await skill.locator("option").count()).toBeGreaterThan(3);
+
+  const topic = journal.getByLabel("New topic");
+  await topic.fill("Kryptonite");
+  await journal.getByRole("button", { name: "Begin research" }).click();
+  await expect(journal.locator(".research-row")).toHaveCount(1);
+  await topic.fill("kryptonite");
+  await expect(journal.getByRole("button", { name: "Continue", exact: true })).toBeVisible();
+  await journal.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(journal.locator(".research-row")).toHaveCount(1);
+  await expect(journal.locator(".research-row .pips")).toHaveAttribute("aria-label", /^2 of /);
+
+  page.once("dialog", (d) => void d.accept());
+  await journal.getByRole("button", { name: "Abandon research into Kryptonite" }).click();
+  await expect(journal.locator(".research-row")).toHaveCount(0);
+  await expect(journal.getByText("No research under way.")).toBeVisible();
+});

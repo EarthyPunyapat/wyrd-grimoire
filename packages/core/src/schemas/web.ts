@@ -391,6 +391,12 @@ export const JournalView = z.object({
   ),
   leads: z.array(z.object({ id: z.string(), title: z.string(), summary: z.string() })),
   clocks: z.array(z.object({ name: z.string(), filled: z.number().int(), segments: z.number().int() })),
+  /** The PC's own research topics, which downtime continues or abandons by id. */
+  research: z
+    .array(
+      z.object({ id: z.string(), name: z.string(), filled: z.number().int(), segments: z.number().int() }),
+    )
+    .default([]),
   rumours: z.array(z.string()),
   notes: z.string(),
 });
