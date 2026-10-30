@@ -90,6 +90,13 @@
         "@wyrd/storage": "workspace:*",
       },
     },
+    "packages/media": {
+      "name": "@wyrd/media",
+      "version": "0.1.0",
+      "dependencies": {
+        "@wyrd/core": "workspace:*",
+      },
+    },
     "packages/memory": {
       "name": "@wyrd/memory",
       "version": "0.1.0",
@@ -288,6 +295,8 @@
     "@wyrd/engine": ["@wyrd/engine@workspace:packages/engine"],
 
     "@wyrd/llm": ["@wyrd/llm@workspace:packages/llm"],
+
+    "@wyrd/media": ["@wyrd/media@workspace:packages/media"],
 
     "@wyrd/memory": ["@wyrd/memory@workspace:packages/memory"],
 
