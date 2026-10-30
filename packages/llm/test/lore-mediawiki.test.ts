@@ -176,3 +176,26 @@ test("image bytes come over https with the honest user agent; a refusal or a red
     "Images are fetched over https only",
   );
 });
+
+test("an image download is refused by its declared size or type, and capped while streaming", async () => {
+  const respond = (body: BodyInit, headers: Record<string, string>) =>
+    new MediaWikiClient({ fetch: async () => new Response(body, { headers }), limiter: new RequestLimiter(clock()) });
+  await expect(
+    respond("x", { "content-type": "image/png", "content-length": "40000000" }).fetchBytes("https://a/big.png"),
+  ).rejects.toThrow("Image too large");
+  await expect(respond("<html>", { "content-type": "text/html" }).fetchBytes("https://a/page")).rejects.toThrow(
+    "Not an image",
+  );
+  let pulled = 0;
+  const endless = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      pulled++;
+      controller.enqueue(new Uint8Array(1_000_000));
+    },
+  });
+  await expect(respond(endless, { "content-type": "image/jpeg" }).fetchBytes("https://a/endless.jpg")).rejects.toThrow(
+    "Image too large",
+  );
+  // It stopped soon after the cap instead of buffering forever.
+  expect(pulled).toBeLessThan(10);
+});

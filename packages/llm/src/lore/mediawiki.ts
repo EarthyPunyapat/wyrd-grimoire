@@ -184,10 +184,37 @@ export class MediaWikiClient {
       }),
     );
     if (!response.ok) throw new Error(`Image source refused (${response.status})`);
-    return {
-      bytes: new Uint8Array(await response.arrayBuffer()),
-      mime: response.headers.get("content-type") ?? "",
-    };
+    const mime = response.headers.get("content-type") ?? "";
+    const max = defaultTuning.media.maxBytes;
+    if (!mime.startsWith("image/")) {
+      await response.body?.cancel();
+      throw new Error("Not an image");
+    }
+    if (Number(response.headers.get("content-length") ?? 0) > max) {
+      await response.body?.cancel();
+      throw new Error("Image too large");
+    }
+    // Read with a running cap: a host that lies about (or omits) its length can't fill memory.
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    const reader = response.body?.getReader();
+    while (reader) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > max) {
+        await reader.cancel();
+        throw new Error("Image too large");
+      }
+      chunks.push(value);
+    }
+    const bytes = new Uint8Array(size);
+    let at = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, at);
+      at += chunk.byteLength;
+    }
+    return { bytes, mime };
   }
 }
 
