@@ -196,3 +196,17 @@ test("settings is one screen: the campaign's rules and this device's settings", 
   expect(html).toContain("This device and your models");
   expect(html).toContain("Device panel");
 });
+
+test("the status screen's top bar is the play screen's status strip, with the open tab marked", () => {
+  const html = render("inventory");
+  // The same component and classes as the play screen, so the bar doesn't jump when a menu opens.
+  expect(html).toContain('data-component="status-strip"');
+  expect(html).toContain("Ethan Hunt");
+  expect(html).toContain("Watchtower");
+  expect(html).not.toContain('class="status-head"');
+  expect(html).not.toContain('class="status-tabs"');
+  // Still an accessible tab list.
+  expect(html).toContain('role="tablist"');
+  expect(html).toMatch(/role="tab"[^>]*aria-selected="true"[^>]*>|aria-selected="true"[^>]*role="tab"/);
+  expect(html).toContain('id="menu-tab-inventory"');
+});

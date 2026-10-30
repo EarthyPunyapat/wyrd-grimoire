@@ -1,4 +1,5 @@
 import { defaultTuning, type GameView } from "@wyrd/core";
+import type { KeyboardEvent } from "react";
 import { ChromeIcon, type ChromeIconName } from "./icons.tsx";
 import type { MenuTab } from "./Menus.tsx";
 
@@ -27,6 +28,7 @@ export function StatusStrip({
   onSettings,
   onHome,
   offline,
+  tabs,
 }: {
   view: GameView;
   active?: Menu | null;
@@ -35,8 +37,25 @@ export function StatusStrip({
   /** The app bar's home lives in the strip while playing: Reader has one band of chrome. */
   onHome?: () => void;
   offline?: boolean;
+  /**
+   * The status screen reuses this exact strip as its tab list, so the bar doesn't move when a menu opens:
+   * the menus become ARIA tabs controlling `#menu-panel`, with arrow keys handled by the screen.
+   */
+  tabs?: { onKeyDown: (event: KeyboardEvent<HTMLElement>) => void };
 }) {
   const day = Math.floor(view.gameTime / 1440) + 1;
+  const tabProps = (id: Menu) =>
+    tabs
+      ? {
+          role: "tab",
+          id: `menu-tab-${id}`,
+          "aria-selected": active === id,
+          "aria-controls": "menu-panel",
+          tabIndex: active === id ? 0 : -1,
+          // The selected tab keeps the same visual mark as the current menu on the play screen.
+          "aria-current": active === id ? ("true" as const) : undefined,
+        }
+      : { "aria-current": active === id ? ("true" as const) : undefined };
   return (
     <header className="status-strip location-bar" data-component="status-strip">
       {onHome && (
@@ -58,14 +77,13 @@ export function StatusStrip({
         {view.scene?.weather ? ` · ${view.scene.weather}` : ""}
       </span>
       <span className="strip-spacer" />
-      <nav className="strip-menus" aria-label="Menus">
+      <nav
+        className="strip-menus"
+        aria-label={tabs ? "Status screen" : "Menus"}
+        {...(tabs ? { role: "tablist", onKeyDown: tabs.onKeyDown } : {})}
+      >
         {MENUS.map((m) => (
-          <button
-            key={m.id}
-            type="button"
-            aria-current={active === m.id ? "true" : undefined}
-            onClick={() => onMenu(m.id)}
-          >
+          <button key={m.id} type="button" data-tab={m.id} {...tabProps(m.id)} onClick={() => onMenu(m.id)}>
             <ChromeIcon name={m.icon} size={15} />
             {m.key && (
               <span className="key" aria-hidden="true">
@@ -76,7 +94,7 @@ export function StatusStrip({
           </button>
         ))}
         {/* One Settings screen: the campaign's rules and this device's display and models (D163). */}
-        <button type="button" aria-current={active === "settings" ? "true" : undefined} onClick={onSettings}>
+        <button type="button" data-tab="settings" {...tabProps("settings")} onClick={onSettings}>
           <ChromeIcon name="gear" size={15} />
           <span className="menu-name">Settings</span>
         </button>

@@ -460,7 +460,15 @@ export function Play({
             <Dialog.Root open={panelOpen !== null} onOpenChange={(o) => !o && setPanelOpen(null)}>
               <Dialog.Portal>
                 <Dialog.Overlay className="overlay menu-overlay" />
-                <Dialog.Content className="dialog menu-screen" data-preset={preset}>
+                <Dialog.Content
+                  className="dialog menu-screen"
+                  data-preset={preset}
+                  onOpenAutoFocus={(event) => {
+                    // Focus the open tab, not the strip's first link (the home wordmark).
+                    event.preventDefault();
+                    document.getElementById(`menu-tab-${panelOpen}`)?.focus();
+                  }}
+                >
                   <Dialog.Title>
                     {panelOpen === "settings" ? "Settings" : panelOpen ? MENU_LABEL[panelOpen] : "Status"}
                   </Dialog.Title>
@@ -483,6 +491,8 @@ export function Play({
                       {...(onOpenCampaign ? { onOpenCampaign } : {})}
                       codexFocus={codexFocus}
                       appSettings={appSettings}
+                      {...(onHome ? { onHome } : {})}
+                      offline={Boolean(offline)}
                     />
                   )}
                   <Dialog.Close className="dialog-close menu-close" aria-label="Close status screen">

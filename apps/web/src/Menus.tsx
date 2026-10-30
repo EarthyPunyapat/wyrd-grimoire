@@ -6,6 +6,7 @@ import { ChromeIcon, type ChromeIconName } from "./icons.tsx";
 import { KeepCampaign } from "./KeepCampaign.tsx";
 import { Party } from "./Party.tsx";
 import { Sheet } from "./Sheet.tsx";
+import { StatusStrip } from "./StatusStrip.tsx";
 import { Timeline } from "./Timeline.tsx";
 import { Codex, Journal, Quests, WorldMap } from "./World.tsx";
 
@@ -50,6 +51,8 @@ export function Menus({
   onClose,
   codexFocus,
   appSettings,
+  onHome,
+  offline,
 }: {
   view: GameView;
   tab: MenuTab;
@@ -63,6 +66,9 @@ export function Menus({
   codexFocus?: string | null;
   /** Device, display and model settings: the one Settings screen holds them with the campaign's rules. */
   appSettings?: ReactNode;
+  /** The strip's home link and offline badge, the same as on the play screen. */
+  onHome?: () => void;
+  offline?: boolean;
 }) {
   const tablist = useRef<HTMLDivElement>(null);
   const stamp = view.turns.length;
@@ -73,7 +79,7 @@ export function Menus({
     });
   }, [tab]);
   const tabs = MENU_TABS;
-  const move = (event: KeyboardEvent<HTMLDivElement>) => {
+  const move = (event: KeyboardEvent<HTMLElement>) => {
     const index = tabs.findIndex((entry) => entry.id === tab);
     let next = index;
     if (event.key === "ArrowRight" || event.key === "ArrowDown") next = (index + 1) % tabs.length;
@@ -91,33 +97,16 @@ export function Menus({
   };
   return (
     <div className="status-screen">
-      <header className="status-head">
-        <p className="status-context">
-          {view.pc.identity.name} · {view.scene?.location ?? view.name}
-        </p>
-      </header>
-      <div ref={tablist} className="status-tabs" role="tablist" aria-label="Status screen" onKeyDown={move}>
-        {tabs.map((entry) => (
-          <button
-            key={entry.id}
-            type="button"
-            role="tab"
-            id={`menu-tab-${entry.id}`}
-            data-tab={entry.id}
-            aria-selected={tab === entry.id}
-            aria-controls="menu-panel"
-            tabIndex={tab === entry.id ? 0 : -1}
-            onClick={() => onTab(entry.id)}
-          >
-            <ChromeIcon name={entry.icon} size={18} />
-            {entry.key && (
-              <span className="key" aria-hidden="true">
-                {entry.key}
-              </span>
-            )}
-            <span className="tab-label">{entry.label}</span>
-          </button>
-        ))}
+      <div ref={tablist}>
+        <StatusStrip
+          view={view}
+          active={tab}
+          onMenu={onTab}
+          onSettings={() => onTab("settings")}
+          {...(onHome ? { onHome } : {})}
+          offline={Boolean(offline)}
+          tabs={{ onKeyDown: move }}
+        />
       </div>
       <section
         id="menu-panel"
