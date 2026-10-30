@@ -33,7 +33,11 @@ test("Levels: ability hotbar, explicit milestone acceptance, sheet and reload", 
   await expect(page.locator(".hotbar")).toContainText("Marshfire");
   await page.getByRole("button", { name: "Accept level-up", exact: true }).click();
   await expect(page.locator(".status-strip")).toContainText("Level 2");
-  await page.getByRole("button", { name: "Marshfire", exact: true }).click();
+  await page.getByRole("button", { name: /Abilities/ }).click();
+  await page
+    .getByRole("dialog", { name: "Abilities" })
+    .getByRole("button", { name: /Marshfire/ })
+    .click();
   await expect(input).toHaveValue("Use Marshfire: ");
   await page.getByRole("button", { name: "Character", exact: true }).click();
   const sheet = page.getByRole("dialog", { name: "Character" });

@@ -317,3 +317,6 @@
   [data-preset="cockpit"] .status-strip { gap: 0 var(--space-3); }
   [data-preset="cockpit"] .chapter-heading h2 { font-size: 18px; }
 }
+
+[data-preset="cockpit"] .canon-check .check-flags,
+[data-preset="cockpit"] .canon-check .guard-card { margin: .5rem 0 0; padding: .5rem 0 0; border: 0; background: none; box-shadow: none; }

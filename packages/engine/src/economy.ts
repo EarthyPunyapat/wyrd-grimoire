@@ -52,6 +52,20 @@ export function sellPrice(shop: ShopState, basePrice: number, ctx: EconomyContex
   return Math.max(1, Math.round(basePrice * share));
 }
 
+/**
+ * The shop at the PC's current location, or null. A shop lives where it opened; one recorded before
+ * shops had a place uses `fallbackLocationId` (the campaign's opening location).
+ */
+export function shopHere(state: GameState, fallbackLocationId?: string): ShopState | null {
+  const here = state.scene?.locationId;
+  if (!here) return null;
+  return (
+    Object.values(state.economy?.shops ?? {}).find(
+      (shop) => (shop.locationId ?? fallbackLocationId) === here,
+    ) ?? null
+  );
+}
+
 function shopOf(state: GameState, shopId: string): ShopState | null {
   return state.economy?.shops[shopId] ?? null;
 }
@@ -101,6 +115,12 @@ export function sell(
   const shop = shopOf(state, shopId);
   if (!shop) return fail("SHOP_UNKNOWN", `No shop called ${shopId}`);
   if (qty <= 0) return fail("QTY_INVALID", "Sell at least one");
+  // Gear the player wrote into their character is player canon (D147): it isn't pawned with one click.
+  if (itemId.startsWith("player:"))
+    return fail(
+      "SIGNATURE_ITEM",
+      "That's part of who your character is, so the merchant won't take it here. Sell it in the story if you mean it.",
+    );
   const have = state.inventory?.actors[actorId]?.stacks
     .filter((s) => s.itemId === itemId)
     .reduce((sum, s) => sum + s.qty, 0);

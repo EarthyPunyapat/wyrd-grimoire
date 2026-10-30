@@ -264,3 +264,6 @@
   [data-preset="chat"] .player-input { max-width: 88%; }
   [data-preset="chat"] .chapter-heading h2 { font-size: 24px; }
 }
+
+[data-preset="chat"] .canon-check .check-flags,
+[data-preset="chat"] .canon-check .guard-card { margin: .5rem 0 0; padding: .5rem 0 0; border: 0; background: none; box-shadow: none; }

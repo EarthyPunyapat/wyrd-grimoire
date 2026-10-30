@@ -21,7 +21,7 @@ async function market(page: Page) {
     return ((await response.json()) as { id: string }).id;
   });
   await page.goto(`/#campaign=${id}`);
-  await expect(page.getByRole("button", { name: /Campaign settings/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Settings", exact: true })).toBeVisible();
 }
 
 const coins = (panel: ReturnType<Page["getByRole"]>) =>

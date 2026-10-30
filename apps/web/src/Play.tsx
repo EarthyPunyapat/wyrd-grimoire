@@ -1,10 +1,10 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { type GameView, ThemeSpec } from "@wyrd/core";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.ts";
 import { Cards } from "./Cards.tsx";
 import { CombatPanel, CombatStrip } from "./Combat.tsx";
-import { Hotbar } from "./Hotbar.tsx";
+import { ABILITIES_KEY, Hotbar } from "./Hotbar.tsx";
 import { MENU_LABEL, Menus, type MenuTab } from "./Menus.tsx";
 import { NarrativeText, narrationContext, RefContext } from "./Narration.tsx";
 import { Passage, RollNotes } from "./Passage.tsx";
@@ -19,14 +19,15 @@ export function Play({
   onView,
   onOpenCampaign,
   onHome,
-  onAppSettings,
+  appSettings,
   offline,
 }: {
   view: GameView;
   onView: (view: GameView) => void;
   onOpenCampaign?: (id: string) => void | Promise<void>;
   onHome?: () => void;
-  onAppSettings?: () => void;
+  /** Device, display and model settings, shown in the status screen's one Settings tab. */
+  appSettings?: ReactNode;
   offline?: boolean;
 }) {
   // A pack theme overrides the app's default palette (spec 13 Themes).
@@ -50,6 +51,7 @@ export function Play({
   }, [preset]);
   const [input, setInput] = useState("");
   const [combatOpen, setCombatOpen] = useState(false);
+  const [abilitiesOpen, setAbilitiesOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState<MenuTab | null>(null);
   const [codexFocus, setCodexFocus] = useState<string | null>(null);
   const [legacyName, setLegacyName] = useState("");
@@ -143,6 +145,11 @@ export function Play({
         fill(key === "o" ? "Observe " : "Time skip: ");
         return;
       }
+      if (key === ABILITIES_KEY.toLowerCase()) {
+        e.preventDefault();
+        setAbilitiesOpen((open) => !open);
+        return;
+      }
       if (key === "g" && !play.busy) {
         e.preventDefault();
         void send("Give me choices");
@@ -178,7 +185,6 @@ export function Play({
           onMenu={openMenu}
           onSettings={() => setPanelOpen("settings")}
           {...(onHome ? { onHome } : {})}
-          {...(onAppSettings ? { onAppSettings } : {})}
           offline={Boolean(offline)}
         />
         <section className="story" aria-label="Story">
@@ -270,14 +276,19 @@ export function Play({
                     </fieldset>
                   )}
                   {play.checkFlags.length > 0 && (
-                    <div className="check-flags">
-                      <h3>Possible unrecorded change</h3>
-                      {play.checkFlags.map((flag) => (
-                        <p key={flag.quote}>
-                          <q>{flag.quote}</q> — {flag.claim}
-                        </p>
-                      ))}
-                    </div>
+                    <details className="canon-check">
+                      <summary>
+                        <span className="canon-check-title">Canon check</span>
+                        <span className="canon-check-count">{play.checkFlags.length} to review</span>
+                      </summary>
+                      <div className="check-flags">
+                        {play.checkFlags.map((flag) => (
+                          <p key={flag.quote}>
+                            <q>{flag.quote}</q> — {flag.claim}
+                          </p>
+                        ))}
+                      </div>
+                    </details>
                   )}
                   <RollNotes lines={play.mechanics} math resolution={view.resolution} />
                   <p>
@@ -418,17 +429,15 @@ export function Play({
           onFill={fill}
           onSend={(text) => void send(text)}
           onCombat={() => setCombatOpen(true)}
+          abilitiesOpen={abilitiesOpen}
+          onAbilitiesOpen={setAbilitiesOpen}
         />
         <Dialog.Root open={panelOpen !== null} onOpenChange={(o) => !o && setPanelOpen(null)}>
           <Dialog.Portal>
             <Dialog.Overlay className="overlay menu-overlay" />
             <Dialog.Content className="dialog menu-screen" data-preset={preset}>
               <Dialog.Title>
-                {panelOpen === "settings"
-                  ? "Campaign settings"
-                  : panelOpen
-                    ? MENU_LABEL[panelOpen]
-                    : "Status"}
+                {panelOpen === "settings" ? "Settings" : panelOpen ? MENU_LABEL[panelOpen] : "Status"}
               </Dialog.Title>
               <Dialog.Description className="sr-only">
                 A full-screen status screen with tabs for your character, inventory, quests, journal, codex,
@@ -448,6 +457,7 @@ export function Play({
                   onClose={() => setPanelOpen(null)}
                   {...(onOpenCampaign ? { onOpenCampaign } : {})}
                   codexFocus={codexFocus}
+                  appSettings={appSettings}
                 />
               )}
               <Dialog.Close className="dialog-close menu-close" aria-label="Close status screen">

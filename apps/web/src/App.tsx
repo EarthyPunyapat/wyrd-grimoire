@@ -153,6 +153,40 @@ export function App() {
     localStorage.setItem("wyrd-theme", theme);
     localStorage.setItem("wyrd-font", font);
   }, [theme, font]);
+  // One settings panel for this device: the home dialog and the in-game Settings tab show the same thing (D163).
+  const lockGrimoire = () => {
+    void api("/auth/logout", () => undefined, {})
+      .then(() => {
+        setSettings(false);
+        setView(undefined);
+        return refreshAuth();
+      })
+      .catch((e) => setError(e.message));
+  };
+  const appSettingsPanel = (
+    <div className="app-settings">
+      <PlayPreferencesPanel value={playPreferences} onChange={setPlayPreferences} />
+      <label>
+        Appearance
+        <select value={theme} onChange={(e) => setTheme(e.target.value)}>
+          <option value="system">Follow device</option>
+          <option value="light">Stone vellum</option>
+          <option value="dark">After dark</option>
+        </select>
+      </label>
+      <label>
+        Story type size
+        <select value={font} onChange={(e) => setFont(e.target.value)}>
+          <option value="normal">Comfortable</option>
+          <option value="large">Large print</option>
+        </select>
+      </label>
+      <ModelSettings />
+      <button type="button" onClick={lockGrimoire}>
+        Lock grimoire
+      </button>
+    </div>
+  );
   return (
     <div className={view ? "frame" : "home-frame"} data-preset={view ? undefined : "reader"}>
       <a className="skip-link" href="#main">
@@ -213,7 +247,7 @@ export function App() {
             void refreshCards().catch((e) => setError(e.message));
             void refreshDrafts().catch((e) => setError(e.message));
           }}
-          {...(auth?.authenticated ? { onAppSettings: () => setSettings(true) } : {})}
+          appSettings={appSettingsPanel}
           offline={Boolean(auth?.offline)}
         />
       ) : (
@@ -278,37 +312,7 @@ export function App() {
           <Dialog.Content className="dialog">
             <Dialog.Title>Make yourself at home</Dialog.Title>
             <Dialog.Description>Reading and connection preferences for this device.</Dialog.Description>
-            <PlayPreferencesPanel value={playPreferences} onChange={setPlayPreferences} />
-            <label>
-              Appearance
-              <select value={theme} onChange={(e) => setTheme(e.target.value)}>
-                <option value="system">Follow device</option>
-                <option value="light">Stone vellum</option>
-                <option value="dark">After dark</option>
-              </select>
-            </label>
-            <label>
-              Story type size
-              <select value={font} onChange={(e) => setFont(e.target.value)}>
-                <option value="normal">Comfortable</option>
-                <option value="large">Large print</option>
-              </select>
-            </label>
-            <ModelSettings />
-            <button
-              type="button"
-              onClick={() => {
-                void api("/auth/logout", () => undefined, {})
-                  .then(() => {
-                    setSettings(false);
-                    setView(undefined);
-                    return refreshAuth();
-                  })
-                  .catch((e) => setError(e.message));
-              }}
-            >
-              Lock grimoire
-            </button>
+            {appSettingsPanel}
             <Dialog.Close className="dialog-close" aria-label="Close settings">
               ×
             </Dialog.Close>

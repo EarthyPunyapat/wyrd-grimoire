@@ -23,7 +23,7 @@ async function campaign(page: Page) {
     return ((await response.json()) as { id: string }).id;
   });
   await page.goto(`/#campaign=${id}`);
-  await expect(page.getByRole("button", { name: /Campaign settings/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Settings", exact: true })).toBeVisible();
   return id;
 }
 
@@ -59,8 +59,8 @@ test("campaign narration settings seed the play screen on a fresh device", async
 
 test("campaign settings show locks, apply a preset and keep a custom label", async ({ page }) => {
   const id = await campaign(page);
-  await page.getByRole("button", { name: /Campaign settings/ }).click();
-  const dialog = page.getByRole("dialog", { name: "Campaign settings" });
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Settings" });
   const presets = dialog.getByRole("group", { name: "Campaign preset" });
   await expect(presets.getByRole("button", { name: "Standard", exact: true })).toHaveAttribute(
     "aria-pressed",

@@ -651,7 +651,6 @@ function Downtime({
                 <span className="research-name">{r.name}</span>
                 <span className="pips" role="img" aria-label={`${r.filled} of ${r.segments}`}>
                   {Array.from({ length: r.segments }, (_, i) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: segments are positional
                     <i key={i} className={i < r.filled ? "on" : ""} />
                   ))}
                 </span>

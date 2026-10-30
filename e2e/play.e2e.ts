@@ -148,6 +148,9 @@ test("clarification choices are resolved and guard flags can regenerate", async 
   await expect(page.locator(".prose")).toBeVisible();
   await page.getByLabel("What do you do?", { exact: true }).fill("force a canon flag");
   await page.getByLabel("What do you do?", { exact: true }).press("Enter");
+  // The canon check is folded into the margin; it says it needs a look and opens on click.
+  await expect(page.locator(".canon-check.needs-look")).toBeVisible();
+  await page.locator(".canon-check.needs-look summary").click();
   await expect(page.getByRole("heading", { name: "Canon needs a second look" })).toBeVisible();
   await page.getByRole("button", { name: "Keep canon & regenerate" }).click();
   await expect(page.getByLabel("What do you do?", { exact: true })).toBeEnabled();

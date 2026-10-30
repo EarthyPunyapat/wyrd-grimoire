@@ -259,3 +259,6 @@
     position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
   }
 }
+
+[data-preset="reader"] .canon-check .check-flags,
+[data-preset="reader"] .canon-check .guard-card { margin: .5rem 0 0; padding: .5rem 0 0; border: 0; background: none; box-shadow: none; }

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { type ItemCatalog, Rng, type ShopState } from "@wyrd/core";
-import { buy, haggle, sell } from "../src/economy.ts";
+import { draft, type ItemCatalog, Rng, SceneState, type ShopState } from "@wyrd/core";
+import { buy, haggle, sell, shopHere } from "../src/economy.ts";
 import { startingEquipment, startingKitEvents } from "../src/equipment.ts";
 import {
   capacityKg,
@@ -247,4 +247,61 @@ describe("money and shops (spec 11)", () => {
     const rng2 = new Rng(s.state.campaign.rngState);
     expect(Array.from({ length: 5 }, () => rng2.int(1, 100))).toEqual(first);
   });
+});
+
+describe("a shop belongs to a place", () => {
+  const scene = (locationId: string) =>
+    draft("SceneOpened", {
+      scene: SceneState.parse({
+        id: `scene:${locationId}`,
+        locationId,
+        zones: [{ id: "z:1", name: "inside" }],
+        positions: { pc: "z:1" },
+        openedAt: 0,
+      }),
+    });
+
+  test("a shop opened without a place is stamped with the scene it opened in", () => {
+    const s = sim();
+    s.commit([scene("loc:market"), draft("ShopOpened", { shop }, "engine")]);
+    expect(s.state.economy.shops["shop:test"]!.locationId).toBe("loc:market");
+    expect(shopHere(s.state)?.id).toBe("shop:test");
+  });
+
+  test("leaving the shop's place leaves the shop behind", () => {
+    const s = sim();
+    s.commit([scene("loc:market"), draft("ShopOpened", { shop }, "engine"), scene("loc:rooftop")]);
+    expect(shopHere(s.state)).toBeNull();
+    s.commit([scene("loc:market")]);
+    expect(shopHere(s.state)?.id).toBe("shop:test");
+  });
+
+  test("an old shop with no recorded place uses the fallback location", () => {
+    const s = sim();
+    s.commit([scene("loc:opening")]);
+    s.state = { ...s.state, economy: { wallets: {}, shops: { "shop:test": shop } } };
+    expect(shopHere(s.state, "loc:opening")?.id).toBe("shop:test");
+    expect(shopHere(s.state, "loc:elsewhere")).toBeNull();
+  });
+});
+
+test("a merchant won't buy the player's own creation gear; it leaves only through the story", () => {
+  const s = sim({ subsystems: { money: "haggling" } });
+  s.state = {
+    ...s.state,
+    economy: { wallets: { pc: { coins: 0, wealthLevel: 3 } }, shops: { "shop:test": shop } },
+  };
+  const ring = {
+    id: "player:ring",
+    name: "Lantern Ring",
+    kind: "gear" as const,
+    weightKg: 0,
+    price: 0,
+    tags: [],
+  };
+  const withRing = { ...items, gear: { ...items.gear, [ring.id]: ring } } as typeof items;
+  give(s, ring.id, 1);
+  const out = sell(s.state, "pc", "shop:test", ring.id, 1, { ...ectx, items: withRing });
+  expect(out.ok).toBe(false);
+  if (!out.ok) expect(out.errors[0]!.code).toBe("SIGNATURE_ITEM");
 });

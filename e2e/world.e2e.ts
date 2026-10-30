@@ -24,7 +24,7 @@ async function quickStart(page: Page, name: string, world: string) {
     { name, world },
   );
   await page.goto(`/#campaign=${id}`);
-  await expect(page.getByRole("button", { name: /Campaign settings/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Settings", exact: true })).toBeVisible();
 }
 
 async function begin(page: Page) {

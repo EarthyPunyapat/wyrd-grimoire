@@ -78,3 +78,67 @@ export function itemIcon(item: ItemLike): GameIconName {
   for (const [pattern, icon] of GEAR_WORDS) if (pattern.test(item.name)) return icon;
   return "bag";
 }
+
+/*
+ * Chrome icons: plain 24-unit stroke drawings for menus, tabs, the hotbar and empty slots. Game-icons art
+ * stays for items, where its detail reads; at 14–18px it turns to noise, so chrome uses these instead.
+ */
+const CHROME_PATHS = {
+  person: "M12 11.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM5 20c0-3.9 3.1-7 7-7s7 3.1 7 7",
+  backpack: "M9 7V5.5a3 3 0 0 1 6 0V7M8 7h8a3 3 0 0 1 3 3v10H5V10a3 3 0 0 1 3-3zM5 13h14M10 13v3h4v-3",
+  quest: "M7 4h10a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM9 9h6M9 13h6M9 17h3",
+  book: "M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5zM20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5z",
+  gem: "M7 4h10l4 5-9 11L3 9zM3 9h18M12 20 8.5 9 12 4l3.5 5z",
+  map: "M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20zM9 4v13.5M15 6.5V20",
+  hourglass: "M6 3h12M6 21h12M7 3v2.5c0 3 5 4 5 6.5s-5 3.5-5 6.5V21M17 3v2.5c0 3-5 4-5 6.5s5 3.5 5 6.5V21",
+  gear: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1",
+  coins:
+    "M12 8.5c3.9 0 7-1.1 7-2.5s-3.1-2.5-7-2.5S5 4.6 5 6s3.1 2.5 7 2.5zM5 6v4c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6M5 10v4c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-4M5 14v4c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-4",
+  eye: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+  clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3.5 2",
+  list: "M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01",
+  wand: "M4 20 14 10M15 3.5v3M19.5 5.5l-2 2M20.5 10h-3M11.5 5l1.5 1.5",
+  sparkle:
+    "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z",
+  users:
+    "M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5.3a3 3 0 0 1 0 5.4M17.5 14.3c2.1.7 3.5 2.9 3.5 5.7",
+  lock: "M7 11h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2zM8 11V8a4 4 0 0 1 8 0v3",
+  avatar:
+    "M10 11.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM3 20c0-3.9 3.1-7 7-7 1.5 0 2.9.5 4 1.2M18 14v6M15 17h6",
+  swords:
+    "M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2M9.5 17.5 21 6V3h-3L6.5 14.5M11 19l-6-6M8 16l-4 4M5 21l-2-2",
+  hand: "M8 13V5.5a1.5 1.5 0 0 1 3 0V11M11 10V4.5a1.5 1.5 0 0 1 3 0V11M14 10.5V6a1.5 1.5 0 0 1 3 0v7c0 4-2.7 7-6.5 7-2.6 0-4.2-1.3-5.5-3.4l-1.7-2.8a1.5 1.5 0 0 1 2.4-1.8L8 14.5",
+  shield: "M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z",
+  shirt: "M8.5 3 3 6l2 4 2-1v12h10V9l2 1 2-4-5.5-3c0 1.7-1.6 3-3.5 3s-3.5-1.3-3.5-3z",
+  pin: "M12 21s-7-6.3-7-11.5a7 7 0 0 1 14 0C19 14.7 12 21 12 21zM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
+} as const;
+
+export type ChromeIconName = keyof typeof CHROME_PATHS;
+
+export function ChromeIcon({
+  name,
+  size = 18,
+  className,
+}: {
+  name: ChromeIconName;
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <svg
+      className={className ? `chrome-icon ${className}` : "chrome-icon"}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d={CHROME_PATHS[name]} />
+    </svg>
+  );
+}

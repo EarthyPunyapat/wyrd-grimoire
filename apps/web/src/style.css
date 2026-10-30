@@ -507,3 +507,49 @@ progress::-webkit-progress-value { background: var(--accent); }
 .generation-steps li.failed { color: var(--danger); }
 .generation-steps li.running span { animation: wyrd-pulse 1s ease-in-out infinite; }
 @keyframes wyrd-pulse { 50% { opacity: .35; } }
+
+/* Hotbar icons and the Abilities list (all presets). The list sits above the bar, outside its scroller. */
+.hotbar button { display: inline-flex; align-items: center; gap: 6px; }
+.hotbar .chrome-icon { flex: none; color: var(--ink-muted); }
+.hotbar button:hover:not(:disabled) .chrome-icon,
+.hotbar .hotbar-open .chrome-icon { color: var(--accent); }
+.hotbar .hotbar-danger .chrome-icon { color: var(--danger); }
+.hotbar-count { min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); font-size: 11px; line-height: 18px; text-align: center; }
+.abilities-panel {
+  position: fixed; z-index: 30; left: 50%; bottom: calc(var(--hotbar-height, 56px) + 8px); transform: translateX(-50%);
+  display: grid; gap: .75rem; width: min(520px, calc(100vw - 32px)); max-height: min(60vh, 520px); overflow-y: auto;
+  padding: 14px 16px 16px; border: 1px solid var(--line-strong, var(--line)); border-radius: 8px;
+  background: var(--surface); box-shadow: 0 12px 40px rgb(0 0 0 / .35);
+}
+.abilities-panel[hidden] { display: none; }
+.abilities-panel header { display: flex; align-items: center; justify-content: space-between; }
+.abilities-panel h2 { margin: 0; font: italic 400 20px / 1.3 var(--font-read); }
+.abilities-close { min-height: 36px; min-width: 36px; padding: 0; border: 0; background: none; font-size: 20px; }
+.abilities-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.abilities-list button {
+  display: grid; gap: 3px; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--bg); text-align: left; font: var(--text-meta, .85rem) / 1.5 var(--font-chrome);
+}
+.abilities-list button:hover:not(:disabled) { border-color: var(--accent); background: var(--bg); }
+.ability-head { display: flex; align-items: center; gap: 8px; color: var(--gold); }
+.ability-head strong { color: var(--ink); font: 400 16px / 1.3 var(--font-read); }
+.ability-meta { margin-left: auto; color: var(--ink-muted); font-size: 11px; }
+.ability-desc { color: var(--ink); font: 14px / 1.45 var(--font-read); }
+.ability-cost { color: var(--ink-muted); font-size: 11px; }
+
+/* Canon check: a folded margin note (D164). Inside it the flag cards drop their own frames. */
+.canon-check { margin: .75rem 0 0; border-top: 1px solid var(--line); padding-top: .5rem; font: var(--text-meta, .8rem) / 1.5 var(--font-chrome); color: var(--ink-muted); }
+.canon-check > summary { display: flex; align-items: center; gap: .5rem; min-height: 32px; list-style: none; cursor: pointer; border-radius: 0; }
+.canon-check > summary::-webkit-details-marker { display: none; }
+.canon-check > summary::before { content: "▸"; color: var(--ink-faint); }
+.canon-check[open] > summary::before { content: "▾"; }
+.canon-check-title { color: var(--ink-muted); }
+.canon-check-count { margin-left: auto; color: var(--ink-faint); font-size: 11px; }
+.canon-check.needs-look .canon-check-count { color: var(--danger); }
+.canon-check .check-flags,
+.canon-check .guard-card { margin: .5rem 0 0; padding: .5rem 0 0; border: 0; border-left: 0; background: none; font-size: 12px; }
+.canon-check .check-flags h3,
+.canon-check .guard-card h3 { margin: 0 0 .35rem; font: 600 12px / 1.4 var(--font-chrome); color: var(--ink); }
+.canon-check .check-flag p,
+.canon-check .guard-card p { margin: 0 0 .35rem; }
+.canon-check button { min-height: 32px; padding: 2px 10px; font-size: 12px; }
