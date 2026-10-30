@@ -1,6 +1,16 @@
 import { Database } from "bun:sqlite";
 import { createHash, randomUUID } from "node:crypto";
-import type { CampaignCard, UsageRecord, WyrdConfig } from "@wyrd/core";
+import {
+  type CampaignCard,
+  CharacterCard,
+  SavedWorldMeta,
+  type UsageRecord,
+  WorldSetup,
+  type WyrdConfig,
+} from "@wyrd/core";
+import { z } from "zod";
+
+const SavedWorld = SavedWorldMeta.extend({ draft: z.unknown() });
 
 export type WebCampaign = CampaignCard;
 export type TurnJob = {
@@ -63,6 +73,16 @@ export class AppStore {
         this.db.run("PRAGMA user_version = 3");
       })();
     }
+    if ((this.db.query("PRAGMA user_version").get() as { user_version: number }).user_version < 4) {
+      this.db.transaction(() => {
+        for (const table of ["world_setups", "character_cards", "saved_worlds"]) {
+          this.db.run(
+            `CREATE TABLE ${table} (id TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL)`,
+          );
+        }
+        this.db.run("PRAGMA user_version = 4");
+      })();
+    }
     // First Light's tables are created by existence, not by user_version, so they merge cleanly with
     // version-numbered migrations built in parallel (D168).
     this.db.run(
@@ -71,6 +91,67 @@ export class AppStore {
     this.db.run(
       "CREATE TABLE IF NOT EXISTS media_attempts (campaign_id TEXT NOT NULL, entity_id TEXT NOT NULL, role TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(campaign_id, entity_id, role))",
     );
+  }
+  private library<T>(table: string, schema: z.ZodType<T>): T[] {
+    const rows = this.db.query(`SELECT value FROM ${table} ORDER BY updated_at DESC, id`).all() as {
+      value: string;
+    }[];
+    return rows.flatMap((row) => {
+      try {
+        const parsed = schema.safeParse(JSON.parse(row.value));
+        return parsed.success ? [parsed.data] : [];
+      } catch {
+        return [];
+      }
+    });
+  }
+  private saveEntry<T extends { id: string; updatedAt: string }>(table: string, value: T): T {
+    const previous = this.db.query(`SELECT updated_at FROM ${table} WHERE id = ?`).get(value.id) as {
+      updated_at: string;
+    } | null;
+    const updatedAt = new Date(
+      Math.max(Date.now(), Date.parse(previous?.updated_at ?? "") + 1 || 0),
+    ).toISOString();
+    const saved = { ...value, updatedAt };
+    this.db.run(`INSERT OR REPLACE INTO ${table} VALUES (?, ?, ?)`, [
+      value.id,
+      JSON.stringify(saved),
+      updatedAt,
+    ]);
+    return saved;
+  }
+  worldSetups(): WorldSetup[] {
+    return this.library("world_setups", WorldSetup);
+  }
+  saveWorldSetup(value: WorldSetup): WorldSetup {
+    return this.saveEntry("world_setups", WorldSetup.parse(value));
+  }
+  removeWorldSetup(id: string): void {
+    this.db.run("DELETE FROM world_setups WHERE id = ?", [id]);
+  }
+  characterCards(): CharacterCard[] {
+    return this.library("character_cards", CharacterCard);
+  }
+  characterCard(id: string): CharacterCard | null {
+    return this.characterCards().find((c) => c.id === id) ?? null;
+  }
+  saveCharacterCard(value: CharacterCard): CharacterCard {
+    return this.saveEntry("character_cards", CharacterCard.parse(value));
+  }
+  removeCharacterCard(id: string): void {
+    this.db.run("DELETE FROM character_cards WHERE id = ?", [id]);
+  }
+  savedWorlds(): z.infer<typeof SavedWorld>[] {
+    return this.library("saved_worlds", SavedWorld);
+  }
+  savedWorld(id: string): z.infer<typeof SavedWorld> | null {
+    return this.savedWorlds().find((w) => w.id === id) ?? null;
+  }
+  saveSavedWorld(meta: SavedWorldMeta, draft: unknown): z.infer<typeof SavedWorld> {
+    return this.saveEntry("saved_worlds", SavedWorld.parse({ ...meta, draft }));
+  }
+  removeSavedWorld(id: string): void {
+    this.db.run("DELETE FROM saved_worlds WHERE id = ?", [id]);
   }
   saveMediaCandidates(campaignId: string, entityId: string, role: string, hits: unknown[]): void {
     this.db.run("INSERT OR REPLACE INTO media_candidates VALUES (?, ?, ?, ?)", [
