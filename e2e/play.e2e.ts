@@ -211,3 +211,50 @@ test("story and settings fit narrow phones, tablets and desktop", async ({ page 
   const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(accessibility.violations).toEqual([]);
 });
+
+test("finishing a turn keeps the reader's scroll position", async ({ page }) => {
+  await create(page);
+  // Give the reader enough history to scroll even with the short offline fixture.
+  await page.locator(".story-inner").evaluate((el) => {
+    const spacer = document.createElement("div");
+    spacer.style.height = "3000px";
+    el.prepend(spacer);
+  });
+  const box = page.getByLabel("What do you do?", { exact: true });
+  let releaseView!: () => void;
+  const viewGate = new Promise<void>((resolve) => {
+    releaseView = resolve;
+  });
+  let viewRequested!: () => void;
+  const viewRequest = new Promise<void>((resolve) => {
+    viewRequested = resolve;
+  });
+  await page.route("**/api/campaigns/*/view", async (route) => {
+    viewRequested();
+    await viewGate;
+    await route.continue();
+  });
+  await box.fill("Look around");
+  await box.press("Enter");
+  await viewRequest;
+  await page.locator(".story-scroll").evaluate((el) => {
+    el.scrollTop = 0;
+  });
+  releaseView();
+  await expect(box).toBeEnabled();
+  await expect(page.locator(".prose")).toContainText("offline narrator");
+  expect(await page.locator(".story-scroll").evaluate((el) => el.scrollTop)).toBeLessThan(10);
+});
+
+test("a late consistency warning appears on the finished passage", async ({ page }) => {
+  await create(page);
+  const box = page.getByLabel("What do you do?", { exact: true });
+  await box.fill("late canon check");
+  await box.press("Enter");
+  await expect(page.locator(".story")).toContainText("The ring changes hands.");
+  await expect(box).toBeEnabled();
+  const warning = page.locator(".passage").last().locator(".canon-check");
+  await expect(warning).toContainText("1 to review");
+  await warning.locator("summary").click();
+  await expect(warning).toContainText("The ring was not moved.");
+});

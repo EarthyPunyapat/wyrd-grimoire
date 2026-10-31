@@ -7,7 +7,7 @@ import { CombatPanel, CombatStrip } from "./Combat.tsx";
 import { ABILITIES_KEY, Hotbar } from "./Hotbar.tsx";
 import { ChromeIcon } from "./icons.tsx";
 import { MENU_LABEL, Menus, type MenuTab } from "./Menus.tsx";
-import { NarrativeText, narrationContext, RefContext } from "./Narration.tsx";
+import { Narration, NarrativeText, narrationContext, RefContext } from "./Narration.tsx";
 import { Passage, RollNotes } from "./Passage.tsx";
 import { MediaContext } from "./Portrait.tsx";
 import { usePlayPreset } from "./presets.ts";
@@ -120,10 +120,13 @@ export function Play({
     setPanelOpen(null);
     void send(text);
   };
+  // Open a campaign at its latest passage, but leave the reader in control after that.
   useEffect(() => {
-    if (!play.busy) textarea.current?.focus();
     bottom.current?.scrollIntoView({ behavior: "instant", block: "end" });
-  }, [play.busy, view.turns.length]);
+  }, [view.id]);
+  useEffect(() => {
+    if (!play.busy) textarea.current?.focus({ preventScroll: true });
+  }, [play.busy]);
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).closest("input,textarea,select,[role=dialog],[contenteditable=true]"))
@@ -271,7 +274,7 @@ export function Play({
                       )}
                       {play.live && (
                         <div className="live-passage">
-                          <NarrativeText text={play.live} names={narrationContext(view).names} />
+                          <Narration text={play.live} {...narrationContext(view)} />
                         </div>
                       )}
                       <Cards cards={play.cards} view={view} mechanics={play.mechanics} />

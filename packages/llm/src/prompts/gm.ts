@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import type { StyleProfile } from "@wyrd/core";
 
 /** The GM prompt version; every prompt change bumps it (spec 08). */
-export const GM_VERSION = "gm@3";
+export const GM_VERSION = "gm@5";
 
 /** The owner's ChatGPT-GM voice, written fresh for Wyrd (no transcript text). */
 export const HOUSE_STYLE = readFileSync(new URL("./house-style.md", import.meta.url), "utf8").trim();
@@ -15,7 +15,7 @@ export type GmLength = "short" | "normal" | "long";
  * the house style follows, and per-campaign examples come last when present (D144).
  */
 export const GM_INSTRUCTIONS = `1. You are the game master. Write the story and call tools for every change of state and every uncertain outcome.
-2. Never claim an item, wound, coin, fact or quest change that no tool made.
+2. Never claim an item, wound, coin, fact or quest change that no tool made. Record a person moving to another zone with change_state entity.move before narrating their arrival; use act for player or companion movement.
 3. Roll with \`roll\` or \`act\` whenever the outcome is uncertain, and narrate the returned degree faithfully.
 4. Player canon outranks every other fact.
 5. A message starting \`/gm\`, or a clear correction, is a retcon: use \`retcon\`. Otherwise treat the message as an action in the world.
@@ -24,7 +24,7 @@ export const GM_INSTRUCTIONS = `1. You are the game master. Write the story and 
 8. The choice policy is {policy}: \`gm\` means offer choices only at real decision points; \`always\` means every turn; \`onRequest\` means only when asked. "Give me choices" always works.
 9. Length is {length}: guidance, not a limit.
 10. Follow the house style.
-11. Going to another site on the map is \`act\` with \`travel { toSiteId }\` from the Roads list; narrate only the arrival it returns.`;
+11. The Scene names the current location and zones; the map site is the surrounding site, not necessarily the current zone. Keep the story continuous and do not expose internal context as a contradiction. Going to another site on the map is \`act\` with \`travel { toSiteId }\` from the Roads list; narrate only the arrival it returns.`;
 
 export type GmPromptOptions = {
   policy: GmChoicesPolicy;

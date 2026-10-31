@@ -1212,7 +1212,7 @@ export function createApp(options: Options) {
               }
             : {}),
           ...(record.status === "ooc" ? { answer: record.answer } : {}),
-          ...(snapshots.get(t.id) ? { guard: snapshots.get(t.id)!.guard } : {}),
+          ...(!record.gm && snapshots.get(t.id) ? { guard: snapshots.get(t.id)!.guard } : {}),
           cards: record.gm?.cards ?? delegationReportCards(events.filter((e) => e.turnId === t.id)),
           choices: record.gm?.choices ?? [],
           backup: record.gm?.backup ?? false,
@@ -1438,9 +1438,11 @@ export function createApp(options: Options) {
       );
     const task = (async () => {
       try {
+        let check: Promise<void> | undefined;
         if (target) await pipeline.reroll(target, emit);
         else {
-          await pipeline.run({ input, ...(actions ? { actions } : {}), onEvent: emit });
+          const result = await pipeline.run({ input, ...(actions ? { actions } : {}), onEvent: emit });
+          check = result.check;
           // A companion who just joined gets their values and personal quest (spec 04).
           await profileNewCompanions(game, options.offline ? null : models.router()).catch(() => undefined);
           // Memory pyramid (spec 07): close scenes, chapters and arcs as their boundaries pass.
@@ -1452,6 +1454,10 @@ export function createApp(options: Options) {
           }).catch(() => 0);
         }
         store.touchCampaign(id);
+        if (check) {
+          store.checking(jobId);
+          await check;
+        }
       } catch {
         emit({
           type: "error",

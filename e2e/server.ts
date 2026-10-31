@@ -138,6 +138,11 @@ const cases = new FakeProvider([
 const levelModel = new FakeProvider([
   {
     role: "gm",
+    match: (r) => r.messages.some((m) => m.content.includes("late canon check")),
+    reply: { text: "The ring changes hands." },
+  },
+  {
+    role: "gm",
     match: (r) => r.messages.some((m) => m.role === "user" && m.content.includes("vendor workflow")),
     reply: (r) => {
       if (!r.messages.some((m) => m.role === "tool"))
@@ -237,12 +242,34 @@ const levelModel = new FakeProvider([
     },
   },
 ]);
+const checkModel = new FakeProvider([
+  {
+    role: "check",
+    reply: (r) => ({
+      toolCall: {
+        name: "report_unrecorded",
+        args: {
+          claims: r.messages.some((m) => m.content.includes("The ring changes hands."))
+            ? [{ quote: "The ring changes hands.", claim: "The ring was not moved." }]
+            : [],
+          entities: [],
+        },
+      },
+    }),
+  },
+]);
 const provider: ChatProvider = {
   id: "offline",
   kind: "fake",
   listModels: () => offline.listModels(),
   generate: (request) => {
     if (request.role === "gm") return levelModel.generate(request);
+    if (request.role === "check")
+      return (async function* () {
+        if (request.messages.some((m) => m.content.includes("The ring changes hands.")))
+          await new Promise((resolve) => setTimeout(resolve, 800));
+        yield* checkModel.generate(request);
+      })();
     const input = request.messages[0];
     const context = input?.role === "user" ? input.content : "";
     const current = /## This turn\n\n(?:[\s\S]*?\n)?Player: (.*)/.exec(context)?.[1] ?? "";
@@ -259,7 +286,7 @@ const router = new RoleRouter({
   usage: { record: (r) => instance.store.recordUsage(r) },
   providers: { offline: provider },
   routing: Object.fromEntries(
-    ["parser", "narrator", "guard", "worldGen", "gm"].map((role) => [
+    ["parser", "narrator", "guard", "worldGen", "gm", "check"].map((role) => [
       role,
       { provider: "offline", model: "offline", fallbacks: [] },
     ]),

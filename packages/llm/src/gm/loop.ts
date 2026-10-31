@@ -194,20 +194,23 @@ function startCheck(
       known,
       turnId: o.turnId,
     });
-    const stubs = result.entities.map((e) =>
-      draft(
-        "EntityCreated",
-        {
-          entity: Entity.parse({
-            id: d.newId(),
-            kind: e.kind,
-            name: e.name,
-            detail: "stub",
-          }),
-        },
-        "model",
-      ),
-    );
+    // The checker only sees player-known names; do not duplicate an existing hidden or newly added entity.
+    const stubs = result.entities
+      .filter((e) => d.canon.findByName(e.name).length === 0)
+      .map((e) =>
+        draft(
+          "EntityCreated",
+          {
+            entity: Entity.parse({
+              id: d.newId(),
+              kind: e.kind,
+              name: e.name,
+              detail: "stub",
+            }),
+          },
+          "model",
+        ),
+      );
     d.store.append(
       [
         draft(
