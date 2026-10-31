@@ -17,17 +17,29 @@ import { AppStore, CampaignStore } from "@wyrd/storage";
 import { PNG } from "../../../packages/media/test/fixtures.ts";
 import { MediaWorker, viewMedia } from "../src/media.ts";
 
-const homes: string[] = [];
-afterEach(() => {
-  for (const home of homes.splice(0)) rmSync(home, { recursive: true, force: true });
+const cleanups: (() => void | Promise<void>)[] = [];
+afterEach(async () => {
+  for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
 });
+
+function temporaryHome(prefix: string) {
+  const home = mkdtempSync(join(tmpdir(), prefix));
+  cleanups.push(() => rmSync(home, { recursive: true, force: true }));
+  return home;
+}
+
+function appStore(home: string) {
+  const store = new AppStore(join(home, "app.db"));
+  cleanups.push(() => store.close());
+  return store;
+}
 
 /** Wren in the Bowery: Batman and Old Magda known, the alley as the scene; optionally a DC source wiki. */
 function world(wiki?: string) {
-  const home = mkdtempSync(join(tmpdir(), "wyrd-media-worker-"));
-  homes.push(home);
+  const home = temporaryHome("wyrd-media-worker-");
   const created = unwrap(createCampaign({ name: "Gotham", packIds: ["fantasy-core"], seed: 3 }));
   const game = CampaignStore.create<GameState>(join(home, "c1.db"), created, { reduce });
+  cleanups.push(() => game.close());
   const sheet = buildSheet(
     {
       id: "pc",
@@ -121,8 +133,8 @@ function worker(o: {
   limit?: number;
   now?: () => number;
 }) {
-  const store = new AppStore(join(o.home, "app.db"));
-  return new MediaWorker({
+  const store = appStore(o.home);
+  const mediaWorker = new MediaWorker({
     cache: new AssetCache(join(o.home, "media-cache")),
     wiki: o.wiki.client,
     provider: () => o.provider ?? null,
@@ -134,6 +146,8 @@ function worker(o: {
     ...(o.limit ? { limit: o.limit } : {}),
     ...(o.now ? { now: o.now } : {}),
   });
+  cleanups.push(() => mediaWorker.idle());
+  return mediaWorker;
 }
 
 const generated: ImageProvider = {
@@ -240,8 +254,7 @@ describe("media routes and the game view", () => {
     searches?: string[];
     provider?: ImageProvider | null;
   }) => {
-    const home = mkdtempSync(join(tmpdir(), "wyrd-media-app-"));
-    homes.push(home);
+    const home = temporaryHome("wyrd-media-app-");
     const wiki = fakeWiki(o.pages ?? {});
     wiki.client.search = async () => o.searches ?? [];
     const instance = createApp({
@@ -249,6 +262,10 @@ describe("media routes and the game view", () => {
       offline: true,
       mediaWiki: wiki.client,
       ...(o.provider !== undefined ? { imageProvider: o.provider } : {}),
+    });
+    cleanups.push(async () => {
+      await instance.idle();
+      instance.close();
     });
     const request = (path: string, body?: unknown, cookie?: string) =>
       instance.app.request(`http://localhost/api${path}`, {
@@ -282,7 +299,6 @@ describe("media routes and the game view", () => {
     expect(image.headers.get("content-type")).toBe("image/png");
     expect(new Uint8Array(await image.arrayBuffer())).toEqual(PNG);
     expect((await s.request(url!.replace("/api", ""))).status).toBe(401);
-    s.instance.close();
   });
 
   test("the PC gets a generated portrait when a generator is set up", async () => {
@@ -291,7 +307,6 @@ describe("media routes and the game view", () => {
     await s.instance.idle();
     const view = await s.view();
     expect(view.media.portraits[view.pc.id]).toMatch(/^\/api\/media\//);
-    s.instance.close();
   });
 
   test("ambiguous places offer candidates; choosing one attaches it, and unknown entities are never listed", async () => {
@@ -324,7 +339,6 @@ describe("media routes and the game view", () => {
       await s.request(`/campaigns/${s.id}/media/candidates`, undefined, s.cookie)
     ).json()) as unknown[];
     expect(after).toHaveLength(0);
-    s.instance.close();
   });
 
   test("media settings save, and the generator test says when nothing is set up", async () => {
@@ -342,7 +356,6 @@ describe("media routes and the game view", () => {
     expect(read).toMatchObject({ webImages: false, comfyUrl: "http://192.168.1.20:8188" });
     const tested = await s.request("/settings/media/test", {}, s.cookie);
     expect(tested.status).toBe(422);
-    s.instance.close();
   });
 
   test("the map shows a site's banner as its thumbnail", async () => {
@@ -353,16 +366,18 @@ describe("media routes and the game view", () => {
     // Quick-start worlds have no sites; the field is optional and absent, never broken.
     for (const site of map.sites)
       expect(site.thumb === undefined || site.thumb.startsWith("/api/media/")).toBe(true);
-    s.instance.close();
   });
 });
 
 test("a picture chosen while a turn starts is refused rather than written into the turn", async () => {
-  const home = mkdtempSync(join(tmpdir(), "wyrd-media-race-"));
-  homes.push(home);
+  const home = temporaryHome("wyrd-media-race-");
   const wiki = fakeWiki({ "Ferry house (inn)": true });
   wiki.client.search = async () => ["Ferry house (inn)"];
   const instance = createApp({ home, offline: true, mediaWiki: wiki.client, imageProvider: null });
+  cleanups.push(async () => {
+    await instance.idle();
+    instance.close();
+  });
   const req = (path: string, body?: unknown, cookie?: string) =>
     instance.app.request(`http://localhost/api${path}`, {
       method: body === undefined ? "GET" : "POST",
@@ -404,7 +419,6 @@ test("a picture chosen while a turn starts is refused rather than written into t
   expect(chose.status).toBe(409);
   const view = GameView.parse(await (await req(`/campaigns/${id}/view`, undefined, cookie)).json());
   expect(view.scene?.banner).toBeUndefined();
-  instance.close();
 });
 
 test("a picture whose file is gone (a moved server) is hidden and fetched again", async () => {
@@ -456,7 +470,7 @@ test("a host that refuses us is remembered: its candidates aren't offered and th
   await w.idle();
   expect(mediaOf(game.state()).portraits["npc:bat"]?.origin).toBe("generated");
   expect(mediaOf(game.state()).portraits["npc:stranger"]?.origin).toBe("generated");
-  expect(new AppStore(join(home, "app.db")).mediaCandidates("c1")).toEqual([]);
+  expect(appStore(home).mediaCandidates("c1")).toEqual([]);
   // One refusal was enough to stop asking that host.
   expect(fetched).toHaveLength(1);
 });
@@ -464,7 +478,7 @@ test("a host that refuses us is remembered: its candidates aren't offered and th
 test("connecting ComfyUI takes effect at once for characters nothing could picture before", async () => {
   const { home, game } = world();
   let provider: ImageProvider | null = null;
-  const store = new AppStore(join(home, "app.db"));
+  const store = appStore(home);
   const w = new MediaWorker({
     cache: new AssetCache(join(home, "media-cache")),
     wiki: fakeWiki({}).client,
@@ -477,6 +491,7 @@ test("connecting ComfyUI takes effect at once for characters nothing could pictu
     limit: 10,
     now: () => 1000,
   });
+  cleanups.push(() => w.idle());
   w.after("c1");
   await w.idle();
   expect(mediaOf(game.state()).portraits["npc:magda"]).toBeUndefined();

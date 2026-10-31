@@ -4,7 +4,7 @@
  */
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import path, { join, relative } from "node:path";
 
 const ROOT = join(import.meta.dir, "..");
 
@@ -31,20 +31,25 @@ const importsOf = (file: string) =>
   [...readFileSync(file, "utf8").matchAll(/(?:from\s+|import\s*\()\s*["']([^"']+)["']/g)].map((m) => m[1]!);
 
 // Nested domain/tool modules may climb several directories while remaining in their package.
-function escapesPackage(packageRoot: string, file: string, spec: string): boolean {
+function escapesPackage(packageRoot: string, file: string, spec: string, paths = path): boolean {
   if (!spec.startsWith(".")) return false;
-  const target = relative(packageRoot, resolve(dirname(file), spec));
-  return target === ".." || target.startsWith("../");
+  const target = paths.relative(packageRoot, paths.resolve(paths.dirname(file), spec));
+  return target === ".." || target.startsWith(`..${paths.sep}`);
 }
 
-test("relative import boundary follows the resolved package path", () => {
-  const root = join(ROOT, "packages/llm");
-  const file = join(root, "src/gm/tools/lore.ts");
-  expect(escapesPackage(root, file, "../../lore/mediawiki.ts")).toBe(false);
-  expect(escapesPackage(root, join(root, "src/lore/mediawiki.ts"), "../../package.json")).toBe(false);
-  expect(escapesPackage(root, file, "../../../../storage/src/index.ts")).toBe(true);
-  expect(escapesPackage(root, join(root, "src/index.ts"), "../../engine/src/index.ts")).toBe(true);
-});
+for (const paths of [path.posix, path.win32]) {
+  test(`relative import boundary follows the resolved package path (${paths.sep})`, () => {
+    const root = paths.resolve("packages/llm");
+    const file = paths.join(root, "src/gm/tools/lore.ts");
+    const escapes = (file: string, spec: string) => escapesPackage(root, file, spec, paths);
+    expect(escapes(file, "../../lore/mediawiki.ts")).toBe(false);
+    expect(escapes(paths.join(root, "src/lore/mediawiki.ts"), "../../package.json")).toBe(false);
+    expect(escapes(file, "../../../../storage/src/index.ts")).toBe(true);
+    expect(escapes(paths.join(root, "src/index.ts"), "../../engine/src/index.ts")).toBe(true);
+    expect(escapes(paths.join(root, "src/index.ts"), "../..")).toBe(true);
+    expect(escapes(file, "@wyrd/core")).toBe(false);
+  });
+}
 
 const packages = readdirSync(join(ROOT, "packages")).filter((p) =>
   statSync(join(ROOT, "packages", p)).isDirectory(),

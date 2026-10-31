@@ -1,4 +1,6 @@
 import { expect, test } from "bun:test";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { UsageRecord, WyrdConfig } from "@wyrd/core";
 import { AppStore } from "../src/app-store.ts";
 
@@ -140,7 +142,7 @@ test("preset libraries migrate v3, stamp updates, round trip and remove", async 
 test("v3 migration keeps creation drafts and media tables", async () => {
   const { mkdtempSync, rmSync } = await import("node:fs");
   const { Database } = await import("bun:sqlite");
-  const path = mkdtempSync("/tmp/wyrd-v3-");
+  const path = mkdtempSync(join(tmpdir(), "wyrd-v3-"));
   try {
     const db = new Database(`${path}/app.db`);
     db.run(

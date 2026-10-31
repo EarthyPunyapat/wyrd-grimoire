@@ -1,5 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { WorldSetup } from "@wyrd/core";
 import { createApp } from "../src/app.ts";
@@ -11,7 +12,7 @@ afterEach(() => {
   for (const f of cleanups.splice(0).reverse()) f();
 });
 async function setup(options: Partial<Parameters<typeof createApp>[0]> = {}) {
-  const home = mkdtempSync("/tmp/wyrd-presets-");
+  const home = mkdtempSync(join(tmpdir(), "wyrd-presets-"));
   const app = createApp({ home, offline: true, ...options });
   cleanups.push(
     () => rmSync(home, { recursive: true, force: true }),
